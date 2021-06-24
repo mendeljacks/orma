@@ -5,7 +5,7 @@ module.exports.deploy = async () => {
 
     run_process(['npm', 'version', 'patch'])
     .catch(err => {
-        console.log(err)
+        console.error(err)
     })
 
     await npmPublish({
