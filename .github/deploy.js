@@ -1,5 +1,4 @@
 const npmPublish = require("@jsdevtools/npm-publish");
-const fs = require('fs')
 const spawn = require('cross-spawn')
 
 module.exports.deploy = async () => {
