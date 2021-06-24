@@ -1,0 +1,19 @@
+name: Build
+
+on: push
+
+jobs:
+  Build:
+    name: Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: npm install
+      run: npm install
+
+    - name: npm run deploy
+      run: NPM_TOKEN=${{secrets.NPM_TOKEN}} npm run deploy
+
+      

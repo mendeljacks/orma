@@ -15,5 +15,16 @@
   "bugs": {
     "url": "https://github.com/mendeljacks/orma/issues"
   },
-  "homepage": "https://github.com/mendeljacks/orma#readme"
+  "homepage": "https://github.com/mendeljacks/orma#readme",
+  "contributors": [
+    {
+      "name": "Mendel Jacks",
+      "email": "mendeljacks@gmail.com",
+      "url": "http://mendeljacks.com"
+    },
+    {
+      "name": "Daniel Jacks",
+      "email": "danielchaimjacks@gmail.com"
+    }
+  ]
 }
