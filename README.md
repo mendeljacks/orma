@@ -1,12 +1,9 @@
 ## Orma
 
-Orma is a database ORM a declarative alternative to Prisma.
+Orma is a declarative ORM.
 The goal is to provide a high level syntax with low performance overhead.
 
-With this package you can subscribe to introspect relational databases, construct optimised sql queries, and insert deeply nested data into relational tables.
-
-This package returns sql queries, which can be executed in a pool by the user.
-
+Orma provides introspection, validation, query construction and mutations. The package accepts json objects and returns sql strings.
 
 ## Installation
 ```
@@ -23,12 +20,15 @@ import { ... } from 'orma'
 // here is a code snippet
 ```
 ## Construct queries
-
+The query generates nested json by...
 ```js
 // This is how you construct queries
+// This is how you execute queries
 ```
 
 ## Construct Mutations
+Mutation format is the same as from the read uil...
+Operations are nested in as meta on each level...
 Here is where we explain what recursive op hierarchy alternative to graphql
 ```js
 // Another snippet

@@ -1,17 +1,28 @@
 {
   "name": "orma",
   "version": "1.0.1",
-  "description": "orma",
-  "main": "index.js",
+  "description": "A declarative relational syncronous orm",
+  "main": "build/index.js",
   "scripts": {
+    "build": "tsc",
     "deploy": "node -e \"require('./.github/deploy.js').deploy()\""
   },
+  "files": [
+    "build/**/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mendeljacks/orma.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
+  "keywords": [
+    "orm",
+    "database",
+    "mysql",
+    "postgresql",
+    "declarative"
+  ],
   "bugs": {
     "url": "https://github.com/mendeljacks/orma/issues"
   },
