@@ -4,9 +4,10 @@ const spawn = require('cross-spawn')
 module.exports.deploy = async () => {
 
     run_process(['npm', 'version', 'patch'])
+    .catch(err => {
+        console.log(err)
+    })
 
-
-    // Run npm-publish with options
     await npmPublish({
         package: "./package.json",
         token: process.env.NPM_TOKEN
