@@ -6,6 +6,8 @@
   "scripts": {
     "build": "tsc",
     "deploy": "node -e \"require('./.github/deploy.js').deploy()\""
+    "test": "mocha --package package.json",
+    "nt": "nodemon --exec yarn test"
   },
   "files": [
     "build/**/*"
@@ -39,6 +41,30 @@
     }
   ],
   "devDependencies": {
-    "@jsdevtools/npm-publish": "^1.4.3"
+    "@types/chai": "^4.2.19",
+    "@jsdevtools/npm-publish": "^1.4.3",
+    "chai": "^4.3.4",
+    "mocha": "^9.0.1",
+    "sucrase": "^3.19.0"
+  },
+  "mocha": {
+    "require": [
+      "sucrase/register/ts"
+    ],
+    "spec": "src/**/*.test.ts",
+    "timeout": 0
+  },
+  "nodemonConfig": {
+    "verbose": true,
+    "legacyWatch": true,
+    "ignore": [
+      "node_modules",
+      "generated"
+    ],
+    "watch": [
+      "./"
+    ],
+    "exec": "npm test",
+    "ext": "ts, js, jsx"
   }
 }
