@@ -1,3 +1,8 @@
+/** 
+ * These functions are used to introspect the schema of a mysql database, and from it create a JSON schema compatible with orma.
+ * @module
+*/
+
 import { deep_set } from '../helpers'
 
 export const introspect = () => {
@@ -34,6 +39,34 @@ export interface mysql_foreign_key {
     constraint_name: string
 }
 
+export interface orma_schema {
+    entities: {
+        [entity_name: string]: {
+            comment?: string
+            fields: {
+                [field_name: string]: orma_field_schema
+            }
+        }
+    }
+}
+
+interface orma_field_schema {
+    data_type: typeof mysql_to_simple_types[keyof typeof mysql_to_simple_types] // values of mysql_to_simple_types
+    ordinal_position: number
+    required?: boolean
+    primary_key?: boolean
+    unique?: boolean
+    indexed?: boolean
+    character_count?: number
+    decimal_places?: number
+    default?: string | number
+    comment?: string
+}
+
+/**
+ * Gets a list of sql strings to collect introspector data for the given database
+ * @returns [tables_sql, columns_sql, foreign_keys_sql]
+ */
 export const get_introspect_sqls = (database_name): string[] => {
     const query_strings = [
         `SELECT 
@@ -70,6 +103,10 @@ export const get_introspect_sqls = (database_name): string[] => {
     return query_strings
 }
 
+/**
+ * Takes the results of running the queries from {@link get_introspect_sqls `get_introspect_sqls`} and makes a JSON schema for orma.
+ * @returns A JSON schema for orma
+ */
 export const generate_database_schema = (mysql_tables: mysql_table[], mysql_columns: mysql_column[], mysql_foreign_keys: mysql_foreign_key[]) => {
     // const schema = {
     //     entities: {
@@ -126,39 +163,40 @@ export const generate_database_schema = (mysql_tables: mysql_table[], mysql_colu
     return database_schema
 }
 
+
+const mysql_to_simple_types = {
+    bigint: "number",
+    binary: "string",
+    bit: "not_supported",
+    blob: "not_supported",
+    bool: "boolean",
+    boolean: "boolean",
+    char: "string",
+    date: "data",
+    datetime: "data",
+    decimal: "number",
+    double: "number",
+    enum: "enum",
+    float: "number",
+    int: "number",
+    longblob: "not_supported",
+    longtext: "string",
+    mediumblob: "not_supported",
+    mediumint: "number",
+    mediumtext: "string",
+    set: "not_supported",
+    smallint: "number",
+    text: "string",
+    time: "data",
+    timestamp: "data",
+    tinyblob: "not_supported",
+    tinyint: "boolean",
+    tinytext: "string",
+    varbinary: "string",
+    varchar: "string"
+} as const
+
 export const generate_field_schema = (mysql_column: mysql_column) => {
-    
-    const simple_data_types_by_mysql_data_types = {
-        bigint: "number",
-        binary: "string",
-        bit: "not_supported",
-        blob: "not_supported",
-        bool: "boolean",
-        boolean: "boolean",
-        char: "string",
-        date: "data",
-        datetime: "data",
-        decimal: "number",
-        double: "number",
-        enum: "enum",
-        float: "number",
-        int: "number",
-        longblob: "not_supported",
-        longtext: "string",
-        mediumblob: "not_supported",
-        mediumint: "number",
-        mediumtext: "string",
-        set: "not_supported",
-        smallint: "number",
-        text: "string",
-        time: "data",
-        timestamp: "data",
-        tinyblob: "not_supported",
-        tinyint: "boolean",
-        tinytext: "string",
-        varbinary: "string",
-        varchar: "string"
-    }
 
     const {
         table_name,
@@ -177,8 +215,8 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         column_comment
     } = mysql_column
 
-    const field_schema: Record<string, unknown> = {
-        data_type: simple_data_types_by_mysql_data_types[data_type],
+    const field_schema: orma_field_schema = {
+        data_type: mysql_to_simple_types[data_type],
         ordinal_position
     }
 
