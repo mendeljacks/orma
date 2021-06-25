@@ -3,7 +3,7 @@ const spawn = require('cross-spawn')
 
 module.exports.deploy = async () => {
 
-    run_process(['tsc'])
+    await run_process(['tsc'])
     // .catch(err => {
     //     console.error(err)
     // })
