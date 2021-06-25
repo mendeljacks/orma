@@ -5,10 +5,6 @@
 
 import { deep_set } from '../helpers'
 
-export const introspect = () => {
-    return 'introspectt'
-}
-
 export interface mysql_table {
     table_name: string
     table_comment?: string
@@ -73,7 +69,7 @@ export const get_introspect_sqls = (database_name): string[] => {
             table_name, 
             table_comment 
         FROM INFORMATION_SCHEMA.TABLES 
-        WHERE table_schema='${database_name}'`,
+        WHERE table_schema='${ database_name }'`,
 
         `SELECT 
             column_name, 
@@ -88,7 +84,7 @@ export const get_introspect_sqls = (database_name): string[] => {
             column_default,
             column_comment
         FROM information_schema.COLUMNS  
-        WHERE table_schema = '${database_name}'`,
+        WHERE table_schema = '${ database_name }'`,
 
         `SELECT 
             table_name, 
@@ -97,7 +93,7 @@ export const get_introspect_sqls = (database_name): string[] => {
             referenced_column_name,
             constraint_name
         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`
+        WHERE REFERENCED_TABLE_SCHEMA = '${ database_name }'`
     ]
 
     return query_strings
@@ -106,28 +102,29 @@ export const get_introspect_sqls = (database_name): string[] => {
 /**
  * Takes the results of running the queries from {@link get_introspect_sqls `get_introspect_sqls`} and makes a JSON schema for orma.
  * @returns A JSON schema for orma
+ * @example const schema = {
+ *     entities: {
+ *         products: {
+ *             comment: 'A list of products',
+ *             fields: {
+ *                 id: {
+ *                     references: {
+ *                         vendors: { id: {} }
+ *                     },
+ *                     required: true,
+ *                     indexed: true,
+ *                     unique: true,
+ *                     primary_key: true
+ *                 },
+ *                 // ...
+ *             },
+ *         },
+ *        // ...
+ *     },
+ * }
  */
 export const generate_database_schema = (mysql_tables: mysql_table[], mysql_columns: mysql_column[], mysql_foreign_keys: mysql_foreign_key[]) => {
-    // const schema = {
-    //     entities: {
-    //         products: {
-    //             comment: 'A list of products',
-    //             fields: {
-    //                 id: {
-    //                     references: {
-    //                         vendors: { id: {} }
-    //                     },
-    //                     required: true,
-    //                     indexed: true,
-    //                     unique: true,
-    //                     primary_key: true
-    //                 },
-    //                 // ...
-    //             },
-    //         },
-    //         // ...
-    //     },
-    // }
+
 
     const database_schema = {
         entities: {}
