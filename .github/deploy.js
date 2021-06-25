@@ -3,10 +3,10 @@ const spawn = require('cross-spawn')
 
 module.exports.deploy = async () => {
 
-    run_process(['npm', 'version', 'patch'])
-    .catch(err => {
-        console.error(err)
-    })
+    run_process(['tsc'])
+    // .catch(err => {
+    //     console.error(err)
+    // })
 
     await npmPublish({
         package: "./package.json",
