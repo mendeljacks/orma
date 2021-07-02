@@ -1,5 +1,4 @@
 ## Orma
-
 Orma is a declarative ORM.
 The goal is to provide a high level syntax with low performance overhead.
 
