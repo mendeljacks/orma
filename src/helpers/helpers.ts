@@ -7,7 +7,7 @@ export const type = (value: any): type_string => {
             : Object.prototype.toString.call(value).slice(8, -1);
 }
 
-export const deep_set = (obj: any, path_array: (string | number)[], value: any): void => {
+export const deep_set = (path_array: (string | number)[], value: any, obj: any): void => {
     if (path_array.length === 0) return obj
 
     let pointer = obj
@@ -55,4 +55,31 @@ export const deep_set = (obj: any, path_array: (string | number)[], value: any):
 
         pointer = pointer[path_el]
     }
+}
+
+export const deep_get = (path_array: (string | number)[], obj: any, default_value: any = undefined): any => {
+    let pointer = obj
+
+    for (const path_el of path_array) {
+        const is_array = Array.isArray(pointer)
+        const is_object = type(pointer) === 'Object'
+
+        // if (is_array && type(path_el) !== 'Number') {
+        //     throw new Error('Trying to path into an array without a number index')
+        // }
+
+        const contains_path_el =
+            is_array ? path_el < pointer.length
+                : is_object ? path_el in pointer
+                    : false
+
+        if (contains_path_el) {
+            pointer = pointer[path_el]
+            continue
+        } else {
+            return default_value
+        }
+    }
+
+    return pointer
 }

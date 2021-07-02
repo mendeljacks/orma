@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { type } from '../helpers'
+import { type } from '../helpers/helpers'
 import { generate_field_schema, generate_database_schema, get_introspect_sqls, introspect, mysql_column, mysql_foreign_key, mysql_table } from './introspector'
 
 

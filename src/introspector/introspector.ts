@@ -3,7 +3,7 @@
  * @module
 */
 
-import { deep_set } from '../helpers'
+import { deep_set } from '../helpers/helpers'
 
 export const introspect = () => {
     return 'introspectt'
@@ -50,9 +50,9 @@ export interface orma_schema {
     }
 }
 
-interface orma_field_schema {
-    data_type: typeof mysql_to_simple_types[keyof typeof mysql_to_simple_types] // values of mysql_to_simple_types
-    ordinal_position: number
+export interface orma_field_schema {
+    data_type?: typeof mysql_to_simple_types[keyof typeof mysql_to_simple_types] // values of mysql_to_simple_types
+    ordinal_position?: number
     required?: boolean
     primary_key?: boolean
     unique?: boolean
@@ -61,6 +61,11 @@ interface orma_field_schema {
     decimal_places?: number
     default?: string | number
     comment?: string
+    references?: {
+        [referenced_entity: string]: {
+            [referenced_field: string]: string
+        }
+    }
 }
 
 /**
@@ -156,7 +161,7 @@ export const generate_database_schema = (mysql_tables: mysql_table[], mysql_colu
         } = mysql_foreign_key
 
         const reference_path = ['entities', table_name, 'fields', column_name, 'references', referenced_table_name, referenced_column_name]
-        deep_set(database_schema, reference_path, {})
+        deep_set(reference_path, {}, database_schema)
 
     }
 
