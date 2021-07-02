@@ -1,5 +1,5 @@
 import { extract_subpaths } from "./extract_subpaths";
-import { deep_get, deep_set, drop_last, last } from "./helpers";
+import { deep_get, deep_set, drop, last } from "./helpers";
 import { lir_join } from "./lir_join";
 import { push_path } from "./push_path";
 
@@ -14,7 +14,7 @@ export const nester = (data, edges) => {
         const [path, list]: any = data[i];
         if (i === 0) deep_set(path, list, result)
         else {
-            const left_list = extract_subpaths(drop_last(path), result)
+            const left_list = extract_subpaths(drop(1,path), result)
             const { left, inner, right } = lir_join(
                 left_list,
                 result,
