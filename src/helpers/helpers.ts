@@ -6,7 +6,8 @@ export const type = (value: any): type_string => {
             ? 'Undefined'
             : Object.prototype.toString.call(value).slice(8, -1);
 }
-
+export const drop_last = (arr) => arr.slice(0,-1)
+export const last = (arr) => arr[arr.length - 1]
 export const deep_set = (path_array: (string | number)[], value: any, obj: any): void => {
     if (path_array.length === 0) return obj
 
