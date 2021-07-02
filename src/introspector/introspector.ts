@@ -59,7 +59,7 @@ export interface orma_field_schema {
     comment?: string
     references?: {
         [referenced_entity: string]: {
-            [referenced_field: string]: string
+            [referenced_field: string]: Record<string, never>
         }
     }
 }

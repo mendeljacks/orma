@@ -8,7 +8,7 @@ import { push_path } from '../helpers/push_path'
 import { start_profiler, stop_profiler } from './benchmark'
 
 describe('nester', () => {
-    test('basic deep nesting', async () => {
+    test.skip('basic deep nesting', async () => {
         const data = [
             [['vendors'], [{ id: 1 }, { id: 2 }]],
             [['vendors', 0, 'products'], [{ id: 1, vendor_id: 2 }]],
@@ -51,7 +51,7 @@ describe('nester', () => {
         expect(result).to.deep.equal(goal)
 
     })
-    test.only('breadth speed test', async () => {
+    test.skip('breadth speed test', async () => {
         const vendors = new Array(100).fill(undefined).map((_, i) => ({
             id: Math.random() * 1000000000000000
         }))

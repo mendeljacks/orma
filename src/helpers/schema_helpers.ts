@@ -6,7 +6,7 @@
 import { orma_schema } from '../introspector/introspector'
 
 
-interface edge {
+export interface edge {
     from_entity: string
     from_field: string
     to_entity: string
@@ -118,7 +118,7 @@ export const get_child_edges = (entity_name: string, orma_schema: orma_schema) =
 /**
  * Gets a list of edges from given entity -> parent or child entity
  */
-export const get_edges = (entity_name, orma_schema) => {
+export const get_all_edges = (entity_name, orma_schema) => {
     const parent_edges = get_parent_edges(entity_name, orma_schema)
     const child_edges = get_child_edges(entity_name, orma_schema)
     return [...parent_edges, ...child_edges]
