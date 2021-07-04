@@ -36,13 +36,9 @@ export interface mysql_foreign_key {
 }
 
 export interface orma_schema {
-    entities: {
-        [entity_name: string]: {
-            comment?: string
-            fields: {
-                [field_name: string]: orma_field_schema
-            }
-        }
+    [entity_name: string]: {
+        $comment?: string
+        [field_name: string]: orma_field_schema | string
     }
 }
 
@@ -74,7 +70,7 @@ export const get_introspect_sqls = (database_name): string[] => {
             table_name, 
             table_comment 
         FROM INFORMATION_SCHEMA.TABLES 
-        WHERE table_schema='${ database_name }'`,
+        WHERE table_schema='${database_name}'`,
 
         `SELECT 
             column_name, 
@@ -89,7 +85,7 @@ export const get_introspect_sqls = (database_name): string[] => {
             column_default,
             column_comment
         FROM information_schema.COLUMNS  
-        WHERE table_schema = '${ database_name }'`,
+        WHERE table_schema = '${database_name}'`,
 
         `SELECT 
             table_name, 
@@ -98,7 +94,7 @@ export const get_introspect_sqls = (database_name): string[] => {
             referenced_column_name,
             constraint_name
         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        WHERE REFERENCED_TABLE_SCHEMA = '${ database_name }'`
+        WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`
     ]
 
     return query_strings
@@ -131,21 +127,18 @@ export const get_introspect_sqls = (database_name): string[] => {
 export const generate_database_schema = (mysql_tables: mysql_table[], mysql_columns: mysql_column[], mysql_foreign_keys: mysql_foreign_key[]) => {
 
 
-    const database_schema = {
-        entities: {}
-    }
+    const database_schema: orma_schema = {}
 
     for (const mysql_table of mysql_tables) {
-        database_schema.entities[mysql_table.table_name] = {
-            comment: mysql_table.table_comment,
-            fields: {}
+        database_schema[mysql_table.table_name] = {
+            $comment: mysql_table.table_comment,
         }
     }
 
     for (const mysql_column of mysql_columns) {
         const field_schema = generate_field_schema(mysql_column)
 
-        database_schema.entities[mysql_column.table_name].fields[mysql_column.column_name] = field_schema
+        database_schema[mysql_column.table_name][mysql_column.column_name] = field_schema
     }
 
     for (const mysql_foreign_key of mysql_foreign_keys) {
@@ -157,7 +150,7 @@ export const generate_database_schema = (mysql_tables: mysql_table[], mysql_colu
             constraint_name
         } = mysql_foreign_key
 
-        const reference_path = ['entities', table_name, 'fields', column_name, 'references', referenced_table_name, referenced_column_name]
+        const reference_path = [table_name, column_name, 'references', referenced_table_name, referenced_column_name]
         deep_set(reference_path, {}, database_schema)
 
     }

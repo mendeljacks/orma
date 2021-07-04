@@ -41,10 +41,11 @@
     }
   ],
   "devDependencies": {
-    "@types/chai": "^4.2.19",
     "@jsdevtools/npm-publish": "^1.4.3",
+    "@types/chai": "^4.2.19",
     "chai": "^4.3.4",
     "mocha": "^9.0.1",
+    "sql-formatter": "^4.0.2",
     "sucrase": "^3.19.0"
   },
   "mocha": {

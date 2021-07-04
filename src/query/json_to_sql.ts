@@ -99,59 +99,59 @@
 //     [commandn]: expression | [expression],
 // }
 
-// */
-// export const parse_json_query = (expression, command_parsers, command_joiner, throw_on_unknown=true, ancestors = []) => {
-//     if (type(expression) === 'Object') {
+*/
+export const parse_json_query = (expression, command_parsers, command_joiner, throw_on_unknown=true, ancestors = []) => {
+    if (type(expression) === 'Object') {
 
-//         const commands = keys(expression).sort((key1, key2) => { //sort based off the position in the command array. commands not specified are placed at the beginning
-//             const i1 = indexOf(key1, command_order)
-//             const i2 = indexOf(key2, command_order)
-//             return i1 - i2
-//         })
+        const commands = keys(expression).sort((key1, key2) => { //sort based off the position in the command array. commands not specified are placed at the beginning
+            const i1 = indexOf(key1, command_order)
+            const i2 = indexOf(key2, command_order)
+            return i1 - i2
+        })
 
-//         const parsed_commands = commands.map(command => {
-//             const command_path = append(command, ancestors)
+        const parsed_commands = commands.map(command => {
+            const command_path = append(command, ancestors)
 
-//             const args = expression[command]
+            const args = expression[command]
 
-//             const parse_arg = arg => parse_json_query(arg, command_parsers, command_joiner, throw_on_unknown, command_path)
+            const parse_arg = arg => parse_json_query(arg, command_parsers, command_joiner, throw_on_unknown, command_path)
 
-//             const parsed_args = type(args) === 'Array'
-//                 ? args.map(parse_arg)
-//                 : parse_arg(args)
+            const parsed_args = type(args) === 'Array'
+                ? args.map(parse_arg)
+                : parse_arg(args)
 
-//             const command_parser = find_command_parser(command_path, command_parsers)
+            const command_parser = find_command_parser(command_path, command_parsers)
 
-//             if (command_parser === undefined) {
-//                 if (throw_on_unknown) {
-//                     throw Error(`Cannot find command parser for ${command}`)
-//                 } else {
-//                     return {
-//                         [command]: parsed_args
-//                     }
-//                 }
-//             }
+            if (command_parser === undefined) {
+                if (throw_on_unknown) {
+                    throw Error(`Cannot find command parser for ${command}`)
+                } else {
+                    return {
+                        [command]: parsed_args
+                    }
+                }
+            }
 
-//             const parsed_command = type(command_parser) === 'Function' 
-//                 ? command_parser(parsed_args, command_path)
-//                 : parsed_args
-//             return parsed_command
-//         })
+            const parsed_command = type(command_parser) === 'Function' 
+                ? command_parser(parsed_args, command_path)
+                : parsed_args
+            return parsed_command
+        })
 
-//         return command_joiner(parsed_commands)
-//     } else {
-//         return expression
-//     }
-// }
+        return command_joiner(parsed_commands)
+    } else {
+        return expression
+    }
+}
 
-// export const json_to_sql = (expression, pretty = false) => {
-//     const parsed = parse_json_query(expression, sql_command_parsers, join(' '))
-//     if (pretty) {
-//         return sqlFormatter.format(parsed)
-//     } else {
-//         return parsed
-//     }
-// }
+export const json_to_sql = (expression, pretty = false) => {
+    const parsed = parse_json_query(expression, sql_command_parsers, join(' '))
+    if (pretty) {
+        return sqlFormatter.format(parsed)
+    } else {
+        return parsed
+    }
+}
 
 
 // // TODO: make command order sorted by priority array

@@ -3,7 +3,7 @@
  * @module
  */
 
-import { orma_schema } from '../introspector/introspector'
+import { orma_field_schema, orma_schema } from '../introspector/introspector'
 
 
 export interface edge {
@@ -17,7 +17,7 @@ export interface edge {
  * @returns a list of entities specified in the schema
  */
 export const get_entity_names = (orma_schema: orma_schema) => {
-    return Object.keys(orma_schema.entities ?? [])
+    return Object.keys(orma_schema)
 }
 
 
@@ -25,7 +25,7 @@ export const get_entity_names = (orma_schema: orma_schema) => {
  * @returns a list of fields attatched to the given entity
  */
 export const get_field_names = (entity_name: string, orma_schema: orma_schema) => {
-    return Object.keys(orma_schema.entities?.[entity_name]?.fields ?? {})
+    return Object.keys(orma_schema[entity_name] ?? {})
 }
 
 
@@ -40,25 +40,26 @@ export const get_field_names = (entity_name: string, orma_schema: orma_schema) =
  * Gets a list of edges from given entity -> parent entity
  */
 export const get_parent_edges = (entity_name: string, orma_schema: orma_schema): edge[] => {
-    const fields_schema = orma_schema.entities?.[entity_name]?.fields ?? {}
+    const fields_schema = orma_schema[entity_name] ?? {}
 
     const parent_edges = Object.keys(fields_schema).flatMap(field_name => {
-        if (fields_schema[field_name]) {
-            const parent_entity_name = Object.keys(fields_schema[field_name].references ?? {})[0]
-            if (!parent_entity_name) {
-                return []
-            }
-            const parent_field_name = Object.keys(fields_schema[field_name].references[parent_entity_name])[0]
+        if (is_reserved_keyword(field_name)) {
+            return [] // could be $comment, which is not actually a field
+        }
 
-            return [{
-                from_entity: entity_name,
-                from_field: field_name,
-                to_entity: parent_entity_name,
-                to_field: parent_field_name
-            }]
-        } else {
+        const field_schema = (fields_schema[field_name] ?? {}) as orma_field_schema
+        const parent_entity_name = Object.keys(field_schema.references ?? {})[0]
+        if (!parent_entity_name) {
             return []
         }
+        const parent_field_name = Object.keys(field_schema.references[parent_entity_name])[0]
+
+        return [{
+            from_entity: entity_name,
+            from_field: field_name,
+            to_entity: parent_entity_name,
+            to_field: parent_field_name
+        }]
     })
 
     return parent_edges
@@ -123,3 +124,10 @@ export const get_all_edges = (entity_name, orma_schema) => {
     const child_edges = get_child_edges(entity_name, orma_schema)
     return [...parent_edges, ...child_edges]
 }
+
+/**
+ * Returns true if the input is a reserved keyword, which means it starts with $ like $select or $or
+ */
+export const is_reserved_keyword = (keyword: any) => 
+    typeof keyword === 'string' 
+    && keyword[0] === '$'

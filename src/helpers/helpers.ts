@@ -7,7 +7,7 @@ export const type = (value: any): type_string => {
             : Object.prototype.toString.call(value).slice(8, -1);
 }
 export const drop = (num,arr) => arr.slice(0,-num)
-export const last = (arr) => arr[arr.length - 1]
+export const last = <T>(array: T[]) => array[array.length - 1]
 export const deep_set = (path_array: (string | number)[], value: any, obj: any): void => {
     if (path_array.length === 0) return obj
 

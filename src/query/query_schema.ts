@@ -302,3 +302,7 @@ export const get_query_schema = (master_diff) => {
 }
 
 export const read_query_schema = memoize(get_query_schema)
+
+const a = {
+    $asd: 1
+}

@@ -108,29 +108,23 @@ describe('introspector', () => {
         const database_schema = generate_database_schema(mysql_tables, mysql_columns, mysql_foreign_keys)
 
         expect(database_schema).to.deep.equal({
-            entities: {
-                posts: {
-                    comment: "user posts",
-                    fields: {
-                        user_id: {
-                            data_type: "number",
-                            ordinal_position: 1,
-                            references: {
-                                users: {
-                                    id: {}
-                                }
-                            }
+            posts: {
+                $comment: "user posts",
+                user_id: {
+                    data_type: "number",
+                    ordinal_position: 1,
+                    references: {
+                        users: {
+                            id: {}
                         }
                     }
-                },
-                users: {
-                    comment: "table of users",
-                    fields: {
-                        id: {
-                            data_type: "number",
-                            ordinal_position: 1
-                        }
-                    }
+                }
+            },
+            users: {
+                $comment: "table of users",
+                id: {
+                    data_type: "number",
+                    ordinal_position: 1
                 }
             }
         })
