@@ -9,7 +9,7 @@ type primitive = string | number | Date | Array<any>
 
 // this is a simple parser function, whatever comes in the json object is placed as-is in the output sql string.
 // more complicated rules (such as adding a 'from' clause, or adding group-by columns on select *) is handled while the query is still a json object
-export const json_to_sql = (expression: expression, path=[]) => {
+export const json_to_sql = (expression: expression, path = []) => {
     // strings and other non-objects are returned as-is
     const is_object = typeof expression === 'object' && !Array.isArray(expression)
     if (!is_object) {
@@ -30,7 +30,7 @@ export const json_to_sql = (expression: expression, path=[]) => {
         }
 
         const args = expression[command]
-        const parsed_args = Array.isArray(args) 
+        const parsed_args = Array.isArray(args)
             ? args.map((arg, i) => json_to_sql(arg, [...path, command, i]))
             : json_to_sql(args, [...path, command])
 
@@ -40,7 +40,7 @@ export const json_to_sql = (expression: expression, path=[]) => {
     return parsed_commands.join(' ')
 }
 
-const command_order = { 
+const command_order = {
     $select: 0,
     $from: 1,
     $where: 2,
@@ -62,11 +62,17 @@ const sql_command_parsers = {
     $order_by: args => `ORDER BY ${args.join(', ')}`,
     $asc: args => `${args} ASC`,
     $desc: args => `${args} DESC`,
-    $and: args => `(${args.join(') AND (')})`,
-    $or: args => `(${args.join(') OR (')})`,
-    $eq: (args, path) => args[1] === null 
-    ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL` 
-    : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
+    $and: (args, path) => {
+        const res = `(${args.join(') AND (')})`
+        return last(path) === '$not' ? `NOT (${res})` : res
+    },
+    $or: (args, path) => {
+        const res = `(${args.join(') OR (')})`
+        return last(path) === '$not' ? `NOT (${res})` : res
+    },
+    $eq: (args, path) => args[1] === null
+        ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL`
+        : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
     $gt: (args, path) => `${args[0]} ${last(path) === '$not' ? '<=' : '>'} ${args[1]}`,
     $lt: (args, path) => `${args[0]} ${last(path) === '$not' ? '>=' : '<'} ${args[1]}`,
     $gte: (args, path) => `${args[0]} ${last(path) === '$not' ? '<' : '>='} ${args[1]}`,
@@ -74,14 +80,14 @@ const sql_command_parsers = {
     $exists: (args, path) => `${last(path) === '$not' ? 'NOT ' : ''}EXISTS (${args})`,
     $limit: args => `LIMIT ${args}`,
     $offset: args => `OFFSET ${args}`,
-    $like: args => {
+    $like: (args, path) => {
         const string_arg = args[1].toString()
         const search_value = string_arg
-        .replace(/^\'/, '')
-        .replace(/\'$/, '') // get rid of quotes if they were put there by escape()
-        return `${args[0]} LIKE '%${search_value}%'`
+            .replace(/^\'/, '')
+            .replace(/\'$/, '') // get rid of quotes if they were put there by escape()
+        return `${args[0]}${last(path) === '$not' ? ' NOT' : ''} LIKE '%${search_value}%'`
     },
-    $not: args => `NOT (${args})`,
+    $not: args => args, // not logic is different depending on the children, so the children handle it
     $sum: args => `SUM(${args}) AS sum_${args}`,
     // not: {
     //     in: args => `${args[0]} NOT IN (${args[1]})`,
@@ -112,5 +118,5 @@ export const get_query_plan = (query) => {
 }
 
 export const get_subquery_sql = (query, subquery_path: string[], previous_results: [string[], Record<string, unknown>][]) => {
-    
+
 }
