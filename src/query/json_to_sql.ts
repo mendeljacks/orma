@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // /*
 
 // query is of form:
@@ -90,7 +92,7 @@
 // }
 
 
-// /*
+ /*
 
 // expression = string | {
 //     [command1]: expression | [expression],
