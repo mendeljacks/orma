@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { escape } from 'mysql'
 import { compose, dropLast, equals, fromPairs, includes, join, keys, last, mapObjIndexed, prop, split, zipObj } from 'ramda'
 import { escapeRegex } from '../helpers'
