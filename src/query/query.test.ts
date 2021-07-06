@@ -227,7 +227,7 @@ describe('query', () => {
             expect(converted_where).to.deep.equal(goal)
         })
     })
-    describe.only('query_to_json_sql', () => {
+    describe('query_to_json_sql', () => {
         test('handles selects/handles root', () => {
             const query = {
                 products: {
@@ -362,7 +362,7 @@ describe('query', () => {
 
             expect(json_sql).to.deep.equal(goal)
         })
-        test.only('respects \'from\' clause', () => {
+        test('respects \'from\' clause', () => {
             const query = {
                 id: true,
                 my_products: {

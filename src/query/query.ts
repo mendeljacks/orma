@@ -1,4 +1,5 @@
 import { deep_get, deep_map, last } from '../helpers/helpers'
+import { nester } from '../helpers/nester'
 import { get_direct_edge, get_direct_edges, get_edge_path, is_reserved_keyword } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
 
@@ -28,7 +29,7 @@ export const json_to_sql = (expression: expression, path = []) => {
     const parsed_commands = sorted_commands.map(command => {
         const command_parser = sql_command_parsers[command]
         if (!command_parser) {
-            throw new Error(`Cannot find command parser for ${command}.`)
+            throw new Error(`Cannot find command parser for ${ command }.`)
         }
 
         const args = expression[command]
@@ -54,43 +55,43 @@ const command_order = {
 }
 
 const sql_command_parsers = {
-    $select: args => `SELECT ${args.join(', ')}`,
-    $as: args => `(${args[0]}) AS ${args[1]}`,
-    $from: args => `FROM ${args}`,
-    $where: args => `WHERE ${args}`,
-    $having: args => `HAVING ${args}`,
-    $in: (args, path) => `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IN (${args[1]})`,
-    $group_by: args => `GROUP BY ${args.join(', ')}`,
-    $order_by: args => `ORDER BY ${args.join(', ')}`,
-    $asc: args => `${args} ASC`,
-    $desc: args => `${args} DESC`,
+    $select: args => `SELECT ${ args.join(', ') }`,
+    $as: args => `(${ args[0] }) AS ${ args[1] }`,
+    $from: args => `FROM ${ args }`,
+    $where: args => `WHERE ${ args }`,
+    $having: args => `HAVING ${ args }`,
+    $in: (args, path) => `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } IN (${ args[1] })`,
+    $group_by: args => `GROUP BY ${ args.join(', ') }`,
+    $order_by: args => `ORDER BY ${ args.join(', ') }`,
+    $asc: args => `${ args } ASC`,
+    $desc: args => `${ args } DESC`,
     $and: (args, path) => {
-        const res = `(${args.join(') AND (')})`
-        return last(path) === '$not' ? `NOT (${res})` : res
+        const res = `(${ args.join(') AND (') })`
+        return last(path) === '$not' ? `NOT (${ res })` : res
     },
     $or: (args, path) => {
-        const res = `(${args.join(') OR (')})`
-        return last(path) === '$not' ? `NOT (${res})` : res
+        const res = `(${ args.join(') OR (') })`
+        return last(path) === '$not' ? `NOT (${ res })` : res
     },
     $eq: (args, path) => args[1] === null
-        ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL`
-        : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
-    $gt: (args, path) => `${args[0]} ${last(path) === '$not' ? '<=' : '>'} ${args[1]}`,
-    $lt: (args, path) => `${args[0]} ${last(path) === '$not' ? '>=' : '<'} ${args[1]}`,
-    $gte: (args, path) => `${args[0]} ${last(path) === '$not' ? '<' : '>='} ${args[1]}`,
-    $lte: (args, path) => `${args[0]} ${last(path) === '$not' ? '>' : '<='} ${args[1]}`,
-    $exists: (args, path) => `${last(path) === '$not' ? 'NOT ' : ''}EXISTS (${args})`,
-    $limit: args => `LIMIT ${args}`,
-    $offset: args => `OFFSET ${args}`,
+        ? `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } IS NULL`
+        : `${ args[0] } ${ last(path) === '$not' ? '!' : '' }= ${ args[1] }`,
+    $gt: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '<=' : '>' } ${ args[1] }`,
+    $lt: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '>=' : '<' } ${ args[1] }`,
+    $gte: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '<' : '>=' } ${ args[1] }`,
+    $lte: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '>' : '<=' } ${ args[1] }`,
+    $exists: (args, path) => `${ last(path) === '$not' ? 'NOT ' : '' }EXISTS (${ args })`,
+    $limit: args => `LIMIT ${ args }`,
+    $offset: args => `OFFSET ${ args }`,
     $like: (args, path) => {
         const string_arg = args[1].toString()
         const search_value = string_arg
             .replace(/^\'/, '')
             .replace(/\'$/, '') // get rid of quotes if they were put there by escape()
-        return `${args[0]}${last(path) === '$not' ? ' NOT' : ''} LIKE '%${search_value}%'`
+        return `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } LIKE '%${ search_value }%'`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
-    $sum: args => `SUM(${args})`,
+    $sum: args => `SUM(${ args })`,
     // not: {
     //     in: args => `${args[0]} NOT IN (${args[1]})`,
     //     and: args => `NOT ((${args.join(') AND (')}))`,
@@ -116,7 +117,7 @@ const sql_command_parsers = {
 */
 
 export const get_query_plan = (query) => {
-
+    return []
 }
 
 export const is_subquery = (subquery: Record<string, unknown>) => {
@@ -200,7 +201,7 @@ export const select_to_json_sql = (query, subquery_path: string[], orma_schema: 
 
             return [] // subqueries are not handled here
         })
-    
+
     if (subquery_path.length > 1) {
         const higher_entity = subquery_path[subquery_path.length - 2]
         const edge_to_higher_entity = get_direct_edge(entity_name, higher_entity, orma_schema)
@@ -364,7 +365,7 @@ const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], pat
     const last_edge_to_ancestor = get_direct_edge(table_under_ancestor, ancestor_name, orma_schema)
 
     if (ancestor_rows === undefined || ancestor_rows.length === 0) {
-        throw Error(`No ancestor rows provided for ${ancestor_name}`)
+        throw Error(`No ancestor rows provided for ${ ancestor_name }`)
     }
 
     const ancestor_linking_key_values = ancestor_rows.map(row => row[last_edge_to_ancestor.to_field])
@@ -382,4 +383,29 @@ const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], pat
     )
 
     return ancestor_query
+}
+
+export const orma_query = async (query, orma_schema: orma_schema, fn) => {
+
+    const query_plan = get_query_plan(query)
+    let results = []
+
+    // Sequential for query plan
+    for (let i = 0; i < query_plan.length; i++) {
+        const paths = query_plan[i]
+        const sql_strings = paths.map(path => get_subquery_sql(query, path, results, orma_schema))
+
+        // Promise.all for each element in query plan
+        const output = await Promise.all(sql_strings.map(sql_string => fn(sql_string)))
+        sql_strings.forEach((_, i) => results.push([paths[i], output[i]]))
+
+    }
+
+    const entity_names = results.map(el => 'products')
+    const test = get_edge_path(entity_names, orma_schema)
+    //const edges = get_direct_edges(, entity_names, orma_schema)
+    const edges = []
+    const output = nester(results, edges)
+
+    return output
 }

@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { nester } from '../helpers/nester'
+import { nester } from './nester'
 
 describe('nester', () => {
     test('basic deep nesting', async () => {
