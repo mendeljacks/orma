@@ -6,7 +6,7 @@ export const type = (value: any): type_string => {
             ? 'Undefined'
             : Object.prototype.toString.call(value).slice(8, -1);
 }
-export const drop = (num,arr) => arr.slice(0,-num)
+export const drop = (num, arr) => arr.slice(0, -num)
 export const last = <T>(array: T[]) => array[array.length - 1]
 export const deep_set = (path_array: (string | number)[], value: any, obj: any): void => {
     if (path_array.length === 0) return obj
@@ -83,4 +83,32 @@ export const deep_get = (path_array: (string | number)[], obj: any, default_valu
     }
 
     return pointer
+}
+
+/**
+ * Like a map, but works on deeply nested objects and arrays
+ * @param item can be an object or array
+ * @param processor this function will run on every object, array and primitive value found
+ * @returns the mapped object
+ */
+export const deep_map = (item: any, processor: (value: any, path: (string | number)[]) => any, current_path = []) => {
+    let mapped_item
+    if (Array.isArray(item)) {
+        mapped_item = item.map((el, i) => {
+            const new_path = [...current_path, i]
+            const subitem = deep_map(el, processor, new_path)
+            return subitem
+        })
+    } else if (typeof item === 'object') {
+        mapped_item = Object.keys(item).reduce((acc, key) => {
+            const new_path = [...current_path, key]
+            const subitem = deep_map(item[key], processor, new_path)
+            acc[key] = subitem
+            return acc
+        }, {})
+    } else {
+        mapped_item = item
+    }
+
+    return processor(mapped_item, current_path)
 }

@@ -2,13 +2,50 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
 import { orma_schema } from '../introspector/introspector'
-import { get_subquery_sql, json_to_sql } from './query'
+import { convert_any_clauses, get_subquery_sql, is_subquery, json_to_sql, query_to_json_sql } from './query'
+
+
 
 
 describe('query', () => {
+    const orma_schema: orma_schema = {
+        products: {
+            id: {},
+            vendor_id: {
+                references: {
+                    vendors: {
+                        id: {}
+                    }
+                }
+            }
+        },
+        vendors: {
+            id: {}
+        },
+        images: {
+            id: {},
+            product_id: {
+                references: {
+                    products: {
+                        id: {}
+                    }
+                }
+            }
+        },
+        image_urls: {
+            image_id: {
+                references: {
+                    images: {
+                        id: {}
+                    }
+                }
+            }
+        }
+    }
+
     describe('json_to_sql', () => {
         test('joins commands', () => {
-            const json =  {
+            const json = {
                 $select: ['a'],
                 $from: 'b'
             }
@@ -56,7 +93,7 @@ describe('query', () => {
                     }
                 }
             }
-    
+
             // the split happens at variants because it has a where clause
             const goal = [
                 [['products'], ['products', 'variants']], // first these are run concurrently
@@ -64,7 +101,133 @@ describe('query', () => {
             ]
         })
     })
-    describe('get_subquery_sql', () => {
+    describe('is_subquery', () => {
+        test('is subquery', () => {
+            const result = is_subquery({
+                $from: 'products',
+                id: {}
+            })
+
+            expect(result).to.equal(true)
+        })
+        test('not subquery', () => {
+            const result = is_subquery({
+                $from: 'products'
+            })
+
+            expect(result).to.equal(false)
+        })
+    })
+    describe('convert_any_clauses', () => {
+        test('multiple any clauses', () => {
+            const where = {
+                $and: [{
+                    $any: [['images'], {
+                        $eq: ['id', 1]
+                    }]
+                }, {
+                    $any: [['vendors'], {
+                        $eq: ['id', 1]
+                    }]
+                }]
+            }
+
+            const converted_where = convert_any_clauses(where, 'products', false, orma_schema)
+            const goal = {
+                $and: [{
+                    $in: ['id', {
+                        $select: ['product_id'],
+                        $from: 'images',
+                        $where: {
+                            $eq: ['id', 1]
+                        }
+                    }]
+                },
+                {
+                    $in: ['vendor_id', {
+                        $select: ['id'],
+                        $from: 'vendors',
+                        $where: {
+                            $eq: ['id', 1]
+                        }
+                    }]
+                }]
+            }
+            expect(converted_where).to.deep.equal(goal)
+        })
+        test('deep any path', () => {
+            const where = {
+                $any: [['images', 'image_urls'], {
+                    $eq: ['id', 1]
+                }]
+            }
+
+            const converted_where = convert_any_clauses(where, 'products', false, orma_schema)
+            const goal = {
+                $in: ['id', {
+                    $select: ['product_id'],
+                    $from: 'images',
+                    $where: {
+                        $in: ['id', {
+                            $select: ['image_id'],
+                            $from: 'image_urls',
+                            $where: {
+                                $eq: ['id', 1]
+                            }
+                        }]
+                    }
+                }]
+            }
+            expect(converted_where).to.deep.equal(goal)
+        })
+        test('nested anys', () => {
+            const where = {
+                $any: [['images'], {
+                    $any: [['image_urls'], {
+                        $eq: ['id', 1]
+                    }]
+                }]
+            }
+
+            const converted_where = convert_any_clauses(where, 'products', false, orma_schema)
+            const goal = {
+                $in: ['id', {
+                    $select: ['product_id'],
+                    $from: 'images',
+                    $where: {
+                        $in: ['id', {
+                            $select: ['image_id'],
+                            $from: 'image_urls',
+                            $where: {
+                                $eq: ['id', 1]
+                            }
+                        }]
+                    }
+                }]
+            }
+            expect(converted_where).to.deep.equal(goal)
+        })
+        test('uses having', () => {
+            const where = {
+                $any: [['images'], {
+                    $eq: ['id', 1]
+                }]
+            }
+
+            const converted_where = convert_any_clauses(where, 'products', true, orma_schema)
+            const goal = {
+                $in: ['id', {
+                    $select: ['product_id'],
+                    $from: 'images',
+                    $having: {
+                        $eq: ['id', 1]
+                    }
+                }]
+            }
+            expect(converted_where).to.deep.equal(goal)
+        })
+    })
+    describe.only('query_to_json_sql', () => {
         test('handles selects/handles root', () => {
             const query = {
                 products: {
@@ -76,8 +239,17 @@ describe('query', () => {
                 }
             }
 
-            const sql = get_subquery_sql(query, ['products'], [])
-            const goal = format('SELECT id, title AS my_title, SUM(quantity) AS total_quantity')
+            const json_sql = query_to_json_sql(query, ['products'], [], {})
+            const goal = {
+                $select: [
+                    'id',
+                    { $as: ['title', 'my_title'] },
+                    { $as: [{ $sum: 'quantity' }, 'total_quantity'] }
+                ],
+                $from: 'products'
+            }
+
+            expect(json_sql).to.deep.equal(goal)
         })
         test('handles root nesting', () => {
             const query = {
@@ -90,24 +262,226 @@ describe('query', () => {
                 }
             }
 
-            // const orma_schema: orma_schema = {
-            //     entities: {
-            //         products: {
-            //             fields:
-            //         }
-            //     }
-            // }
+            const previous_results = [
+                [['products'], [{ id: 1 }, { id: 2 }]]
+            ]
+            const json_sql = query_to_json_sql(query, ['products', 'images'], previous_results, orma_schema)
+            const goal = {
+                $select: ['id', 'product_id'],
+                $from: 'images',
+                $where: {
+                    $in: ['product_id', [1, 2]]
+                }
+            }
 
-            const previous_results = [['products'], {}]
-            const sql = get_subquery_sql(query, ['products', 'images'], [])
+            expect(json_sql).to.deep.equal(goal)
+        })
+        test('handles adding foreign keys', () => {
+            const query = {
+                products: {
+                    images: { url: true }
+                }
+            }
+
+            const previous_results = [
+                [['products'], [{ id: 1 }, { id: 2 }]]
+            ]
+            const json_sql1 = query_to_json_sql(query, ['products'], previous_results, orma_schema)
+            const goal1 = {
+                $select: ['id'],
+                $from: 'products'
+            }
+
+            const json_sql2 = query_to_json_sql(query, ['products', 'images'], previous_results, orma_schema) as any
+            json_sql2?.$select?.sort()
+            const goal2 = {
+                $select: ['product_id', 'url'].sort(),
+                $from: 'images',
+                $where: {
+                    $in: ['product_id', [1, 2]]
+                }
+            }
+
+            expect(json_sql1).to.deep.equal(goal1)
+            expect(json_sql2).to.deep.equal(goal2)
+        })
+        test('handles deep nesting', () => {
+            const query = {
+                products: {
+                    images: {
+                        image_urls: {
+                            id: true
+                        }
+                    }
+                }
+            }
+
+            const previous_results = [
+                [['products'], [{ id: 1 }, { id: 2 }]]
+            ]
+            const json_sql = query_to_json_sql(query, ['products', 'images', 'image_urls'], previous_results, orma_schema) as any
+            json_sql?.$select?.sort()
+            const goal = {
+                $select: ['image_id', 'id'].sort(),
+                $from: 'image_urls',
+                $where: {
+                    $in: ['image_id', {
+                        $select: ['id'],
+                        $from: 'images',
+                        $where: {
+                            $in: ['product_id', [1, 2]]
+                        }
+                    }]
+                }
+            }
+
+            expect(json_sql).to.deep.equal(goal)
+        })
+        test('handles nesting under where clause', () => {
+            const query = {
+                products: {
+                    images: {
+                        $where: { $gt: ['id', 0] },
+                        image_urls: {}
+                    }
+                }
+            }
+
+            const previous_results = [
+                [['products'], [{ id: 1 }, { id: 2 }]],
+                [['products', 'images'], [{ id: 3 }]],
+            ]
+            const json_sql = query_to_json_sql(query, ['products', 'images', 'image_urls'], previous_results, orma_schema)
+            const goal = {
+                $select: ['image_id'],
+                $from: 'image_urls',
+                $where: {
+                    $in: ['image_id', [3]]
+                }
+            }
+
+            expect(json_sql).to.deep.equal(goal)
+        })
+        test.only('respects \'from\' clause', () => {
+            const query = {
+                id: true,
+                my_products: {
+                    $from: 'products'
+                }
+            }
+
+            const json_sql = query_to_json_sql(query, ['products'], [], {})
+            const goal = {
+                $select: ['id'],
+                $from: 'products'
+            }
+
+            expect(json_sql).to.deep.equal(goal)
+        })
+        test.skip('handles \'any\' clause', () => {
+            const query = {
+                $where: {
+                    $any: []
+                },
+                id: true,
+            }
+
+            const json_sql = query_to_json_sql(query, ['products'], [], {})
+            const goal = {}
+
+            expect(json_sql).to.deep.equal(goal)
         })
     })
 })
-
 
 
 /*
 THOUGHTS:
 what if nothing selected?
 what if nothing selected on the root (error?)
+
+
+// 1. verbose, separates $path into its own key
+{
+    $any: {
+        $eq: {
+            $path: [['variants', 'images'], {
+                $gt: [1, 2]
+            }],
+        }
+    }
+}
+
+SELECT * FROM products WHERE (
+    created_at > ANY (
+        SELECT created_at FROM variants WHERE product_id = product.id
+    )
+)
+
+// 2. cant change = or <= behaviour, no separation of $path (what can $path even do on its own? it needs a keyword like 'any', 'in' or 'all')
+{
+    $any: [['variants', 'images'], {
+        $eq: ['id', 3]
+    }]
+}
+
+// 3. not convention to have $eq as a parameter - usually function names are keys...
+{
+    $any: [['variants', 'images'], {
+        $eq: ['id', 3]
+    }, '$eq']
+}
+
+// 4. not right either. $eq needs 2 params, since we are setting something is equal to something else.
+{
+    $eq: {
+        $any: [['variants', 'images'], {
+            $eq: ['id', 3]
+        }]
+    }
+}
+
+{
+
+}
+
+{
+    $eq: ['id', {
+        $any: {
+            $select: ['product_id'],
+            $from: 'variants'
+            $where: {
+                $eq: ['id', {
+                    $any: {
+                        $select: ['variant_id']
+                        $from: 'images'
+                        $where: ...
+                    }
+                }]
+            }
+        }
+    }]
+}
+
+{
+    $any: ['id', {
+        $select: ['product_id', 'id'],
+        $where: {
+
+        }
+    }]
+}
+
+SELECT column_name(s)
+FROM table_name
+WHERE column_name operator ANY
+  (SELECT column_name
+  FROM table_name
+  WHERE condition);
+
+
+
+
+operator is one of =, !=, <=, >=...
+
 */

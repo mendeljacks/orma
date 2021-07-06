@@ -79,7 +79,7 @@ export const reverse_edge = (edge: edge): edge => ({
 // we use a map because it can take objects as keys (they are compared by reference)
 const child_edges_cache_by_schema = new Map<
     orma_schema,
-    Record<string, edge[]> 
+    Record<string, edge[]>
 >()
 
 // a helper method, having all the child edges in a single cache object helps it be memoized
@@ -113,7 +113,7 @@ const get_child_edges_cache = (orma_schema) => {
 export const get_child_edges = (entity_name: string, orma_schema: orma_schema) => {
     const child_edges_cache = get_child_edges_cache(orma_schema)
 
-    return child_edges_cache[entity_name]
+    return child_edges_cache[entity_name] ?? []
 }
 
 /**
@@ -128,6 +128,60 @@ export const get_all_edges = (entity_name, orma_schema) => {
 /**
  * Returns true if the input is a reserved keyword, which means it starts with $ like $select or $or
  */
-export const is_reserved_keyword = (keyword: any) => 
-    typeof keyword === 'string' 
+export const is_reserved_keyword = (keyword: any) =>
+    typeof keyword === 'string'
     && keyword[0] === '$'
+
+/* gets possible parent or child edges between two tables that are immediate child/parent or parent/child
+ */
+export const get_direct_edges = (from_entity: string, to_entity: string, orma_schema: orma_schema) => {
+    const possible_edges = get_all_edges(from_entity, orma_schema)
+    const edges = possible_edges.filter(el => el.to_entity === to_entity)
+    return edges
+}
+
+/* just like get edges, but only returns one conenction between two directly connected tables.
+ * This will throw an error if there is not exactly one edge
+ */
+export const get_direct_edge = (from_entity: string, to_entity: string, orma_schema: orma_schema) => {
+    const edges = get_direct_edges(from_entity, to_entity, orma_schema)
+
+    if (edges.length !== 1) {
+        throw Error(`Did not find exactly one edge from ${from_entity} to ${to_entity}`)
+    }
+
+    return edges[0]
+}
+
+
+/**
+ * returns a list of edges which, when traversed one after the other, connect the first given entity to the last.
+ * The total length of the edge_path will be `entities.length - 1`.
+ * This function will throw an error if there is more than one edge between any two tables in the entity list
+ * @param entities a list of directly connected entities
+ */
+export const get_edge_path = (entities: string[], orma_schema: orma_schema): edge[] => {
+    if (entities.length <= 1) {
+        return []
+    }
+
+    const edge_path = entities.flatMap((entity, i) => {
+        if (i === 0) {
+            // if (tables.length === 1) {
+            //     return { root: table, to_table: table }
+            // } else {
+            //     return []
+            // }
+            return []
+        }
+
+        const from_entity = entities[i - 1]
+        const to_entity = entities[i]
+
+        const edge = get_direct_edge(from_entity, to_entity, orma_schema)
+
+        return edge
+    })
+
+    return edge_path
+}

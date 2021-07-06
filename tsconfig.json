@@ -5,7 +5,8 @@
       "declaration": true,
       "outDir": "./build",
       "strict": false,
-      "lib": ["ES2019", "DOM"]
+      "lib": ["ES2019", "DOM"],
+      "downlevelIteration": true
     },
     "include": ["src"],
     "exclude": ["node_modules"]
