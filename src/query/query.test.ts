@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
 import { orma_schema } from '../introspector/introspector'
-import { convert_any_clauses, get_subquery_sql, is_subquery, json_to_sql, query_to_json_sql } from './query'
+import { convert_any_clauses, get_query_plan, get_subquery_sql, is_subquery, json_to_sql, query_to_json_sql } from './query'
 
 
 
@@ -80,25 +80,77 @@ describe('query', () => {
             expect(sql).to.equal(goal)
         })
     })
-    describe('get_query_plan', () => {
-        test('creates query plan', () => {
+    describe.only('get_query_plan', () => {
+        test('splits by $where clause and $having', () => {
             const query = {
-                products: {
-                    variants: {
-                        $where: {},
-                        vins: {},
+                vendors: {
+                    products: {
+                        $where: { $eq: ['id', 0] },
+                        vins: {
+                            id: true
+                        },
                         images: {
-                            images_in_stores: {}
+                            image_urls: {
+                                $having: { $eq: ['id', 0] },
+                                id: true
+                            }
                         }
                     }
                 }
             }
+            
+            const result = get_query_plan(query)
 
             // the split happens at variants because it has a where clause
             const goal = [
-                [['products'], ['products', 'variants']], // first these are run concurrently
-                [['products', 'variants', 'images'], ['products', 'variants', 'images', 'images_in_stores']] // then these are run concurrently
+                [
+                    ['vendors'], 
+                    ['vendors', 'products']
+                ], // first these should be run concurrently
+                [
+                    ['vendors', 'products', 'vins'],
+                    ['vendors', 'products', 'images'], 
+                    ['vendors', 'products', 'images', 'image_urls']
+                ], // then this will be queried
             ]
+
+            expect(result).to.deep.equal(goal)
+        })
+        test('handles multiple top level props', () => {
+            const query = {
+                vendors: {
+                    id: true
+                },
+                products: {
+                    id: true
+                }
+            }
+            
+            const result = get_query_plan(query)
+
+            // the split happens at variants because it has a where clause
+            const goal = [
+                [['vendors'], ['products']],
+            ]
+
+            expect(result).to.deep.equal(goal)
+        })
+        test('handles renamed queries', () => {
+            const query = {
+                my_products: {
+                    $from: 'products',
+                    id: true
+                }
+            }
+
+            const result = get_query_plan(query)
+
+            // the split happens at variants because it has a where clause
+            const goal = [
+                [['my_products']],
+            ]
+
+            expect(result).to.deep.equal(goal)
         })
     })
     describe('is_subquery', () => {
@@ -364,13 +416,13 @@ describe('query', () => {
         })
         test('respects \'from\' clause', () => {
             const query = {
-                id: true,
                 my_products: {
+                    id: true,
                     $from: 'products'
                 }
             }
 
-            const json_sql = query_to_json_sql(query, ['products'], [], {})
+            const json_sql = query_to_json_sql(query, ['my_products'], [], {})
             const goal = {
                 $select: ['id'],
                 $from: 'products'

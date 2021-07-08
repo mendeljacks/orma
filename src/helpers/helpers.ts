@@ -86,7 +86,7 @@ export const deep_get = (path_array: (string | number)[], obj: any, default_valu
 }
 
 /**
- * Like a map, but works on deeply nested objects and arrays
+ * Like a map, but works on deeply nested objects and arrays. Processor function is run from the most deeply nested keys to the least deeply nested ones
  * @param item can be an object or array
  * @param processor this function will run on every object, array and primitive value found
  * @returns the mapped object
@@ -111,4 +111,32 @@ export const deep_map = (item: any, processor: (value: any, path: (string | numb
     }
 
     return processor(mapped_item, current_path)
+}
+
+// calls fn on every object in input array. Also moves into any arrays it finds and calls
+// walk recursively on those.
+// fn is a function of (object, path_to_object) -> null
+/**
+ * Calls the processor on every object and array for deeply nested objects/arrays. Processort runs from the least deeply nested keys to the most deeply nested ones
+ * @param item 
+ * @param processor 
+ * @param current_path 
+ */
+export const deep_for_each = (item: any, processor: (value: any, path: (string | number)[]) => void, current_path = []) => {
+    const is_object = typeof item === 'object' && !Array.isArray(item)
+    const is_array = typeof item === 'object' && Array.isArray(item)
+
+    if (is_object) {
+        processor(item, current_path)
+        for (const prop in item) {
+            deep_for_each(item[prop], processor, [...current_path, prop])
+        }
+    }
+
+    if (is_array) {
+        processor(item, current_path)
+        item.forEach((el, i) => {
+            deep_for_each(el, processor, [...current_path, i])
+        })
+    }
 }

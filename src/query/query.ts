@@ -1,4 +1,4 @@
-import { deep_get, deep_map, last } from '../helpers/helpers'
+import { deep_for_each, deep_get, deep_map, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge, get_direct_edges, get_edge_path, is_reserved_keyword } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
@@ -29,7 +29,7 @@ export const json_to_sql = (expression: expression, path = []) => {
     const parsed_commands = sorted_commands.map(command => {
         const command_parser = sql_command_parsers[command]
         if (!command_parser) {
-            throw new Error(`Cannot find command parser for ${ command }.`)
+            throw new Error(`Cannot find command parser for ${command}.`)
         }
 
         const args = expression[command]
@@ -55,43 +55,43 @@ const command_order = {
 }
 
 const sql_command_parsers = {
-    $select: args => `SELECT ${ args.join(', ') }`,
-    $as: args => `(${ args[0] }) AS ${ args[1] }`,
-    $from: args => `FROM ${ args }`,
-    $where: args => `WHERE ${ args }`,
-    $having: args => `HAVING ${ args }`,
-    $in: (args, path) => `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } IN (${ args[1] })`,
-    $group_by: args => `GROUP BY ${ args.join(', ') }`,
-    $order_by: args => `ORDER BY ${ args.join(', ') }`,
-    $asc: args => `${ args } ASC`,
-    $desc: args => `${ args } DESC`,
+    $select: args => `SELECT ${args.join(', ')}`,
+    $as: args => `(${args[0]}) AS ${args[1]}`,
+    $from: args => `FROM ${args}`,
+    $where: args => `WHERE ${args}`,
+    $having: args => `HAVING ${args}`,
+    $in: (args, path) => `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IN (${args[1]})`,
+    $group_by: args => `GROUP BY ${args.join(', ')}`,
+    $order_by: args => `ORDER BY ${args.join(', ')}`,
+    $asc: args => `${args} ASC`,
+    $desc: args => `${args} DESC`,
     $and: (args, path) => {
-        const res = `(${ args.join(') AND (') })`
-        return last(path) === '$not' ? `NOT (${ res })` : res
+        const res = `(${args.join(') AND (')})`
+        return last(path) === '$not' ? `NOT (${res})` : res
     },
     $or: (args, path) => {
-        const res = `(${ args.join(') OR (') })`
-        return last(path) === '$not' ? `NOT (${ res })` : res
+        const res = `(${args.join(') OR (')})`
+        return last(path) === '$not' ? `NOT (${res})` : res
     },
     $eq: (args, path) => args[1] === null
-        ? `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } IS NULL`
-        : `${ args[0] } ${ last(path) === '$not' ? '!' : '' }= ${ args[1] }`,
-    $gt: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '<=' : '>' } ${ args[1] }`,
-    $lt: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '>=' : '<' } ${ args[1] }`,
-    $gte: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '<' : '>=' } ${ args[1] }`,
-    $lte: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '>' : '<=' } ${ args[1] }`,
-    $exists: (args, path) => `${ last(path) === '$not' ? 'NOT ' : '' }EXISTS (${ args })`,
-    $limit: args => `LIMIT ${ args }`,
-    $offset: args => `OFFSET ${ args }`,
+        ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL`
+        : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
+    $gt: (args, path) => `${args[0]} ${last(path) === '$not' ? '<=' : '>'} ${args[1]}`,
+    $lt: (args, path) => `${args[0]} ${last(path) === '$not' ? '>=' : '<'} ${args[1]}`,
+    $gte: (args, path) => `${args[0]} ${last(path) === '$not' ? '<' : '>='} ${args[1]}`,
+    $lte: (args, path) => `${args[0]} ${last(path) === '$not' ? '>' : '<='} ${args[1]}`,
+    $exists: (args, path) => `${last(path) === '$not' ? 'NOT ' : ''}EXISTS (${args})`,
+    $limit: args => `LIMIT ${args}`,
+    $offset: args => `OFFSET ${args}`,
     $like: (args, path) => {
         const string_arg = args[1].toString()
         const search_value = string_arg
             .replace(/^\'/, '')
             .replace(/\'$/, '') // get rid of quotes if they were put there by escape()
-        return `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } LIKE '%${ search_value }%'`
+        return `${args[0]}${last(path) === '$not' ? ' NOT' : ''} LIKE '%${search_value}%'`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
-    $sum: args => `SUM(${ args })`,
+    $sum: args => `SUM(${args})`,
     // not: {
     //     in: args => `${args[0]} NOT IN (${args[1]})`,
     //     and: args => `NOT ((${args.join(') AND (')}))`,
@@ -116,11 +116,71 @@ const sql_command_parsers = {
 
 */
 
-export const get_query_plan = (query) => {
-    return []
+// export const get_query_plan = (query, current_path=[]): string[][][] => {
+//     const a = 1
+//     const paths = Object.keys(query).map(key => {
+//         const subquery = query[key]
+//         if (is_subquery(subquery)) {
+//             return [...current_path, key]
+//         }
+//     }).filter(el => el !== undefined)
+
+//     const has_filter = '$where' in query || '$having' in query
+//     const child_query_plans = Object.keys(query).map(key => {
+
+//         const subquery = query[key]
+//         if (is_subquery(subquery)) {
+//             const child_query_plan = get_query_plan(subquery, [...current_path, key])
+//             return child_query_plan
+//         }
+//     }).filter(el => el !== undefined)
+
+//     const b = child_query_plans.flatMap(el => el[0] ?? [])
+//     const c = child_query_plans.map(el => el?.slice(1, Infinity))
+
+//     const query_plan = has_filter
+//         ? [...(paths.length > 0 ? [paths] : []), ...child_query_plans]
+//         : [[...(paths.length > 0 ? paths : []), ...child_query_plans.flatMap(el => el[0] ?? [])], ...child_query_plans.map(el => el?.slice(1, Infinity))]
+
+//     const e = 1
+//     return query_plan
+// }
+
+export const get_query_plan = (query): string[][][] => {
+    const query_plan: string[][][] = []
+    deep_for_each(query, (value, path: string[]) => {
+        if (typeof value === 'object') {
+            const query = value
+            const has_filter = '$where' in value || '$having' in value
+            const is_root = path.length === 0
+            
+            const child_paths = Object.keys(value).map(child_key => {
+                if (is_subquery(value[child_key])) {
+                    return [...path, child_key]
+                }
+            }).filter(el => el !== undefined)
+
+            if (child_paths.length === 0) {
+                return // subquery with nothing else nested on
+            }
+
+            // if this has a $where, or its the root, then all the child paths go to a new tier. Otherwise, the child paths are appended on to the last tier
+            if (has_filter || is_root) {
+                query_plan.push(child_paths)
+            } else {
+                last(query_plan).push(...child_paths)
+            }
+        }
+    })
+
+    return query_plan
 }
 
-export const is_subquery = (subquery: Record<string, unknown>) => {
+export const is_subquery = (subquery: any) => {
+    if (typeof subquery !== 'object' || Array.isArray(subquery)) {
+        return false
+    }
+
     const subquery_keys = Object.keys(subquery)
     return subquery_keys.some(key => !is_reserved_keyword(key)) || subquery_keys.length === 0
 }
@@ -135,18 +195,23 @@ export const get_subquery_sql = (query, subquery_path: string[], previous_result
 /**
  * transforms a query into a simplified json sql. This is still json, but can be parsed directly into sql (so no subqueries, $from is always there etc.)
  */
-export const query_to_json_sql = (query, subquery_path: string[], previous_results: (string[] | Record<string, unknown>[])[][], orma_schema: orma_schema): expression => {
+export const query_to_json_sql = (query, subquery_path: string[], previous_results: (string[] | Record<string, unknown>[])[][], orma_schema: orma_schema): Record<string, any> => {
     const subquery = deep_get(subquery_path, query)
 
     const reserved_commands = Object.keys(subquery).filter(is_reserved_keyword)
-    const reserved_json = reserved_commands.reduce((previous, key) => previous[key] = subquery[key], {})
+    const reserved_json = reserved_commands.reduce((previous, key) => {
+        return {
+            ...previous,
+            [key]: subquery[key]
+        }
+    }, {})
 
     const $select = select_to_json_sql(query, subquery_path, orma_schema)
     const $from = subquery.$from ?? last(subquery_path)
     const $where = where_to_json_sql(query, subquery_path, previous_results, orma_schema)
     const $having = having_to_json_sql(query, subquery_path, orma_schema)
 
-    const json_sql = {
+    const json_sql: Record<string, unknown> = {
         ...reserved_json,
     }
 
@@ -365,7 +430,7 @@ const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], pat
     const last_edge_to_ancestor = get_direct_edge(table_under_ancestor, ancestor_name, orma_schema)
 
     if (ancestor_rows === undefined || ancestor_rows.length === 0) {
-        throw Error(`No ancestor rows provided for ${ ancestor_name }`)
+        throw Error(`No ancestor rows provided for ${ancestor_name}`)
     }
 
     const ancestor_linking_key_values = ancestor_rows.map(row => row[last_edge_to_ancestor.to_field])
