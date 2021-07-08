@@ -80,7 +80,7 @@ describe('query', () => {
             expect(sql).to.equal(goal)
         })
     })
-    describe.only('get_query_plan', () => {
+    describe('get_query_plan', () => {
         test('splits by $where clause and $having', () => {
             const query = {
                 vendors: {

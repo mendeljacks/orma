@@ -38,6 +38,79 @@ describe('nester', () => {
         expect(result).to.deep.equal(goal)
 
     })
+    test.skip('handles entities with no children', async () => {
+        const data = [
+            [['vendors', 0], [{ id: 1 }]],
+            [['images', 0], [{ id: 1 }]],
+            [['vendors', 0, 'products', 0], [{ id: 1, vendor_id: 1 }, { id: 2, vendor_id: 1 }]],
+        ]
+
+        const edges = [
+            { from_entity: 'vendors', from_field: 'id', to_entity: 'products', to_field: 'vendor_id' },
+        ]
+
+        const goal = {
+            images: [{
+                id: 1
+            }],
+            vendors: [{
+                id: 1,
+                products: [{
+                    id: 1
+                }, {
+                    id: 2
+                }]
+            }]
+        }
+
+        let result = nester(data, edges)
+
+
+        expect(result).to.deep.equal(goal)
+
+    })
+    test.skip('handles sibling nesting', async () => {
+        const data = [
+            [['vendors', 0], [{ id: 1 }]],
+            [['images', 0], [{ id: 1 }]],
+            [['images', 0, 'child_iamges', 0], [{ id: 1, image_id: 1 }, { id: 2, image_id: 1 }]],
+            [['vendors', 0, 'products', 0], [{ id: 1, vendor_id: 1 }, { id: 2, vendor_id: 1 }]],
+        ]
+
+        const edges = [
+            { from_entity: 'images', from_field: 'id', to_entity: 'child_images', to_field: 'image_id' },
+            { from_entity: 'vendors', from_field: 'id', to_entity: 'products', to_field: 'vendor_id' },
+        ]
+
+        const goal = {
+            images: [{
+                id: 1,
+                child_images: [{
+                    id: 1,
+                    image_id: 1
+                }, {
+                    id: 2,
+                    image_id: 1
+                }]
+            }],
+            vendors: [{
+                id: 1,
+                products: [{
+                    id: 1,
+                    vendor_id: 1
+                }, {
+                    id: 2,
+                    vendor_id: 1
+                }]
+            }]
+        }
+
+        let result = nester(data, edges)
+
+
+        expect(result).to.deep.equal(goal)
+
+    })
     test('object nesting', () => {
         const data = [
             [['vendors', 0], [{ id: 1 }, { id: 2 }]],
