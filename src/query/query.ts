@@ -1,4 +1,4 @@
-import { deep_for_each, deep_get, deep_map, last } from '../helpers/helpers'
+import { clone, deep_for_each, deep_get, deep_map, deep_set, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge, get_direct_edges, get_edge_path, is_reserved_keyword } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
@@ -54,6 +54,18 @@ const command_order = {
     $offset: 7
 }
 
+/*
+
+{
+    $eq: ['variant_id', {
+        $any: {
+            $select...
+        }
+    }]
+}
+
+*/
+
 const sql_command_parsers = {
     $select: args => `SELECT ${args.join(', ')}`,
     $as: args => `(${args[0]}) AS ${args[1]}`,
@@ -73,6 +85,8 @@ const sql_command_parsers = {
         const res = `(${args.join(') OR (')})`
         return last(path) === '$not' ? `NOT (${res})` : res
     },
+    $any: args => `ANY (${args})`,
+    $all: args => `ALL (${args})`,
     $eq: (args, path) => args[1] === null
         ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL`
         : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
@@ -116,36 +130,6 @@ const sql_command_parsers = {
 
 */
 
-// export const get_query_plan = (query, current_path=[]): string[][][] => {
-//     const a = 1
-//     const paths = Object.keys(query).map(key => {
-//         const subquery = query[key]
-//         if (is_subquery(subquery)) {
-//             return [...current_path, key]
-//         }
-//     }).filter(el => el !== undefined)
-
-//     const has_filter = '$where' in query || '$having' in query
-//     const child_query_plans = Object.keys(query).map(key => {
-
-//         const subquery = query[key]
-//         if (is_subquery(subquery)) {
-//             const child_query_plan = get_query_plan(subquery, [...current_path, key])
-//             return child_query_plan
-//         }
-//     }).filter(el => el !== undefined)
-
-//     const b = child_query_plans.flatMap(el => el[0] ?? [])
-//     const c = child_query_plans.map(el => el?.slice(1, Infinity))
-
-//     const query_plan = has_filter
-//         ? [...(paths.length > 0 ? [paths] : []), ...child_query_plans]
-//         : [[...(paths.length > 0 ? paths : []), ...child_query_plans.flatMap(el => el[0] ?? [])], ...child_query_plans.map(el => el?.slice(1, Infinity))]
-
-//     const e = 1
-//     return query_plan
-// }
-
 export const get_query_plan = (query): string[][][] => {
     const query_plan: string[][][] = []
     deep_for_each(query, (value, path: string[]) => {
@@ -153,7 +137,7 @@ export const get_query_plan = (query): string[][][] => {
             const query = value
             const has_filter = '$where' in value || '$having' in value
             const is_root = path.length === 0
-            
+
             const child_paths = Object.keys(value).map(child_key => {
                 if (is_subquery(value[child_key])) {
                     return [...path, child_key]
@@ -297,19 +281,14 @@ export const where_to_json_sql = (query, subquery_path: string[], previous_resul
         $where = combine_where_clauses($where, ancestor_where_clause, '$and')
     }
 
-    const converted_where = convert_any_clauses($where, last(subquery_path), false, orma_schema)
-    return converted_where
+    return $where
 }
 
 export const having_to_json_sql = (query: any, subquery_path: string[], orma_schema: orma_schema) => {
     const subquery = deep_get(subquery_path, query)
     const $having = subquery.$having
 
-    if ($having) {
-        return convert_any_clauses($having, last(subquery_path), true, orma_schema)
-    } else {
-        return $having
-    }
+    return $having
 }
 
 /* gives a query that contains both queries combined with the either '$and' or '$or'. 
@@ -352,13 +331,29 @@ export const combine_where_clauses = (where1: Record<string, unknown>, where2: R
 }
 
 /**
+ * The first argument to the $any_path macro is a list of connected entities, with the
+ * first one being connected to the currently scoped entity. The second argument is a where clause. This will be scoped to the last table in the first argument.
+ * This will then filter all the current entities, where there is at least one connected current_entity -> entity1 -> entity2 that matches the provided where clause
+ * 
+ * @example
+ * {
+ *   $where: {
+ *     $any_path: [['entity1', 'entity2'], { 
+ *       ...where_clause_on_entity2 
+ *     }]
+ *   }
+ * }
  * 
  * @param where a where clause
- * @param current_entity the root entity, since the path in the $any clause only starts from subsequent tables
+ * @param current_entity the root entity, since the path in the $any_path clause only starts from subsequent tables
  * @param is_having if true, will use $having. Otherwise will use $where
  * @returns a modified where clause
  */
-export const convert_any_clauses = (where: any, root_entity: string, is_having: boolean, orma_schema: orma_schema) => {
+export const convert_any_path_macro = (where: any, root_entity: string, is_having: boolean, orma_schema: orma_schema) => {
+    if (!where) {
+        return where
+    }
+    
     const processor = (value, path) => {
         if (typeof value === 'object' && '$any' in value) {
             const [any_path, subquery] = value.$any
@@ -436,7 +431,7 @@ const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], pat
     const ancestor_linking_key_values = ancestor_rows.map(row => row[last_edge_to_ancestor.to_field])
 
     const any_path = path_to_ancestor.slice(1, path_to_ancestor.length - 1)
-    const ancestor_query = convert_any_clauses(
+    const ancestor_query = convert_any_path_macro(
         {
             $any: [any_path, {
                 $in: [last_edge_to_ancestor.from_field, ancestor_linking_key_values]
@@ -450,18 +445,32 @@ const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], pat
     return ancestor_query
 }
 
-export const orma_query = async (query, orma_schema: orma_schema, fn) => {
-
+export const orma_query = async (raw_query, orma_schema: orma_schema, fn) => {
+    const query = clone(raw_query) // clone query so we can apply macros without mutating user input
     const query_plan = get_query_plan(query)
     let results = []
 
     // Sequential for query plan
     for (let i = 0; i < query_plan.length; i++) {
-        const paths = query_plan[i]
-        const sql_strings = paths.map(path => get_subquery_sql(query, path, results, orma_schema))
+        const paths = query_plan[i]        
+
+        const sql_strings = paths.map(path => {
+            // apply macros
+            const where = deep_get([...path, '$where'], query)
+            const macrod_where = convert_any_path_macro(where, last(path), false, orma_schema)
+            deep_set([...path, '$where'], macrod_where, query)
+            
+            const having = deep_get([...path, '$having'], query)
+            const macrod_having = convert_any_path_macro(having, last(path), false, orma_schema)
+            deep_set([...path, '$having'], macrod_having, query)
+
+            return get_subquery_sql(query, path, results, orma_schema)
+        })
 
         // Promise.all for each element in query plan
         const output = await Promise.all(sql_strings.map(sql_string => fn(sql_string)))
+
+        // Combine outputs
         sql_strings.forEach((_, i) => results.push([paths[i], output[i]]))
 
     }
@@ -474,3 +483,25 @@ export const orma_query = async (query, orma_schema: orma_schema, fn) => {
 
     return output
 }
+
+
+/*
+
+{
+    products: {
+        variants: {
+            vins: {}
+        },
+        images: {}
+    }
+}
+
+[
+    [['products'], [...]],
+    [['products', 'variants'], [...]],
+    [['products', 'images'], [...]],
+    [['products', 'variants', 'vins'], [...]],
+
+]
+
+*/

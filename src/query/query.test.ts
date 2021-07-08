@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
 import { orma_schema } from '../introspector/introspector'
-import { convert_any_clauses, get_query_plan, get_subquery_sql, is_subquery, json_to_sql, query_to_json_sql } from './query'
+import { convert_any_path_macro, get_query_plan, get_subquery_sql, is_subquery, json_to_sql, query_to_json_sql } from './query'
 
 
 
@@ -184,7 +184,7 @@ describe('query', () => {
                 }]
             }
 
-            const converted_where = convert_any_clauses(where, 'products', false, orma_schema)
+            const converted_where = convert_any_path_macro(where, 'products', false, orma_schema)
             const goal = {
                 $and: [{
                     $in: ['id', {
@@ -214,7 +214,7 @@ describe('query', () => {
                 }]
             }
 
-            const converted_where = convert_any_clauses(where, 'products', false, orma_schema)
+            const converted_where = convert_any_path_macro(where, 'products', false, orma_schema)
             const goal = {
                 $in: ['id', {
                     $select: ['product_id'],
@@ -241,7 +241,7 @@ describe('query', () => {
                 }]
             }
 
-            const converted_where = convert_any_clauses(where, 'products', false, orma_schema)
+            const converted_where = convert_any_path_macro(where, 'products', false, orma_schema)
             const goal = {
                 $in: ['id', {
                     $select: ['product_id'],
@@ -266,7 +266,7 @@ describe('query', () => {
                 }]
             }
 
-            const converted_where = convert_any_clauses(where, 'products', true, orma_schema)
+            const converted_where = convert_any_path_macro(where, 'products', true, orma_schema)
             const goal = {
                 $in: ['id', {
                     $select: ['product_id'],
