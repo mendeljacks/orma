@@ -14,14 +14,14 @@ export const nester = (data, edges) => {
         const [pth, list]: any = data[i];
         const array_mode = last(pth) === 0
         const path = array_mode ? drop(1, pth) : pth
-        if (i === 0) deep_set(path, list, result)
+        if (!edges[i]) deep_set(path, list, result)
         else {
             const left_list = extract_subpaths(drop(1, path), result)
             const { left, inner, right } = lir_join(
                 left_list,
                 result,
                 list,
-                (el) => deep_get([...el, edges[i - 1].from_field], result),
+                (el) => deep_get([...el, edges[i][0]], result),
                 (l, i, r) => {
 
                     r.forEach(right_adjacent => {
@@ -34,7 +34,7 @@ export const nester = (data, edges) => {
 
                     return i
                 },
-                el => el[edges[i - 1].to_field]
+                el => el[edges[i][1]]
             )
         }
 

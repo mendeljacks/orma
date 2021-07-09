@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { nester } from './nester'
 
-describe('nester', () => {
+describe.only('nester', () => {
     test('basic deep nesting', async () => {
         const data = [
             [['vendors', 0], [{ id: 1 }, { id: 2 }]],
@@ -11,8 +11,9 @@ describe('nester', () => {
         ]
 
         const edges = [
-            { from_entity: 'vendors', from_field: 'id', to_entity: 'products', to_field: 'vendor_id' },
-            { from_entity: 'products', from_field: 'id', to_entity: 'images', to_field: 'product_id' },
+            null,
+            ['id', 'vendor_id'],
+            ['id', 'product_id']
         ]
 
         const goal = {
@@ -38,7 +39,7 @@ describe('nester', () => {
         expect(result).to.deep.equal(goal)
 
     })
-    test.skip('handles entities with no children', async () => {
+    test('handles entities with no children', async () => {
         const data = [
             [['vendors', 0], [{ id: 1 }]],
             [['images', 0], [{ id: 1 }]],
@@ -46,7 +47,9 @@ describe('nester', () => {
         ]
 
         const edges = [
-            { from_entity: 'vendors', from_field: 'id', to_entity: 'products', to_field: 'vendor_id' },
+            null,
+            null,
+            ['id', 'vendor_id']
         ]
 
         const goal = {
@@ -56,9 +59,11 @@ describe('nester', () => {
             vendors: [{
                 id: 1,
                 products: [{
-                    id: 1
+                    id: 1,
+                    vendor_id: 1
                 }, {
-                    id: 2
+                    id: 2,
+                    vendor_id: 1
                 }]
             }]
         }
@@ -69,17 +74,19 @@ describe('nester', () => {
         expect(result).to.deep.equal(goal)
 
     })
-    test.skip('handles sibling nesting', async () => {
+    test('handles sibling nesting', async () => {
         const data = [
             [['vendors', 0], [{ id: 1 }]],
             [['images', 0], [{ id: 1 }]],
-            [['images', 0, 'child_iamges', 0], [{ id: 1, image_id: 1 }, { id: 2, image_id: 1 }]],
+            [['images', 0, 'child_images', 0], [{ id: 1, image_id: 1 }, { id: 2, image_id: 1 }]],
             [['vendors', 0, 'products', 0], [{ id: 1, vendor_id: 1 }, { id: 2, vendor_id: 1 }]],
         ]
 
         const edges = [
-            { from_entity: 'images', from_field: 'id', to_entity: 'child_images', to_field: 'image_id' },
-            { from_entity: 'vendors', from_field: 'id', to_entity: 'products', to_field: 'vendor_id' },
+            null,
+            null,
+            ['id', 'image_id'],
+            ['id', 'vendor_id']
         ]
 
         const goal = {
@@ -118,7 +125,8 @@ describe('nester', () => {
         ]
 
         const edges = [
-            { from_entity: 'vendors', from_field: 'id', to_entity: 'products', to_field: 'vendor_id' },
+            null,
+            ['id', 'vendor_id']
         ]
 
 

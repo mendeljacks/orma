@@ -154,6 +154,79 @@ cant nest things on to a parent with group_by if the nesting field is not includ
 
 */
 
-export const validate_query = () => {
+import { orma_schema } from "../introspector/introspector"
+
+interface validation_response {
+    query: any
+    errors: validation_error[]
+}
+
+interface validation_error {
+    path: (string | number)[]
+    message,
+    additional_info?: {}
+    recommendation?: string
+}
+
+export const validator = (query, schema): validation_response => {
+
+    
+
+
+    // check the keys of a query/subquery - including making sure each field has a place to take its data from
+    // e.g. products: { sku: true } is invalid but products: { sku: 'title' } is fine
+    // also subqueries products: { id: true }
+    // also function like { $sum: 'quantity' }, so quantity needs to be valid
+
     
 }
+
+export const validate_function_fields = (query, subquery_path: string[], orma_schema: orma_schema) => {
+    // recursively check valid sql functions like $sum or $avg
+    // check function parameters are good (e.g. field names are real field names in $sum: 'quantity')
+}
+
+export const validate_where = (query, subquery_path: string[], orma_schema: orma_schema) => {
+    // allowed keys (but only one), e.g. $eq, $and, $any
+    // correct parameters ($and gets infinite where clauses as parameters, $eq gets first column name then primitive value or { $field: field_name })
+    // subqueries change 
+
+    // also $having is the same
+}
+
+
+export const validate_group_by = (query, subquery_path: string[], orma_schema: orma_schema) => {
+    // valid keys
+}
+
+export const validate_order_by = (query, subquery_path: string[], orma_schema: orma_schema) => {
+    // valid keys
+}
+
+export const validate_pagination = (query, subquery_path: string[], orma_schema: orma_schema) => {
+    // limit and offset are positive numbers
+}
+
+
+
+/*
+
+{
+    $where: {
+        $any_macro: [['variants', 'images'], {
+            {$shmeq: true }
+        }]
+    }
+}
+
+{
+    $where: {
+        $in: ['product_id', {
+            $where: {
+                { $shmeq: true }
+            }
+        }]
+    }
+}
+
+ */
