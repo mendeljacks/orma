@@ -445,7 +445,26 @@ const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], pat
     return ancestor_query
 }
 
-export const orma_query = async (raw_query, orma_schema: orma_schema, fn) => {
+export const orma_nester = (results: [string[], Record<string, unknown>[]][], orma_schema: orma_schema) => {
+    // get data in the right format for the nester
+    const edges = results.map(result => {
+        const path = result[0]
+        const entity = last(path)
+        const higher_entity = path[path.length - 2]
+        const edge = get_direct_edge(higher_entity, entity, orma_schema)
+        return [edge.from_field, edge.to_field]
+    })
+
+    const data = results.map(result => {
+        const path = result[0]
+        const rows = result[1]
+        return [path.flatMap(path_el => [path_el, 0]), rows] // all array nesting for now
+    })
+
+    return nester(data, edges)
+}
+
+export const orma_query = async (raw_query, orma_schema: orma_schema, query_function: (sql_string: string) => Record<string, unknown>[]) => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating user input
     const query_plan = get_query_plan(query)
     let results = []
@@ -468,40 +487,14 @@ export const orma_query = async (raw_query, orma_schema: orma_schema, fn) => {
         })
 
         // Promise.all for each element in query plan
-        const output = await Promise.all(sql_strings.map(sql_string => fn(sql_string)))
+        const output = await Promise.all(sql_strings.map(sql_string => query_function(sql_string)))
 
         // Combine outputs
         sql_strings.forEach((_, i) => results.push([paths[i], output[i]]))
 
     }
 
-    const entity_names = results.map(el => 'products')
-    const test = get_edge_path(entity_names, orma_schema)
-    //const edges = get_direct_edges(, entity_names, orma_schema)
-    const edges = []
-    const output = nester(results, edges)
+    const output = orma_nester(results, orma_schema)
 
     return output
 }
-
-
-/*
-
-{
-    products: {
-        variants: {
-            vins: {}
-        },
-        images: {}
-    }
-}
-
-[
-    [['products'], [...]],
-    [['products', 'variants'], [...]],
-    [['products', 'images'], [...]],
-    [['products', 'variants', 'vins'], [...]],
-
-]
-
-*/
