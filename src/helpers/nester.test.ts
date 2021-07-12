@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { nester } from './nester'
 
-describe.only('nester', () => {
+describe('nester', () => {
     test('basic deep nesting', async () => {
         const data = [
             [['vendors', 0], [{ id: 1 }, { id: 2 }]],

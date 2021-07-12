@@ -7,7 +7,7 @@
     "build": "tsc",
     "deploy": "node -e \"require('./.github/deploy.js').deploy()\"",
     "test": "mocha --package package.json",
-    "nt": "nodemon --exec yarn test"
+    "nt": "nodemon --exec npm run test"
   },
   "files": [
     "build/**/*"

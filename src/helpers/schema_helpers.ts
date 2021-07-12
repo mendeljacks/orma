@@ -185,3 +185,11 @@ export const get_edge_path = (entities: string[], orma_schema: orma_schema): edg
 
     return edge_path
 }
+
+/**
+ * Returns true if entity1 is a parent of entity2
+ */
+export const is_parent_entity = (entity1: string, entity2: string, orma_schema: orma_schema) => {
+    const edges = get_child_edges(entity1, orma_schema)
+    return edges.some(edge => edge.to_entity === entity2)
+}

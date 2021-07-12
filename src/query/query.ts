@@ -498,3 +498,17 @@ export const orma_query = async (raw_query, orma_schema: orma_schema, query_func
 
     return output
 }
+
+
+
+/* 
+
+
+- get all data
+- nest data
+
+
+
+
+
+*/
