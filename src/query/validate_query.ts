@@ -177,7 +177,7 @@ export const validator = (query, schema): validation_response => {
     // e.g. products: { sku: true } is invalid but products: { sku: 'title' } is fine
     // also subqueries products: { id: true }
     // also function like { $sum: 'quantity' }, so quantity needs to be valid
-
+    return 
     
 }
 
