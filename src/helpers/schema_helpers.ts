@@ -193,3 +193,37 @@ export const is_parent_entity = (entity1: string, entity2: string, orma_schema: 
     const edges = get_child_edges(entity1, orma_schema)
     return edges.some(edge => edge.to_entity === entity2)
 }
+
+/**
+ * Gets a list of field names which have been marked as primary keys. More than one result indicates a compound primary key
+ */
+export const get_primary_keys = (entity_name: string, orma_schema: orma_schema) => {
+    const fields = get_field_names(entity_name, orma_schema)
+    const primary_key_fields = fields.filter((field) => {
+        const field_schema = orma_schema[entity_name][field]
+        if (typeof field_schema === 'string') {
+            return false
+        }
+
+        return field_schema.primary_key
+    })
+
+    return primary_key_fields
+}
+
+/**
+ * Gets a list of field names which have been marked as unique. Compound unique keys are not included at the moment
+ */
+export const get_unique_fields = (entity_name: string, orma_schema: orma_schema) => {
+    const fields = get_field_names(entity_name, orma_schema)
+    const unique_fields = fields.filter((field) => {
+        const field_schema = orma_schema[entity_name][field]
+        if (typeof field_schema === 'string') {
+            return false
+        }
+
+        return field_schema.unique
+    })
+
+    return unique_fields
+}

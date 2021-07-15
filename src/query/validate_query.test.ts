@@ -50,7 +50,7 @@ const schema: orma_schema = {
 
 */
 
-describe('validate_query.ts', () => {
+describe.skip('validate_query.ts', () => {
     describe('field resolvers', () => {
         test('Allows valid keys', () => {
             const data = {

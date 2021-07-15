@@ -5,7 +5,7 @@
  * Based on Kahn's algorithm with batching support
  * @param dag A directed acyclic graph
  */
-export const toposort = dag => {
+export const toposort = (dag: Record<string, string[]>): string[][] => {
     const indegrees = countInDegrees(dag)
     const sorted = []
 

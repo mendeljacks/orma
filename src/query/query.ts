@@ -44,6 +44,9 @@ export const json_to_sql = (expression: expression, path = []) => {
 }
 
 const command_order = {
+    $delete_from: -3,
+    $update: -2,
+    $set: -1,
     $select: 0,
     $from: 1,
     $where: 2,
@@ -51,7 +54,9 @@ const command_order = {
     $having: 4,
     $order_by: 5,
     $limit: 6,
-    $offset: 7
+    $offset: 7,
+    $insert_into: 8,
+    $values: 9,
 }
 
 /*
@@ -117,6 +122,13 @@ const sql_command_parsers = {
     //     lte: args => `${args[0]} > ${args[1]}`,
     //     exists: args => `NOT EXISTS (${args})`,
     // }
+    $insert_into: ([table_name, [...columns]]) => `INSERT INTO ${table_name} (${columns.join(', ')})`,
+    $values: (values: any[][]) => `${values.map(inner_values => `(${inner_values.join(', ')})`).join(', ')}`,
+    $update: (table_name) => `${table_name}`,
+    $set: (...items) => `${items
+        .map((column, value) => `${column} = ${value}`)
+        .join(', ')}`,
+    $delete_from: (table_name) => `DELETE FROM ${table_name}`
 }
 
 /*

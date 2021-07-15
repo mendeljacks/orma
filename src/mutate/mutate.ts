@@ -1,35 +1,248 @@
 // import { find_last } from '../helpers/stable_sort'
-import { deep_for_each, deep_get, deep_map, last, type } from '../helpers/helpers'
+import { error_type } from '../helpers/error_handling'
+import { clone, deep_for_each, deep_get, deep_map, deep_set, last, type } from '../helpers/helpers'
 import { push_path } from '../helpers/push_path'
-import { is_parent_entity } from '../helpers/schema_helpers'
+import { get_parent_edges, get_primary_keys, get_unique_fields, is_parent_entity, is_reserved_keyword } from '../helpers/schema_helpers'
 import { toposort } from '../helpers/toposort'
 import { orma_schema } from '../introspector/introspector'
+import { json_to_sql } from '../query/query'
 import { verify_foreign_keys } from './mutate_verifications'
 
 
-export const orma_mutate = async (mutation, orma_schema: orma_schema) => {
+export type mutate_function = (sql_strings: string[], sql_jsons: Record<string, unknown>[]) => Record<string, unknown>[]
+
+interface mutate_functions {
+    create: mutate_function
+    update: mutate_function
+    delete: mutate_function
+}
+
+// TODO: comment explaining how to set up mutation functions and what needs to be returned (need to return generated values)
+export const orma_mutate = async (mutation, mutate_functions: mutate_functions, orma_schema: orma_schema) => {
     const mutate_plan = get_mutate_plan(mutation, orma_schema)
+    const mutation_result = clone(mutation)
 
-    for (const paths of mutate_plan) {
-        // const verification_errors = await verify_foreign_keys(mutation, path, orma_schema)
-
-        // other verifications here
+    for (const tier of mutate_plan) {
+        await Promise.all(tier.map(({ operation, paths }) => {
+            const command_jsons = get_command_jsons(operation, paths, mutation_result, orma_schema)
+            const command_sqls = command_jsons.map(command_json => json_to_sql(command_jsons))
+            const mutate_function = mutate_functions[operation]
+            const results = mutate_function(command_sqls, command_jsons)
+            paths.forEach((path, i) => {
+                deep_set(path, results[i], mutation_result)
+            })
+        }))
     }
 
+    return mutation_result
+}
 
 
-    for (const paths of mutate_plan) {
-        const results = await Promise.all(paths.map(async path => {
+
+/* 
+
+1. 
+{
+    products: [{
+        <- fill this in later
+        variants: [{
+            <- insert here first
+        }]
+    }]
+}
+
+Let D be depth
+O(D) read/write. Done per record
+we need this though because we need to get all the children
+but we need to make sure we dont leave holes...? Query plan should prevent that
+*/
 
 
-        }))
+
+/**
+ * Each given path should point to a record in the mutation. 
+ * All these records must have the same operation and the same entity. They dont all need an $operation prop 
+ * (if they have inherited operation), but the same opeartion will be done on all of them.
+ * For this to work, all required foreign keys must have already been inserted (for creates)
+ * Returns an array of json sql commands
+ */
+export const get_command_jsons = (operation: string, paths: (string | number)[][], mutation, orma_schema: orma_schema): Record<string, any>[] => {
+
+    if (operation === 'update') {
+        return get_update_jsons(paths, mutation, orma_schema)
+    }
+
+    if (operation === 'delete') {
+        return get_delete_jsons(paths, mutation, orma_schema)
+    }
+
+    if (operation === 'create') {
+        return get_create_jsons(paths, mutation, orma_schema)
+    }
+
+    throw new Error(`Unknown operation ${operation}`)
+
+}
+
+const get_update_jsons = (paths: (string | number)[][], mutation, orma_schema: orma_schema) => {
+    if (paths.length === 0) {
+        return []
+    }
+
+    const entity_name = path_to_entity_name(paths[0])
+
+    const jsons = paths.map(path => {
+        const record = deep_get(path, mutation)
+        const identifying_keys = get_identifying_keys(entity_name, record, orma_schema)
+
+        throw_identifying_key_errors('update', identifying_keys, path, mutation)
+
+        const where = generate_record_where_clause(identifying_keys, record)
+
+        const keys_to_set = Object.keys(record)
+            .filter(key => !identifying_keys.includes(key))
+            .filter(key => typeof (record[key]) !== 'object')
+            .filter(key => !is_reserved_keyword(key))
+
+        return {
+            $update: entity_name,
+            $set: keys_to_set.map(key => [key, record[key]]),
+            $where: where
+        }
+    })
+
+    return jsons
+}
+
+const get_delete_jsons = (paths: (string | number)[][], mutation, orma_schema: orma_schema) => {
+    if (paths.length === 0) {
+        return []
+    }
+
+    const entity_name = path_to_entity_name(paths[0])
+
+    const jsons = paths.map(path => {
+        const record = deep_get(path, mutation)
+        const identifying_keys = get_identifying_keys(entity_name, record, orma_schema)
+
+        throw_identifying_key_errors('delete', identifying_keys, path, mutation)
+    
+        const where = generate_record_where_clause(identifying_keys, record)
+
+        return {
+            $delete_from: entity_name,
+            $where: where
+        }
+
+    })
+
+    return jsons
+}
+
+const get_create_jsons = (paths: (string | number)[][], mutation, orma_schema: orma_schema) => {
+    if (paths.length === 0) {
+        return []
+    }
+
+    const entity_name = path_to_entity_name(paths[0])
+
+    const records = paths.map(path => deep_get(path, mutation))
+
+    // get insert keys by combining the keys from all records
+    const insert_keys = paths.reduce((acc, path, i) => {
+        const record = records[i]
+
+        const keys_to_insert = Object.keys(record)
+            .filter(key => typeof (record[key]) !== 'object')
+            .filter(key => !is_reserved_keyword(key))
+
+        keys_to_insert.forEach(key => acc.add(key))
+
+        return acc
+    }, new Set() as Set<string>)
+
+    const values = paths.map((path, i) => {
+        const record = records[i]
+        const record_values = []
+        for (const key of insert_keys) {
+            record_values.push(record[key] ?? null)
+        }
+        return record_values
+    })
+
+    return [{
+        $insert_into: [entity_name, insert_keys],
+        $values: values
+    }]
+
+}
+
+const generate_record_where_clause = (identifying_keys: string[], record: Record<string, unknown>) => {
+    const where_clauses = identifying_keys.map(key => ({
+        $eq: [key, record[key]]
+    }))
+
+    const where = where_clauses.length > 1 ? {
+        and: where_clauses
+    } : where_clauses?.[0]
+
+    return where
+}
+
+
+
+const inject_foreign_keys = (entity_name, orma_schema, insert_keys) => {
+    // when creating an entity, all foreign keys must be present. These can be taken from the user input
+    const edges_to_parents = get_parent_edges(entity_name, orma_schema)
+    const foreign_keys_to_parent = edges_to_parents.map(edge => edge.from_field)
+    foreign_keys_to_parent.forEach(key => insert_keys.add(key))
+}
+
+const get_parent_path = (path: (number | string)[]) => {
+    return typeof last(path) === 'number'
+        ? path.slice(0, path.length - 2)
+        : path.slice(0, path.length - 1)
+}
+
+const path_to_entity_name = (path: (number | string)[]) => {
+    return typeof last(path) === 'number'
+        ? path[path.length - 2] as string
+        : last(path) as string
+}
+
+const get_identifying_keys = (entity_name: string, record: Record<string, any>, orma_schema: orma_schema) => {
+    const primary_keys = get_primary_keys(entity_name, orma_schema)
+    const has_primary_keys = primary_keys.every(primary_key => record[primary_key])
+    if (has_primary_keys && primary_keys.length > 0) {
+        return primary_keys
+    }
+
+    const unique_keys = get_unique_fields(entity_name, orma_schema)
+    const included_unique_keys = unique_keys.filter(unique_key => record[unique_key])
+    if (included_unique_keys.length === 1) { // if there are 2 or more unique keys, we cant use them since it would be ambiguous which we choose
+        return included_unique_keys
+    }
+
+    return undefined
+}
+
+const throw_identifying_key_errors = (operation: string, identifying_keys: string[], path: (string | number)[], mutation) => {
+    if (!identifying_keys || identifying_keys.length === 0) {
+        throw {
+            message: `Could not find primary keys or unique keys in record to ${operation}`,
+            path: path,
+            original_data: mutation,
+            stack_trace: (new Error()).stack,
+            additional_info: {
+                identifying_columns: identifying_keys ?? 'none'
+            }
+        } as error_type
     }
 }
 
 
 
-
-export const get_mutate_plan = (mutation, orma_schema: orma_schema): string[][] => {
+export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
     /*
     This function is an algorithm that wont make sense without an explanation. The idea is to generate a mutate plan
     which splits rows (specified by paths to that row) into tiers. Each tier can be run in parallel (so order within a
@@ -61,19 +274,19 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema): string[][] 
     walk_object:
         make sure the current path is in paths_by_route
         make sure the current and parent nodes are in the route_graph
-        We will now form one or zero edges in the route_graph based on the current and higher operations. 
+        We will now form one or zero edges in the route_graph based on the child and parent operations. 
         The table summarizes possible combinations:
 
-        current_operation | higher_operation | result
-        create            | create           | form a edge from parent -> child (parent goes first regardless of whether the parent is the current entity or the higher entity)
+        child_operation   | parent_operation | result
+        create            | create           | form a edge from parent -> child (parent goes first regardless of whether the parent is the child entity or the parent entity)
         create            | update           | no edge formed (no guarantees on order of operations)
         update            | update           | no edge formed (updates can be processed in any order since they dont rely on other data being/not being there)
         delete            | delete           | form a edge from child -> parent (deletes are processed child first)
         delete            | update           | no edge formed (no guarantees on order of operations)
 
-        (some combinations like current = update, parent = create since they are not allowed in a mutation)
+        (some combinations like child = update, parent = create since they are not allowed in a mutation)
         
-        So basically we only form a edge on the graph when the current and higher opeartions are the same and are not 'update'.
+        So basically we only form a edge on the graph when the current and parent opeartions are the same and are not 'update'.
         If they are both create, the edge is parent -> child, if delete the edge is child -> parent
 
         The effect will be that different operations will form disconnected subgraphs. Running toposort on the final
@@ -183,7 +396,7 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema): string[][] 
 
     const mutate_plan = topological_ordering.map(route_strings =>
         route_strings.map(route_string => ({
-            operation: JSON.parse(route_string)[0],
+            operation: JSON.parse(route_string)[0] as 'create' | 'update' | 'delete',
             paths: paths_by_route[route_string]
         }))
     )
