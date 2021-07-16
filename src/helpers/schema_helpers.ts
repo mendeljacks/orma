@@ -6,7 +6,7 @@
 import { orma_field_schema, orma_schema } from '../introspector/introspector'
 
 
-export interface edge {
+export type edge = {
     from_entity: string
     from_field: string
     to_entity: string
@@ -226,4 +226,9 @@ export const get_unique_fields = (entity_name: string, orma_schema: orma_schema)
     })
 
     return unique_fields
+}
+
+
+export const field_exists = (entity: string, field: string | number, schema: orma_schema) => {
+    return schema[entity]?.[field]
 }

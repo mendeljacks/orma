@@ -1,4 +1,4 @@
-import { clone, deep_for_each, deep_get, deep_map, deep_set, last } from '../helpers/helpers'
+import { clone, deep_for_each, deep_get, deep_map, deep_set, drop, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge, get_direct_edges, get_edge_path, is_reserved_keyword } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
@@ -179,6 +179,18 @@ export const is_subquery = (subquery: any) => {
 
     const subquery_keys = Object.keys(subquery)
     return subquery_keys.some(key => !is_reserved_keyword(key)) || subquery_keys.length === 0
+}
+
+// This function will default to the from clause
+export const get_real_parent_name = (path: (string | number)[], query) => {
+    if (path.length < 2) return null
+    
+    return deep_get([...drop(1, path), '$from'], query, null) || path[path.length - 2]
+}
+
+// This function will default to the from clause
+export const get_real_entity_name = (path: (string | number)[], query) => {
+    return deep_get([...path, '$from'], query, null) || last(path)
 }
 
 export const get_subquery_sql = (query, subquery_path: string[], previous_results: (string[] | Record<string, unknown>[])[][], orma_schema: orma_schema): string => {

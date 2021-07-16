@@ -4,5 +4,5 @@ export interface error_type {
     original_data: any
     recommendation?: string
     additional_info?: Record<string, any>
-    stack_trace: any
+    stack_trace?: any
 }

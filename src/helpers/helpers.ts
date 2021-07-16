@@ -6,8 +6,8 @@ export const type = (value: any): type_string => {
             ? 'Undefined'
             : Object.prototype.toString.call(value).slice(8, -1);
 }
-export const drop = (num, arr) => arr.slice(0, -num)
-export const last = <T>(array: T[]) => array[array.length - 1]
+export const drop = (num: number, arr: any[]) => arr.slice(0, -num)
+export const last = <T>(array: T[]): T => array[array.length - 1]
 export const deep_set = (path_array: (string | number)[], value: any, obj: any): void => {
     if (path_array.length === 0) return obj
 
@@ -125,6 +125,7 @@ export const deep_map = (item: any, processor: (value: any, path: (string | numb
 export const deep_for_each = (item: any, processor: (value: any, path: (string | number)[]) => void, current_path = []) => {
     const is_object = typeof item === 'object' && !Array.isArray(item)
     const is_array = typeof item === 'object' && Array.isArray(item)
+    const is_primitive = !is_object && !is_array
 
     if (is_object) {
         processor(item, current_path)
@@ -138,6 +139,10 @@ export const deep_for_each = (item: any, processor: (value: any, path: (string |
         item.forEach((el, i) => {
             deep_for_each(el, processor, [...current_path, i])
         })
+    }
+
+    if (is_primitive) {
+        processor(item, current_path)
     }
 }
 
