@@ -178,13 +178,48 @@ export const validator = (query, schema): error_type[] => {
         
         if (is_virtual_column_resolver) {
             const is_renamed_field = '$field' in val
+            const is_eq = '$eq' in val
+
             if (is_renamed_field) {
-                const error = ensure_field_alone(val, path, query)
-                if (error) errors.push(error)
+
+                if (!is_exclusive_key('$field', val)) {
+                    const error: error_type = {
+                        message: `$field must be the only key when renaming a field`,
+                        original_data: query,
+                        path: path
+                    }
+                    errors.push(error)
+                }
                 
                 const error2 = ensure_field_exists(val, path, query, schema)
                 if (error2) errors.push(error2)
 
+            }
+
+            if (is_eq) {
+                if (!last_path_equals('$where', path)) {
+                    const error: error_type = {
+                        message: `$eq can only be used in $where`,
+                        original_data: query,
+                        path: path, 
+                    }
+                    errors.push(error)
+                }
+
+                if (!is_exclusive_key('$eq', val)) {
+                    const error: error_type = {
+                        message: `$eq can only be used in $where`,
+                        original_data: query,
+                        path: path, 
+                    }
+                    errors.push(error)
+                }
+
+                const error = ensure_valid_eq(val, path, query, schema)
+                if (error) {
+                    errors.push(error)
+                }
+            
             }
         }
 
@@ -205,6 +240,42 @@ export const validator = (query, schema): error_type[] => {
     // also function like { $sum: 'quantity' }, so quantity needs to be valid
     return errors
 
+}
+
+const ensure_valid_eq = (val, path, query, schema) => {
+    const args = val['$eq']
+
+    if (!Array.isArray(args) || args.length !== 2) {
+        const error: error_type = {
+            message: `$eq must be an array of length 2`,
+            original_data: query,
+            path,
+        }
+        return error
+    }
+
+    // First val must be a valid column name
+    const first_arg = args[0]
+    const parent_entity = get_real_parent_name(path, query)
+    if (typeof first_arg !== 'string' || !schema[parent_entity][first_arg]) {
+        const error: error_type = {
+            message: `First argument to $eq must be string and be a valid column name from ${parent_entity}`,
+            path,
+            original_data: query
+        }
+        return error
+    }
+    return val['$eq']
+}
+
+const is_exclusive_key = (key, obj) => {
+    return Object.keys(obj).length == 1 && Object.keys(obj)[0] === key
+}
+
+const last_path_equals = (desired_key, path) => {
+    
+    const is_valid = last(path) === desired_key
+    return is_valid
 }
 
 const validate_edges = (path, query, schema) => {
@@ -238,18 +309,6 @@ const ensure_field_exists = (val, path: (string | number)[], query, schema: orma
     }
 }
 
-const ensure_field_alone = (val, path: (string | number)[], query) => {
-    if (Object.keys(val).length !== 1 || Object.keys(val)[0] !== '$field') {
-        const error: error_type = {
-            message: `$field must be the only key when renaming a field`,
-            original_data: query,
-            path: path
-        }
-        return error
-    }
-
-}
-
 const validate_field_exists = (val, path: (string | number)[], schema: orma_schema, query) => {
     // User is requesting a specific field be in the response
     const parent_entity = get_real_parent_name(path, query)
@@ -268,31 +327,31 @@ const validate_field_exists = (val, path: (string | number)[], schema: orma_sche
 }
 
 
-export const validate_function_fields = (query, subquery_path: string[], orma_schema: orma_schema) => {
-    // recursively check valid sql functions like $sum or $avg
-    // check function parameters are good (e.g. field names are real field names in $sum: 'quantity')
-}
+// export const validate_function_fields = (query, subquery_path: string[], orma_schema: orma_schema) => {
+//     // recursively check valid sql functions like $sum or $avg
+//     // check function parameters are good (e.g. field names are real field names in $sum: 'quantity')
+// }
 
-export const validate_where = (query, subquery_path: string[], orma_schema: orma_schema) => {
-    // allowed keys (but only one), e.g. $eq, $and, $any
-    // correct parameters ($and gets infinite where clauses as parameters, $eq gets first field name then primitive value or { $field: field_name })
-    // subqueries change 
+// export const validate_where = (query, subquery_path: string[], orma_schema: orma_schema) => {
+//     // allowed keys (but only one), e.g. $eq, $and, $any
+//     // correct parameters ($and gets infinite where clauses as parameters, $eq gets first field name then primitive value or { $field: field_name })
+//     // subqueries change 
 
-    // also $having is the same
-}
+//     // also $having is the same
+// }
 
 
-export const validate_group_by = (query, subquery_path: string[], orma_schema: orma_schema) => {
-    // valid keys
-}
+// export const validate_group_by = (query, subquery_path: string[], orma_schema: orma_schema) => {
+//     // valid keys
+// }
 
-export const validate_order_by = (query, subquery_path: string[], orma_schema: orma_schema) => {
-    // valid keys
-}
+// export const validate_order_by = (query, subquery_path: string[], orma_schema: orma_schema) => {
+//     // valid keys
+// }
 
-export const validate_pagination = (query, subquery_path: string[], orma_schema: orma_schema) => {
-    // limit and offset are positive numbers
-}
+// export const validate_pagination = (query, subquery_path: string[], orma_schema: orma_schema) => {
+//     // limit and offset are positive numbers
+// }
 
 
 
