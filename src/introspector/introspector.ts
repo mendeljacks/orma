@@ -271,7 +271,7 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
     return field_schema
 }
 
-export const introspector = async (
+export const orma_introspect = async (
     db: string,
     fn: (s: string[]) => Promise<Record<string, unknown>[][]>
 ): Promise<orma_schema> => {
