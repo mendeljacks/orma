@@ -13,7 +13,7 @@ export type mutate_function = (sql_strings: string[], sql_jsons: Record<string, 
 
 export type operation = 'create' | 'update' | 'delete'
 
-interface mutate_functions {
+export interface mutate_functions {
     create: mutate_function
     update: mutate_function
     delete: mutate_function
