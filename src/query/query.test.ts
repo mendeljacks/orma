@@ -511,6 +511,33 @@ describe('query', () => {
 
             expect(json_sql).to.deep.equal(goal)
         })
+        test('should not put where or having when not required', () => {
+            const query = {
+                calls: {
+                    id: true
+                }
+            }
+            const orma_schema = {
+                calls: {
+                    $comment: '',
+                    id: {
+                        data_type: 'number',
+                        required: true,
+                        indexed: true,
+                        unique: true,
+                        primary_key: true,
+                        character_count: 10
+                    }
+                }
+            }
+
+            var actual_query = ''
+            const test = orma_query(query, orma_schema, sql_strings => {
+                actual_query = sql_strings[0]
+                return Promise.resolve([])
+            })
+            expect(actual_query).to.deep.equal('SELECT id FROM calls')
+        })
     })
 })
 
