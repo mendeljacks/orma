@@ -3,7 +3,7 @@ const spawn = require('cross-spawn')
 
 module.exports.deploy = async () => {
     try {
-        await run_process(['tsc'])
+        await run_process(['tsc', '--target', 'ES2017'])
         await npmPublish({
             package: './package.json',
             token: process.env.NPM_TOKEN
