@@ -84,7 +84,7 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
-        test.only('ignores undefined properties', () => {
+        test('ignores undefined properties', () => {
             const json = {
                 $having: undefined
             }
