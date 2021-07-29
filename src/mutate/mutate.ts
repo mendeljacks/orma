@@ -27,7 +27,7 @@ export const orma_mutate = async (mutation, mutate_functions: mutate_functions, 
     for (const tier of mutate_plan) {
         await Promise.all(tier.map(async ({ operation, paths }) => {
             const command_jsons = get_command_jsons(operation, paths, mutation_result, orma_schema)
-            const command_sqls = command_jsons.map(command_json => json_to_sql(command_jsons))
+            const command_sqls = command_jsons.map(command_json => json_to_sql(command_json))
             const mutate_function = mutate_functions[operation]
             const results = await mutate_function(command_sqls, command_jsons)
             paths.forEach((path, i) => {
