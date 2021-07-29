@@ -29,7 +29,7 @@ export const json_to_sql = (expression: expression, path = []) => {
     const parsed_commands = sorted_commands.map(command => {
         const command_parser = sql_command_parsers[command]
         if (!command_parser) {
-            throw new Error(`Cannot find command parser for ${command}.`)
+            throw new Error(`Cannot find command parser for ${ command }.`)
         }
 
         const args = expression[command]
@@ -72,45 +72,45 @@ const command_order = {
 */
 
 const sql_command_parsers = {
-    $select: args => `SELECT ${args.join(', ')}`,
-    $as: args => `(${args[0]}) AS ${args[1]}`,
-    $from: args => `FROM ${args}`,
-    $where: args => `WHERE ${args}`,
-    $having: args => `HAVING ${args}`,
-    $in: (args, path) => `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IN (${args[1]})`,
-    $group_by: args => `GROUP BY ${args.join(', ')}`,
-    $order_by: args => `ORDER BY ${args.join(', ')}`,
-    $asc: args => `${args} ASC`,
-    $desc: args => `${args} DESC`,
+    $select: args => `SELECT ${ args.join(', ') }`,
+    $as: args => `(${ args[0] }) AS ${ args[1] }`,
+    $from: args => `FROM ${ args }`,
+    $where: args => `WHERE ${ args }`,
+    $having: args => `HAVING ${ args }`,
+    $in: (args, path) => `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } IN (${ args[1] })`,
+    $group_by: args => `GROUP BY ${ args.join(', ') }`,
+    $order_by: args => `ORDER BY ${ args.join(', ') }`,
+    $asc: args => `${ args } ASC`,
+    $desc: args => `${ args } DESC`,
     $and: (args, path) => {
-        const res = `(${args.join(') AND (')})`
-        return last(path) === '$not' ? `NOT (${res})` : res
+        const res = `(${ args.join(') AND (') })`
+        return last(path) === '$not' ? `NOT (${ res })` : res
     },
     $or: (args, path) => {
-        const res = `(${args.join(') OR (')})`
-        return last(path) === '$not' ? `NOT (${res})` : res
+        const res = `(${ args.join(') OR (') })`
+        return last(path) === '$not' ? `NOT (${ res })` : res
     },
-    $any: args => `ANY (${args})`,
-    $all: args => `ALL (${args})`,
+    $any: args => `ANY (${ args })`,
+    $all: args => `ALL (${ args })`,
     $eq: (args, path) => args[1] === null
-        ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL`
-        : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
-    $gt: (args, path) => `${args[0]} ${last(path) === '$not' ? '<=' : '>'} ${args[1]}`,
-    $lt: (args, path) => `${args[0]} ${last(path) === '$not' ? '>=' : '<'} ${args[1]}`,
-    $gte: (args, path) => `${args[0]} ${last(path) === '$not' ? '<' : '>='} ${args[1]}`,
-    $lte: (args, path) => `${args[0]} ${last(path) === '$not' ? '>' : '<='} ${args[1]}`,
-    $exists: (args, path) => `${last(path) === '$not' ? 'NOT ' : ''}EXISTS (${args})`,
-    $limit: args => `LIMIT ${args}`,
-    $offset: args => `OFFSET ${args}`,
+        ? `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } IS NULL`
+        : `${ args[0] } ${ last(path) === '$not' ? '!' : '' }= ${ args[1] }`,
+    $gt: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '<=' : '>' } ${ args[1] }`,
+    $lt: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '>=' : '<' } ${ args[1] }`,
+    $gte: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '<' : '>=' } ${ args[1] }`,
+    $lte: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '>' : '<=' } ${ args[1] }`,
+    $exists: (args, path) => `${ last(path) === '$not' ? 'NOT ' : '' }EXISTS (${ args })`,
+    $limit: args => `LIMIT ${ args }`,
+    $offset: args => `OFFSET ${ args }`,
     $like: (args, path) => {
         const string_arg = args[1].toString()
         const search_value = string_arg
             .replace(/^\'/, '')
             .replace(/\'$/, '') // get rid of quotes if they were put there by escape()
-        return `${args[0]}${last(path) === '$not' ? ' NOT' : ''} LIKE '%${search_value}%'`
+        return `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } LIKE '%${ search_value }%'`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
-    $sum: args => `SUM(${args})`,
+    $sum: args => `SUM(${ args })`,
     // not: {
     //     in: args => `${args[0]} NOT IN (${args[1]})`,
     //     and: args => `NOT ((${args.join(') AND (')}))`,
@@ -122,13 +122,13 @@ const sql_command_parsers = {
     //     lte: args => `${args[0]} > ${args[1]}`,
     //     exists: args => `NOT EXISTS (${args})`,
     // }
-    $insert_into: ([table_name, [...columns]]) => `INSERT INTO ${table_name} (${columns.join(', ')})`,
-    $values: (values: any[][]) => `${values.map(inner_values => `(${inner_values.join(', ')})`).join(', ')}`,
-    $update: (table_name) => `${table_name}`,
-    $set: (...items) => `${items
-        .map((column, value) => `${column} = ${value}`)
-        .join(', ')}`,
-    $delete_from: (table_name) => `DELETE FROM ${table_name}`
+    $insert_into: ([table_name, [...columns]]) => `INSERT INTO ${ table_name } (${ columns.join(', ') })`,
+    $values: (values: any[][]) => `${ values.map(inner_values => `(${ inner_values.join(', ') })`).join(', ') }`,
+    $update: (table_name) => `${ table_name }`,
+    $set: (...items) => `${ items
+        .map((column, value) => `${ column } = ${ value }`)
+        .join(', ') }`,
+    $delete_from: (table_name) => `DELETE FROM ${ table_name }`
 }
 
 /*
@@ -184,7 +184,7 @@ export const is_subquery = (subquery: any) => {
 // This function will default to the from clause
 export const get_real_parent_name = (path: (string | number)[], query) => {
     if (path.length < 2) return null
-    
+
     return deep_get([...drop(1, path), '$from'], query, null) || path[path.length - 2]
 }
 
@@ -377,7 +377,7 @@ export const convert_any_path_macro = (where: any, root_entity: string, is_havin
     if (!where) {
         return where
     }
-    
+
     const processor = (value, path) => {
         if (typeof value === 'object' && '$any' in value) {
             const [any_path, subquery] = value.$any
@@ -449,7 +449,7 @@ const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], pat
     const last_edge_to_ancestor = get_direct_edge(table_under_ancestor, ancestor_name, orma_schema)
 
     if (ancestor_rows === undefined || ancestor_rows.length === 0) {
-        throw Error(`No ancestor rows provided for ${ancestor_name}`)
+        throw Error(`No ancestor rows provided for ${ ancestor_name }`)
     }
 
     const ancestor_linking_key_values = ancestor_rows.map(row => row[last_edge_to_ancestor.to_field])
@@ -488,21 +488,24 @@ export const orma_nester = (results: [string[], Record<string, unknown>[]][], or
     return nester(data, edges)
 }
 
-export const orma_query = async (raw_query, orma_schema: orma_schema, query_function: (sql_string: string) => Record<string, unknown>[]) => {
+
+
+// export const orma_query = async <schema>(raw_query: validate_query<schema>, orma_schema: validate_orma_schema<schema>, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
+export const orma_query = async (raw_query, orma_schema, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating user input
     const query_plan = get_query_plan(query)
     let results = []
 
     // Sequential for query plan
     for (let i = 0; i < query_plan.length; i++) {
-        const paths = query_plan[i]        
+        const paths = query_plan[i]
 
         const sql_strings = paths.map(path => {
             // apply macros
             const where = deep_get([...path, '$where'], query)
             const macrod_where = convert_any_path_macro(where, last(path), false, orma_schema)
             deep_set([...path, '$where'], macrod_where, query)
-            
+
             const having = deep_get([...path, '$having'], query)
             const macrod_having = convert_any_path_macro(having, last(path), false, orma_schema)
             deep_set([...path, '$having'], macrod_having, query)
@@ -522,10 +525,98 @@ export const orma_query = async (raw_query, orma_schema: orma_schema, query_func
 
     return output
 }
+// ///-------------type-fest---------------
+// type Without<FirstType, SecondType> = { [KeyType in Exclude<keyof FirstType, keyof SecondType>]?: never };
+// type RequireExactlyOne<ObjectType, KeysType extends keyof ObjectType = keyof ObjectType> =
+//     { [Key in KeysType]: (
+//         Required<Pick<ObjectType, Key>> &
+//         Partial<Record<Exclude<KeysType, Key>, never>>
+//     ) }[KeysType] & _Omit<ObjectType, KeysType>;
+// type _Omit<T, K extends keyof any> = Pick<T, Exclude<keyof T, K>>;
+// type MergeExclusive<FirstType, SecondType> =
+//     (FirstType | SecondType) extends object ?
+//     (Without<FirstType, SecondType> & SecondType) | (Without<SecondType, FirstType> & FirstType) :
+//     FirstType | SecondType;
+// type RequireAtLeastOne<
+//     ObjectType,
+//     KeysType extends keyof ObjectType = keyof ObjectType
+//     > = {
+//         // For each `Key` in `KeysType` make a mapped type:
+//         [Key in KeysType]-?: Required<Pick<ObjectType, Key>> & // 1. Make `Key`'s type required
+//         // 2. Make all other keys in `KeysType` optional
+//         Partial<Pick<ObjectType, Exclude<KeysType, Key>>>;
+//     }[KeysType] &
+//     // 3. Add the remaining keys not in `KeysType`
+//     Except<ObjectType, KeysType>;
+// type Except<ObjectType, KeysType extends keyof ObjectType> = Pick<ObjectType, Exclude<keyof ObjectType, KeysType>>;
+// ///----------------------------
+
+// type validate_orma_schema<schema> = {
+//     [entity in keyof schema]:
+//     entity_schema<entity, schema>
+
+// }
+// type entity_schema<entity extends keyof schema, schema> =
+//     // keyof schema[entity] extends keyof schema ? 
+//     { $comment?: string }
+//     & { [field: string]: field_schema<entity, schema> }
+// // : never
+
+// type field_schema<parent extends keyof schema, schema> = {
+//     references?: 
+//     { [entity in keyof schema]?: 
+//         {}
+//         // boolean
+//         //  {[k in keyof schema[entity]]: boolean}
+//         // RequireExactlyOne<{[field in keyof schema[entity]]: {}}>
+//     } //{ products: { id: {} } } | { variants: { id: {} } }
+// }
+
+// const test = orma_query({}, {
+//     products: { id: {} },
+//     variants: {
+//         id: {},
+//         product_id: {
+//             // references: { products: { id: {} } }
+//             references: { products: {id: {}} }
+//         }
+//     },
+//     images: {
+//         id: {},
+//         variant_id: {
+//             references: { variants: { id8: {} }, hi: {} }
+//         }
+//     },
+//     images2: {
+//         id: {},
+//         variant_id: {
+//             // @ts-expect-error
+//             references: { oops: { id: {} } }
+//         }
+//     },
+//     images3: {
+//         id: {},
+//         variant_id: {
+//             // @ts-expect-error
+//             references: { variants: { id: {} }, hi: {}, }
+//         }
+//     }
+// }, (s) => ([{ a: 'hi' }]))
 
 
+// type validate_query<schema> = {
+//     [entity in keyof schema]: boolean
+// }
+// const test2 = orma_query({
+//     variants: true,
+//     products: true,
+//     poop: true,
+// }, {
+//     variants: {id: {}},
+//     products: {id: {}},
+// }, (s) => Promise.resolve([{}]))
 
-/* 
+/*
 
 
 - get all data

@@ -1,8 +1,14 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { type } from '../helpers/helpers'
-import { generate_field_schema, generate_database_schema, get_introspect_sqls, mysql_column, mysql_foreign_key, mysql_table } from './introspector'
-
+import {
+    generate_field_schema,
+    generate_database_schema,
+    get_introspect_sqls,
+    mysql_column,
+    mysql_foreign_key,
+    mysql_table
+} from './introspector'
 
 describe('introspector', () => {
     test('introspect sqls are string', () => {
@@ -25,8 +31,8 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: "number",
-            default: "auto_increment",
+            data_type: 'number',
+            default: 'auto_increment',
             indexed: true,
             ordinal_position: 1,
             primary_key: true,
@@ -47,7 +53,7 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: "string",
+            data_type: 'string',
             indexed: true,
             ordinal_position: 2,
             required: true,
@@ -68,7 +74,7 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: "number",
+            data_type: 'number',
             ordinal_position: 3,
             character_count: 4,
             decimal_places: 1,
@@ -77,41 +83,53 @@ describe('introspector', () => {
     })
 
     test('entity relationships', () => {
-        const mysql_tables: mysql_table[] = [{
-            table_name: 'users',
-            table_comment: 'table of users'
-        }, {
-            table_name: 'posts',
-            table_comment: 'user posts'
-        }]
+        const mysql_tables: mysql_table[] = [
+            {
+                table_name: 'users',
+                table_comment: 'table of users'
+            },
+            {
+                table_name: 'posts',
+                table_comment: 'user posts'
+            }
+        ]
 
-        const mysql_columns: mysql_column[] = [{
-            table_name: 'users',
-            column_name: 'id',
-            ordinal_position: 1,
-            data_type: 'int'
-        }, {
-            table_name: 'posts',
-            column_name: 'user_id',
-            ordinal_position: 1,
-            data_type: 'int'
-        }]
+        const mysql_columns: mysql_column[] = [
+            {
+                table_name: 'users',
+                column_name: 'id',
+                ordinal_position: 1,
+                data_type: 'int'
+            },
+            {
+                table_name: 'posts',
+                column_name: 'user_id',
+                ordinal_position: 1,
+                data_type: 'int'
+            }
+        ]
 
-        const mysql_foreign_keys: mysql_foreign_key[] = [{
-            table_name: 'posts',
-            column_name: 'user_id',
-            referenced_table_name: 'users',
-            referenced_column_name: 'id',
-            constraint_name: 'user_post_constraint'
-        }]
+        const mysql_foreign_keys: mysql_foreign_key[] = [
+            {
+                table_name: 'posts',
+                column_name: 'user_id',
+                referenced_table_name: 'users',
+                referenced_column_name: 'id',
+                constraint_name: 'user_post_constraint'
+            }
+        ]
 
-        const database_schema = generate_database_schema(mysql_tables, mysql_columns, mysql_foreign_keys)
+        const database_schema = generate_database_schema(
+            mysql_tables,
+            mysql_columns,
+            mysql_foreign_keys
+        )
 
         expect(database_schema).to.deep.equal({
             posts: {
-                $comment: "user posts",
+                $comment: 'user posts',
                 user_id: {
-                    data_type: "number",
+                    data_type: 'number',
                     ordinal_position: 1,
                     references: {
                         users: {
@@ -121,12 +139,19 @@ describe('introspector', () => {
                 }
             },
             users: {
-                $comment: "table of users",
+                $comment: 'table of users',
                 id: {
-                    data_type: "number",
+                    data_type: 'number',
                     ordinal_position: 1
                 }
             }
         })
+    })
+
+    test('Should allow UPPERCASE mysql responses', () => {
+        expect(1).to.equal(2)
+    })
+    test('Should date types be called date? or data...', () => {
+        expect(1).to.equal(2)
     })
 })

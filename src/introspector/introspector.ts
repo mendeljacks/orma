@@ -1,7 +1,7 @@
-/** 
+/**
  * These functions are used to introspect the schema of a mysql database, and from it create a JSON schema compatible with orma.
  * @module
-*/
+ */
 
 import { deep_set } from '../helpers/helpers'
 
@@ -64,7 +64,7 @@ export interface orma_field_schema {
  * Gets a list of sql strings to collect introspector data for the given database
  * @returns [tables_sql, columns_sql, foreign_keys_sql]
  */
-export const get_introspect_sqls = (database_name): string[] => {
+export const get_introspect_sqls = (database_name: string): string[] => {
     const query_strings = [
         `SELECT 
             table_name, 
@@ -124,14 +124,16 @@ export const get_introspect_sqls = (database_name): string[] => {
  *     },
  * }
  */
-export const generate_database_schema = (mysql_tables: mysql_table[], mysql_columns: mysql_column[], mysql_foreign_keys: mysql_foreign_key[]) => {
-
-
+export const generate_database_schema = (
+    mysql_tables: mysql_table[],
+    mysql_columns: mysql_column[],
+    mysql_foreign_keys: mysql_foreign_key[]
+) => {
     const database_schema: orma_schema = {}
 
     for (const mysql_table of mysql_tables) {
         database_schema[mysql_table.table_name] = {
-            $comment: mysql_table.table_comment,
+            $comment: mysql_table.table_comment
         }
     }
 
@@ -150,49 +152,52 @@ export const generate_database_schema = (mysql_tables: mysql_table[], mysql_colu
             constraint_name
         } = mysql_foreign_key
 
-        const reference_path = [table_name, column_name, 'references', referenced_table_name, referenced_column_name]
+        const reference_path = [
+            table_name,
+            column_name,
+            'references',
+            referenced_table_name,
+            referenced_column_name
+        ]
         deep_set(reference_path, {}, database_schema)
-
     }
 
     return database_schema
 }
 
-
 const mysql_to_simple_types = {
-    bigint: "number",
-    binary: "string",
-    bit: "not_supported",
-    blob: "not_supported",
-    bool: "boolean",
-    boolean: "boolean",
-    char: "string",
-    date: "data",
-    datetime: "data",
-    decimal: "number",
-    double: "number",
-    enum: "enum",
-    float: "number",
-    int: "number",
-    longblob: "not_supported",
-    longtext: "string",
-    mediumblob: "not_supported",
-    mediumint: "number",
-    mediumtext: "string",
-    set: "not_supported",
-    smallint: "number",
-    text: "string",
-    time: "data",
-    timestamp: "data",
-    tinyblob: "not_supported",
-    tinyint: "boolean",
-    tinytext: "string",
-    varbinary: "string",
-    varchar: "string"
+    bigint: 'number',
+    binary: 'string',
+    bit: 'not_supported',
+    blob: 'not_supported',
+    bool: 'boolean',
+    boolean: 'boolean',
+    char: 'string',
+    date: 'data',
+    datetime: 'data',
+    decimal: 'number',
+    double: 'number',
+    enum: 'enum',
+    float: 'number',
+    int: 'number',
+    longblob: 'not_supported',
+    longtext: 'string',
+    mediumblob: 'not_supported',
+    mediumint: 'number',
+    mediumtext: 'string',
+    set: 'not_supported',
+    smallint: 'number',
+    text: 'string',
+    time: 'data',
+    timestamp: 'data',
+    tinyblob: 'not_supported',
+    tinyint: 'boolean',
+    tinytext: 'string',
+    varbinary: 'string',
+    varchar: 'string'
 } as const
 
 export const generate_field_schema = (mysql_column: mysql_column) => {
-
     const {
         table_name,
         column_name,
@@ -265,3 +270,23 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
 
     return field_schema
 }
+
+export const introspector = async (db: string, fn: (s: string[]) => Promise<any[]>): Promise<orma_schema> => {
+    const sql_strings = get_introspect_sqls(db)
+    const [mysql_tables, mysql_columns, mysql_foreign_keys] = await fn(sql_strings)
+
+    // TODO: to be removed when orma lowercase bug fixed
+    const transform_keys_to_lower = obj =>
+        Object.entries(obj).reduce((acc, val) => {
+            acc[val[0].toLowerCase()] = val[1]
+            return acc
+        }, {})
+    const orma_schema = generate_database_schema(
+        mysql_tables.map(transform_keys_to_lower),
+        mysql_columns.map(transform_keys_to_lower),
+        mysql_foreign_keys.map(transform_keys_to_lower)
+    )
+
+    return orma_schema
+}
+

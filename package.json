@@ -1,6 +1,6 @@
 {
   "name": "orma",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "description": "A declarative relational syncronous orm",
   "main": "build/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "deploy": "node -e \"require('./.github/deploy.js').deploy()\"",
     "test": "mocha --package package.json",
     "nt": "nodemon --exec nyc --reporter html npm run test",
-    "coverage": "live-server coverage"
+    "coverage-watch": "live-server coverage"
   },
   "files": [
     "build/**/*"

@@ -168,7 +168,7 @@ describe('validate_query.ts', () => {
                 }
             }
 
-            const { errors } = validator(data, schema)
+            const errors = validator(data, schema)
 
             expect(errors.length).to.equal(0)
         })
@@ -182,7 +182,7 @@ describe('validate_query.ts', () => {
                 }
             }
 
-            const { errors } = validator(data, schema)
+            const errors = validator(data, schema)
 
             expect(errors.length).to.equal(0)
         })
@@ -196,7 +196,7 @@ describe('validate_query.ts', () => {
                 }
             }
 
-            const { errors } = validator(data, schema)
+            const errors = validator(data, schema)
 
             expect(errors.length).to.equal(0)
         })
@@ -212,7 +212,7 @@ describe('validate_query.ts', () => {
                 }
             }
 
-            const { errors } = validator(data, schema)
+            const errors = validator(data, schema)
 
             expect(errors.length).to.equal(0)
         })
@@ -232,7 +232,7 @@ describe('validate_query.ts', () => {
                 }
             }
 
-            const { errors } = validator(data, schema)
+            const errors = validator(data, schema)
 
             expect(errors.length).to.equal(1)
         })
@@ -249,7 +249,7 @@ describe('validate_query.ts', () => {
                 }
             }
 
-            const { errors } = validator(data, schema)
+            const errors = validator(data, schema)
 
             expect(errors.length).to.equal(1)
         })
@@ -266,7 +266,7 @@ describe('validate_query.ts', () => {
                 }
             }
 
-            const { errors } = validator(data, schema)
+            const errors = validator(data, schema)
 
             expect(errors.length).to.equal(1)
         })
