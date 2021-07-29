@@ -8,6 +8,7 @@ import {
     get_subquery_sql,
     is_subquery,
     json_to_sql,
+    orma_nester,
     orma_query,
     query_to_json_sql
 } from './query'
@@ -510,6 +511,23 @@ describe('query', () => {
             const goal = {}
 
             expect(json_sql).to.deep.equal(goal)
+        })
+    })
+    describe(orma_nester.name, () => {
+        test('nests restults', () => {
+            const result = orma_nester([
+                [['products'], [{ vendor_id: 1}]], 
+                [['products', 'vendors'], [{ id: 1}]]
+            ], orma_schema)
+
+            expect(result).to.deep.equal({
+                products: [{
+                    vendor_id: 1,
+                    vendors: [{
+                        id: 1
+                    }]
+                }]
+            })
         })
     })
 })
