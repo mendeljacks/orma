@@ -6,7 +6,7 @@ import { get_parent_edges, get_primary_keys, get_unique_fields, is_parent_entity
 import { toposort } from '../helpers/toposort'
 import { orma_schema } from '../introspector/introspector'
 import { json_to_sql } from '../query/query'
-import { verify_foreign_keys } from './mutate_verifications'
+// import { verify_foreign_keys } from './mutate_verifications'
 
 
 export type mutate_function = (sql_strings: string[], sql_jsons: Record<string, unknown>[]) => Record<string, unknown>[]
