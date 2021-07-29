@@ -9,7 +9,7 @@ import { json_to_sql } from '../query/query'
 // import { verify_foreign_keys } from './mutate_verifications'
 
 
-export type mutate_function = (sql_strings: string[], sql_jsons: Record<string, unknown>[]) => Record<string, unknown>[]
+export type mutate_function = (sql_strings: string[], sql_jsons: Record<string, unknown>[]) => Promise<Record<string, unknown>[]>
 
 export type operation = 'create' | 'update' | 'delete'
 
@@ -25,11 +25,11 @@ export const orma_mutate = async (mutation, mutate_functions: mutate_functions, 
     const mutation_result = clone(mutation)
 
     for (const tier of mutate_plan) {
-        await Promise.all(tier.map(({ operation, paths }) => {
+        await Promise.all(tier.map(async ({ operation, paths }) => {
             const command_jsons = get_command_jsons(operation, paths, mutation_result, orma_schema)
             const command_sqls = command_jsons.map(command_json => json_to_sql(command_jsons))
             const mutate_function = mutate_functions[operation]
-            const results = mutate_function(command_sqls, command_jsons)
+            const results = await mutate_function(command_sqls, command_jsons)
             paths.forEach((path, i) => {
                 deep_set(path, results[i], mutation_result)
             })
