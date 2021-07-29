@@ -118,6 +118,7 @@ export const deep_map = (item: any, processor: (value: any, path: (string | numb
 // fn is a function of (object, path_to_object) -> null
 /**
  * Calls the processor on every object and array for deeply nested objects/arrays. Processort runs from the least deeply nested keys to the most deeply nested ones
+ * Does not run on leaf keys (i.e. where value of key is not an object or array)
  * @param item 
  * @param processor 
  * @param current_path 

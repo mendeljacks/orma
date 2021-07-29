@@ -11,6 +11,8 @@ import { verify_foreign_keys } from './mutate_verifications'
 
 export type mutate_function = (sql_strings: string[], sql_jsons: Record<string, unknown>[]) => Record<string, unknown>[]
 
+export type operation = 'create' | 'update' | 'delete'
+
 interface mutate_functions {
     create: mutate_function
     update: mutate_function
@@ -396,7 +398,7 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
 
     const mutate_plan = topological_ordering.map(route_strings =>
         route_strings.map(route_string => ({
-            operation: JSON.parse(route_string)[0] as 'create' | 'update' | 'delete',
+            operation: JSON.parse(route_string)[0] as operation,
             paths: paths_by_route[route_string]
         }))
     )

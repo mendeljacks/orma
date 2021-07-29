@@ -27,6 +27,10 @@ export const json_to_sql = (expression: expression, path = []) => {
     })
 
     const parsed_commands = sorted_commands.map(command => {
+        if (expression[command] === undefined) {
+            return ''
+        }
+
         const command_parser = sql_command_parsers[command]
         if (!command_parser) {
             throw new Error(`Cannot find command parser for ${ command }.`)
@@ -38,7 +42,7 @@ export const json_to_sql = (expression: expression, path = []) => {
             : json_to_sql(args, [...path, command])
 
         return command_parser(parsed_args, path)
-    })
+    }).filter(el => el !== '')
 
     return parsed_commands.join(' ')
 }
