@@ -491,7 +491,7 @@ export const orma_nester = (results: [string[], Record<string, unknown>[]][], or
 
 
 // export const orma_query = async <schema>(raw_query: validate_query<schema>, orma_schema: validate_orma_schema<schema>, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
-export const orma_query = async (raw_query, orma_schema, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
+export const orma_query = async (raw_query, orma_schema, query_function: (sql_string: string[]) => Promise<Record<string, unknown>[][]>) => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating user input
     const query_plan = get_query_plan(query)
     let results = []
@@ -514,7 +514,7 @@ export const orma_query = async (raw_query, orma_schema, query_function: (sql_st
         })
 
         // Promise.all for each element in query plan
-        const output = await Promise.all(sql_strings.map(sql_string => query_function(sql_string)))
+        const output = await query_function(sql_strings)
 
         // Combine outputs
         sql_strings.forEach((_, i) => results.push([paths[i], output[i]]))

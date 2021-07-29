@@ -271,9 +271,17 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
     return field_schema
 }
 
-export const introspector = async (db: string, fn: (s: string[]) => Promise<any[]>): Promise<orma_schema> => {
+export const introspector = async (
+    db: string,
+    fn: (s: string[]) => Promise<Record<string, unknown>[][]>
+): Promise<orma_schema> => {
     const sql_strings = get_introspect_sqls(db)
-    const [mysql_tables, mysql_columns, mysql_foreign_keys] = await fn(sql_strings)
+    // @ts-ignore
+    const [mysql_tables, mysql_columns, mysql_foreign_keys]: [
+        mysql_table[],
+        mysql_column[],
+        mysql_foreign_key[]
+    ] = await fn(sql_strings)
 
     // TODO: to be removed when orma lowercase bug fixed
     const transform_keys_to_lower = obj =>
@@ -281,12 +289,12 @@ export const introspector = async (db: string, fn: (s: string[]) => Promise<any[
             acc[val[0].toLowerCase()] = val[1]
             return acc
         }, {})
+
     const orma_schema = generate_database_schema(
-        mysql_tables.map(transform_keys_to_lower),
-        mysql_columns.map(transform_keys_to_lower),
-        mysql_foreign_keys.map(transform_keys_to_lower)
+        mysql_tables.map(transform_keys_to_lower) as mysql_table[],
+        mysql_columns.map(transform_keys_to_lower) as mysql_column[],
+        mysql_foreign_keys.map(transform_keys_to_lower) as mysql_foreign_key[]
     )
 
     return orma_schema
 }
-

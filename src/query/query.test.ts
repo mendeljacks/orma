@@ -2,10 +2,15 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
 import { orma_schema } from '../introspector/introspector'
-import { convert_any_path_macro, get_query_plan, get_subquery_sql, is_subquery, json_to_sql, query_to_json_sql } from './query'
-
-
-
+import {
+    convert_any_path_macro,
+    get_query_plan,
+    get_subquery_sql,
+    is_subquery,
+    json_to_sql,
+    orma_query,
+    query_to_json_sql
+} from './query'
 
 describe('query', () => {
     const orma_schema: orma_schema = {
@@ -67,7 +72,7 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
-        test('\'not\' command works', () => {
+        test("'not' command works", () => {
             const json = {
                 $not: {
                     $in: ['a', [1, 2]]
@@ -98,20 +103,17 @@ describe('query', () => {
                     }
                 }
             }
-            
+
             const result = get_query_plan(query)
 
             // the split happens at variants because it has a where clause
             const goal = [
-                [
-                    ['vendors'], 
-                    ['vendors', 'products']
-                ], // first these should be run concurrently
+                [['vendors'], ['vendors', 'products']], // first these should be run concurrently
                 [
                     ['vendors', 'products', 'vins'],
-                    ['vendors', 'products', 'images'], 
+                    ['vendors', 'products', 'images'],
                     ['vendors', 'products', 'images', 'image_urls']
-                ], // then this will be queried
+                ] // then this will be queried
             ]
 
             expect(result).to.deep.equal(goal)
@@ -125,13 +127,11 @@ describe('query', () => {
                     id: true
                 }
             }
-            
+
             const result = get_query_plan(query)
 
             // the split happens at variants because it has a where clause
-            const goal = [
-                [['vendors'], ['products']],
-            ]
+            const goal = [[['vendors'], ['products']]]
 
             expect(result).to.deep.equal(goal)
         })
@@ -146,9 +146,7 @@ describe('query', () => {
             const result = get_query_plan(query)
 
             // the split happens at variants because it has a where clause
-            const goal = [
-                [['my_products']],
-            ]
+            const goal = [[['my_products']]]
 
             expect(result).to.deep.equal(goal)
         })
@@ -173,108 +171,152 @@ describe('query', () => {
     describe('convert_any_clauses', () => {
         test('multiple any clauses', () => {
             const where = {
-                $and: [{
-                    $any: [['images'], {
-                        $eq: ['id', 1]
-                    }]
-                }, {
-                    $any: [['vendors'], {
-                        $eq: ['id', 1]
-                    }]
-                }]
+                $and: [
+                    {
+                        $any: [
+                            ['images'],
+                            {
+                                $eq: ['id', 1]
+                            }
+                        ]
+                    },
+                    {
+                        $any: [
+                            ['vendors'],
+                            {
+                                $eq: ['id', 1]
+                            }
+                        ]
+                    }
+                ]
             }
 
             const converted_where = convert_any_path_macro(where, 'products', false, orma_schema)
             const goal = {
-                $and: [{
-                    $in: ['id', {
-                        $select: ['product_id'],
-                        $from: 'images',
-                        $where: {
-                            $eq: ['id', 1]
-                        }
-                    }]
-                },
-                {
-                    $in: ['vendor_id', {
-                        $select: ['id'],
-                        $from: 'vendors',
-                        $where: {
-                            $eq: ['id', 1]
-                        }
-                    }]
-                }]
+                $and: [
+                    {
+                        $in: [
+                            'id',
+                            {
+                                $select: ['product_id'],
+                                $from: 'images',
+                                $where: {
+                                    $eq: ['id', 1]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        $in: [
+                            'vendor_id',
+                            {
+                                $select: ['id'],
+                                $from: 'vendors',
+                                $where: {
+                                    $eq: ['id', 1]
+                                }
+                            }
+                        ]
+                    }
+                ]
             }
             expect(converted_where).to.deep.equal(goal)
         })
         test('deep any path', () => {
             const where = {
-                $any: [['images', 'image_urls'], {
-                    $eq: ['id', 1]
-                }]
+                $any: [
+                    ['images', 'image_urls'],
+                    {
+                        $eq: ['id', 1]
+                    }
+                ]
             }
 
             const converted_where = convert_any_path_macro(where, 'products', false, orma_schema)
             const goal = {
-                $in: ['id', {
-                    $select: ['product_id'],
-                    $from: 'images',
-                    $where: {
-                        $in: ['id', {
-                            $select: ['image_id'],
-                            $from: 'image_urls',
-                            $where: {
-                                $eq: ['id', 1]
-                            }
-                        }]
+                $in: [
+                    'id',
+                    {
+                        $select: ['product_id'],
+                        $from: 'images',
+                        $where: {
+                            $in: [
+                                'id',
+                                {
+                                    $select: ['image_id'],
+                                    $from: 'image_urls',
+                                    $where: {
+                                        $eq: ['id', 1]
+                                    }
+                                }
+                            ]
+                        }
                     }
-                }]
+                ]
             }
             expect(converted_where).to.deep.equal(goal)
         })
         test('nested anys', () => {
             const where = {
-                $any: [['images'], {
-                    $any: [['image_urls'], {
-                        $eq: ['id', 1]
-                    }]
-                }]
+                $any: [
+                    ['images'],
+                    {
+                        $any: [
+                            ['image_urls'],
+                            {
+                                $eq: ['id', 1]
+                            }
+                        ]
+                    }
+                ]
             }
 
             const converted_where = convert_any_path_macro(where, 'products', false, orma_schema)
             const goal = {
-                $in: ['id', {
-                    $select: ['product_id'],
-                    $from: 'images',
-                    $where: {
-                        $in: ['id', {
-                            $select: ['image_id'],
-                            $from: 'image_urls',
-                            $where: {
-                                $eq: ['id', 1]
-                            }
-                        }]
+                $in: [
+                    'id',
+                    {
+                        $select: ['product_id'],
+                        $from: 'images',
+                        $where: {
+                            $in: [
+                                'id',
+                                {
+                                    $select: ['image_id'],
+                                    $from: 'image_urls',
+                                    $where: {
+                                        $eq: ['id', 1]
+                                    }
+                                }
+                            ]
+                        }
                     }
-                }]
+                ]
             }
             expect(converted_where).to.deep.equal(goal)
         })
         test('uses having', () => {
             const where = {
-                $any: [['images'], {
-                    $eq: ['id', 1]
-                }]
+                $any: [
+                    ['images'],
+                    {
+                        $eq: ['id', 1]
+                    }
+                ]
             }
 
             const converted_where = convert_any_path_macro(where, 'products', true, orma_schema)
             const goal = {
-                $in: ['id', {
-                    $select: ['product_id'],
-                    $from: 'images',
-                    $having: {
-                        $eq: ['id', 1]
+                $in: [
+                    'id',
+                    {
+                        $select: ['product_id'],
+                        $from: 'images',
+                        $having: {
+                            $eq: ['id', 1]
+                        }
                     }
-                }]
+                ]
             }
             expect(converted_where).to.deep.equal(goal)
         })
@@ -314,10 +356,13 @@ describe('query', () => {
                 }
             }
 
-            const previous_results = [
-                [['products'], [{ id: 1 }, { id: 2 }]]
-            ]
-            const json_sql = query_to_json_sql(query, ['products', 'images'], previous_results, orma_schema)
+            const previous_results = [[['products'], [{ id: 1 }, { id: 2 }]]]
+            const json_sql = query_to_json_sql(
+                query,
+                ['products', 'images'],
+                previous_results,
+                orma_schema
+            )
             const goal = {
                 $select: ['id', 'product_id'],
                 $from: 'images',
@@ -335,16 +380,19 @@ describe('query', () => {
                 }
             }
 
-            const previous_results = [
-                [['products'], [{ id: 1 }, { id: 2 }]]
-            ]
+            const previous_results = [[['products'], [{ id: 1 }, { id: 2 }]]]
             const json_sql1 = query_to_json_sql(query, ['products'], previous_results, orma_schema)
             const goal1 = {
                 $select: ['id'],
                 $from: 'products'
             }
 
-            const json_sql2 = query_to_json_sql(query, ['products', 'images'], previous_results, orma_schema) as any
+            const json_sql2 = query_to_json_sql(
+                query,
+                ['products', 'images'],
+                previous_results,
+                orma_schema
+            ) as any
             json_sql2?.$select?.sort()
             const goal2 = {
                 $select: ['product_id', 'url'].sort(),
@@ -368,22 +416,28 @@ describe('query', () => {
                 }
             }
 
-            const previous_results = [
-                [['products'], [{ id: 1 }, { id: 2 }]]
-            ]
-            const json_sql = query_to_json_sql(query, ['products', 'images', 'image_urls'], previous_results, orma_schema) as any
+            const previous_results = [[['products'], [{ id: 1 }, { id: 2 }]]]
+            const json_sql = query_to_json_sql(
+                query,
+                ['products', 'images', 'image_urls'],
+                previous_results,
+                orma_schema
+            ) as any
             json_sql?.$select?.sort()
             const goal = {
                 $select: ['image_id', 'id'].sort(),
                 $from: 'image_urls',
                 $where: {
-                    $in: ['image_id', {
-                        $select: ['id'],
-                        $from: 'images',
-                        $where: {
-                            $in: ['product_id', [1, 2]]
+                    $in: [
+                        'image_id',
+                        {
+                            $select: ['id'],
+                            $from: 'images',
+                            $where: {
+                                $in: ['product_id', [1, 2]]
+                            }
                         }
-                    }]
+                    ]
                 }
             }
 
@@ -401,9 +455,14 @@ describe('query', () => {
 
             const previous_results = [
                 [['products'], [{ id: 1 }, { id: 2 }]],
-                [['products', 'images'], [{ id: 3 }]],
+                [['products', 'images'], [{ id: 3 }]]
             ]
-            const json_sql = query_to_json_sql(query, ['products', 'images', 'image_urls'], previous_results, orma_schema)
+            const json_sql = query_to_json_sql(
+                query,
+                ['products', 'images', 'image_urls'],
+                previous_results,
+                orma_schema
+            )
             const goal = {
                 $select: ['image_id'],
                 $from: 'image_urls',
@@ -414,7 +473,7 @@ describe('query', () => {
 
             expect(json_sql).to.deep.equal(goal)
         })
-        test('respects \'from\' clause', () => {
+        test("respects 'from' clause", () => {
             const query = {
                 my_products: {
                     id: true,
@@ -430,12 +489,12 @@ describe('query', () => {
 
             expect(json_sql).to.deep.equal(goal)
         })
-        test.skip('handles \'any\' clause', () => {
+        test.skip("handles 'any' clause", () => {
             const query = {
                 $where: {
                     $any: []
                 },
-                id: true,
+                id: true
             }
 
             const json_sql = query_to_json_sql(query, ['products'], [], {})
@@ -443,9 +502,35 @@ describe('query', () => {
 
             expect(json_sql).to.deep.equal(goal)
         })
+        test('should not put where or having when not required', () => {
+            const query = {
+                calls: {
+                    id: true
+                }
+            }
+            const orma_schema = {
+                calls: {
+                    $comment: '',
+                    id: {
+                        data_type: 'number',
+                        required: true,
+                        indexed: true,
+                        unique: true,
+                        primary_key: true,
+                        character_count: 10
+                    }
+                }
+            }
+
+            var actual_query = ''
+            const test = orma_query(query, orma_schema, sql_strings => {
+                actual_query = sql_strings[0]
+                return Promise.resolve([])
+            })
+            expect(actual_query).to.deep.equal('SELECT id FROM calls')
+        })
     })
 })
-
 
 /*
 THOUGHTS:

@@ -149,6 +149,8 @@ describe('introspector', () => {
     })
 
     test('Should allow UPPERCASE mysql responses', () => {
+        // see the hack around in orma_query where keys are mapped to lowercase
+        // consider adding this transform to the actual generate database schema?
         expect(1).to.equal(2)
     })
     test('Should date types be called date? or data...', () => {
