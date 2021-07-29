@@ -1,14 +1,15 @@
 ## Orma
+
 Update read format,
 ----------🚧 THIS PROJECT IS A WORK IN PROGRESS 🚧----------
 
 Orma is a declarative, syncronous, dependency free ORM.
 
-Orma provides introspection, validation, query construction and mutations. 
+Orma provides introspection, validation, query construction and mutations.
 The package uses json format to represent sql queries and mutations.
 
 When the database is instrospected a declarative schema is generated as a json object.
-Typescript types are also generated. 
+Typescript types are also generated.
 
 The orma schema can be diffed by the user and validated using runtime schema validation functions.
 
@@ -21,36 +22,73 @@ and foreign key references are inserted into children tables.
 
 Key Advantages
 
-
 Disadvantages
 Supports sql databases only
 
-
 ## Installation
+
 ```
 npm i orma  // Or yarn add orma
 ```
 
 ## Intospect a mysql database
-This is where we describe what introspection means
-What is the syntax
-What are the limitations
+
+Introspecting the database will produce a json object called the orma schema.
+The orma schema describes the table column and foreign key information which
+are needed for queries and mutations.
 
 ```js
-import { ... } from 'orma'
-// here is a code snippet
+import { orma_introspect } from 'orma'
+import mysql from 'mysql2'
+
+// Using a promise pool
+const pool = mysql
+    .createPool({
+        host: env.host,
+        port: env.port,
+        user: env.user,
+        password: env.password,
+        database: env.database,
+        multipleStatements: true
+    })
+    .promise()
+
+// Setup a function which given sql strings can return an array of results
+const pool_query = async sql_strings => {
+    const results = await pool
+        .query(sql_strings.join(';'))
+        .then(res => (sql_strings.length === 1 ? [res[0]] : res[0]))
+    return results
+}
+
+const orma_schema = await orma_introspect(env.database, pool_query)
+// At this point you may diff the json schema if needed and save it for later use.
 ```
+
 ## Construct queries
-The query generates nested json by...
+
+Orma queries are json objects. In the following scenario, a nested query is made.
+
 ```js
-// This is how you construct queries
-// This is how you execute queries
+const query = {
+    users: {
+        id: true,
+        first_name: true,
+        last_name: true,
+        addresses: {
+            id: true
+        }
+    }
+}
+const results = await orma_query(query, orma_schema, pool_query)
 ```
 
 ## Construct Mutations
+
 Mutation format is the same as from the read uil...
 Operations are nested in as meta on each level...
 Here is where we explain what recursive op hierarchy alternative to graphql
+
 ```js
 // Another snippet
 ```
