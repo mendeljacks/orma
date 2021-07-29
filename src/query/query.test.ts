@@ -507,13 +507,16 @@ describe('query', () => {
                 $select: ['image_id'],
                 $from: 'image_urls',
                 $where: {
-                    $in: ['image_id', {
-                        $select: ['id'],
-                        $from: 'images',
-                        $where: {
-                            $in: ['product_id', [1, 2]]
+                    $in: [
+                        'image_id',
+                        {
+                            $select: ['id'],
+                            $from: 'images',
+                            $where: {
+                                $in: ['product_id', [1, 2]]
+                            }
                         }
-                    }]
+                    ]
                 }
             }
 
@@ -551,18 +554,25 @@ describe('query', () => {
     })
     describe(orma_nester.name, () => {
         test('nests restults', () => {
-            const result = orma_nester([
-                [['products'], [{ vendor_id: 1 }]],
-                [['products', 'vendors'], [{ id: 1 }]]
-            ], orma_schema)
+            const result = orma_nester(
+                [
+                    [['products'], [{ vendor_id: 1 }]],
+                    [['products', 'vendors'], [{ id: 1 }]]
+                ],
+                orma_schema
+            )
 
             expect(result).to.deep.equal({
-                products: [{
-                    vendor_id: 1,
-                    vendors: [{
-                        id: 1
-                    }]
-                }]
+                products: [
+                    {
+                        vendor_id: 1,
+                        vendors: [
+                            {
+                                id: 1
+                            }
+                        ]
+                    }
+                ]
             })
         })
     })

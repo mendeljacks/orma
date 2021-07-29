@@ -1,6 +1,6 @@
 {
   "name": "orma",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "description": "A declarative relational syncronous orm",
   "main": "build/index.js",
   "scripts": {
