@@ -95,7 +95,7 @@ describe('query', () => {
             expect(sql).to.equal(goal)
         })
     })
-    describe('get_query_plan', () => {
+    describe(get_query_plan.name, () => {
         test('splits by $where clause and $having', () => {
             const query = {
                 vendors: {
@@ -118,12 +118,13 @@ describe('query', () => {
 
             // the split happens at variants because it has a where clause
             const goal = [
-                [['vendors'], ['vendors', 'products']], // first these should be run concurrently
+                [['vendors']], // root levels always go in their own tier
+                [['vendors', 'products']],
                 [
                     ['vendors', 'products', 'vins'],
                     ['vendors', 'products', 'images'],
                     ['vendors', 'products', 'images', 'image_urls']
-                ] // then this will be queried
+                ] // these are queried concurrently
             ]
 
             expect(result).to.deep.equal(goal)
@@ -140,7 +141,6 @@ describe('query', () => {
 
             const result = get_query_plan(query)
 
-            // the split happens at variants because it has a where clause
             const goal = [[['vendors'], ['products']]]
 
             expect(result).to.deep.equal(goal)
@@ -155,7 +155,6 @@ describe('query', () => {
 
             const result = get_query_plan(query)
 
-            // the split happens at variants because it has a where clause
             const goal = [[['my_products']]]
 
             expect(result).to.deep.equal(goal)
@@ -483,6 +482,43 @@ describe('query', () => {
 
             expect(json_sql).to.deep.equal(goal)
         })
+        test('ignores undefined where/having clauses', () => {
+            const query = {
+                products: {
+                    images: {
+                        $where: undefined,
+                        $having: undefined,
+                        image_urls: {}
+                    }
+                }
+            }
+
+            const previous_results = [
+                [['products'], [{ id: 1 }, { id: 2 }]],
+                [['products', 'images'], [{ id: 3 }]]
+            ]
+            const json_sql = query_to_json_sql(
+                query,
+                ['products', 'images', 'image_urls'],
+                previous_results,
+                orma_schema
+            )
+            const goal = {
+                $select: ['image_id'],
+                $from: 'image_urls',
+                $where: {
+                    $in: ['image_id', {
+                        $select: ['id'],
+                        $from: 'images',
+                        $where: {
+                            $in: ['product_id', [1, 2]]
+                        }
+                    }]
+                }
+            }
+
+            expect(json_sql).to.deep.equal(goal)
+        })
         test("respects 'from' clause", () => {
             const query = {
                 my_products: {
@@ -516,8 +552,8 @@ describe('query', () => {
     describe(orma_nester.name, () => {
         test('nests restults', () => {
             const result = orma_nester([
-                [['products'], [{ vendor_id: 1}]], 
-                [['products', 'vendors'], [{ id: 1}]]
+                [['products'], [{ vendor_id: 1 }]],
+                [['products', 'vendors'], [{ id: 1 }]]
             ], orma_schema)
 
             expect(result).to.deep.equal({
@@ -528,6 +564,116 @@ describe('query', () => {
                     }]
                 }]
             })
+        })
+    })
+    describe.skip('dev', () => {
+        test('dev', async () => {
+            const query = {
+                calls: {
+                    resource_id: true,
+                    call_has_units: {
+                        id: true
+                    }
+                }
+            }
+            const orma_schema = {
+                call_has_units: {
+                    $comment: '',
+                    call_id: {
+                        data_type: 'number',
+                        required: true,
+                        indexed: true,
+                        character_count: 10,
+                        references: { calls: { id: {} } }
+                    },
+                    created_at: { data_type: 'date', required: true, default: 'CURRENT_TIMESTAMP' },
+                    id: {
+                        data_type: 'number',
+                        required: true,
+                        indexed: true,
+                        unique: true,
+                        primary_key: true,
+                        character_count: 10
+                    },
+                    resource_id: {
+                        data_type: 'string',
+                        required: true,
+                        indexed: true,
+                        unique: true,
+                        character_count: 20
+                    },
+                    unit_id: {
+                        data_type: 'number',
+                        required: true,
+                        indexed: true,
+                        character_count: 10,
+                        references: { units: { id: {} } }
+                    },
+                    updated_at: { data_type: 'date', required: true, default: 'CURRENT_TIMESTAMP' }
+                },
+                calls: {
+                    $comment: '',
+                    address: { data_type: 'string', character_count: 250 },
+                    age: { data_type: 'number', character_count: 10, default: '0' },
+                    bus_arrived_at: { data_type: 'date' },
+                    bus_number: { data_type: 'number', character_count: 10 },
+                    complaint: { data_type: 'string', character_count: 2000 },
+                    cpr_started: { data_type: 'boolean', character_count: 3 },
+                    created_at: { data_type: 'date', required: true, default: 'CURRENT_TIMESTAMP' },
+                    first_name: { data_type: 'string', character_count: 100 },
+                    gender: { data_type: 'string', character_count: 10 },
+                    id: {
+                        data_type: 'number',
+                        required: true,
+                        indexed: true,
+                        unique: true,
+                        primary_key: true,
+                        character_count: 10
+                    },
+                    last_name: { data_type: 'string', character_count: 100 },
+                    resource_id: {
+                        data_type: 'string',
+                        required: true,
+                        indexed: true,
+                        unique: true,
+                        character_count: 45
+                    },
+                    responsiveness: { data_type: 'string', character_count: 45 },
+                    summary: { data_type: 'string', character_count: 2000 },
+                    ten_nine: { data_type: 'string', character_count: 45 },
+                    updated_at: { data_type: 'date', required: true, default: 'CURRENT_TIMESTAMP' }
+                },
+                units: {
+                    $comment: '',
+                    created_at: { data_type: 'date', required: true, default: 'CURRENT_TIMESTAMP' },
+                    first_name: { data_type: 'string', character_count: 100 },
+                    id: {
+                        data_type: 'number',
+                        required: true,
+                        indexed: true,
+                        unique: true,
+                        primary_key: true,
+                        character_count: 10
+                    },
+                    last_name: { data_type: 'string', character_count: 100 },
+                    phone: { data_type: 'string', character_count: 50 },
+                    resource_id: {
+                        data_type: 'string',
+                        required: true,
+                        indexed: true,
+                        unique: true,
+                        character_count: 45
+                    },
+                    updated_at: { data_type: 'date', required: true, default: 'CURRENT_TIMESTAMP' }
+                }
+            }
+
+            var actual_query = ''
+            const test = await orma_query(query, orma_schema, sql_strings => {
+                actual_query = sql_strings[0]
+                return Promise.resolve([])
+            })
+            expect(actual_query).to.deep.equal('SELECT id FROM calls')
         })
     })
 })

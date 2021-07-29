@@ -151,8 +151,7 @@ export const get_query_plan = (query): string[][][] => {
     deep_for_each(query, (value, path: string[]) => {
         if (typeof value === 'object') {
             const query = value
-            const has_filter = '$where' in value || '$having' in value
-            const is_root = path.length === 0
+            const has_filter = value.$where || value.$having
 
             const child_paths = Object.keys(value).map(child_key => {
                 if (is_subquery(value[child_key])) {
@@ -164,8 +163,13 @@ export const get_query_plan = (query): string[][][] => {
                 return // subquery with nothing else nested on
             }
 
-            // if this has a $where, or its the root, then all the child paths go to a new tier. Otherwise, the child paths are appended on to the last tier
-            if (has_filter || is_root) {
+            const is_root = path.length === 0 // this is to start off the query plan (cant append if there is nothing there)
+            // entities directly under the root need to ge after because all entitiesneed at least one ancestor which is already queried
+            // so we can search for those ancestor ids. This ensures that at least the root will have already been searched. 
+            const is_root_child = path.length === 1 
+
+            // if this has a $where, or its the root/root child, then all the child paths go to a new tier. Otherwise, the child paths are appended on to the last tier
+            if (has_filter || is_root || is_root_child) {
                 query_plan.push(child_paths)
             } else {
                 last(query_plan).push(...child_paths)
@@ -383,7 +387,7 @@ export const convert_any_path_macro = (where: any, root_entity: string, is_havin
     }
 
     const processor = (value, path) => {
-        if (typeof value === 'object' && '$any' in value) {
+        if (typeof value === 'object' && value.$any) {
             const [any_path, subquery] = value.$any
 
             const previous_entities = path.flatMap((path_el, i) => {
@@ -433,7 +437,7 @@ const get_nesting_ancestor_index = (query, subquery_path: string[]): number => {
     for (let i = subquery_path.length - 1; i >= 0; i--) {
         const subpath = subquery_path.slice(0, i + 1)
         const subquery = deep_get(subpath, query)
-        if ('$where' in subquery || '$having' in subquery) {
+        if (subquery.$where || subquery.$having) {
             return i
         }
     }
