@@ -477,6 +477,9 @@ export const orma_nester = (results: [string[], Record<string, unknown>[]][], or
     // get data in the right format for the nester
     const edges = results.map(result => {
         const path = result[0]
+        if (path.length === 1) {
+            return null
+        }
         const entity = last(path)
         const higher_entity = path[path.length - 2]
         const edge = get_direct_edge(higher_entity, entity, orma_schema)
