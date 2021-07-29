@@ -173,7 +173,7 @@ const get_create_jsons = (paths: (string | number)[][], mutation, orma_schema: o
     })
 
     return [{
-        $insert_into: [entity_name, insert_keys],
+        $insert_into: [entity_name, [...insert_keys]],
         $values: values
     }]
 

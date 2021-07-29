@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { orma_schema } from '../introspector/introspector'
-import { get_command_jsons, get_mutate_plan } from './mutate'
+import { get_command_jsons, get_mutate_plan, orma_mutate } from './mutate'
 
 describe('mutate', () => {
     const orma_schema: orma_schema = {
@@ -51,34 +51,51 @@ describe('mutate', () => {
     describe('get_mutate_plan', () => {
         test('simple mutation', () => {
             const mutation = {
-                parents: [{
-                    $operation: 'create',
-                    children: [{
+                parents: [
+                    {
                         $operation: 'create',
-                    }, {
-                        $operation: 'create'
-                    }]
-                }]
+                        children: [
+                            {
+                                $operation: 'create'
+                            },
+                            {
+                                $operation: 'create'
+                            }
+                        ]
+                    }
+                ]
             }
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
 
             const goal = [
                 [{ operation: 'create', paths: [['parents', 0]] }],
-                [{ operation: 'create', paths: [['parents', 0, 'children', 0], ['parents', 0, 'children', 1]] }]
+                [
+                    {
+                        operation: 'create',
+                        paths: [
+                            ['parents', 0, 'children', 0],
+                            ['parents', 0, 'children', 1]
+                        ]
+                    }
+                ]
             ]
 
             expect(mutate_plan).to.deep.equal(goal)
         })
         test('respects operation precedence', () => {
             const mutation = {
-                parents: [{
-                    $operation: 'delete',
-                }, {
-                    $operation: 'update'
-                }, {
-                    $operation: 'create'
-                }]
+                parents: [
+                    {
+                        $operation: 'delete'
+                    },
+                    {
+                        $operation: 'update'
+                    },
+                    {
+                        $operation: 'create'
+                    }
+                ]
             }
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
@@ -87,7 +104,7 @@ describe('mutate', () => {
                 [
                     { operation: 'delete', paths: [['parents', 0]] },
                     { operation: 'update', paths: [['parents', 1]] },
-                    { operation: 'create', paths: [['parents', 2]] },
+                    { operation: 'create', paths: [['parents', 2]] }
                 ]
             ]
 
@@ -95,12 +112,16 @@ describe('mutate', () => {
         })
         test('respects topological ordering for create', () => {
             const mutation = {
-                parents: [{
-                    $operation: 'create',
-                    children: [{
-                        $operation: 'create'
-                    }]
-                }]
+                parents: [
+                    {
+                        $operation: 'create',
+                        children: [
+                            {
+                                $operation: 'create'
+                            }
+                        ]
+                    }
+                ]
             }
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
@@ -114,12 +135,16 @@ describe('mutate', () => {
         })
         test('respects topological ordering for update', () => {
             const mutation = {
-                parents: [{
-                    $operation: 'update',
-                    children: [{
-                        $operation: 'update'
-                    }]
-                }]
+                parents: [
+                    {
+                        $operation: 'update',
+                        children: [
+                            {
+                                $operation: 'update'
+                            }
+                        ]
+                    }
+                ]
             }
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
@@ -136,39 +161,52 @@ describe('mutate', () => {
         })
         test('respects topological ordering for delete', () => {
             const mutation = {
-                parents: [{
-                    $operation: 'delete',
-                    children: [{
-                        $operation: 'delete'
-                    }]
-                }]
+                parents: [
+                    {
+                        $operation: 'delete',
+                        children: [
+                            {
+                                $operation: 'delete'
+                            }
+                        ]
+                    }
+                ]
             }
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
 
             const goal = [
                 [{ operation: 'delete', paths: [['parents', 0, 'children', 0]] }],
-                [{ operation: 'delete', paths: [['parents', 0]] }],
+                [{ operation: 'delete', paths: [['parents', 0]] }]
             ]
 
             expect(mutate_plan).to.deep.equal(goal)
         })
         test('handles mixed operation requests', () => {
             const mutation = {
-                grandparents: [{
-                    $operation: 'update',
-                    parents: [{
-                        $operation: 'delete',
-                        children: [{
-                            $operation: 'delete'
-                        }]
-                    }]
-                }, {
-                    $operation: 'create',
-                    parents: [{
-                        $operation: 'create'
-                    }]
-                }]
+                grandparents: [
+                    {
+                        $operation: 'update',
+                        parents: [
+                            {
+                                $operation: 'delete',
+                                children: [
+                                    {
+                                        $operation: 'delete'
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        $operation: 'create',
+                        parents: [
+                            {
+                                $operation: 'create'
+                            }
+                        ]
+                    }
+                ]
             }
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
@@ -176,9 +214,13 @@ describe('mutate', () => {
             const goal = [
                 [
                     { operation: 'update', paths: [['grandparents', 0]] },
-                    { operation: 'delete', paths: [['grandparents', 0, 'parents', 0, 'children', 0]] },
+                    {
+                        operation: 'delete',
+                        paths: [['grandparents', 0, 'parents', 0, 'children', 0]]
+                    },
                     { operation: 'create', paths: [['grandparents', 1]] }
-                ], [
+                ],
+                [
                     { operation: 'delete', paths: [['grandparents', 0, 'parents', 0]] },
                     { operation: 'create', paths: [['grandparents', 1, 'parents', 0]] }
                 ]
@@ -188,27 +230,31 @@ describe('mutate', () => {
         })
         test('handles entity with no children', () => {
             const mutation = {
-                parents: [{
-                    $operation: 'update',
-                }]
+                parents: [
+                    {
+                        $operation: 'update'
+                    }
+                ]
             }
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
 
-            const goal = [
-                [{ operation: 'update', paths: [['parents', 0]] }]
-            ]
+            const goal = [[{ operation: 'update', paths: [['parents', 0]] }]]
 
             expect(mutate_plan).to.deep.equal(goal)
         })
         test('handles reverse nesting', () => {
             const mutation = {
-                children: [{
-                    $operation: 'create',
-                    parents: [{
-                        $operation: 'create'
-                    }]
-                }]
+                children: [
+                    {
+                        $operation: 'create',
+                        parents: [
+                            {
+                                $operation: 'create'
+                            }
+                        ]
+                    }
+                ]
             }
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
@@ -224,132 +270,159 @@ describe('mutate', () => {
     describe('get_command_jsons', () => {
         test('update/delete by id', () => {
             const mutation = {
-                grandparents: [{
-                    $operation: 'update',
-                    id: 1,
-                    quantity: 2
-                }]
+                grandparents: [
+                    {
+                        $operation: 'update',
+                        id: 1,
+                        quantity: 2
+                    }
+                ]
             }
 
             const result = get_command_jsons('update', [['grandparents', 0]], mutation, orma_schema)
-            const goal = [{
-                $update: 'grandparents',
-                $set: [['quantity', 2]],
-                $where: {
-                    $eq: ['id', 1]
+            const goal = [
+                {
+                    $update: 'grandparents',
+                    $set: [['quantity', 2]],
+                    $where: {
+                        $eq: ['id', 1]
+                    }
                 }
-            }]
+            ]
 
             expect(result).to.deep.equal(goal)
         })
         test('foreign key has precedence over unique', () => {
             const mutation = {
-                parents: [{
-                    id: 1,
-                    unique1: 'john'
-                }]
+                parents: [
+                    {
+                        id: 1,
+                        unique1: 'john'
+                    }
+                ]
             }
 
             const result = get_command_jsons('update', [['parents', 0]], mutation, orma_schema)
-            const goal = [{
-                $update: 'parents',
-                $set: [['unique1', 'john']],
-                $where: {
-                    $eq: ['id', 1]
+            const goal = [
+                {
+                    $update: 'parents',
+                    $set: [['unique1', 'john']],
+                    $where: {
+                        $eq: ['id', 1]
+                    }
                 }
-            }]
+            ]
 
             expect(result).to.deep.equal(goal)
         })
         test('update/delete by unique', () => {
             const mutation = {
-                parents: [{
-                    unique1: 'john',
-                    quantity: 5
-                }]
+                parents: [
+                    {
+                        unique1: 'john',
+                        quantity: 5
+                    }
+                ]
             }
 
             const result = get_command_jsons('update', [['parents', 0]], mutation, orma_schema)
-            const goal = [{
-                $update: 'parents',
-                $set: [['quantity', 5]],
-                $where: {
-                    $eq: ['unique1', 'john']
+            const goal = [
+                {
+                    $update: 'parents',
+                    $set: [['quantity', 5]],
+                    $where: {
+                        $eq: ['unique1', 'john']
+                    }
                 }
-            }]
+            ]
 
             expect(result).to.deep.equal(goal)
         })
         test('throws on no update key', () => {
             const mutation = {
-                parents: [{
-                    quantity: 5
-                }]
+                parents: [
+                    {
+                        quantity: 5
+                    }
+                ]
             }
 
             try {
                 const result = get_command_jsons('update', [['parents', 0]], mutation, orma_schema)
                 expect('should have thrown an error').to.equal(true)
-            } catch (error) { }
+            } catch (error) {}
         })
         test('throws on multiple unique update keys', () => {
             const mutation = {
-                parents: [{
-                    unique1: 'test',
-                    unique2: 'testing',
-                    quantity: 5
-                }]
+                parents: [
+                    {
+                        unique1: 'test',
+                        unique2: 'testing',
+                        quantity: 5
+                    }
+                ]
             }
 
             try {
                 const result = get_command_jsons('update', [['parents', 0]], mutation, orma_schema)
                 expect('should have thrown an error').to.equal(true)
-            } catch (error) { }
+            } catch (error) {}
         })
         test('handles compound primary key', () => {
             const mutation = {
-                children: [{
-                    id1: 4,
-                    id2: 5,
-                    parent_id: 6,
-                }]
+                children: [
+                    {
+                        id1: 4,
+                        id2: 5,
+                        parent_id: 6
+                    }
+                ]
             }
 
             const result = get_command_jsons('update', [['children', 0]], mutation, orma_schema)
-            const goal = [{
-                $update: 'children',
-                $set: [['parent_id', 6]],
-                $where: {
-                    and: [{
-                        $eq: ['id1', 4]
-                    }, {
-                        $eq: ['id2', 5]
-                    }]
+            const goal = [
+                {
+                    $update: 'children',
+                    $set: [['parent_id', 6]],
+                    $where: {
+                        and: [
+                            {
+                                $eq: ['id1', 4]
+                            },
+                            {
+                                $eq: ['id2', 5]
+                            }
+                        ]
+                    }
                 }
-            }]
+            ]
 
             expect(result).to.deep.equal(goal)
         })
         test('handles deletes', () => {
             const mutation = {
-                parents: [{
-                    id: 4
-                }]
+                parents: [
+                    {
+                        id: 4
+                    }
+                ]
             }
 
             const result = get_command_jsons('delete', [['parents', 0]], mutation, orma_schema)
-            const goal = [{
-                $delete_from: 'parents',
-                $where: {
-                    $eq: ['id', 4]
+            const goal = [
+                {
+                    $delete_from: 'parents',
+                    $where: {
+                        $eq: ['id', 4]
+                    }
                 }
-            }]
+            ]
 
             expect(result).to.deep.equal(goal)
         })
+      
     })
 })
-
 
 /*
 

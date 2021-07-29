@@ -1,0 +1,110 @@
+Arguments: 
+  C:\Program Files\nodejs\node.exe C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\bin\yarn.js nt
+
+PATH: 
+  C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\mende\bin;C:\Python39\Scripts;C:\Python39;C:\Perl64\bin;C:\Users\mende\AppData\Roaming\ActiveState\bin;C:\TwinCAT\Common64;C:\TwinCAT\Common32;C:\Python38\Scripts;C:\Python38;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\ProgramData\chocolatey\bin;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\110\Tools\Binn;C:\Program Files (x86)\Microsoft SQL Server\120\Tools\Binn;C:\Program Files\Microsoft SQL Server\120\Tools\Binn;C:\Program Files\Microsoft SQL Server\120\DTS\Binn;C:\Program Files (x86)\Windows Kits\8.1\Windows Performance Toolkit;C:\Program Files\Git\cmd;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\MATLAB\R2021a\bin;C:\Program Files\nodejs;C:\Program Files\Docker\Docker\resources\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Users\mende\.cargo\bin;C:\Users\mende\.windows-build-tools\python27;C:\Users\mende\.windows-build-tools\python27;C:\Users\mende\AppData\Local\Microsoft\WindowsApps;C:\Users\mende\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\heroku\bin;C:\tools\neovim\Neovim\bin;C:\Users\mende\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin;C:\Users\mende\AppData\Local\gitkraken\bin;C:\Users\mende\AppData\Local\Programs\MiKTeX\miktex\bin\x64;C:\Users\mende\AppData\Roaming\npm
+
+Yarn version: 
+  1.22.5
+
+Node version: 
+  16.4.2
+
+Platform: 
+  win32 x64
+
+Trace: 
+  Error: Failed to replace env in config: ${INPUT_TOKEN}
+      at C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\lib\cli.js:98430:13
+      at String.replace (<anonymous>)
+      at envReplace (C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\lib\cli.js:98425:16)
+      at Function.normalizeConfig (C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\lib\cli.js:31887:69)
+      at NpmRegistry.<anonymous> (C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\lib\cli.js:31917:34)
+      at Generator.next (<anonymous>)
+      at step (C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\lib\cli.js:310:30)
+      at C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\lib\cli.js:321:13
+
+npm manifest: 
+  {
+    "name": "orma",
+    "version": "1.0.34",
+    "description": "A declarative relational syncronous orm",
+    "main": "build/index.js",
+    "scripts": {
+      "build": "tsc",
+      "deploy": "node -e \"require('./.github/deploy.js').deploy()\"",
+      "test": "mocha --package package.json",
+      "nt": "nodemon --exec nyc --reporter html npm run test",
+      "coverage-watch": "live-server coverage"
+    },
+    "files": [
+      "build/**/*"
+    ],
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/mendeljacks/orma.git"
+    },
+    "author": "",
+    "license": "MIT",
+    "keywords": [
+      "orm",
+      "database",
+      "mysql",
+      "postgresql",
+      "declarative"
+    ],
+    "bugs": {
+      "url": "https://github.com/mendeljacks/orma/issues"
+    },
+    "homepage": "https://github.com/mendeljacks/orma#readme",
+    "contributors": [
+      {
+        "name": "Mendel Jacks",
+        "email": "mendeljacks@gmail.com",
+        "url": "http://mendeljacks.com"
+      },
+      {
+        "name": "Daniel Jacks",
+        "email": "danielchaimjacks@gmail.com"
+      }
+    ],
+    "devDependencies": {
+      "@jsdevtools/npm-publish": "^1.4.3",
+      "@types/mocha": "^8.2.3",
+      "@types/node": "^16.3.2",
+      "chai": "^4.3.4",
+      "live-server": "^1.2.1",
+      "mocha": "^9.0.1",
+      "nyc": "^15.1.0",
+      "sql-formatter": "^4.0.2",
+      "sucrase": "^3.19.0",
+      "tsc": "^2.0.3",
+      "typescript": "^4.3.5"
+    },
+    "mocha": {
+      "require": [
+        "sucrase/register/ts"
+      ],
+      "spec": "src/**/*.test.ts",
+      "timeout": 0
+    },
+    "nodemonConfig": {
+      "verbose": true,
+      "legacyWatch": true,
+      "ignore": [
+        "node_modules",
+        "build"
+      ],
+      "watch": [
+        "./"
+      ],
+      "exec": "npm test",
+      "ext": "ts, js, jsx"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
