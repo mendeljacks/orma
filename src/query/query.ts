@@ -1,14 +1,20 @@
 import { clone, deep_for_each, deep_get, deep_map, deep_set, drop, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
-import { get_direct_edge, get_direct_edges, get_edge_path, is_reserved_keyword } from '../helpers/schema_helpers'
+import {
+    get_direct_edge,
+    get_direct_edges,
+    get_edge_path,
+    is_reserved_keyword
+} from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
 
-type expression = {
-    [commands: string]: expression | expression[]
-} | primitive
+type expression =
+    | {
+          [commands: string]: expression | expression[]
+      }
+    | primitive
 
 type primitive = string | number | Date | Array<any>
-
 
 // this is a simple parser function, whatever comes in the json object is placed as-is in the output sql string.
 // more complicated rules (such as adding a 'from' clause, or adding group-by columns on select *) is handled while the query is still a json object
@@ -26,42 +32,49 @@ export const json_to_sql = (expression: expression, path = []) => {
         return i1 - i2
     })
 
-    const parsed_commands = sorted_commands.map(command => {
-        if (expression[command] === undefined) {
-            return ''
-        }
+    const parsed_commands = sorted_commands
+        .map(command => {
+            if (expression[command] === undefined) {
+                return ''
+            }
 
-        const command_parser = sql_command_parsers[command]
-        if (!command_parser) {
-            throw new Error(`Cannot find command parser for ${ command }.`)
-        }
+            const command_parser = sql_command_parsers[command]
+            if (!command_parser) {
+                throw new Error(`Cannot find command parser for ${command}.`)
+            }
 
-        const args = expression[command]
-        const parsed_args = Array.isArray(args)
-            ? args.map((arg, i) => json_to_sql(arg, [...path, command, i]))
-            : json_to_sql(args, [...path, command])
+            const args = expression[command]
+            const parsed_args = Array.isArray(args)
+                ? args.map((arg, i) => json_to_sql(arg, [...path, command, i]))
+                : json_to_sql(args, [...path, command])
 
-        return command_parser(parsed_args, path)
-    }).filter(el => el !== '')
+            return command_parser(parsed_args, path)
+        })
+        .filter(el => el !== '')
 
     return parsed_commands.join(' ')
 }
 
-const command_order = {
-    $delete_from: -3,
-    $update: -2,
-    $set: -1,
-    $select: 0,
-    $from: 1,
-    $where: 2,
-    $group_by: 3,
-    $having: 4,
-    $order_by: 5,
-    $limit: 6,
-    $offset: 7,
-    $insert_into: 8,
-    $values: 9,
-}
+const command_order_array = [
+    '$delete_from',
+    '$update',
+    '$set',
+    '$select',
+    '$from',
+    '$where',
+    '$group_by',
+    '$having',
+    '$order_by',
+    '$limit',
+    '$offset',
+    '$insert_into',
+    '$values'
+]
+
+const command_order = command_order_array.reduce((acc, val, i) => {
+    acc[val] = i
+    return acc
+}, {})
 
 /*
 
@@ -76,45 +89,44 @@ const command_order = {
 */
 
 const sql_command_parsers = {
-    $select: args => `SELECT ${ args.join(', ') }`,
-    $as: args => `(${ args[0] }) AS ${ args[1] }`,
-    $from: args => `FROM ${ args }`,
-    $where: args => `WHERE ${ args }`,
-    $having: args => `HAVING ${ args }`,
-    $in: (args, path) => `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } IN (${ args[1] })`,
-    $group_by: args => `GROUP BY ${ args.join(', ') }`,
-    $order_by: args => `ORDER BY ${ args.join(', ') }`,
-    $asc: args => `${ args } ASC`,
-    $desc: args => `${ args } DESC`,
+    $select: args => `SELECT ${args.join(', ')}`,
+    $as: args => `(${args[0]}) AS ${args[1]}`,
+    $from: args => `FROM ${args}`,
+    $where: args => `WHERE ${args}`,
+    $having: args => `HAVING ${args}`,
+    $in: (args, path) => `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IN (${args[1]})`,
+    $group_by: args => `GROUP BY ${args.join(', ')}`,
+    $order_by: args => `ORDER BY ${args.join(', ')}`,
+    $asc: args => `${args} ASC`,
+    $desc: args => `${args} DESC`,
     $and: (args, path) => {
-        const res = `(${ args.join(') AND (') })`
-        return last(path) === '$not' ? `NOT (${ res })` : res
+        const res = `(${args.join(') AND (')})`
+        return last(path) === '$not' ? `NOT (${res})` : res
     },
     $or: (args, path) => {
-        const res = `(${ args.join(') OR (') })`
-        return last(path) === '$not' ? `NOT (${ res })` : res
+        const res = `(${args.join(') OR (')})`
+        return last(path) === '$not' ? `NOT (${res})` : res
     },
-    $any: args => `ANY (${ args })`,
-    $all: args => `ALL (${ args })`,
-    $eq: (args, path) => args[1] === null
-        ? `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } IS NULL`
-        : `${ args[0] } ${ last(path) === '$not' ? '!' : '' }= ${ args[1] }`,
-    $gt: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '<=' : '>' } ${ args[1] }`,
-    $lt: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '>=' : '<' } ${ args[1] }`,
-    $gte: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '<' : '>=' } ${ args[1] }`,
-    $lte: (args, path) => `${ args[0] } ${ last(path) === '$not' ? '>' : '<=' } ${ args[1] }`,
-    $exists: (args, path) => `${ last(path) === '$not' ? 'NOT ' : '' }EXISTS (${ args })`,
-    $limit: args => `LIMIT ${ args }`,
-    $offset: args => `OFFSET ${ args }`,
+    $any: args => `ANY (${args})`,
+    $all: args => `ALL (${args})`,
+    $eq: (args, path) =>
+        args[1] === null
+            ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL`
+            : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
+    $gt: (args, path) => `${args[0]} ${last(path) === '$not' ? '<=' : '>'} ${args[1]}`,
+    $lt: (args, path) => `${args[0]} ${last(path) === '$not' ? '>=' : '<'} ${args[1]}`,
+    $gte: (args, path) => `${args[0]} ${last(path) === '$not' ? '<' : '>='} ${args[1]}`,
+    $lte: (args, path) => `${args[0]} ${last(path) === '$not' ? '>' : '<='} ${args[1]}`,
+    $exists: (args, path) => `${last(path) === '$not' ? 'NOT ' : ''}EXISTS (${args})`,
+    $limit: args => `LIMIT ${args}`,
+    $offset: args => `OFFSET ${args}`,
     $like: (args, path) => {
         const string_arg = args[1].toString()
-        const search_value = string_arg
-            .replace(/^\'/, '')
-            .replace(/\'$/, '') // get rid of quotes if they were put there by escape()
-        return `${ args[0] }${ last(path) === '$not' ? ' NOT' : '' } LIKE '%${ search_value }%'`
+        const search_value = string_arg.replace(/^\'/, '').replace(/\'$/, '') // get rid of quotes if they were put there by escape()
+        return `${args[0]}${last(path) === '$not' ? ' NOT' : ''} LIKE '%${search_value}%'`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
-    $sum: args => `SUM(${ args })`,
+    $sum: args => `SUM(${args})`,
     // not: {
     //     in: args => `${args[0]} NOT IN (${args[1]})`,
     //     and: args => `NOT ((${args.join(') AND (')}))`,
@@ -126,13 +138,13 @@ const sql_command_parsers = {
     //     lte: args => `${args[0]} > ${args[1]}`,
     //     exists: args => `NOT EXISTS (${args})`,
     // }
-    $insert_into: ([table_name, [...columns]]) => `INSERT INTO ${ table_name } (${ columns.join(', ') })`,
-    $values: (values: any[][]) => `${ values.map(inner_values => `(${ inner_values.join(', ') })`).join(', ') }`,
-    $update: (table_name) => `${ table_name }`,
-    $set: (...items) => `${ items
-        .map((column, value) => `${ column } = ${ value }`)
-        .join(', ') }`,
-    $delete_from: (table_name) => `DELETE FROM ${ table_name }`
+    $insert_into: ([table_name, [...columns]]) =>
+        `INSERT INTO ${table_name} (${columns.join(', ')})`,
+    $values: (values: any[][]) =>
+        `${values.map(inner_values => `(${inner_values.join(', ')})`).join(', ')}`,
+    $update: table_name => `${table_name}`,
+    $set: (...items) => `${items.map((column, value) => `${column} = ${value}`).join(', ')}`,
+    $delete_from: table_name => `DELETE FROM ${table_name}`
 }
 
 /*
@@ -153,11 +165,13 @@ export const get_query_plan = (query): string[][][] => {
             const query = value
             const has_filter = value.$where || value.$having
 
-            const child_paths = Object.keys(value).map(child_key => {
-                if (is_subquery(value[child_key])) {
-                    return [...path, child_key]
-                }
-            }).filter(el => el !== undefined)
+            const child_paths = Object.keys(value)
+                .map(child_key => {
+                    if (is_subquery(value[child_key])) {
+                        return [...path, child_key]
+                    }
+                })
+                .filter(el => el !== undefined)
 
             if (child_paths.length === 0) {
                 return // subquery with nothing else nested on
@@ -165,8 +179,8 @@ export const get_query_plan = (query): string[][][] => {
 
             const is_root = path.length === 0 // this is to start off the query plan (cant append if there is nothing there)
             // entities directly under the root need to ge after because all entitiesneed at least one ancestor which is already queried
-            // so we can search for those ancestor ids. This ensures that at least the root will have already been searched. 
-            const is_root_child = path.length === 1 
+            // so we can search for those ancestor ids. This ensures that at least the root will have already been searched.
+            const is_root_child = path.length === 1
 
             // if this has a $where, or its the root/root child, then all the child paths go to a new tier. Otherwise, the child paths are appended on to the last tier
             if (has_filter || is_root || is_root_child) {
@@ -201,7 +215,12 @@ export const get_real_entity_name = (path: (string | number)[], query) => {
     return deep_get([...path, '$from'], query, null) || last(path)
 }
 
-export const get_subquery_sql = (query, subquery_path: string[], previous_results: (string[] | Record<string, unknown>[])[][], orma_schema: orma_schema): string => {
+export const get_subquery_sql = (
+    query,
+    subquery_path: string[],
+    previous_results: (string[] | Record<string, unknown>[])[][],
+    orma_schema: orma_schema
+): string => {
     const json_sql = query_to_json_sql(query, subquery_path, previous_results, orma_schema)
     const sql = json_to_sql(json_sql)
 
@@ -211,7 +230,12 @@ export const get_subquery_sql = (query, subquery_path: string[], previous_result
 /**
  * transforms a query into a simplified json sql. This is still json, but can be parsed directly into sql (so no subqueries, $from is always there etc.)
  */
-export const query_to_json_sql = (query, subquery_path: string[], previous_results: (string[] | Record<string, unknown>[])[][], orma_schema: orma_schema): Record<string, any> => {
+export const query_to_json_sql = (
+    query,
+    subquery_path: string[],
+    previous_results: (string[] | Record<string, unknown>[])[][],
+    orma_schema: orma_schema
+): Record<string, any> => {
     const subquery = deep_get(subquery_path, query)
 
     const reserved_commands = Object.keys(subquery).filter(is_reserved_keyword)
@@ -228,7 +252,7 @@ export const query_to_json_sql = (query, subquery_path: string[], previous_resul
     const $having = having_to_json_sql(query, subquery_path, orma_schema)
 
     const json_sql: Record<string, unknown> = {
-        ...reserved_json,
+        ...reserved_json
     }
 
     if ($select) {
@@ -254,34 +278,37 @@ export const select_to_json_sql = (query, subquery_path: string[], orma_schema: 
     const subquery = deep_get(subquery_path, query)
     const entity_name = last(subquery_path)
 
-    const $select = Object.keys(subquery)
-        .flatMap(key => {
-            if (is_reserved_keyword(key)) {
-                return []
-            }
+    const $select = Object.keys(subquery).flatMap(key => {
+        if (is_reserved_keyword(key)) {
+            return []
+        }
 
-            if (subquery[key] === true) {
-                return key
-            }
+        if (subquery[key] === true) {
+            return key
+        }
 
-            if (typeof subquery[key] === 'string') {
-                return { $as: [subquery[key], key] }
-            }
+        if (typeof subquery[key] === 'string') {
+            return { $as: [subquery[key], key] }
+        }
 
-            if (typeof subquery[key] === 'object' && !is_subquery(subquery[key])) {
-                return { $as: [subquery[key], key] }
-            }
+        if (typeof subquery[key] === 'object' && !is_subquery(subquery[key])) {
+            return { $as: [subquery[key], key] }
+        }
 
-            if (typeof subquery[key] === 'object' && is_subquery(subquery[key])) {
-                const lower_subquery = subquery[key]
-                const lower_subquery_entity = lower_subquery.$from ?? key
-                const edge_to_lower_table = get_direct_edge(entity_name, lower_subquery_entity, orma_schema)
+        if (typeof subquery[key] === 'object' && is_subquery(subquery[key])) {
+            const lower_subquery = subquery[key]
+            const lower_subquery_entity = lower_subquery.$from ?? key
+            const edge_to_lower_table = get_direct_edge(
+                entity_name,
+                lower_subquery_entity,
+                orma_schema
+            )
 
-                return edge_to_lower_table.from_field
-            }
+            return edge_to_lower_table.from_field
+        }
 
-            return [] // subqueries are not handled here
-        })
+        return [] // subqueries are not handled here
+    })
 
     if (subquery_path.length > 1) {
         const higher_entity = subquery_path[subquery_path.length - 2]
@@ -292,7 +319,12 @@ export const select_to_json_sql = (query, subquery_path: string[], orma_schema: 
     return [...new Set($select)] // unique values
 }
 
-export const where_to_json_sql = (query, subquery_path: string[], previous_results: (string[] | Record<string, unknown>[])[][], orma_schema: orma_schema) => {
+export const where_to_json_sql = (
+    query,
+    subquery_path: string[],
+    previous_results: (string[] | Record<string, unknown>[])[][],
+    orma_schema: orma_schema
+) => {
     const subquery = deep_get(subquery_path, query)
 
     let $where = subquery.$where
@@ -303,30 +335,40 @@ export const where_to_json_sql = (query, subquery_path: string[], previous_resul
         const ancestor_path = subquery_path.slice(0, nesting_ancestor_index + 1)
 
         const ancestor_rows = previous_results
-            .filter(previous_result =>
-                previous_result[0].toString() === ancestor_path.toString()
-            ).map(previous_result => previous_result[1])
-        [0] as Record<string, unknown>[]
+            .filter(previous_result => previous_result[0].toString() === ancestor_path.toString())
+            .map(previous_result => previous_result[1])[0] as Record<string, unknown>[]
 
         const path_to_ancestor = subquery_path.slice(nesting_ancestor_index, Infinity).reverse()
-        const ancestor_where_clause = get_ancestor_where_clause(ancestor_rows, path_to_ancestor, orma_schema)
+        const ancestor_where_clause = get_ancestor_where_clause(
+            ancestor_rows,
+            path_to_ancestor,
+            orma_schema
+        )
         $where = combine_where_clauses($where, ancestor_where_clause, '$and')
     }
 
     return $where
 }
 
-export const having_to_json_sql = (query: any, subquery_path: string[], orma_schema: orma_schema) => {
+export const having_to_json_sql = (
+    query: any,
+    subquery_path: string[],
+    orma_schema: orma_schema
+) => {
     const subquery = deep_get(subquery_path, query)
     const $having = subquery.$having
 
     return $having
 }
 
-/* gives a query that contains both queries combined with the either '$and' or '$or'. 
+/* gives a query that contains both queries combined with the either '$and' or '$or'.
  * Prevents combine_with duplication if one of the qureies, for instance, already has an '$and' clause
  */
-export const combine_where_clauses = (where1: Record<string, unknown>, where2: Record<string, unknown>, connective: '$and' | '$or') => {
+export const combine_where_clauses = (
+    where1: Record<string, unknown>,
+    where2: Record<string, unknown>,
+    connective: '$and' | '$or'
+) => {
     if (!where1) {
         return where2
     }
@@ -366,22 +408,27 @@ export const combine_where_clauses = (where1: Record<string, unknown>, where2: R
  * The first argument to the $any_path macro is a list of connected entities, with the
  * first one being connected to the currently scoped entity. The second argument is a where clause. This will be scoped to the last table in the first argument.
  * This will then filter all the current entities, where there is at least one connected current_entity -> entity1 -> entity2 that matches the provided where clause
- * 
+ *
  * @example
  * {
  *   $where: {
- *     $any_path: [['entity1', 'entity2'], { 
- *       ...where_clause_on_entity2 
+ *     $any_path: [['entity1', 'entity2'], {
+ *       ...where_clause_on_entity2
  *     }]
  *   }
  * }
- * 
+ *
  * @param where a where clause
  * @param current_entity the root entity, since the path in the $any_path clause only starts from subsequent tables
  * @param is_having if true, will use $having. Otherwise will use $where
  * @returns a modified where clause
  */
-export const convert_any_path_macro = (where: any, root_entity: string, is_having: boolean, orma_schema: orma_schema) => {
+export const convert_any_path_macro = (
+    where: any,
+    root_entity: string,
+    is_having: boolean,
+    orma_schema: orma_schema
+) => {
     if (!where) {
         return where
     }
@@ -406,11 +453,14 @@ export const convert_any_path_macro = (where: any, root_entity: string, is_havin
             const edge_path = get_edge_path(full_path, orma_schema).reverse()
             const query = edge_path.reduce((acc, edge) => {
                 return {
-                    $in: [edge.from_field, {
-                        $select: [edge.to_field],
-                        $from: edge.to_entity,
-                        [is_having ? '$having' : '$where']: acc
-                    }]
+                    $in: [
+                        edge.from_field,
+                        {
+                            $select: [edge.to_field],
+                            $from: edge.to_entity,
+                            [is_having ? '$having' : '$where']: acc
+                        }
+                    ]
                 }
             }, subquery)
 
@@ -427,10 +477,10 @@ export const convert_any_path_macro = (where: any, root_entity: string, is_havin
  * Gets the closest ancestor that satisfies either of two conditions:
  *   1. has a where or having clause
  *   2. is the root ancestor
- * 
- * These are the ancestors that will be split into sequential queries, so we do a server-side nesting for them, 
+ *
+ * These are the ancestors that will be split into sequential queries, so we do a server-side nesting for them,
  * rather than duplicating these queries in the database
- * 
+ *
  * @returns The index in the subquery_path of the nesting ancestor
  */
 const get_nesting_ancestor_index = (query, subquery_path: string[]): number => {
@@ -451,23 +501,32 @@ const get_nesting_ancestor_index = (query, subquery_path: string[]): number => {
  * @param path_to_ancestor This should start with the current table and end with the ancestor table
  * @returns A where clause
  */
-const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], path_to_ancestor: string[], orma_schema: orma_schema) => {
+const get_ancestor_where_clause = (
+    ancestor_rows: Record<string, unknown>[],
+    path_to_ancestor: string[],
+    orma_schema: orma_schema
+) => {
     const ancestor_name = last(path_to_ancestor)
     const table_under_ancestor = path_to_ancestor[path_to_ancestor.length - 2]
     const last_edge_to_ancestor = get_direct_edge(table_under_ancestor, ancestor_name, orma_schema)
 
     if (ancestor_rows === undefined || ancestor_rows.length === 0) {
-        throw Error(`No ancestor rows provided for ${ ancestor_name }`)
+        throw Error(`No ancestor rows provided for ${ancestor_name}`)
     }
 
-    const ancestor_linking_key_values = ancestor_rows.map(row => row[last_edge_to_ancestor.to_field])
+    const ancestor_linking_key_values = ancestor_rows.map(
+        row => row[last_edge_to_ancestor.to_field]
+    )
 
     const any_path = path_to_ancestor.slice(1, path_to_ancestor.length - 1)
     const ancestor_query = convert_any_path_macro(
         {
-            $any: [any_path, {
-                $in: [last_edge_to_ancestor.from_field, ancestor_linking_key_values]
-            }]
+            $any: [
+                any_path,
+                {
+                    $in: [last_edge_to_ancestor.from_field, ancestor_linking_key_values]
+                }
+            ]
         },
         path_to_ancestor[0],
         false,
@@ -477,7 +536,10 @@ const get_ancestor_where_clause = (ancestor_rows: Record<string, unknown>[], pat
     return ancestor_query
 }
 
-export const orma_nester = (results: [string[], Record<string, unknown>[]][], orma_schema: orma_schema) => {
+export const orma_nester = (
+    results: [string[], Record<string, unknown>[]][],
+    orma_schema: orma_schema
+) => {
     // get data in the right format for the nester
     const edges = results.map(result => {
         const path = result[0]
@@ -499,10 +561,12 @@ export const orma_nester = (results: [string[], Record<string, unknown>[]][], or
     return nester(data, edges)
 }
 
-
-
 // export const orma_query = async <schema>(raw_query: validate_query<schema>, orma_schema: validate_orma_schema<schema>, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
-export const orma_query = async (raw_query, orma_schema, query_function: (sql_string: string[]) => Promise<Record<string, unknown>[][]>) => {
+export const orma_query = async (
+    raw_query,
+    orma_schema,
+    query_function: (sql_string: string[]) => Promise<Record<string, unknown>[][]>
+) => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating user input
     const query_plan = get_query_plan(query)
     let results = []
@@ -529,7 +593,6 @@ export const orma_query = async (raw_query, orma_schema, query_function: (sql_st
 
         // Combine outputs
         sql_strings.forEach((_, i) => results.push([paths[i], output[i]]))
-
     }
 
     const output = orma_nester(results, orma_schema)
@@ -568,14 +631,14 @@ export const orma_query = async (raw_query, orma_schema, query_function: (sql_st
 
 // }
 // type entity_schema<entity extends keyof schema, schema> =
-//     // keyof schema[entity] extends keyof schema ? 
+//     // keyof schema[entity] extends keyof schema ?
 //     { $comment?: string }
 //     & { [field: string]: field_schema<entity, schema> }
 // // : never
 
 // type field_schema<parent extends keyof schema, schema> = {
-//     references?: 
-//     { [entity in keyof schema]?: 
+//     references?:
+//     { [entity in keyof schema]?:
 //         {}
 //         // boolean
 //         //  {[k in keyof schema[entity]]: boolean}
@@ -613,7 +676,6 @@ export const orma_query = async (raw_query, orma_schema, query_function: (sql_st
 //         }
 //     }
 // }, (s) => ([{ a: 'hi' }]))
-
 
 // type validate_query<schema> = {
 //     [entity in keyof schema]: boolean

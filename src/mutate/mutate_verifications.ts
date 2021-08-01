@@ -139,3 +139,5 @@
 //         return Promise.reject(generate_error_response('missing_reference', errors))
 //     }
 // }
+
+// do not allow product_id 5 if nested

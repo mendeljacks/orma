@@ -170,6 +170,7 @@ export const validator = (query, schema): error_type[] => {
         const is_boolean_resolver = val === true
         const is_virtual_column_resolver = typeof val === 'object' && !is_subquery(val)
         const is_subquery_resolver = typeof val === 'object' && is_subquery(val)
+        const is_clauses_resolver = '?'
 
         if (is_boolean_resolver) {
             const error = validate_field_exists(val, path, schema, query)

@@ -144,13 +144,6 @@ describe('nester', () => {
 
 
         let result = nester(data, edges)
-        // let result = {}
-        // for (let i = 0; i < 10000; i++) {
-        //     result = nester(data, edges)
-        // }
-        // await stop_profiler()
-        // console.timeEnd('t')
-
 
         expect(result).to.deep.equal(goal)
     })
