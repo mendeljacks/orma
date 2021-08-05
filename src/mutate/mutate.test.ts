@@ -48,7 +48,7 @@ describe('mutate', () => {
         }
     }
 
-    describe('get_mutate_plan', () => {
+    describe(get_mutate_plan.name, () => {
         test('simple mutation', () => {
             const mutation = {
                 parents: [
@@ -267,7 +267,7 @@ describe('mutate', () => {
             expect(mutate_plan).to.deep.equal(goal)
         })
     })
-    describe('get_command_jsons', () => {
+    describe(get_command_jsons.name, () => {
         test('update/delete by id', () => {
             const mutation = {
                 grandparents: [
@@ -421,7 +421,7 @@ describe('mutate', () => {
             expect(result).to.deep.equal(goal)
         })
     })
-    describe(orma_mutate.name, () => {
+    describe.only(orma_mutate.name, () => {
         test('integrates orma mutation components', async () => {
             const mutation = {
                 parents: [

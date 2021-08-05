@@ -3,6 +3,8 @@ import { error_type } from '../helpers/error_handling'
 import { clone, deep_for_each, deep_get, deep_map, deep_set, last, type } from '../helpers/helpers'
 import { push_path } from '../helpers/push_path'
 import {
+    get_all_edges,
+    get_child_edges,
     get_parent_edges,
     get_primary_keys,
     get_unique_fields,
@@ -54,7 +56,8 @@ export const orma_mutate = async (
                     // }
 
 
-                    deep_set(path, {...original_row, ...mutation_result_row}, mutation_result)
+                    deep_set(path, { ...original_row, ...mutation_result_row }, mutation_result)
+                    propagate_foreign_keys(path, mutation, orma_schema)
                 })
             })
         )
@@ -119,7 +122,7 @@ const get_update_jsons = (paths: (string | number)[][], mutation, orma_schema: o
         return []
     }
 
-    const entity_name = path_to_entity_name(paths[0])
+    const entity_name = path_to_entity(paths[0])
 
     const jsons = paths.map(path => {
         const record = deep_get(path, mutation)
@@ -149,7 +152,7 @@ const get_delete_jsons = (paths: (string | number)[][], mutation, orma_schema: o
         return []
     }
 
-    const entity_name = path_to_entity_name(paths[0])
+    const entity_name = path_to_entity(paths[0])
 
     const jsons = paths.map(path => {
         const record = deep_get(path, mutation)
@@ -173,7 +176,7 @@ const get_create_jsons = (paths: (string | number)[][], mutation, orma_schema: o
         return []
     }
 
-    const entity_name = path_to_entity_name(paths[0])
+    const entity_name = path_to_entity(paths[0])
 
     const records = paths.map(path => deep_get(path, mutation))
 
@@ -181,6 +184,7 @@ const get_create_jsons = (paths: (string | number)[][], mutation, orma_schema: o
     const insert_keys = paths.reduce((acc, path, i) => {
         const record = records[i]
 
+        // filter lower tables and keywords such as $operation from the sql
         const keys_to_insert = Object.keys(record)
             .filter(key => typeof record[key] !== 'object')
             .filter(key => !is_reserved_keyword(key))
@@ -192,10 +196,7 @@ const get_create_jsons = (paths: (string | number)[][], mutation, orma_schema: o
 
     const values = paths.map((path, i) => {
         const record = records[i]
-        const record_values = []
-        for (const key of insert_keys) {
-            record_values.push(record[key] ?? null)
-        }
+        const record_values = [...insert_keys].map(key => record[key] ?? null)
         return record_values
     })
 
@@ -218,19 +219,65 @@ const generate_record_where_clause = (
     const where =
         where_clauses.length > 1
             ? {
-                  and: where_clauses
-              }
+                and: where_clauses
+            }
             : where_clauses?.[0]
 
     return where
 }
 
-const inject_foreign_keys = (entity_name, orma_schema, insert_keys) => {
+/**
+ * Mutates the input mutation by copying foreign key values from parents to the children at the specified paths
+ */
+const propagate_foreign_keys = (path_to_parent: (string | number)[], mutation, orma_schema) => {
     // when creating an entity, all foreign keys must be present. These can be taken from the user input
-    const edges_to_parents = get_parent_edges(entity_name, orma_schema)
-    const foreign_keys_to_parent = edges_to_parents.map(edge => edge.from_field)
-    foreign_keys_to_parent.forEach(key => insert_keys.add(key))
+    const entity_name = path_to_parent[nth_last_entity_index(path_to_parent, 0)] as string
+    const record = deep_get(path_to_parent, mutation)
+
+    const edges_to_children = get_child_edges(entity_name, orma_schema)
+    const parent_paths = get_mutation_child_paths(path_to_parent, mutation, edges_to_children)
+
+    parent_paths.forEach((parent_path, i) => {
+        const edge_to_parent = edges_to_children[i]
+        const parent_record = deep_get(parent_path, mutation)
+
+        record[edge_to_parent.from_field] = parent_record[edge_to_parent.to_field]
+    })
 }
+
+/**
+ * Maps a list of edges to lists to paths to children of a specified record. The child paths returned will be connected to the given parent,
+ * either they will be a higher or lower records.
+ */
+const get_mutation_child_paths = (path: (string | number)[], mutation, edges_to_children) => {
+    const higher_entity_index = nth_last_entity_index(path, 1)
+    const higher_entity_name = higher_entity_index >= 0 ? path[higher_entity_index] as string : undefined
+    const higher_path = higher_entity_index >= 0 ? path.slice(0, higher_entity_index) : undefined
+    const record = deep_get(path, mutation)
+
+    const lower_entity_names = Object.keys(record).filter(key => typeof record[key] === 'object' && record[key]) // null is considered an 'object'
+    const child_paths = edges_to_children.map(edge => {
+        const child_entity = edge.to_entity
+        if (higher_entity_name === child_entity) {
+            return higher_path
+        }
+
+        for (const lower_entity_name of lower_entity_names) {
+            if (lower_entity_name === child_entity) {
+                const is_array = Array.isArray(record[lower_entity_name])
+                const edge_child_paths = is_array
+                    ? [...path, lower_entity_name, 0]
+                    : [...path, lower_entity_name]
+
+                return edge_child_paths
+            }
+        }
+    })
+
+    return child_paths
+}
+
+const set_mutation_foreign_key = (parent_record, child_record, )
 
 const get_parent_path = (path: (number | string)[]) => {
     return typeof last(path) === 'number'
@@ -238,11 +285,29 @@ const get_parent_path = (path: (number | string)[]) => {
         : path.slice(0, path.length - 1)
 }
 
-const path_to_entity_name = (path: (number | string)[]) => {
+const path_to_entity = (path: (number | string)[]) => {
     return typeof last(path) === 'number'
         ? (path[path.length - 2] as string)
         : (last(path) as string)
 }
+
+const nth_last_entity_index = (path: (number | string)[], n: number) => {
+    let entity_number = 0
+    for (let i = path.length; i > 0; i--) {
+        const el = path[i]
+        if (typeof el === 'string') {
+            if (entity_number === n) {
+                return i
+            } else {
+                entity_number += 1
+            }
+        }
+    }
+
+    return -1
+}
+
+
 
 const get_identifying_keys = (
     entity_name: string,
