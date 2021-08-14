@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../introspector/introspector'
-import { edge, get_all_edges, get_child_edges, get_entity_names, get_field_names, get_parent_edges } from './schema_helpers'
+import { orma_schema } from '../../introspector/introspector'
+import { edge, get_all_edges, get_child_edges, get_entity_names, get_field_names, get_parent_edges } from '../schema_helpers'
 
 
 describe('schema_helpers', () => {

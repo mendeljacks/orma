@@ -1,6 +1,6 @@
 import { expect } from "chai"
 import { describe, test } from "mocha"
-import { push_path } from "./push_path"
+import { push_path } from "../push_path"
 
 describe('push_path', () => {
     test('Creates [] when nothing at path', () => {

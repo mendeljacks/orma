@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { describe, test } from "mocha";
-import { extract_subpaths } from "./extract_subpaths";
+import { extract_subpaths } from "../extract_subpaths";
 
 describe('Extract subpaths', () => {
     test('Extracts subpaths from arrays', () => {

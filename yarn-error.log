@@ -1,8 +1,8 @@
 Arguments: 
-  C:\Program Files\nodejs\node.exe C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\bin\yarn.js nt
+  C:\Program Files\nodejs\node.exe C:\Users\mende\AppData\Roaming\npm\node_modules\yarn\bin\yarn.js dev
 
 PATH: 
-  C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\mende\bin;C:\Python39\Scripts;C:\Python39;C:\Perl64\bin;C:\Users\mende\AppData\Roaming\ActiveState\bin;C:\TwinCAT\Common64;C:\TwinCAT\Common32;C:\Python38\Scripts;C:\Python38;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\ProgramData\chocolatey\bin;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\110\Tools\Binn;C:\Program Files (x86)\Microsoft SQL Server\120\Tools\Binn;C:\Program Files\Microsoft SQL Server\120\Tools\Binn;C:\Program Files\Microsoft SQL Server\120\DTS\Binn;C:\Program Files (x86)\Windows Kits\8.1\Windows Performance Toolkit;C:\Program Files\Git\cmd;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\MATLAB\R2021a\bin;C:\Program Files\nodejs;C:\Program Files\Docker\Docker\resources\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Users\mende\.cargo\bin;C:\Users\mende\.windows-build-tools\python27;C:\Users\mende\.windows-build-tools\python27;C:\Users\mende\AppData\Local\Microsoft\WindowsApps;C:\Users\mende\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\heroku\bin;C:\tools\neovim\Neovim\bin;C:\Users\mende\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin;C:\Users\mende\AppData\Local\gitkraken\bin;C:\Users\mende\AppData\Local\Programs\MiKTeX\miktex\bin\x64;C:\Users\mende\AppData\Roaming\npm
+  C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\mende\bin;C:\Program Files\Microsoft MPI\Bin;C:\Program Files (x86)\IntelSWTools\compilers_and_libraries_2018.3.210\windows\mpi\intel64\bin;C:\Python39\Scripts;C:\Python39;C:\Perl64\bin;C:\Users\mende\AppData\Roaming\ActiveState\bin;C:\TwinCAT\Common64;C:\TwinCAT\Common32;C:\Python38\Scripts;C:\Python38;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0;C:\WINDOWS\System32\OpenSSH;C:\ProgramData\chocolatey\bin;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\110\Tools\Binn;C:\Program Files (x86)\Microsoft SQL Server\120\Tools\Binn;C:\Program Files\Microsoft SQL Server\120\Tools\Binn;C:\Program Files\Microsoft SQL Server\120\DTS\Binn;C:\Program Files (x86)\Windows Kits\8.1\Windows Performance Toolkit;C:\Program Files\Git\cmd;C:\Program Files\Microsoft VS Code\bin;C:\Program Files\MATLAB\R2021a\bin;C:\Program Files\nodejs;C:\Program Files\Docker\Docker\resources\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Users\mende\.cargo\bin;C:\Users\mende\.windows-build-tools\python27;C:\Users\mende\.windows-build-tools\python27;C:\Users\mende\AppData\Local\Microsoft\WindowsApps;C:\Users\mende\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\heroku\bin;C:\tools\neovim\Neovim\bin;C:\Users\mende\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin;C:\Users\mende\AppData\Local\gitkraken\bin;C:\Users\mende\AppData\Local\Programs\MiKTeX\miktex\bin\x64;C:\Users\mende\AppData\Roaming\npm
 
 Yarn version: 
   1.22.5
@@ -27,7 +27,7 @@ Trace:
 npm manifest: 
   {
     "name": "orma",
-    "version": "1.0.34",
+    "version": "1.0.36",
     "description": "A declarative relational syncronous orm",
     "main": "build/index.js",
     "scripts": {

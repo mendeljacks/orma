@@ -1,4 +1,4 @@
-import { toposort, countInDegrees } from "./toposort"
+import { toposort, countInDegrees } from "../toposort"
 import { expect } from 'chai'
 import { describe, it } from 'mocha'
 

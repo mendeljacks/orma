@@ -599,95 +599,95 @@ export const orma_query = async (
 
     return output
 }
-// ///-------------type-fest---------------
-// type Without<FirstType, SecondType> = { [KeyType in Exclude<keyof FirstType, keyof SecondType>]?: never };
-// type RequireExactlyOne<ObjectType, KeysType extends keyof ObjectType = keyof ObjectType> =
-//     { [Key in KeysType]: (
-//         Required<Pick<ObjectType, Key>> &
-//         Partial<Record<Exclude<KeysType, Key>, never>>
-//     ) }[KeysType] & _Omit<ObjectType, KeysType>;
-// type _Omit<T, K extends keyof any> = Pick<T, Exclude<keyof T, K>>;
-// type MergeExclusive<FirstType, SecondType> =
-//     (FirstType | SecondType) extends object ?
-//     (Without<FirstType, SecondType> & SecondType) | (Without<SecondType, FirstType> & FirstType) :
-//     FirstType | SecondType;
-// type RequireAtLeastOne<
-//     ObjectType,
-//     KeysType extends keyof ObjectType = keyof ObjectType
-//     > = {
-//         // For each `Key` in `KeysType` make a mapped type:
-//         [Key in KeysType]-?: Required<Pick<ObjectType, Key>> & // 1. Make `Key`'s type required
-//         // 2. Make all other keys in `KeysType` optional
-//         Partial<Pick<ObjectType, Exclude<KeysType, Key>>>;
-//     }[KeysType] &
-//     // 3. Add the remaining keys not in `KeysType`
-//     Except<ObjectType, KeysType>;
-// type Except<ObjectType, KeysType extends keyof ObjectType> = Pick<ObjectType, Exclude<keyof ObjectType, KeysType>>;
-// ///----------------------------
+///-------------type-fest---------------
+type Without<FirstType, SecondType> = { [KeyType in Exclude<keyof FirstType, keyof SecondType>]?: never };
+type RequireExactlyOne<ObjectType, KeysType extends keyof ObjectType = keyof ObjectType> =
+    { [Key in KeysType]: (
+        Required<Pick<ObjectType, Key>> &
+        Partial<Record<Exclude<KeysType, Key>, never>>
+    ) }[KeysType] & _Omit<ObjectType, KeysType>;
+type _Omit<T, K extends keyof any> = Pick<T, Exclude<keyof T, K>>;
+type MergeExclusive<FirstType, SecondType> =
+    (FirstType | SecondType) extends object ?
+    (Without<FirstType, SecondType> & SecondType) | (Without<SecondType, FirstType> & FirstType) :
+    FirstType | SecondType;
+type RequireAtLeastOne<
+    ObjectType,
+    KeysType extends keyof ObjectType = keyof ObjectType
+    > = {
+        // For each `Key` in `KeysType` make a mapped type:
+        [Key in KeysType]-?: Required<Pick<ObjectType, Key>> & // 1. Make `Key`'s type required
+        // 2. Make all other keys in `KeysType` optional
+        Partial<Pick<ObjectType, Exclude<KeysType, Key>>>;
+    }[KeysType] &
+    // 3. Add the remaining keys not in `KeysType`
+    Except<ObjectType, KeysType>;
+type Except<ObjectType, KeysType extends keyof ObjectType> = Pick<ObjectType, Exclude<keyof ObjectType, KeysType>>;
+///----------------------------
 
-// type validate_orma_schema<schema> = {
-//     [entity in keyof schema]:
-//     entity_schema<entity, schema>
+type validate_orma_schema<schema> = {
+    [entity in keyof schema]:
+    entity_schema<entity, schema>
 
-// }
-// type entity_schema<entity extends keyof schema, schema> =
-//     // keyof schema[entity] extends keyof schema ?
-//     { $comment?: string }
-//     & { [field: string]: field_schema<entity, schema> }
-// // : never
+}
+type entity_schema<entity extends keyof schema, schema> =
+    // keyof schema[entity] extends keyof schema ?
+    { $comment?: string }
+    & { [field: string]: field_schema<entity, schema> }
+// : never
 
-// type field_schema<parent extends keyof schema, schema> = {
-//     references?:
-//     { [entity in keyof schema]?:
-//         {}
-//         // boolean
-//         //  {[k in keyof schema[entity]]: boolean}
-//         // RequireExactlyOne<{[field in keyof schema[entity]]: {}}>
-//     } //{ products: { id: {} } } | { variants: { id: {} } }
-// }
+type field_schema<parent extends keyof schema, schema> = {
+    references?:
+    { [entity in keyof schema]?:
+        {}
+        // boolean
+        //  {[k in keyof schema[entity]]: boolean}
+        // RequireExactlyOne<{[field in keyof schema[entity]]: {}}>
+    } //{ products: { id: {} } } | { variants: { id: {} } }
+}
 
-// const test = orma_query({}, {
-//     products: { id: {} },
-//     variants: {
-//         id: {},
-//         product_id: {
-//             // references: { products: { id: {} } }
-//             references: { products: {id: {}} }
-//         }
-//     },
-//     images: {
-//         id: {},
-//         variant_id: {
-//             references: { variants: { id8: {} }, hi: {} }
-//         }
-//     },
-//     images2: {
-//         id: {},
-//         variant_id: {
-//             // @ts-expect-error
-//             references: { oops: { id: {} } }
-//         }
-//     },
-//     images3: {
-//         id: {},
-//         variant_id: {
-//             // @ts-expect-error
-//             references: { variants: { id: {} }, hi: {}, }
-//         }
-//     }
-// }, (s) => ([{ a: 'hi' }]))
+const test = orma_query({}, {
+    products: { id: {} },
+    variants: {
+        id: {},
+        product_id: {
+            // references: { products: { id: {} } }
+            references: { products: {id: {}} }
+        }
+    },
+    images: {
+        id: {},
+        variant_id: {
+            references: { variants: { id8: {} }, hi: {} }
+        }
+    },
+    images2: {
+        id: {},
+        variant_id: {
+            // @ts-expect-error
+            references: { oops: { id: {} } }
+        }
+    },
+    images3: {
+        id: {},
+        variant_id: {
+            // @ts-expect-error
+            references: { variants: { id: {} }, hi: {}, }
+        }
+    }
+}, (s) => ([{ a: 'hi' }]))
 
-// type validate_query<schema> = {
-//     [entity in keyof schema]: boolean
-// }
-// const test2 = orma_query({
-//     variants: true,
-//     products: true,
-//     poop: true,
-// }, {
-//     variants: {id: {}},
-//     products: {id: {}},
-// }, (s) => Promise.resolve([{}]))
+type validate_query<schema> = {
+    [entity in keyof schema]: boolean
+}
+const test2 = orma_query({
+    variants: true,
+    products: true,
+    poop: true,
+}, {
+    variants: {id: {}},
+    products: {id: {}},
+}, (s) => Promise.resolve([{}]))
 
 /*
 

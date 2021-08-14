@@ -5,7 +5,6 @@
 
 import { orma_field_schema, orma_schema } from '../introspector/introspector'
 
-
 export type edge = {
     from_entity: string
     from_field: string
@@ -20,14 +19,12 @@ export const get_entity_names = (orma_schema: orma_schema) => {
     return Object.keys(orma_schema)
 }
 
-
 /**
  * @returns a list of fields attatched to the given entity
  */
 export const get_field_names = (entity_name: string, orma_schema: orma_schema) => {
     return Object.keys(orma_schema[entity_name] ?? {})
 }
-
 
 // /**
 //  * @returns given an entity, returns true if the entity is in the schema
@@ -54,12 +51,14 @@ export const get_parent_edges = (entity_name: string, orma_schema: orma_schema):
         }
         const parent_field_name = Object.keys(field_schema.references[parent_entity_name])[0]
 
-        return [{
-            from_entity: entity_name,
-            from_field: field_name,
-            to_entity: parent_entity_name,
-            to_field: parent_field_name
-        }]
+        return [
+            {
+                from_entity: entity_name,
+                from_field: field_name,
+                to_entity: parent_entity_name,
+                to_field: parent_field_name
+            }
+        ]
     })
 
     return parent_edges
@@ -75,15 +74,11 @@ export const reverse_edge = (edge: edge): edge => ({
     to_field: edge.from_field
 })
 
-
 // we use a map because it can take objects as keys (they are compared by reference)
-const child_edges_cache_by_schema = new Map<
-    orma_schema,
-    Record<string, edge[]>
->()
+const child_edges_cache_by_schema = new Map<orma_schema, Record<string, edge[]>>()
 
 // a helper method, having all the child edges in a single cache object helps it be memoized
-const get_child_edges_cache = (orma_schema) => {
+const get_child_edges_cache = orma_schema => {
     if (child_edges_cache_by_schema.has(orma_schema)) {
         return child_edges_cache_by_schema.get(orma_schema)
     }
@@ -129,12 +124,16 @@ export const get_all_edges = (entity_name, orma_schema) => {
  * Returns true if the input is a reserved keyword, which means it starts with $ like $select or $or
  */
 export const is_reserved_keyword = (keyword: any) =>
-    typeof keyword === 'string'
-    && keyword[0] === '$'
+    typeof keyword === 'string' && keyword[0] === '$'
 
-/* gets possible parent or child edges between two tables that are immediate child/parent or parent/child
+/**
+ * Gets possible parent or child edges between two tables that are immediate child/parent or parent/child
  */
-export const get_direct_edges = (from_entity: string, to_entity: string, orma_schema: orma_schema) => {
+export const get_direct_edges = (
+    from_entity: string,
+    to_entity: string,
+    orma_schema: orma_schema
+) => {
     const possible_edges = get_all_edges(from_entity, orma_schema)
     const edges = possible_edges.filter(el => el.to_entity === to_entity)
     return edges
@@ -143,7 +142,11 @@ export const get_direct_edges = (from_entity: string, to_entity: string, orma_sc
 /* just like get edges, but only returns one conenction between two directly connected tables.
  * This will throw an error if there is not exactly one edge
  */
-export const get_direct_edge = (from_entity: string, to_entity: string, orma_schema: orma_schema) => {
+export const get_direct_edge = (
+    from_entity: string,
+    to_entity: string,
+    orma_schema: orma_schema
+) => {
     const edges = get_direct_edges(from_entity, to_entity, orma_schema)
 
     if (edges.length !== 1) {
@@ -152,7 +155,6 @@ export const get_direct_edge = (from_entity: string, to_entity: string, orma_sch
 
     return edges[0]
 }
-
 
 /**
  * returns a list of edges which, when traversed one after the other, connect the first given entity to the last.
@@ -199,7 +201,7 @@ export const is_parent_entity = (entity1: string, entity2: string, orma_schema: 
  */
 export const get_primary_keys = (entity_name: string, orma_schema: orma_schema) => {
     const fields = get_field_names(entity_name, orma_schema)
-    const primary_key_fields = fields.filter((field) => {
+    const primary_key_fields = fields.filter(field => {
         const field_schema = orma_schema[entity_name][field]
         if (typeof field_schema === 'string') {
             return false
@@ -216,7 +218,7 @@ export const get_primary_keys = (entity_name: string, orma_schema: orma_schema) 
  */
 export const get_unique_fields = (entity_name: string, orma_schema: orma_schema) => {
     const fields = get_field_names(entity_name, orma_schema)
-    const unique_fields = fields.filter((field) => {
+    const unique_fields = fields.filter(field => {
         const field_schema = orma_schema[entity_name][field]
         if (typeof field_schema === 'string') {
             return false
@@ -227,7 +229,6 @@ export const get_unique_fields = (entity_name: string, orma_schema: orma_schema)
 
     return unique_fields
 }
-
 
 export const field_exists = (entity: string, field: string | number, schema: orma_schema) => {
     return schema[entity]?.[field]

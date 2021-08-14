@@ -1,7 +1,5 @@
-// import { find_last } from '../helpers/stable_sort'
 import { error_type } from '../helpers/error_handling'
-import { clone, deep_for_each, deep_get, deep_map, deep_set, last, type } from '../helpers/helpers'
-import { push_path } from '../helpers/push_path'
+import { deep_for_each, deep_get, drop, last } from '../helpers/helpers'
 import {
     get_all_edges,
     get_child_edges,
@@ -11,59 +9,60 @@ import {
     is_parent_entity,
     is_reserved_keyword
 } from '../helpers/schema_helpers'
+import { path_to_string, string_to_path } from '../helpers/string_to_path'
 import { toposort } from '../helpers/toposort'
 import { orma_schema } from '../introspector/introspector'
 import { json_to_sql } from '../query/query'
-// import { verify_foreign_keys } from './mutate_verifications'
 
 export type operation = 'create' | 'update' | 'delete'
 export type mutate_fn = (
-    sql_strings: string[],
-    sql_jsons: Record<string, unknown>[],
-    operation: operation
-) => Promise<Record<string, unknown>[]>
+    statements
+) => Promise<{ path: (string | number)[]; row: Record<string, unknown>[] }[]>
 export type escape_fn = (string) => string
-
+export type statements = {
+    command_json: Record<any, any>
+    command_sql: string
+    entity_name: string
+    operation: operation
+    paths: (string | number)[][]
+}[]
 export const orma_mutate = async (
     mutation,
     mutate_fn: mutate_fn,
     escape_fn: escape_fn,
     orma_schema: orma_schema
 ) => {
+    // [[{"operation":"create","paths":[...]]}],[{"operation":"create","paths":[...]}]]
     const mutate_plan = get_mutate_plan(mutation, orma_schema)
-    let mutation_result = clone(mutation)
 
-    for (const tier of mutate_plan) {
-        await Promise.all(
-            tier.map(async ({ operation, paths }) => {
-                const command_jsons = get_command_jsons(
-                    operation,
-                    paths,
-                    mutation_result,
-                    orma_schema
-                )
-                const escaped_command_jsons = escape_all(command_jsons, escape_fn)
-                const command_sqls = escaped_command_jsons.map(command_json =>
-                    json_to_sql(command_json)
-                )
-                const results = await mutate_fn(command_sqls, escaped_command_jsons, operation)
-                paths.forEach((path, i) => {
-                    const original_row = deep_get(path, mutation_result)
-                    const mutation_result_row = results[i]
-
-                    // if (original_rows.length !== mutation_result_rows.length) {
-                    //     throw new Error('Row count mismatched. Please ensure mutation results has the same length as mutation rows')
-                    // }
-
-
-                    deep_set(path, { ...original_row, ...mutation_result_row }, mutation_result)
-                    propagate_foreign_keys(path, mutation, orma_schema)
-                })
-            })
-        )
+    let tier_results = {
+        // Will be built up as each phase of the mutate_plan is executed
+        // [path]: {...}
     }
 
-    return mutation_result
+    for (let i = 0; i < mutate_plan.length; i++) {
+        const planned_statements = mutate_plan[i]
+
+        const statements: statements = planned_statements.flatMap(({ operation, paths }) => {
+            const command_json_paths = get_command_jsons(
+                operation,
+                paths,
+                mutation,
+                tier_results,
+                orma_schema
+            )
+            return command_json_paths
+        })
+
+        const results = await mutate_fn(statements)
+
+        results.forEach((result, i) => {
+            const { path, row } = result
+            tier_results[path_to_string(path)] = row
+        })
+    }
+
+    return 'ok'
 }
 
 const escape_all = (command_jsons, escape_fn) => {
@@ -94,24 +93,27 @@ but we need to make sure we dont leave holes...? Query plan should prevent that
  * All these records must have the same operation and the same entity. They dont all need an $operation prop
  * (if they have inherited operation), but the same opeartion will be done on all of them.
  * For this to work, all required foreign keys must have already been inserted (for creates)
- * Returns an array of json sql commands
  */
 export const get_command_jsons = (
     operation: string,
     paths: (string | number)[][],
     mutation,
+    tier_results,
     orma_schema: orma_schema
-): Record<string, any>[] => {
+): statements => {
     if (operation === 'update') {
-        return get_update_jsons(paths, mutation, orma_schema)
+        const command_json_paths = get_update_jsons(paths, mutation, orma_schema)
+        return command_json_paths.map(el => ({ ...el, operation }))
     }
 
     if (operation === 'delete') {
-        return get_delete_jsons(paths, mutation, orma_schema)
+        const command_json_paths = get_delete_jsons(paths, mutation, orma_schema)
+        return command_json_paths.map(el => ({ ...el, operation }))
     }
 
     if (operation === 'create') {
-        return get_create_jsons(paths, mutation, orma_schema)
+        const command_json_paths = get_create_jsons(paths, mutation, tier_results, orma_schema)
+        return command_json_paths.map(el => ({ ...el, operation }))
     }
 
     throw new Error(`Unknown operation ${operation}`)
@@ -144,7 +146,12 @@ const get_update_jsons = (paths: (string | number)[][], mutation, orma_schema: o
         }
     })
 
-    return jsons
+    return jsons.map((el, i) => ({
+        paths: [paths[i]],
+        entity_name,
+        command_json: el,
+        command_sql: json_to_sql(el)
+    }))
 }
 
 const get_delete_jsons = (paths: (string | number)[][], mutation, orma_schema: orma_schema) => {
@@ -168,17 +175,40 @@ const get_delete_jsons = (paths: (string | number)[][], mutation, orma_schema: o
         }
     })
 
-    return jsons
+    return jsons.map((el, i) => ({
+        paths: [paths[i]],
+        entity_name,
+        command_json: el,
+        command_sql: json_to_sql(el)
+    }))
 }
 
-const get_create_jsons = (paths: (string | number)[][], mutation, orma_schema: orma_schema) => {
+const get_create_jsons = (paths: (string | number)[][], mutation, tier_results, orma_schema: orma_schema) => {
     if (paths.length === 0) {
         return []
     }
 
     const entity_name = path_to_entity(paths[0])
 
-    const records = paths.map(path => deep_get(path, mutation))
+    
+    const records = paths.map(path => {
+        
+        const parent_edges = get_parent_edges(entity_name, orma_schema)
+        const spot = deep_get(path, mutation)
+        const spot_above = deep_get(drop(2, path), mutation)
+
+        // look one layer above and below in the mutation to get names of tables
+
+        // figure out which tables are parents
+        // figure out the names of both sides of the fk
+        // fish out parent fk field and put into child fk field
+        
+        const record_without_fk = deep_get(path, mutation)
+        const parent_paths = []
+        return record_without_fk
+    })
+
+
 
     // get insert keys by combining the keys from all records
     const insert_keys = paths.reduce((acc, path, i) => {
@@ -200,10 +230,17 @@ const get_create_jsons = (paths: (string | number)[][], mutation, orma_schema: o
         return record_values
     })
 
+    const command_json = {
+        $insert_into: [entity_name, [...insert_keys]],
+        $values: values
+    }
+
     return [
         {
-            $insert_into: [entity_name, [...insert_keys]],
-            $values: values
+            paths,
+            entity_name,
+            command_json,
+            command_sql: json_to_sql(command_json)
         }
     ]
 }
@@ -219,8 +256,8 @@ const generate_record_where_clause = (
     const where =
         where_clauses.length > 1
             ? {
-                and: where_clauses
-            }
+                  and: where_clauses
+              }
             : where_clauses?.[0]
 
     return where
@@ -237,6 +274,8 @@ const propagate_foreign_keys = (path_to_parent: (string | number)[], mutation, o
     const edges_to_children = get_child_edges(entity_name, orma_schema)
     const parent_paths = get_mutation_child_paths(path_to_parent, mutation, edges_to_children)
 
+    // return [paths, values]
+
     parent_paths.forEach((parent_path, i) => {
         const edge_to_parent = edges_to_children[i]
         const parent_record = deep_get(parent_path, mutation)
@@ -251,11 +290,14 @@ const propagate_foreign_keys = (path_to_parent: (string | number)[], mutation, o
  */
 const get_mutation_child_paths = (path: (string | number)[], mutation, edges_to_children) => {
     const higher_entity_index = nth_last_entity_index(path, 1)
-    const higher_entity_name = higher_entity_index >= 0 ? path[higher_entity_index] as string : undefined
+    const higher_entity_name =
+        higher_entity_index >= 0 ? (path[higher_entity_index] as string) : undefined
     const higher_path = higher_entity_index >= 0 ? path.slice(0, higher_entity_index) : undefined
     const record = deep_get(path, mutation)
 
-    const lower_entity_names = Object.keys(record).filter(key => typeof record[key] === 'object' && record[key]) // null is considered an 'object'
+    const lower_entity_names = Object.keys(record).filter(
+        key => typeof record[key] === 'object' && record[key]
+    ) // null is considered an 'object'
     const child_paths = edges_to_children.map(edge => {
         const child_entity = edge.to_entity
         if (higher_entity_name === child_entity) {
@@ -277,7 +319,7 @@ const get_mutation_child_paths = (path: (string | number)[], mutation, edges_to_
     return child_paths
 }
 
-const set_mutation_foreign_key = (parent_record, child_record, )
+// const set_mutation_foreign_key = (parent_record, child_record, )
 
 const get_parent_path = (path: (number | string)[]) => {
     return typeof last(path) === 'number'
@@ -306,8 +348,6 @@ const nth_last_entity_index = (path: (number | string)[], n: number) => {
 
     return -1
 }
-
-
 
 const get_identifying_keys = (
     entity_name: string,
@@ -429,7 +469,7 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
 
         const path_template = path.map(el => (typeof el === 'number' ? 0 : el))
         const route = [operation, ...path_template]
-        const route_string = JSON.stringify(route)
+        const route_string = path_to_string(route)
 
         // add path to paths_by_route
         if (!paths_by_route[route_string]) {
@@ -459,7 +499,7 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
                 : path_template.slice(0, path_template.length - 1) // only remove the entity name
 
         const higher_route = [higher_operation, ...higher_path_template]
-        const higher_route_string = JSON.stringify(higher_route)
+        const higher_route_string = path_to_string(higher_route)
 
         if (!route_graph[higher_route_string]) {
             route_graph[higher_route_string] = new Set()
@@ -505,7 +545,7 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
 
     const mutate_plan = topological_ordering.map(route_strings =>
         route_strings.map(route_string => ({
-            operation: JSON.parse(route_string)[0] as operation,
+            operation: string_to_path(route_string)[0] as operation,
             paths: paths_by_route[route_string]
         }))
     )

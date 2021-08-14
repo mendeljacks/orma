@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { extract_subpaths } from './extract_subpaths'
-import { deep_get } from './helpers'
-import { lir_join } from './lir_join'
-import { push_path } from './push_path'
+import { extract_subpaths } from '../extract_subpaths'
+import { deep_get } from '../helpers'
+import { lir_join } from '../lir_join'
+import { push_path } from '../push_path'
 
 
 describe('lir_join', () => {
