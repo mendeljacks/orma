@@ -493,8 +493,9 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
         // use the closest ancestor with an $operation as the current $operation. This handles operation inheritance
         const operation = path
             .map((el, i) => path.slice(0, path.length - i))
-            .map(path_slice => deep_get([...path_slice, '$operation'], mutation))
-            .find((el): el is string => typeof el === 'string')
+            .concat([[]]) // this is because we can also inherit operation from the root
+            .map(path_slice => deep_get([...path_slice, '$operation'], mutation)) // check the operation at each path slice
+            .find((el): el is string => typeof el === 'string') // find the first defined operation
 
         if (!operation) {
             throw new Error(`Could not find an inherited operation for ${JSON.stringify(path)}`)
