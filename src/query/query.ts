@@ -142,8 +142,8 @@ const sql_command_parsers = {
         `INSERT INTO ${table_name} (${columns.join(', ')})`,
     $values: (values: any[][]) =>
         `${values.map(inner_values => `(${inner_values.join(', ')})`).join(', ')}`,
-    $update: table_name => `${table_name}`,
-    $set: (...items) => `${items.map((column, value) => `${column} = ${value}`).join(', ')}`,
+    $update: table_name => `UPDATE ${table_name}`,
+    $set: (items) => `SET ${items.map(([column, value]) => `${column} = ${value}`).join(', ')}`,
     $delete_from: table_name => `DELETE FROM ${table_name}`
 }
 
