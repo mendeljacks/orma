@@ -316,90 +316,10 @@ const generate_record_where_clause = (
     return where
 }
 
-/**
- * Mutates the input mutation by copying foreign key values from parents to the children at the specified paths
- */
-const propagate_foreign_keys = (path_to_parent: (string | number)[], mutation, orma_schema) => {
-    // when creating an entity, all foreign keys must be present. These can be taken from the user input
-    const entity_name = path_to_parent[nth_last_entity_index(path_to_parent, 0)] as string
-    const record = deep_get(path_to_parent, mutation)
-
-    const edges_to_children = get_child_edges(entity_name, orma_schema)
-    const parent_paths = get_mutation_child_paths(path_to_parent, mutation, edges_to_children)
-
-    // return [paths, values]
-
-    parent_paths.forEach((parent_path, i) => {
-        const edge_to_parent = edges_to_children[i]
-        const parent_record = deep_get(parent_path, mutation)
-
-        record[edge_to_parent.from_field] = parent_record[edge_to_parent.to_field]
-    })
-}
-
-/**
- * Maps a list of edges to lists to paths to children of a specified record. The child paths returned will be connected to the given parent,
- * either they will be a higher or lower records.
- */
-const get_mutation_child_paths = (path: (string | number)[], mutation, edges_to_children) => {
-    const higher_entity_index = nth_last_entity_index(path, 1)
-    const higher_entity_name =
-        higher_entity_index >= 0 ? (path[higher_entity_index] as string) : undefined
-    const higher_path = higher_entity_index >= 0 ? path.slice(0, higher_entity_index) : undefined
-    const record = deep_get(path, mutation)
-
-    const lower_entity_names = Object.keys(record).filter(
-        key => typeof record[key] === 'object' && record[key]
-    ) // null is considered an 'object'
-    const child_paths = edges_to_children.map(edge => {
-        const child_entity = edge.to_entity
-        if (higher_entity_name === child_entity) {
-            return higher_path
-        }
-
-        for (const lower_entity_name of lower_entity_names) {
-            if (lower_entity_name === child_entity) {
-                const is_array = Array.isArray(record[lower_entity_name])
-                const edge_child_paths = is_array
-                    ? [...path, lower_entity_name, 0]
-                    : [...path, lower_entity_name]
-
-                return edge_child_paths
-            }
-        }
-    })
-
-    return child_paths
-}
-
-// const set_mutation_foreign_key = (parent_record, child_record, )
-
-const get_parent_path = (path: (number | string)[]) => {
-    return typeof last(path) === 'number'
-        ? path.slice(0, path.length - 2)
-        : path.slice(0, path.length - 1)
-}
-
 const path_to_entity = (path: (number | string)[]) => {
     return typeof last(path) === 'number'
         ? (path[path.length - 2] as string)
         : (last(path) as string)
-}
-
-const nth_last_entity_index = (path: (number | string)[], n: number) => {
-    let entity_number = 0
-    for (let i = path.length; i > 0; i--) {
-        const el = path[i]
-        if (typeof el === 'string') {
-            if (entity_number === n) {
-                return i
-            } else {
-                entity_number += 1
-            }
-        }
-    }
-
-    return -1
 }
 
 const get_identifying_keys = (
