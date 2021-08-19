@@ -1,5 +1,5 @@
 import { error_type } from '../helpers/error_handling'
-import { deep_for_each, deep_get, drop, last } from '../helpers/helpers'
+import { deep_for_each, deep_get, deep_set, drop, last } from '../helpers/helpers'
 import {
     get_all_edges,
     get_child_edges,
@@ -17,7 +17,7 @@ import { json_to_sql } from '../query/query'
 export type operation = 'create' | 'update' | 'delete'
 export type mutate_fn = (
     statements
-) => Promise<{ path: (string | number)[]; row: Record<string, unknown>[] }[]>
+) => Promise<{ path: (string | number)[]; row: Record<string, unknown> }[]>
 export type escape_fn = (string) => string
 export type statements = {
     command_json: Record<any, any>
@@ -62,7 +62,17 @@ export const orma_mutate = async (
         })
     }
 
-    return 'ok'
+    const mutation_response = Object.entries(tier_results).reduce(
+        (acc, [path_string, row]: [string, {}], i) => {
+            const path = string_to_path(path_string)
+            const mutation_obj = deep_get(path, mutation)
+            const merged = { ...mutation_obj, ...row }
+            deep_set(path, merged, acc)
+            return acc
+        },
+        {}
+    )
+    return mutation_response
 }
 
 const escape_all = (command_jsons, escape_fn) => {
@@ -183,32 +193,55 @@ const get_delete_jsons = (paths: (string | number)[][], mutation, orma_schema: o
     }))
 }
 
-const get_create_jsons = (paths: (string | number)[][], mutation, tier_results, orma_schema: orma_schema) => {
+const get_create_jsons = (
+    paths: (string | number)[][],
+    mutation,
+    tier_results,
+    orma_schema: orma_schema
+) => {
     if (paths.length === 0) {
         return []
     }
 
     const entity_name = path_to_entity(paths[0])
 
-    
     const records = paths.map(path => {
-        
+        // If there are parents we want to add the parent_id to the record
+        const record_without_fk = deep_get(path, mutation)
+
+        // Find the names of parents (database parents)
         const parent_edges = get_parent_edges(entity_name, orma_schema)
-        const spot = deep_get(path, mutation)
-        const spot_above = deep_get(drop(2, path), mutation)
+        const parent_names = parent_edges.map(el => el.to_entity)
 
         // look one layer above and below in the mutation to get names of tables
-
         // figure out which tables are parents
-        // figure out the names of both sides of the fk
-        // fish out parent fk field and put into child fk field
-        
-        const record_without_fk = deep_get(path, mutation)
-        const parent_paths = []
-        return record_without_fk
+        const spot = deep_get(path, mutation)
+        const above_name = path?.[path.length - 4] as string
+        const parent_names_from_below = Object.keys(spot).filter(key => parent_names.includes(key))
+        const above_name_is_parent = parent_names.includes(above_name)
+
+        // If there are no parents return the record as is
+        if (!above_name_is_parent && parent_names_from_below.length == 0) {
+            return record_without_fk
+        }
+
+        // If there are parents from above
+        if (above_name_is_parent) {
+            const path_to_parent = drop(2, path)
+            const parent_row_results = tier_results[path_to_string(path_to_parent)]
+            const { from_field, to_field } = parent_edges.filter(
+                el => el.to_entity === above_name
+            )[0]
+            const parent_id = parent_row_results[to_field]
+            const record_with_fk = { ...record_without_fk, [from_field]: parent_id }
+            return record_with_fk
+        }
+
+        // If there are parents
+        // take the data from tier results and put it inside the record
+
+        debugger
     })
-
-
 
     // get insert keys by combining the keys from all records
     const insert_keys = paths.reduce((acc, path, i) => {

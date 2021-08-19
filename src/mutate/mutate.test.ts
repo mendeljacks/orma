@@ -291,14 +291,24 @@ describe('mutate', () => {
                 ]
             }
 
-            const result = get_command_jsons('update', [['grandparents', 0]], mutation, orma_schema)
+            const result = get_command_jsons(
+                'update',
+                [['grandparents', 0]],
+                mutation,
+                {},
+                orma_schema
+            )
             const goal = [
                 {
-                    $update: 'grandparents',
-                    $set: [['quantity', 2]],
-                    $where: {
-                        $eq: ['id', 1]
-                    }
+                    paths: [['grandparents', 0]],
+                    entity_name: 'grandparents',
+                    command_json: {
+                        $update: 'grandparents',
+                        $set: [['quantity', 2]],
+                        $where: { $eq: ['id', 1] }
+                    },
+                    command_sql: 'UPDATE grandparents SET quantity = 2 WHERE id = 1',
+                    operation: 'update'
                 }
             ]
 
@@ -314,14 +324,18 @@ describe('mutate', () => {
                 ]
             }
 
-            const result = get_command_jsons('update', [['parents', 0]], mutation, orma_schema)
+            const result = get_command_jsons('update', [['parents', 0]], mutation, {}, orma_schema)
             const goal = [
                 {
-                    $update: 'parents',
-                    $set: [['unique1', 'john']],
-                    $where: {
-                        $eq: ['id', 1]
-                    }
+                    paths: [['parents', 0]],
+                    entity_name: 'parents',
+                    command_json: {
+                        $update: 'parents',
+                        $set: [['unique1', 'john']],
+                        $where: { $eq: ['id', 1] }
+                    },
+                    command_sql: 'UPDATE parents SET unique1 = `john` WHERE id = 1',
+                    operation: 'update'
                 }
             ]
 
@@ -337,14 +351,18 @@ describe('mutate', () => {
                 ]
             }
 
-            const result = get_command_jsons('update', [['parents', 0]], mutation, orma_schema)
+            const result = get_command_jsons('update', [['parents', 0]], mutation, {}, orma_schema)
             const goal = [
                 {
-                    $update: 'parents',
-                    $set: [['quantity', 5]],
-                    $where: {
-                        $eq: ['unique1', 'john']
-                    }
+                    paths: [['parents', 0]],
+                    entity_name: 'parents',
+                    command_json: {
+                        $update: 'parents',
+                        $set: [['quantity', 5]],
+                        $where: { $eq: ['unique1', 'john'] }
+                    },
+                    command_sql: 'UPDATE parents SET quantity = 5 WHERE unique1 = `john`',
+                    operation: 'update'
                 }
             ]
 
@@ -360,7 +378,13 @@ describe('mutate', () => {
             }
 
             try {
-                const result = get_command_jsons('update', [['parents', 0]], mutation, orma_schema)
+                const result = get_command_jsons(
+                    'update',
+                    [['parents', 0]],
+                    mutation,
+                    {},
+                    orma_schema
+                )
                 expect('should have thrown an error').to.equal(true)
             } catch (error) {}
         })
@@ -376,7 +400,13 @@ describe('mutate', () => {
             }
 
             try {
-                const result = get_command_jsons('update', [['parents', 0]], mutation, orma_schema)
+                const result = get_command_jsons(
+                    'update',
+                    [['parents', 0]],
+                    mutation,
+                    {},
+                    orma_schema
+                )
                 expect('should have thrown an error').to.equal(true)
             } catch (error) {}
         })
@@ -391,13 +421,13 @@ describe('mutate', () => {
                 ]
             }
 
-            const result = get_command_jsons('update', [['children', 0]], mutation, orma_schema)
+            const result = get_command_jsons('update', [['children', 0]], mutation, {}, orma_schema)
             const goal = [
                 {
                     $update: 'children',
                     $set: [['parent_id', 6]],
                     $where: {
-                        and: [
+                        $and: [
                             {
                                 $eq: ['id1', 4]
                             },
@@ -420,13 +450,14 @@ describe('mutate', () => {
                 ]
             }
 
-            const result = get_command_jsons('delete', [['parents', 0]], mutation, orma_schema)
+            const result = get_command_jsons('delete', [['parents', 0]], mutation, {}, orma_schema)
             const goal = [
                 {
-                    $delete_from: 'parents',
-                    $where: {
-                        $eq: ['id', 4]
-                    }
+                    paths: [['parents', 0]],
+                    entity_name: 'parents',
+                    command_json: { $delete_from: 'parents', $where: { $eq: ['id', 4] } },
+                    command_sql: 'DELETE FROM parents WHERE id = 4',
+                    operation: 'delete'
                 }
             ]
 
@@ -434,7 +465,7 @@ describe('mutate', () => {
         })
     })
     describe(orma_mutate.name, () => {
-        test.only('integrates orma mutation components', async () => {
+        test('integrates orma mutation components', async () => {
             const mutation = {
                 parents: [
                     {
@@ -458,14 +489,19 @@ describe('mutate', () => {
                 call_count++
                 if (call_count === 0) {
                     // Parent rows
-                    return statements.flatMap(statement =>
+                    const res = statements.flatMap(statement =>
                         statement.paths.map((path, i) => ({ path, row: { id: i } }))
                     )
+                    return res
                 }
                 if (call_count === 1) {
-                    return statements.flatMap(statement =>
-                        statement.paths.map((path, i) => ({ path, row: {} }))
-                    )
+                    const res = statements.flatMap((statement, i) => {
+                        return statement.paths.map((path, j) => ({
+                            path,
+                            row: { parent_id: path[1] }
+                        }))
+                    })
+                    return res
                 }
             }
             const escape_fn = i => i
@@ -475,18 +511,79 @@ describe('mutate', () => {
             const goal = {
                 parents: [
                     {
+                        id: 0,
                         $operation: 'create',
-                        unique1: 'test',
+                        unique1: 'test1',
                         grandparent_id: 5,
-                        children: [{ id1: 1, id2: 2, parent_id: 5 }],
-                        id: 10
+                        children: [{ parent_id: 0 }, { parent_id: 0 }],
+                        step_children: [{ parent_id: 0 }]
+                    },
+                    {
+                        id: 1,
+                        $operation: 'create',
+                        unique1: 'test2',
+                        grandparent_id: 5,
+                        children: [{ parent_id: 1 }, { parent_id: 1 }]
                     }
                 ]
             }
 
-            expect(results).to.equal(goal)
+            expect(results).to.deep.equal(goal)
+        })
+        test('integrates orma mutation components reverse nesting', async () => {
+            const mutation = {
+                $operation: 'create',
+                children: [
+                    {
+                        parents: [{}]
+                    }
+                ]
+            }
+
+            let call_count = -1
+            const mutate_fn: mutate_fn = async (statements: statements) => {
+                call_count++
+                if (call_count === 0) {
+                    // Parent rows
+                    const res = statements.flatMap(statement =>
+                        statement.paths.map((path, i) => ({ path, row: { id: i } }))
+                    )
+                    return res
+                }
+                if (call_count === 1) {
+                    const res = statements.flatMap((statement, i) => {
+                        return statement.paths.map((path, j) => ({
+                            path,
+                            row: { parent_id: 0 }
+                        }))
+                    })
+                    return res
+                }
+            }
+            const escape_fn = i => i
+            // const escape_fn = val => typeof val === 'string' ? `"${val}"` : val
+            const results = await orma_mutate(mutation, mutate_fn, escape_fn, orma_schema)
+
+            const goal = {
+                children: [
+                    {
+                        id: 0,
+                        parent_id: 0,
+                        $operation: 'create',
+                        parents: [{
+                            $operation: 'create',
+                            id: 0
+                        }]
+                    }
+                ]
+            }
+
+            expect(results).to.deep.equal(goal)
         })
         test('escapes values')
+        test('can nest in keys from parent table results')
+        test('can nest in keys from child table results')
+        test('can throw an error if there is not a single foreign key')
     })
 })
 
