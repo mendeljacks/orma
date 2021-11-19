@@ -646,48 +646,48 @@ type field_schema<parent extends keyof schema, schema> = {
     } //{ products: { id: {} } } | { variants: { id: {} } }
 }
 
-const test = orma_query({}, {
-    products: { id: {} },
-    variants: {
-        id: {},
-        product_id: {
-            // references: { products: { id: {} } }
-            references: { products: {id: {}} }
-        }
-    },
-    images: {
-        id: {},
-        variant_id: {
-            references: { variants: { id8: {} }, hi: {} }
-        }
-    },
-    images2: {
-        id: {},
-        variant_id: {
-            // @ts-expect-error
-            references: { oops: { id: {} } }
-        }
-    },
-    images3: {
-        id: {},
-        variant_id: {
-            // @ts-expect-error
-            references: { variants: { id: {} }, hi: {}, }
-        }
-    }
-}, (s) => ([{ a: 'hi' }]))
+// const test = orma_query({}, {
+//     products: { id: {} },
+//     variants: {
+//         id: {},
+//         product_id: {
+//             // references: { products: { id: {} } }
+//             references: { products: {id: {}} }
+//         }
+//     },
+//     images: {
+//         id: {},
+//         variant_id: {
+//             references: { variants: { id8: {} }, hi: {} }
+//         }
+//     },
+//     images2: {
+//         id: {},
+//         variant_id: {
+//             // a@ts-expect-error
+//             references: { oops: { id: {} } }
+//         }
+//     },
+//     images3: {
+//         id: {},
+//         variant_id: {
+//             // a@ts-expect-error
+//             references: { variants: { id: {} }, hi: {}, }
+//         }
+//     }
+// }, (s) => ([{ a: 'hi' }]))
 
-type validate_query<schema> = {
-    [entity in keyof schema]: boolean
-}
-const test2 = orma_query({
-    variants: true,
-    products: true,
-    poop: true,
-}, {
-    variants: {id: {}},
-    products: {id: {}},
-}, (s) => Promise.resolve([{}]))
+// type validate_query<schema> = {
+//     [entity in keyof schema]: boolean
+// }
+// const test2 = orma_query({
+//     variants: true,
+//     products: true,
+//     poop: true,
+// }, {
+//     variants: {id: {}},
+//     products: {id: {}},
+// }, (s) => Promise.resolve([{}]))
 
 /*
 
