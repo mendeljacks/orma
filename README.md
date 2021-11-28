@@ -1,41 +1,36 @@
 ## Orma
+Orma is a light-weight declarative ORM for sql databases.
 
-Update read format,
-----------🚧 THIS PROJECT IS A WORK IN PROGRESS 🚧----------
+Orma uses a json syntax to represent queries and mutations.
+Queries are objects specifying which fields to query. Only fields which
+are requested will be selected. Symbols with a $ are called macros and are used to represent abstractions to the sql AST. Sql keywords can be accessed with the $ prefix and snake case. (eg $group_by, $limit, $where) 
 
-Orma is a declarative, syncronous, dependency free ORM.
+Orma performs a single pass toposort to decompose requests into the minimum number of sql queries. Orma will group requests such that they are as parallel as possible while ensuring parents get created before children,
+so that foreign key references can inserted into children tables.
 
-Orma provides introspection, validation, query construction and mutations.
-The package uses json format to represent sql queries and mutations.
+Key Features
+- Powerful
+    - Mixed operations (create, update, delete in one request)
+    - Nested Queries and Mutations (automatic foreign key propogation)
+    - Powerful JSON query syntax
+- Portable
+    - Can run server-side or client-side (for sql-lite)
+    - BYO connection pool
+    - No external dependencies
+- Performant
+    - Batched insert statements.
+    - Multi stage query planning
 
-When the database is instrospected a declarative schema is generated as a json object.
-Typescript types are also generated.
-
-The orma schema can be diffed by the user and validated using runtime schema validation functions.
-
-To construct orma queries, pass a json object with columns to include or subqueries similar to graphql. Reserved sql keywords can be accessed with the $ prefix and snake case. (eg $group_by, $limit, $where)
-
-To construct orma mutations, pass a json object with nested objects and the schema. Orma
-will use a single pass toposort algorithm to decompose into the minimum number of batch
-insert requests and run them in parallel ensuring parents get created before children,
-and foreign key references are inserted into children tables.
-
-Key Advantages
-
-Disadvantages
-Supports sql databases only
-
-## Installation
+## Getting started
 
 ```
 npm i orma  // Or yarn add orma
 ```
 
-## Intospect a mysql database
+## Introspect
 
-Introspecting the database will produce a json object called the orma schema.
-The orma schema describes the table column and foreign key information which
-are needed for queries and mutations.
+The orma schema contains column and foreign keys which
+are needed for queries and mutations. Databases can be introspected at runtime or saved as json.
 
 ```js
 import { orma_introspect } from 'orma'
@@ -62,12 +57,12 @@ const pool_query = async sql_strings => {
 }
 
 const orma_schema = await orma_introspect(env.database, pool_query)
-// At this point you may diff the json schema if needed and save it for later use.
 ```
 
-## Construct queries
+## Queries
 
-Orma queries are json objects. In the following scenario, a nested query is made.
+In the following scenario, a users table and and an addresses table are present. Each address has a user_id.
+A nested query would be constructed as follows:
 
 ```js
 const query = {
@@ -83,11 +78,12 @@ const query = {
 const results = await orma_query(query, orma_schema, pool_query)
 ```
 
-## Construct Mutations
+## Mutations
 
-Mutation format is the same as from the read uil...
-Operations are nested in as meta on each level...
-Here is where we explain what recursive op hierarchy alternative to graphql
+To inserting and updating records is achieved by
+providing an array of objects. Nesting will be normalised,
+upon insertion. 
+
 
 ```js
 // Another snippet

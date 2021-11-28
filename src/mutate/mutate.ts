@@ -1,3 +1,4 @@
+import { deep_merge } from '../helpers/deep_merge'
 import { error_type } from '../helpers/error_handling'
 import { deep_for_each, deep_get, deep_set, drop, last } from '../helpers/helpers'
 import {
@@ -22,6 +23,7 @@ export type mutate_fn = (
 export type escape_fn = (string) => string
 export type statements = {
     command_json: Record<any, any>
+    command_json_escaped: Record<any, any>
     command_sql: string
     entity_name: string
     operation: operation
@@ -45,12 +47,13 @@ export const orma_mutate = async (
         const planned_statements = mutate_plan[i]
 
         const statements: statements = planned_statements.flatMap(({ operation, paths }) => {
-            const command_json_paths = get_command_jsons(
+            const command_json_paths = get_mutation_ast(
                 operation,
                 paths,
                 mutation,
                 tier_results,
-                orma_schema
+                orma_schema,
+                escape_fn
             )
             return command_json_paths
         })
@@ -67,13 +70,13 @@ export const orma_mutate = async (
         (acc, [path_string, row]: [string, {}], i) => {
             const path = string_to_path(path_string)
             const mutation_obj = deep_get(path, mutation)
-            const merged = { ...mutation_obj, ...row }
+            const merged = deep_merge(mutation_obj, row)            
             deep_set(path, merged, acc)
             return acc
         },
         {}
     )
-    return mutation_response
+    return mutation_response as any
 }
 
 const escape_all = (command_jsons, escape_fn) => {
@@ -105,49 +108,61 @@ but we need to make sure we dont leave holes...? Query plan should prevent that
  * (if they have inherited operation), but the same opeartion will be done on all of them.
  * For this to work, all required foreign keys must have already been inserted (for creates)
  */
-export const get_command_jsons = (
+export const get_mutation_ast = (
     operation: string,
     paths: (string | number)[][],
     mutation,
     tier_results,
-    orma_schema: orma_schema
+    orma_schema: orma_schema,
+    escape_fn
 ): statements => {
     if (operation === 'update') {
-        const command_json_paths = get_update_jsons(paths, mutation, orma_schema)
+        const command_json_paths = get_update_asts(paths, mutation, orma_schema, escape_fn)
         return command_json_paths.map(el => ({ ...el, operation }))
     }
 
     if (operation === 'delete') {
-        const command_json_paths = get_delete_jsons(paths, mutation, orma_schema)
+        const command_json_paths = get_delete_asts(paths, mutation, orma_schema, escape_fn)
         return command_json_paths.map(el => ({ ...el, operation }))
     }
 
     if (operation === 'create') {
-        const command_json_paths = get_create_jsons(paths, mutation, tier_results, orma_schema)
+        const command_json_paths = get_create_jsons(
+            paths,
+            mutation,
+            tier_results,
+            orma_schema,
+            escape_fn
+        )
         return command_json_paths.map(el => ({ ...el, operation }))
     }
 
     throw new Error(`Unknown operation ${operation}`)
 }
 
-const get_update_jsons = (paths: (string | number)[][], mutation, orma_schema: orma_schema) => {
+const get_update_asts = (
+    paths: (string | number)[][],
+    mutation,
+    orma_schema: orma_schema,
+    escape_fn
+) => {
     if (paths.length === 0) {
         return []
     }
 
     const entity_name = path_to_entity(paths[0])
 
-    const jsons = paths.map(path => {
+    const update_asts = paths.map(path => {
         const record = deep_get(path, mutation)
         const identifying_keys = get_identifying_keys(entity_name, record, orma_schema)
 
         throw_identifying_key_errors('update', identifying_keys, path, mutation)
 
-        const where = generate_record_where_clause(identifying_keys, record)
+        const where = generate_record_where_clause(identifying_keys, record, escape_fn)
 
         const keys_to_set = Object.keys(record)
             .filter(key => !identifying_keys.includes(key))
-            .filter(key => typeof record[key] !== 'object')
+            .filter(key => typeof record[key] !== 'object' || record[key] instanceof Date)
             .filter(key => !is_reserved_keyword(key))
 
         return {
@@ -157,15 +172,27 @@ const get_update_jsons = (paths: (string | number)[][], mutation, orma_schema: o
         }
     })
 
-    return jsons.map((el, i) => ({
-        paths: [paths[i]],
-        entity_name,
-        command_json: el,
-        command_sql: json_to_sql(el)
-    }))
+    return update_asts.map((update_ast, i) => {
+        const update_ast_escaped = {
+            ...update_ast,
+            $set: update_ast.$set.map(key => [key[0], escape_fn(key[1])])
+        }
+        return {
+            paths: [paths[i]],
+            entity_name,
+            command_json: update_ast,
+            command_json_escaped: update_ast_escaped,
+            command_sql: json_to_sql(update_ast_escaped)
+        }
+    })
 }
 
-const get_delete_jsons = (paths: (string | number)[][], mutation, orma_schema: orma_schema) => {
+const get_delete_asts = (
+    paths: (string | number)[][],
+    mutation,
+    orma_schema: orma_schema,
+    escape_fn
+) => {
     if (paths.length === 0) {
         return []
     }
@@ -178,7 +205,7 @@ const get_delete_jsons = (paths: (string | number)[][], mutation, orma_schema: o
 
         throw_identifying_key_errors('delete', identifying_keys, path, mutation)
 
-        const where = generate_record_where_clause(identifying_keys, record)
+        const where = generate_record_where_clause(identifying_keys, record, escape_fn)
 
         return {
             $delete_from: entity_name,
@@ -190,6 +217,7 @@ const get_delete_jsons = (paths: (string | number)[][], mutation, orma_schema: o
         paths: [paths[i]],
         entity_name,
         command_json: el,
+        command_json_escaped: el,
         command_sql: json_to_sql(el)
     }))
 }
@@ -198,7 +226,8 @@ const get_create_jsons = (
     paths: (string | number)[][],
     mutation,
     tier_results,
-    orma_schema: orma_schema
+    orma_schema: orma_schema,
+    escape_fn
 ) => {
     if (paths.length === 0) {
         return []
@@ -206,7 +235,9 @@ const get_create_jsons = (
 
     const entity_name = path_to_entity(paths[0])
 
-    const records = paths.map(path => get_record_with_foreign_keys(mutation, path, tier_results, orma_schema))
+    const records = paths.map(path =>
+        get_record_with_foreign_keys(mutation, path, tier_results, orma_schema)
+    )
 
     // get insert keys by combining the keys from all records
     const insert_keys = paths.reduce((acc, path, i) => {
@@ -214,7 +245,7 @@ const get_create_jsons = (
 
         // filter lower tables and keywords such as $operation from the sql
         const keys_to_insert = Object.keys(record)
-            .filter(key => typeof record[key] !== 'object')
+            .filter(key => typeof record[key] !== 'object' || record[key] instanceof Date)
             .filter(key => !is_reserved_keyword(key))
 
         keys_to_insert.forEach(key => acc.add(key))
@@ -233,12 +264,15 @@ const get_create_jsons = (
         $values: values
     }
 
+    const command_json_escaped = { ...command_json, $values: values.map(el => el.map(escape_fn)) }
+
     return [
         {
             paths,
             entity_name,
             command_json,
-            command_sql: json_to_sql(command_json)
+            command_json_escaped,
+            command_sql: json_to_sql(command_json_escaped)
         }
     ]
 }
@@ -247,7 +281,12 @@ const get_create_jsons = (
  * Get the record at the specified location in the mutation with all the foreign keys of its parents.
  * Foreign keys are taken from the results_by_path object
  */
-const get_record_with_foreign_keys = (mutation, record_path: (string | number)[], results_by_path, orma_schema: orma_schema): Record<string, unknown> => {
+const get_record_with_foreign_keys = (
+    mutation,
+    record_path: (string | number)[],
+    results_by_path,
+    orma_schema: orma_schema
+): Record<string, unknown> => {
     const entity_name = path_to_entity(record_path)
     const record = deep_get(record_path, mutation)
 
@@ -289,7 +328,7 @@ const get_record_with_foreign_keys = (mutation, record_path: (string | number)[]
         return obj
     }, {})
 
-    // combining teh record (from the original mutation) with the foreign keys (for that record) gives the full record
+    // combining the record (from the original mutation) with the foreign keys (for that record) gives the full record
     const record_with_foreign_keys = {
         ...record,
         ...foreign_keys
@@ -300,17 +339,18 @@ const get_record_with_foreign_keys = (mutation, record_path: (string | number)[]
 
 const generate_record_where_clause = (
     identifying_keys: string[],
-    record: Record<string, unknown>
+    record: Record<string, unknown>,
+    escape_fn
 ) => {
     const where_clauses = identifying_keys.map(key => ({
-        $eq: [key, record[key]]
+        $eq: [key, escape_fn(record[key])]
     }))
 
     const where =
         where_clauses.length > 1
             ? {
-                and: where_clauses
-            }
+                  $and: where_clauses
+              }
             : where_clauses?.[0]
 
     return where
@@ -426,7 +466,13 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
     const route_graph: Record<string, Set<string>> = {}
 
     deep_for_each(mutation, (value, path) => {
-        if (typeof value !== 'object' || Array.isArray(value) || path.length === 0) {
+        if (
+            typeof value !== 'object' ||
+            Array.isArray(value) ||
+            path.length === 0 ||
+            value === null ||
+            value instanceof Date
+        ) {
             return // not pointing to a single row
         }
 

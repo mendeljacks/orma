@@ -124,7 +124,7 @@ export const deep_map = (item: any, processor: (value: any, path: (string | numb
  * @param current_path 
  */
 export const deep_for_each = (item: any, processor: (value: any, path: (string | number)[]) => void, current_path = []) => {
-    const is_object = typeof item === 'object' && !Array.isArray(item)
+    const is_object = typeof item === 'object' && !Array.isArray(item) && item !== null && !(item instanceof Date) 
     const is_array = typeof item === 'object' && Array.isArray(item)
     const is_primitive = !is_object && !is_array
 
