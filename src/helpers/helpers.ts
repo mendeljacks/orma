@@ -86,7 +86,8 @@ export const deep_get = (path_array: (string | number)[], obj: any, default_valu
 }
 
 /**
- * Like a map, but works on deeply nested objects and arrays. Processor function is run from the most deeply nested keys to the least deeply nested ones
+ * Like a map, but works on deeply nested objects and arrays. Processor function runs on a depth first search, i.e. 
+ * the processor will only be called on an element after it has been called on all the children.
  * @param item can be an object or array
  * @param processor this function will run on every object, array and primitive value found
  * @returns the mapped object
@@ -145,6 +146,14 @@ export const deep_for_each = (item: any, processor: (value: any, path: (string |
     if (is_primitive) {
         processor(item, current_path)
     }
+}
+
+export const get_lower_paths = (item: Record<any, any> | any[], path: (string | number)[]) => {
+    const keys = Array.isArray(item) 
+        ? item.map((_, i) => [...path, i])
+        : Object.keys(item)
+    
+    return keys.map(key => [...path, key])
 }
 
 

@@ -14,7 +14,7 @@ import {
 import { path_to_string, string_to_path } from '../helpers/string_to_path'
 import { toposort } from '../helpers/toposort'
 import { orma_schema } from '../introspector/introspector'
-import { json_to_sql } from '../query/query'
+import { json_to_sql } from '../query/json_sql'
 
 export type operation = 'create' | 'update' | 'delete'
 export type mutate_fn = (

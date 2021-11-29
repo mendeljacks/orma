@@ -8,6 +8,7 @@
     "deploy": "node -e \"require('./.github/deploy.js').deploy()\"",
     "test": "mocha --package package.json",
     "nt": "nodemon --exec nyc --reporter html npm run test",
+    "ntt": "nodemon --exec npm run test",
     "coverage-watch": "live-server coverage"
   },
   "files": [

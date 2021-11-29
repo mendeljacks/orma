@@ -587,7 +587,7 @@ describe('mutate', () => {
 
             expect(results).to.deep.equal(goal)
         })
-        test.only('integrates orma mutation components reverse nesting', async () => {
+        test('integrates orma mutation components reverse nesting', async () => {
             const mutation = {
                 $operation: 'create',
                 children: [

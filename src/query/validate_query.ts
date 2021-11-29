@@ -158,7 +158,8 @@ cant nest things on to a parent with group_by if the nesting field is not includ
 */
 
 import { orma_schema } from "../introspector/introspector"
-import { get_real_entity_name, get_real_parent_name, is_subquery } from "./query"
+import { get_real_entity_name, get_real_parent_name } from "./query"
+import { is_subquery } from './query_helpers'
 
 export const validator = (query, schema): error_type[] => {
 
