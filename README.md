@@ -1,7 +1,7 @@
 ## Orma
 Orma is a light-weight declarative ORM for sql databases.
 
-Orma uses a json syntax to represent queries and mutations.
+Orma uses json syntax to represent queries and mutations.
 Queries are objects specifying which fields to query. Only fields which
 are requested will be selected. Symbols with a $ are called macros and are used to represent abstractions to the sql AST. Sql keywords can be accessed with the $ prefix and snake case. (eg $group_by, $limit, $where) 
 
