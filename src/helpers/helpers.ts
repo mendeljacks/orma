@@ -24,7 +24,7 @@ export const deep_set = (path_array: (string | number)[], value: any, obj: any):
             : {}
 
         const is_array = Array.isArray(pointer)
-        const is_object = type(pointer) === 'Object'
+        const is_object = is_simple_object(pointer)
 
         // if (is_array && type(path_el) !== 'Number') {
         //     throw new Error('Trying to path into an array without a number index')
@@ -44,8 +44,7 @@ export const deep_set = (path_array: (string | number)[], value: any, obj: any):
             pointer[path_el] = next_el_default
         }
 
-        const child_type = type(pointer[path_el])
-        const child_is_primitive = child_type !== 'Object' && child_type !== 'Array'
+        const child_is_primitive = !is_simple_object(pointer[path_el]) && !Array.isArray(pointer[path_el])
         if (!contains_path_el || child_is_primitive) {
             pointer[path_el] = next_el_default
         }
@@ -58,12 +57,16 @@ export const deep_set = (path_array: (string | number)[], value: any, obj: any):
     }
 }
 
+// from https://stackoverflow.com/a/16608074
+export const is_simple_object = val =>
+    (!!val) && (val.constructor === Object)
+
 export const deep_get = (path_array: (string | number)[], obj: any, default_value: any = undefined): any => {
     let pointer = obj
 
     for (const path_el of path_array) {
         const is_array = Array.isArray(pointer)
-        const is_object = type(pointer) === 'Object'
+        const is_object = is_simple_object(pointer)
 
         // if (is_array && type(path_el) !== 'Number') {
         //     throw new Error('Trying to path into an array without a number index')
@@ -100,7 +103,7 @@ export const deep_map = (item: any, processor: (value: any, path: (string | numb
             const subitem = deep_map(el, processor, new_path)
             return subitem
         })
-    } else if (typeof item === 'object') {
+    } else if (is_simple_object(item)) {
         mapped_item = Object.keys(item).reduce((acc, key) => {
             const new_path = [...current_path, key]
             const subitem = deep_map(item[key], processor, new_path)
@@ -125,8 +128,8 @@ export const deep_map = (item: any, processor: (value: any, path: (string | numb
  * @param current_path 
  */
 export const deep_for_each = (item: any, processor: (value: any, path: (string | number)[]) => void, current_path = []) => {
-    const is_object = typeof item === 'object' && !Array.isArray(item) && item !== null && !(item instanceof Date) 
-    const is_array = typeof item === 'object' && Array.isArray(item)
+    const is_object = is_simple_object(item)
+    const is_array = Array.isArray(item)
     const is_primitive = !is_object && !is_array
 
     if (is_object) {

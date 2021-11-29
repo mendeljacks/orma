@@ -1,4 +1,4 @@
-import { deep_get } from '../helpers/helpers'
+import { deep_get, is_simple_object } from '../helpers/helpers'
 import { is_reserved_keyword } from '../helpers/schema_helpers'
 
 /**
@@ -8,7 +8,7 @@ import { is_reserved_keyword } from '../helpers/schema_helpers'
  * @returns
  */
 export const is_subquery = (subquery: any) => {
-    const is_object = typeof subquery === 'object' && !Array.isArray(subquery)
+    const is_object = is_simple_object(subquery)
     if (!is_object) {
         return false
     }

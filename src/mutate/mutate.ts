@@ -1,6 +1,6 @@
 import { deep_merge } from '../helpers/deep_merge'
 import { error_type } from '../helpers/error_handling'
-import { deep_for_each, deep_get, deep_set, drop, last } from '../helpers/helpers'
+import { deep_for_each, deep_get, deep_set, drop, is_simple_object, last } from '../helpers/helpers'
 import {
     get_all_edges,
     get_child_edges,
@@ -162,7 +162,7 @@ const get_update_asts = (
 
         const keys_to_set = Object.keys(record)
             .filter(key => !identifying_keys.includes(key))
-            .filter(key => typeof record[key] !== 'object' || record[key] instanceof Date)
+            .filter(key => !is_simple_object(record[key]) && !Array.isArray(record[key]))
             .filter(key => !is_reserved_keyword(key))
 
         return {
@@ -245,7 +245,7 @@ const get_create_jsons = (
 
         // filter lower tables and keywords such as $operation from the sql
         const keys_to_insert = Object.keys(record)
-            .filter(key => typeof record[key] !== 'object' || record[key] instanceof Date)
+            .filter(key => !is_simple_object(record[key]) && !Array.isArray(record[key]))
             .filter(key => !is_reserved_keyword(key))
 
         keys_to_insert.forEach(key => acc.add(key))
@@ -467,11 +467,8 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
 
     deep_for_each(mutation, (value, path) => {
         if (
-            typeof value !== 'object' ||
-            Array.isArray(value) ||
-            path.length === 0 ||
-            value === null ||
-            value instanceof Date
+            !is_simple_object(value) ||
+            path.length === 0
         ) {
             return // not pointing to a single row
         }

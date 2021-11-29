@@ -23,7 +23,7 @@
  * @module json_sql
  */
 
-import { last } from '../helpers/helpers'
+import { is_simple_object, last } from '../helpers/helpers'
 
 
 type expression =
@@ -37,7 +37,7 @@ type primitive = string | number | Date | Array<any>
 
 export const json_to_sql = (expression: expression, path = []) => {
     // strings and other non-objects are returned as-is
-    const is_object = typeof expression === 'object' && !Array.isArray(expression)
+    const is_object = is_simple_object(expression)
     if (!is_object) {
         return expression
     }

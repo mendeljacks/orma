@@ -1,5 +1,5 @@
 import { error_type } from "../helpers/error_handling"
-import { deep_for_each, last } from "../helpers/helpers"
+import { deep_for_each, is_simple_object, last } from "../helpers/helpers"
 import { field_exists, get_direct_edges, get_field_names } from "../helpers/schema_helpers"
 /*
 
@@ -169,8 +169,8 @@ export const validator = (query, schema): error_type[] => {
     deep_for_each(query, (val, path) => {
 
         const is_boolean_resolver = val === true
-        const is_virtual_column_resolver = typeof val === 'object' && !is_subquery(val)
-        const is_subquery_resolver = typeof val === 'object' && is_subquery(val)
+        const is_virtual_column_resolver = is_simple_object(val) && !is_subquery(val)
+        const is_subquery_resolver = is_simple_object(val) && is_subquery(val)
         const is_clauses_resolver = '?'
 
         if (is_boolean_resolver) {
