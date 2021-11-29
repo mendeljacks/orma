@@ -173,7 +173,7 @@ describe('query', () => {
             const test = await orma_query(query, orma_schema, sql_strings => {
                 actual_query = sql_strings[0]
                 return Promise.resolve([])
-            })
+            }, el => el)
             expect(actual_query).to.deep.equal('SELECT id FROM calls')
         })
     })
