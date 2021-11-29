@@ -114,7 +114,8 @@ export const orma_query = async (
     escaping_function: (value) => any
 ) => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
-
+    
+    apply_field_macro(query)
     apply_any_path_macro(query, orma_schema)
     apply_select_macro(query, orma_schema)
 
@@ -128,8 +129,7 @@ export const orma_query = async (
             apply_nesting_macro(query, path, results, orma_schema)
 
             const subquery = deep_get(path, query)
-            apply_field_macro(subquery)
-            apply_escaping_macro(subquery, value => escaping_function(value))
+            apply_escaping_macro(subquery, (value, path) => escaping_function(value))
 
             return json_to_sql(subquery)
         })
