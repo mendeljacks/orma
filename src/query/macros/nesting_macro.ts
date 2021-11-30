@@ -139,7 +139,7 @@ const get_ancestor_where_clause = (
                 any_path,
                 {
                     $in: [
-                        { $raw: edge_under_ancestor.from_field },
+                        edge_under_ancestor.from_field,
                         ancestor_foreign_key_values,
                     ],
                 },

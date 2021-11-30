@@ -14,7 +14,7 @@ import { is_subquery, query_for_each } from '../query_helpers'
         const $from = value.$from ?? last(path)
 
         if ($select) {
-            value.$select = { $raw: $select }
+            value.$select = $select
         }
 
         if ($from) {

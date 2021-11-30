@@ -1,20 +1,26 @@
 import { describe, test } from 'mocha'
-import { apply_escaping_macro, apply_field_macro } from './escaping_macros'
+import { apply_escape_macro } from './escaping_macros'
 import { expect } from 'chai'
 
 describe('escaping_macros', () => {
-    describe(apply_escaping_macro.name, () => {
-        test('escapes primitives and ignores $raw', () => {
+    describe(apply_escape_macro.name, () => {
+        test('escapes primitives', () => {
             const query = {
                 my_products: {
                     $from: 'products',
                     $where: {
-                        $in: [{ $raw: 'created_at' }, [new Date('2021-01-02'), 12]],
+                        $in: [
+                            { $escape: 'created_at' },
+                            [
+                                { $escape: new Date('2021-01-02') },
+                                { $escape: 12 },
+                            ],
+                        ],
                     },
                 },
             }
 
-            apply_escaping_macro(query, (value, path) => {
+            apply_escape_macro(query, value => {
                 if (typeof value === 'string') {
                     return `"${value}"`
                 } else if (value instanceof Date) {
@@ -26,54 +32,30 @@ describe('escaping_macros', () => {
 
             expect(query).to.deep.equal({
                 my_products: {
-                    $from: '"products"',
+                    $from: 'products',
                     $where: {
-                        $in: ['created_at', ['"2021-01-02"', 12]],
+                        $in: ['"created_at"', ['"2021-01-02"', 12]],
                     },
                 },
             })
         })
-        test('handles nested $raws', () => {
+        test('handles nested $escapes', () => {
             const query = {
-                $raw: {
-                    $raw: {
-                        in: [
-                            {
-                                $raw: 'id',
-                            },
-                            {
-                                $raw: [1],
-                            },
-                        ],
-                    },
-                },
+                in: ['column', { $escape: [{
+                    $escape: 'val'
+                }]}]
             }
 
-            apply_escaping_macro(query, (value, path) => 'test')
-
-            expect(query).to.deep.equal({
-                in: ['id', [1]],
+            apply_escape_macro(query, value => {
+                if (Array.isArray(value)) {
+                    return value
+                } else {
+                    return `"${value}"`
+                }
             })
-        })
-    })
-    describe(apply_field_macro.name, () => {
-        test('converts $field to $raw', () => {
-            const query = {
-                my_products: {
-                    $from: {
-                        $field: 'products'
-                    }
-                }
-            }
-
-            apply_field_macro(query)
 
             expect(query).to.deep.equal({
-                my_products: {
-                    $from: {
-                        $raw: 'products'
-                    }
-                }
+                in: ['column', ['"val"']],
             })
         })
     })

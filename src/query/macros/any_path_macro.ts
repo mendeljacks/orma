@@ -81,10 +81,10 @@ export const process_any_clause = (
     const clause = edge_path.reduce((acc, edge) => {
         return {
             $in: [
-                { $raw: edge.from_field},
+                edge.from_field,
                 {
-                    $select: { $raw: [edge.to_field] },
-                    $from: { $raw: edge.to_entity },
+                    $select: [edge.to_field],
+                    $from: edge.to_entity ,
                     [filter_type]: acc,
                 },
             ],
