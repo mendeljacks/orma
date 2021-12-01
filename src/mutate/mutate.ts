@@ -362,7 +362,7 @@ const path_to_entity = (path: (number | string)[]) => {
         : (last(path) as string)
 }
 
-const get_identifying_keys = (
+export const get_identifying_keys = (
     entity_name: string,
     record: Record<string, any>,
     orma_schema: orma_schema

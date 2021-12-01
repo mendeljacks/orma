@@ -1,4 +1,9 @@
+export type Path = (string | number)[]
 
+export type PathedRecord = {
+    path?: Path,
+    record: Record<string, any>
+}
 
 
 

@@ -80,3 +80,46 @@ export const combine_wheres = (
 
     return combined_where
 }
+
+export const get_search_records_where = (
+    records: Record<string, any>[],
+    get_search_fields: (record: Record<string, any>) => string[],
+    escape_function: (value) => any
+) => {
+    const records_by_search_fields = records.reduce((acc, record) => {
+        const identifying_fields = get_search_fields(record)
+        const key = JSON.stringify(identifying_fields)
+        if (!acc[key]) {
+            acc[key] = []
+        }
+
+        acc[key].push(record)
+        return acc
+    }, {})
+
+    const ors = Object.keys(records_by_search_fields).flatMap(key => {
+        const identifying_fields = JSON.parse(key)
+        const records = records_by_search_fields[key]
+        if (identifying_fields.length === 1) {
+            const field = identifying_fields[0]
+            return {
+                $in: [
+                    field,
+                    records.map(record => escape_function(record[field])),
+                ],
+            }
+        } else {
+            // 2 or more, e.g. combo unique
+            // generate an or per record and an and per identifying field
+            return records.map(record => ({
+                $and: identifying_fields.map(field => ({
+                    $eq: [field, escape_function(record[field])],
+                })),
+            }))
+        }
+    })
+
+    const where = combine_wheres(ors, '$or')
+
+    return where
+}

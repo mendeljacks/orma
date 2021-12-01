@@ -1,11 +1,117 @@
 // import { orma_schema } from '../introspector/introspector'
 // import { get_mutate_plan, operation } from './mutate'
 
+import { get_primary_keys, get_unique_fields } from '../helpers/schema_helpers'
+import { orma_schema } from '../introspector/introspector'
+import {
+    combine_wheres,
+    get_search_records_where,
+} from '../query/query_helpers'
+import { get_identifying_keys } from './mutate'
+import { split_mutation_by_entity } from './mutate_helpers'
 
 // export const verify_foreign_keys = async (mutation, mutation_path,  orma_schema: orma_schema) => {
 //     // this should probably be split into data collection (returns sql string) and checking (returns errors)
 // }
 
+export const verify_independence = async (
+    mutation,
+    orma_query: (query) => Promise<any>
+) => {
+    // this ensures no two records in the mutation refer to the same database row, since it introduces
+    // undefined behaviours (since updates or an update and a delete can run in parallel). Also it could break
+    // if a unique key is edited and then the old unique key value is used to try to edit something
+}
+
+export const verify_uniqueness = async (
+    mutation,
+    orma_query: (query) => Promise<any>,
+    orma_schema: orma_schema,
+    escape_function: (value) => any
+) => {
+    /*
+    check that no two rows have the same value for the same unique column, and also make sure that no unique value
+    matches something already in the database
+
+    algorithm:
+
+    break up mutation by entity name (keeping track of paths)
+    construct a query which searches for all update and delete records in the database
+    for each entity name and each column, 
+        check for no duplicates in the mutation
+        check for no duplicates between mutation and database
+    */
+
+    const pathed_records_by_entity = split_mutation_by_entity(mutation)
+    const mutation_entities = Object.keys(pathed_records_by_entity)
+    const query = mutation_entities.reduce((acc, entity) => {
+        const pathed_records = pathed_records_by_entity[entity]
+        const searchable_pathed_records = pathed_records.filter(
+            ({ record }) =>
+                record?.$operation === 'update' ||
+                record?.$operation === 'delete'
+        )
+
+        // const search_fields = searchable_pathed_records.reduce((acc, { record}) => {
+        //     const identifying_fields = get_identifying_keys(entity_name, record, orma_schema)
+        //     identifying_fields.forEach(field => acc.add(field))
+        //     return acc
+        // }, new Set())
+
+        const search_fields = new Set([
+            ...get_primary_keys(entity, orma_schema),
+            ...get_unique_fields(entity, orma_schema),
+        ])
+
+        const $where = get_search_records_where(
+            searchable_pathed_records.map(({ record }) => record),
+            record => get_identifying_keys(entity, record, orma_schema),
+            escape_function
+        )
+
+        if (!$where) {
+            throw new Error(
+                'There should be a where clause. Something went wrong.'
+            )
+        }
+
+        acc[entity] = {
+            $select: [...search_fields],
+            $where,
+        }
+
+        return acc
+    }, {})
+
+    const results = await orma_query(query)
+
+    const errors = mutation_entities.map(entity => {
+        const unique_fields = new Set([
+            ...get_primary_keys(entity, orma_schema),
+            ...get_unique_fields(entity, orma_schema),
+        ])
+    })
+}
+
+const a = {
+    $where: {
+        $or: [
+            {
+                $in: ['sku', ['a', 'b']],
+            },
+            {
+                $and: [
+                    {
+                        $eq: ['variant_id', 12],
+                    },
+                    {
+                        $eq: ['category_id', 13],
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 // /**
 //  * Updates and deletes need identifying keys to find which record to update/delete. In practice this is the primary key(s)
@@ -27,7 +133,7 @@
 //         unique_key: 'test'
 //     }
 
-//     In this case, the verification will pass (we dont know that the two mutations are actually affecting the 
+//     In this case, the verification will pass (we dont know that the two mutations are actually affecting the
 //     same record), but we will get a SQL error (the first update changes the unique_key so when the second one
 //     runs, there is no record with unique_key of 'test').
 
@@ -35,14 +141,13 @@
 //     primary key(s) more than once, or some record doesnt have a primary key, we can throw an error. Also
 //     we need to ensure we are looking at all records for a given entity, even if that entity is in multiple nesting
 //     locations of the mutation.
-    
+
 //     Algorithm:
-    
 
 //     */
-    
+
 //     const errors = []
-    
+
 // }
 
 // export const get_verify_foreign_key_editing_sql = () => {
@@ -57,7 +162,7 @@
 
 // export const get_verify_foreign_key_sql = () => {
 //     /*
-    
+
 //     In a case like {
 //         parents: {
 //             $operation: 'update',
@@ -66,7 +171,7 @@
 //                 $eq: ['unique_key', 5]
 //             }
 //         },
-        
+
 //         children:{
 //             $operation: 'create',
 //             parent_id: 1
@@ -84,10 +189,9 @@
 //     we would have an issue if the update ran first. To catch this, we could pull in all the parent records,
 //     do a search to make sure they all have their foreign keys (only for the ones that dont already), then
 //     if we see we are modifying a record that we are trying to link to we can throw an error
-    
+
 //     */
 // }
-
 
 // export const verify_identifying_keys_exist_OLD = async (connection, body, nest_paths, table_infos) => {
 //     const checkpoint_count = nest_paths.length
@@ -106,11 +210,11 @@
 //         }
 
 //         const supplied_rows = get_supplied_rows(body, subpaths)
-        
+
 //         const primary_key = get_primary_key_name(table_name, table_infos)
 //         const supplied_primary_keys = pluck(primary_key, supplied_rows)
 
-//         const query = `                        
+//         const query = `
 //             SELECT ${table_name}.${primary_key} FROM ${table_name}
 //             WHERE ${table_name}.${primary_key} IN (${supplied_primary_keys.map(p_key => escape(p_key))})
 //         `
