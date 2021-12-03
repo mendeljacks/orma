@@ -1,3 +1,6 @@
+## Status
+While many features are functional, this project is still under active development and is not production ready.
+
 ## Orma
 Orma is a light-weight declarative ORM for sql databases.
 
