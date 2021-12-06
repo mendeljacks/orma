@@ -22,7 +22,10 @@ export const get_entity_names = (orma_schema: orma_schema) => {
 /**
  * @returns a list of fields attatched to the given entity
  */
-export const get_field_names = (entity_name: string, orma_schema: orma_schema) => {
+export const get_field_names = (
+    entity_name: string,
+    orma_schema: orma_schema
+) => {
     return Object.keys(orma_schema[entity_name] ?? {})
 }
 
@@ -36,7 +39,10 @@ export const get_field_names = (entity_name: string, orma_schema: orma_schema) =
 /**
  * Gets a list of edges from given entity -> parent entity
  */
-export const get_parent_edges = (entity_name: string, orma_schema: orma_schema): edge[] => {
+export const get_parent_edges = (
+    entity_name: string,
+    orma_schema: orma_schema
+): edge[] => {
     const fields_schema = orma_schema[entity_name] ?? {}
 
     const parent_edges = Object.keys(fields_schema).flatMap(field_name => {
@@ -44,20 +50,23 @@ export const get_parent_edges = (entity_name: string, orma_schema: orma_schema):
             return [] // could be $comment, which is not actually a field
         }
 
-        const field_schema = (fields_schema[field_name] ?? {}) as orma_field_schema
+        const field_schema = (fields_schema[field_name] ??
+            {}) as orma_field_schema
         const parent_entity_name = Object.keys(field_schema.references ?? {})[0]
         if (!parent_entity_name) {
             return []
         }
-        const parent_field_name = Object.keys(field_schema.references[parent_entity_name])[0]
+        const parent_field_name = Object.keys(
+            field_schema.references[parent_entity_name]
+        )[0]
 
         return [
             {
                 from_entity: entity_name,
                 from_field: field_name,
                 to_entity: parent_entity_name,
-                to_field: parent_field_name
-            }
+                to_field: parent_field_name,
+            },
         ]
     })
 
@@ -71,11 +80,14 @@ export const reverse_edge = (edge: edge): edge => ({
     from_entity: edge.to_entity,
     from_field: edge.to_field,
     to_entity: edge.from_entity,
-    to_field: edge.from_field
+    to_field: edge.from_field,
 })
 
 // we use a map because it can take objects as keys (they are compared by reference)
-const child_edges_cache_by_schema = new Map<orma_schema, Record<string, edge[]>>()
+const child_edges_cache_by_schema = new Map<
+    orma_schema,
+    Record<string, edge[]>
+>()
 
 // a helper method, having all the child edges in a single cache object helps it be memoized
 const get_child_edges_cache = orma_schema => {
@@ -105,7 +117,10 @@ const get_child_edges_cache = orma_schema => {
 /**
  * Gets a list of edges from given entity -> child entity
  */
-export const get_child_edges = (entity_name: string, orma_schema: orma_schema) => {
+export const get_child_edges = (
+    entity_name: string,
+    orma_schema: orma_schema
+) => {
     const child_edges_cache = get_child_edges_cache(orma_schema)
 
     return child_edges_cache[entity_name] ?? []
@@ -150,7 +165,9 @@ export const get_direct_edge = (
     const edges = get_direct_edges(from_entity, to_entity, orma_schema)
 
     if (edges.length !== 1) {
-        throw Error(`Did not find exactly one edge from ${from_entity} to ${to_entity}`)
+        throw Error(
+            `Did not find exactly one edge from ${from_entity} to ${to_entity}`
+        )
     }
 
     return edges[0]
@@ -162,7 +179,10 @@ export const get_direct_edge = (
  * This function will throw an error if there is more than one edge between any two tables in the entity list
  * @param entities a list of directly connected entities
  */
-export const get_edge_path = (entities: string[], orma_schema: orma_schema): edge[] => {
+export const get_edge_path = (
+    entities: string[],
+    orma_schema: orma_schema
+): edge[] => {
     if (entities.length <= 1) {
         return []
     }
@@ -191,7 +211,11 @@ export const get_edge_path = (entities: string[], orma_schema: orma_schema): edg
 /**
  * Returns true if entity1 is a parent of entity2
  */
-export const is_parent_entity = (entity1: string, entity2: string, orma_schema: orma_schema) => {
+export const is_parent_entity = (
+    entity1: string,
+    entity2: string,
+    orma_schema: orma_schema
+) => {
     const edges = get_child_edges(entity1, orma_schema)
     return edges.some(edge => edge.to_entity === entity2)
 }
@@ -199,10 +223,13 @@ export const is_parent_entity = (entity1: string, entity2: string, orma_schema: 
 /**
  * Gets a list of field names which have been marked as primary keys. More than one result indicates a compound primary key
  */
-export const get_primary_keys = (entity_name: string, orma_schema: orma_schema) => {
+export const get_primary_keys = (
+    entity_name: string,
+    orma_schema: orma_schema
+) => {
     const fields = get_field_names(entity_name, orma_schema)
     const primary_key_fields = fields.filter(field => {
-        const field_schema = orma_schema[entity_name][field]
+        const field_schema = orma_schema[entity_name][field] as orma_field_schema
         if (typeof field_schema === 'string') {
             return false
         }
@@ -214,22 +241,33 @@ export const get_primary_keys = (entity_name: string, orma_schema: orma_schema) 
 }
 
 /**
- * Gets a list of field names which have been marked as unique. Compound unique keys are not included at the moment
+ * Gets a list of field names which have been marked as unique, grouped into arrays to include indexes with
+ * multiple fields. Optionally excludes nullable unique fields.
+ *
+ * @example
+ * return [
+ *   ['unique_field'],
+ *   ['primary_key_field'],
+ *   ['compound_unique_field1', 'compound_unique_field2']
+ * ]
  */
-export const get_unique_fields = (entity_name: string, orma_schema: orma_schema) => {
-    const fields = get_field_names(entity_name, orma_schema)
-    const unique_fields = fields.filter(field => {
-        const field_schema = orma_schema[entity_name][field]
-        if (typeof field_schema === 'string') {
-            return false
-        }
-
-        return field_schema.unique
-    })
-
-    return unique_fields
+export const get_unique_field_groups = (
+    entity_name: string,
+    exclude_nullable: boolean,
+    orma_schema: orma_schema
+) => {
+    const indexes = orma_schema[entity_name].$indexes ?? []
+    const unique_field_groups = indexes
+        .filter(index => index.is_unique)
+        .filter(index => exclude_nullable ? !index.is_nullable : true)
+        .map(index => index.fields)
+    return unique_field_groups
 }
 
-export const field_exists = (entity: string, field: string | number, schema: orma_schema) => {
+export const field_exists = (
+    entity: string,
+    field: string | number,
+    schema: orma_schema
+) => {
     return schema[entity]?.[field]
 }

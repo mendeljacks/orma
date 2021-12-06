@@ -31,7 +31,23 @@ describe('mutate', () => {
                         id: {}
                     }
                 }
-            }
+            },
+            $indexes: [{
+                index_name: 'primary',
+                fields: ['id'],
+                is_unique: true,
+                is_nullable: false
+            }, {
+                index_name: 'unique1',
+                fields: ['unique1'],
+                is_unique: true,
+                is_nullable: false
+            }, {
+                index_name: 'unique2',
+                fields: ['unique2'],
+                is_unique: true,
+                is_nullable: false
+            }]
         },
         children: {
             id1: {

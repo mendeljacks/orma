@@ -4,7 +4,7 @@ import { get_direct_edge, is_reserved_keyword } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
 import { json_to_sql } from './json_sql'
 import { apply_any_path_macro } from './macros/any_path_macro'
-import { apply_escaping_macro, apply_field_macro } from './macros/escaping_macros'
+import { apply_escape_macro } from './macros/escaping_macros'
 import { apply_nesting_macro } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import { get_query_plan } from './query_plan'
@@ -115,7 +115,6 @@ export const orma_query = async (
 ) => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     
-    apply_field_macro(query)
     apply_any_path_macro(query, orma_schema)
     apply_select_macro(query, orma_schema)
 
@@ -129,7 +128,7 @@ export const orma_query = async (
             apply_nesting_macro(query, path, results, orma_schema)
 
             const subquery = deep_get(path, query)
-            apply_escaping_macro(subquery, (value, path) => escaping_function(value))
+            apply_escape_macro(subquery, escaping_function)
 
             return json_to_sql(subquery)
         })

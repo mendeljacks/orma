@@ -1,27 +1,37 @@
-type type_string = 'Object' | 'Number' | 'Boolean' | 'String' | 'Null' | 'Array' | 'RegExp' | 'Function' | 'Undefined'
+type type_string =
+    | 'Object'
+    | 'Number'
+    | 'Boolean'
+    | 'String'
+    | 'Null'
+    | 'Array'
+    | 'RegExp'
+    | 'Function'
+    | 'Undefined'
 export const type = (value: any): type_string => {
     return value === null
         ? 'Null'
         : value === undefined
-            ? 'Undefined'
-            : Object.prototype.toString.call(value).slice(8, -1);
+        ? 'Undefined'
+        : Object.prototype.toString.call(value).slice(8, -1)
 }
 export const drop = (num: number, arr: any[]) => arr.slice(0, -num)
 export const last = <T>(array: T[]): T => array[array.length - 1]
-export const deep_set = (path_array: (string | number)[], value: any, obj: any): void => {
+export const deep_set = (
+    path_array: (string | number)[],
+    value: any,
+    obj: any
+): void => {
     if (path_array.length === 0) return obj
 
     let pointer = obj
 
     for (let i = 0; i < path_array.length; i++) {
         const path_el = path_array[i]
-        const next_path_el = i !== path_array.length - 1
-            ? path_array[i + 1]
-            : undefined
+        const next_path_el =
+            i !== path_array.length - 1 ? path_array[i + 1] : undefined
 
-        const next_el_default = type(next_path_el) === 'Number'
-            ? []
-            : {}
+        const next_el_default = type(next_path_el) === 'Number' ? [] : {}
 
         const is_array = Array.isArray(pointer)
         const is_object = is_simple_object(pointer)
@@ -30,21 +40,26 @@ export const deep_set = (path_array: (string | number)[], value: any, obj: any):
         //     throw new Error('Trying to path into an array without a number index')
         // }
 
-        const contains_path_el =
-            is_array ? path_el < pointer.length
-                : is_object ? path_el in pointer
-                    : false
+        const contains_path_el = is_array
+            ? path_el < pointer.length
+            : is_object
+            ? path_el in pointer
+            : false
 
         if (!contains_path_el) {
             if (is_array) {
-                const items_to_add = new Array(Number(path_el) - pointer.length).map(el => undefined)
+                const items_to_add = new Array(
+                    Number(path_el) - pointer.length
+                ).map(el => undefined)
                 pointer.push(...items_to_add)
             }
 
             pointer[path_el] = next_el_default
         }
 
-        const child_is_primitive = !is_simple_object(pointer[path_el]) && !Array.isArray(pointer[path_el])
+        const child_is_primitive =
+            !is_simple_object(pointer[path_el]) &&
+            !Array.isArray(pointer[path_el])
         if (!contains_path_el || child_is_primitive) {
             pointer[path_el] = next_el_default
         }
@@ -58,10 +73,13 @@ export const deep_set = (path_array: (string | number)[], value: any, obj: any):
 }
 
 // from https://stackoverflow.com/a/16608074
-export const is_simple_object = val =>
-    (!!val) && (val.constructor === Object)
+export const is_simple_object = val => !!val && val.constructor === Object
 
-export const deep_get = (path_array: (string | number)[], obj: any, default_value: any = undefined): any => {
+export const deep_get = (
+    path_array: (string | number)[],
+    obj: any,
+    default_value: any = undefined
+): any => {
     let pointer = obj
 
     for (const path_el of path_array) {
@@ -72,10 +90,11 @@ export const deep_get = (path_array: (string | number)[], obj: any, default_valu
         //     throw new Error('Trying to path into an array without a number index')
         // }
 
-        const contains_path_el =
-            is_array ? path_el < pointer.length
-                : is_object ? path_el in pointer
-                    : false
+        const contains_path_el = is_array
+            ? path_el < pointer.length
+            : is_object
+            ? path_el in pointer
+            : false
 
         if (contains_path_el) {
             pointer = pointer[path_el]
@@ -89,13 +108,17 @@ export const deep_get = (path_array: (string | number)[], obj: any, default_valu
 }
 
 /**
- * Like a map, but works on deeply nested objects and arrays. Processor function runs on a depth first search, i.e. 
+ * Like a map, but works on deeply nested objects and arrays. Processor function runs on a depth first search, i.e.
  * the processor will only be called on an element after it has been called on all the children.
  * @param item can be an object or array
  * @param processor this function will run on every object, array and primitive value found
  * @returns the mapped object
  */
-export const deep_map = (item: any, processor: (value: any, path: (string | number)[]) => any, current_path = []) => {
+export const deep_map = (
+    item: any,
+    processor: (value: any, path: (string | number)[]) => any,
+    current_path = []
+) => {
     let mapped_item
     if (Array.isArray(item)) {
         mapped_item = item.map((el, i) => {
@@ -123,11 +146,15 @@ export const deep_map = (item: any, processor: (value: any, path: (string | numb
 /**
  * Calls the processor on every object and array for deeply nested objects/arrays. Processort runs from the least deeply nested keys to the most deeply nested ones
  * Does not run on leaf keys (i.e. where value of key is not an object or array)
- * @param item 
- * @param processor 
- * @param current_path 
+ * @param item
+ * @param processor
+ * @param current_path
  */
-export const deep_for_each = (item: any, processor: (value: any, path: (string | number)[]) => void, current_path = []) => {
+export const deep_for_each = (
+    item: any,
+    processor: (value: any, path: (string | number)[]) => void,
+    current_path = []
+) => {
     const is_object = is_simple_object(item)
     const is_array = Array.isArray(item)
     const is_primitive = !is_object && !is_array
@@ -151,14 +178,16 @@ export const deep_for_each = (item: any, processor: (value: any, path: (string |
     }
 }
 
-export const get_lower_paths = (item: Record<any, any> | any[], path: (string | number)[]) => {
-    const keys = Array.isArray(item) 
+export const get_lower_paths = (
+    item: Record<any, any> | any[],
+    path: (string | number)[]
+) => {
+    const keys = Array.isArray(item)
         ? item.map((_, i) => [...path, i])
         : Object.keys(item)
-    
+
     return keys.map(key => [...path, key])
 }
-
 
 /*
   From https://github.com/angus-c/just/blob/master/packages/collection-clone/index.js
@@ -174,38 +203,62 @@ export const get_lower_paths = (item: Record<any, any> | any[], path: (string | 
   objClone; // {a: 3, b: 5, c: [1, 2, 3], d: {aa: 1, bb: 2}}
 */
 
-export const clone = (obj) => {
+export const clone = obj => {
     if (typeof obj == 'function') {
-        return obj;
+        return obj
     }
-    var result = Array.isArray(obj) ? [] : {};
+    var result = Array.isArray(obj) ? [] : {}
     for (var key in obj) {
         // include prototype properties
-        var value = obj[key];
-        var type = {}.toString.call(value).slice(8, -1);
+        var value = obj[key]
+        var type = {}.toString.call(value).slice(8, -1)
         if (type == 'Array' || type == 'Object') {
-            result[key] = clone(value);
+            result[key] = clone(value)
         } else if (type == 'Date') {
-            result[key] = new Date(value.getTime());
+            result[key] = new Date(value.getTime())
         } else if (type == 'RegExp') {
-            result[key] = RegExp(value.source, getRegExpFlags(value));
+            result[key] = RegExp(value.source, getRegExpFlags(value))
         } else {
-            result[key] = value;
+            result[key] = value
         }
     }
-    return result;
+    return result
 }
 
 function getRegExpFlags(regExp) {
     if (typeof regExp.source.flags == 'string') {
-        return regExp.source.flags;
+        return regExp.source.flags
     } else {
-        var flags = [];
-        regExp.global && flags.push('g');
-        regExp.ignoreCase && flags.push('i');
-        regExp.multiline && flags.push('m');
-        regExp.sticky && flags.push('y');
-        regExp.unicode && flags.push('u');
-        return flags.join('');
+        var flags = []
+        regExp.global && flags.push('g')
+        regExp.ignoreCase && flags.push('i')
+        regExp.multiline && flags.push('m')
+        regExp.sticky && flags.push('y')
+        regExp.unicode && flags.push('u')
+        return flags.join('')
     }
 }
+
+export const group_by = <T>(
+    array: T[],
+    key_function: (item: T, i?: number) => string
+): Record<string, T[]> => array.reduce((acc, item, i) => {
+    const key = key_function(item, i)
+    if (!acc[key]) {
+        acc[key] = []
+    }
+
+    acc[key].push(item)
+    return acc
+}, {})
+
+
+export const key_by = <T>(
+    array: T[],
+    key_function: (item: T, i?: number) => string
+): Record<string, T> => array.reduce((acc, item, i) => {
+    const key = key_function(item, i)
+
+    acc[key] = item
+    return acc
+}, {})

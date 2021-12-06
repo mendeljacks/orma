@@ -1,15 +1,22 @@
 import { deep_merge } from '../helpers/deep_merge'
 import { error_type } from '../helpers/error_handling'
-import { deep_for_each, deep_get, deep_set, drop, is_simple_object, last } from '../helpers/helpers'
+import {
+    deep_for_each,
+    deep_get,
+    deep_set,
+    drop,
+    is_simple_object,
+    last,
+} from '../helpers/helpers'
 import {
     get_all_edges,
     get_child_edges,
     get_direct_edge,
     get_parent_edges,
     get_primary_keys,
-    get_unique_fields,
+    get_unique_field_groups,
     is_parent_entity,
-    is_reserved_keyword
+    is_reserved_keyword,
 } from '../helpers/schema_helpers'
 import { path_to_string, string_to_path } from '../helpers/string_to_path'
 import { toposort } from '../helpers/toposort'
@@ -46,17 +53,19 @@ export const orma_mutate = async (
     for (let i = 0; i < mutate_plan.length; i++) {
         const planned_statements = mutate_plan[i]
 
-        const statements: statements = planned_statements.flatMap(({ operation, paths }) => {
-            const command_json_paths = get_mutation_ast(
-                operation,
-                paths,
-                mutation,
-                tier_results,
-                orma_schema,
-                escape_fn
-            )
-            return command_json_paths
-        })
+        const statements: statements = planned_statements.flatMap(
+            ({ operation, paths }) => {
+                const command_json_paths = get_mutation_ast(
+                    operation,
+                    paths,
+                    mutation,
+                    tier_results,
+                    orma_schema,
+                    escape_fn
+                )
+                return command_json_paths
+            }
+        )
 
         const results = await mutate_fn(statements)
 
@@ -70,7 +79,7 @@ export const orma_mutate = async (
         (acc, [path_string, row]: [string, {}], i) => {
             const path = string_to_path(path_string)
             const mutation_obj = deep_get(path, mutation)
-            const merged = deep_merge(mutation_obj, row)            
+            const merged = deep_merge(mutation_obj, row)
             deep_set(path, merged, acc)
             return acc
         },
@@ -117,12 +126,22 @@ export const get_mutation_ast = (
     escape_fn
 ): statements => {
     if (operation === 'update') {
-        const command_json_paths = get_update_asts(paths, mutation, orma_schema, escape_fn)
+        const command_json_paths = get_update_asts(
+            paths,
+            mutation,
+            orma_schema,
+            escape_fn
+        )
         return command_json_paths.map(el => ({ ...el, operation }))
     }
 
     if (operation === 'delete') {
-        const command_json_paths = get_delete_asts(paths, mutation, orma_schema, escape_fn)
+        const command_json_paths = get_delete_asts(
+            paths,
+            mutation,
+            orma_schema,
+            escape_fn
+        )
         return command_json_paths.map(el => ({ ...el, operation }))
     }
 
@@ -154,35 +173,47 @@ const get_update_asts = (
 
     const update_asts = paths.map(path => {
         const record = deep_get(path, mutation)
-        const identifying_keys = get_identifying_keys(entity_name, record, orma_schema)
+        const identifying_keys = get_identifying_keys(
+            entity_name,
+            record,
+            orma_schema
+        )
 
         throw_identifying_key_errors('update', identifying_keys, path, mutation)
 
-        const where = generate_record_where_clause(identifying_keys, record, escape_fn)
+        const where = generate_record_where_clause(
+            identifying_keys,
+            record,
+            escape_fn
+        )
 
         const keys_to_set = Object.keys(record)
             .filter(key => !identifying_keys.includes(key))
-            .filter(key => !is_simple_object(record[key]) && !Array.isArray(record[key]))
+            .filter(
+                key =>
+                    !is_simple_object(record[key]) &&
+                    !Array.isArray(record[key])
+            )
             .filter(key => !is_reserved_keyword(key))
 
         return {
             $update: entity_name,
             $set: keys_to_set.map(key => [key, record[key]]),
-            $where: where
+            $where: where,
         }
     })
 
     return update_asts.map((update_ast, i) => {
         const update_ast_escaped = {
             ...update_ast,
-            $set: update_ast.$set.map(key => [key[0], escape_fn(key[1])])
+            $set: update_ast.$set.map(key => [key[0], escape_fn(key[1])]),
         }
         return {
             paths: [paths[i]],
             entity_name,
             command_json: update_ast,
             command_json_escaped: update_ast_escaped,
-            command_sql: json_to_sql(update_ast_escaped)
+            command_sql: json_to_sql(update_ast_escaped),
         }
     })
 }
@@ -201,15 +232,23 @@ const get_delete_asts = (
 
     const jsons = paths.map(path => {
         const record = deep_get(path, mutation)
-        const identifying_keys = get_identifying_keys(entity_name, record, orma_schema)
+        const identifying_keys = get_identifying_keys(
+            entity_name,
+            record,
+            orma_schema
+        )
 
         throw_identifying_key_errors('delete', identifying_keys, path, mutation)
 
-        const where = generate_record_where_clause(identifying_keys, record, escape_fn)
+        const where = generate_record_where_clause(
+            identifying_keys,
+            record,
+            escape_fn
+        )
 
         return {
             $delete_from: entity_name,
-            $where: where
+            $where: where,
         }
     })
 
@@ -218,7 +257,7 @@ const get_delete_asts = (
         entity_name,
         command_json: el,
         command_json_escaped: el,
-        command_sql: json_to_sql(el)
+        command_sql: json_to_sql(el),
     }))
 }
 
@@ -245,7 +284,11 @@ const get_create_jsons = (
 
         // filter lower tables and keywords such as $operation from the sql
         const keys_to_insert = Object.keys(record)
-            .filter(key => !is_simple_object(record[key]) && !Array.isArray(record[key]))
+            .filter(
+                key =>
+                    !is_simple_object(record[key]) &&
+                    !Array.isArray(record[key])
+            )
             .filter(key => !is_reserved_keyword(key))
 
         keys_to_insert.forEach(key => acc.add(key))
@@ -261,10 +304,13 @@ const get_create_jsons = (
 
     const command_json = {
         $insert_into: [entity_name, [...insert_keys]],
-        $values: values
+        $values: values,
     }
 
-    const command_json_escaped = { ...command_json, $values: values.map(el => el.map(escape_fn)) }
+    const command_json_escaped = {
+        ...command_json,
+        $values: values.map(el => el.map(escape_fn)),
+    }
 
     return [
         {
@@ -272,8 +318,8 @@ const get_create_jsons = (
             entity_name,
             command_json,
             command_json_escaped,
-            command_sql: json_to_sql(command_json_escaped)
-        }
+            command_sql: json_to_sql(command_json_escaped),
+        },
     ]
 }
 
@@ -311,7 +357,11 @@ const get_record_with_foreign_keys = (
         // assuming the thing is a parent, we need exactly one edge from the current entity to the parent
         // (since the syntax has no way to specify which foreign key to use in that case).
         // This function throws an error if there is not exactly one edge
-        const edge = get_direct_edge(entity_name, parent_entity_name, orma_schema)
+        const edge = get_direct_edge(
+            entity_name,
+            parent_entity_name,
+            orma_schema
+        )
 
         // we take the combined parent record as it is in the original mutation (this might have some of the foreign keys)
         // and also the same parent record from the previous results (e.g. autogenerated primiary keys from the database).
@@ -320,7 +370,7 @@ const get_record_with_foreign_keys = (
         const previous_result = results_by_path[path_to_string(parent_path)]
         const parent_record_with_results = {
             ...parent_record,
-            ...previous_result
+            ...previous_result,
         }
 
         // now we just set the foreign key to whatever is in the combined parent object
@@ -331,7 +381,7 @@ const get_record_with_foreign_keys = (
     // combining the record (from the original mutation) with the foreign keys (for that record) gives the full record
     const record_with_foreign_keys = {
         ...record,
-        ...foreign_keys
+        ...foreign_keys,
     }
 
     return record_with_foreign_keys
@@ -343,13 +393,13 @@ const generate_record_where_clause = (
     escape_fn
 ) => {
     const where_clauses = identifying_keys.map(key => ({
-        $eq: [key, escape_fn(record[key])]
+        $eq: [key, escape_fn(record[key])],
     }))
 
     const where =
         where_clauses.length > 1
             ? {
-                  $and: where_clauses
+                  $and: where_clauses,
               }
             : where_clauses?.[0]
 
@@ -368,16 +418,26 @@ export const get_identifying_keys = (
     orma_schema: orma_schema
 ) => {
     const primary_keys = get_primary_keys(entity_name, orma_schema)
-    const has_primary_keys = primary_keys.every(primary_key => record[primary_key])
+    const has_primary_keys = primary_keys.every(
+        primary_key => record[primary_key] !== undefined
+    )
     if (has_primary_keys && primary_keys.length > 0) {
         return primary_keys
     }
 
-    const unique_keys = get_unique_fields(entity_name, orma_schema)
-    const included_unique_keys = unique_keys.filter(unique_key => record[unique_key])
+    // we filter out nullable unique columns, since then there might be multiple records
+    // all having null so that column wouldnt uniquely identify a record
+    const unique_field_groups = get_unique_field_groups(
+        entity_name,
+        true,
+        orma_schema
+    )
+    const included_unique_keys = unique_field_groups.filter(unique_fields =>
+        unique_fields.every(field => record[field] !== undefined)
+    )
     if (included_unique_keys.length === 1) {
         // if there are 2 or more unique keys, we cant use them since it would be ambiguous which we choose
-        return included_unique_keys
+        return included_unique_keys[0]
     }
 
     return undefined
@@ -396,8 +456,8 @@ const throw_identifying_key_errors = (
             original_data: mutation,
             stack_trace: new Error().stack,
             additional_info: {
-                identifying_columns: identifying_keys ?? 'none'
-            }
+                identifying_columns: identifying_keys ?? 'none',
+            },
         } as error_type
     }
 }
@@ -466,10 +526,7 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
     const route_graph: Record<string, Set<string>> = {}
 
     deep_for_each(mutation, (value, path) => {
-        if (
-            !is_simple_object(value) ||
-            path.length === 0
-        ) {
+        if (!is_simple_object(value) || path.length === 0) {
             return // not pointing to a single row
         }
 
@@ -477,11 +534,17 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
         const operation = path
             .map((el, i) => path.slice(0, path.length - i))
             .concat([[]]) // this is because we can also inherit operation from the root
-            .map(path_slice => deep_get([...path_slice, '$operation'], mutation)) // check the operation at each path slice
+            .map(path_slice =>
+                deep_get([...path_slice, '$operation'], mutation)
+            ) // check the operation at each path slice
             .find((el): el is string => typeof el === 'string') // find the first defined operation
 
         if (!operation) {
-            throw new Error(`Could not find an inherited operation for ${JSON.stringify(path)}`)
+            throw new Error(
+                `Could not find an inherited operation for ${JSON.stringify(
+                    path
+                )}`
+            )
         }
 
         const path_template = path.map(el => (typeof el === 'number' ? 0 : el))
@@ -509,7 +572,8 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
         }
 
         // if higher row does not have $operation, it inherits the same operation as the current row
-        const higher_operation = deep_get([...higher_path, '$operation'], mutation) ?? operation
+        const higher_operation =
+            deep_get([...higher_path, '$operation'], mutation) ?? operation
         const higher_path_template =
             typeof last(path_template) === 'number'
                 ? path_template.slice(0, path_template.length - 2) // need to remove the entity name and index template (the number 0)
@@ -532,10 +596,18 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
                 ? (higher_path[higher_path.length - 2] as string)
                 : (last(higher_path) as string)
 
-        const higher_entity_is_parent = is_parent_entity(higher_entity, entity, orma_schema) // in cases of self-referenced entities, this will return true. So they will be processed in regular order (top -> bottom for creates, bottom -> top for deletes)
+        const higher_entity_is_parent = is_parent_entity(
+            higher_entity,
+            entity,
+            orma_schema
+        ) // in cases of self-referenced entities, this will return true. So they will be processed in regular order (top -> bottom for creates, bottom -> top for deletes)
 
-        const parent_route_string = higher_entity_is_parent ? higher_route_string : route_string // regular nesting
-        const child_route_string = higher_entity_is_parent ? route_string : higher_route_string // reverse nesting
+        const parent_route_string = higher_entity_is_parent
+            ? higher_route_string
+            : route_string // regular nesting
+        const child_route_string = higher_entity_is_parent
+            ? route_string
+            : higher_route_string // reverse nesting
 
         if (operation === higher_operation) {
             if (operation === 'create') {
@@ -555,7 +627,7 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
     const toposort_graph = Object.keys(route_graph).reduce((acc, key) => {
         return {
             ...acc,
-            [key]: [...route_graph[key]]
+            [key]: [...route_graph[key]],
         }
     }, {})
     const topological_ordering = toposort(toposort_graph)
@@ -563,7 +635,7 @@ export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
     const mutate_plan = topological_ordering.map(route_strings =>
         route_strings.map(route_string => ({
             operation: string_to_path(route_string)[0] as operation,
-            paths: paths_by_route[route_string]
+            paths: paths_by_route[route_string],
         }))
     )
 

@@ -95,7 +95,7 @@ describe('query helpers', () => {
             })
         })
     })
-    describe.only(get_search_records_where.name, () => {
+    describe(get_search_records_where.name, () => {
         test('handles single field', () => {
             const records = [
                 {

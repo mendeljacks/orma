@@ -1,12 +1,18 @@
 // import { orma_schema } from '../introspector/introspector'
 // import { get_mutate_plan, operation } from './mutate'
 
-import { get_primary_keys, get_unique_fields } from '../helpers/schema_helpers'
+import { error_type } from '../helpers/error_handling'
+import { key_by } from '../helpers/helpers'
+import {
+    get_primary_keys,
+    get_unique_field_groups,
+} from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
 import {
     combine_wheres,
     get_search_records_where,
 } from '../query/query_helpers'
+import { PathedRecord } from '../types'
 import { get_identifying_keys } from './mutate'
 import { split_mutation_by_entity } from './mutate_helpers'
 
@@ -23,75 +29,8 @@ export const verify_independence = async (
     // if a unique key is edited and then the old unique key value is used to try to edit something
 }
 
-export const verify_uniqueness = async (
-    mutation,
-    orma_query: (query) => Promise<any>,
-    orma_schema: orma_schema,
-    escape_function: (value) => any
-) => {
-    /*
-    check that no two rows have the same value for the same unique column, and also make sure that no unique value
-    matches something already in the database
 
-    algorithm:
-
-    break up mutation by entity name (keeping track of paths)
-    construct a query which searches for all update and delete records in the database
-    for each entity name and each column, 
-        check for no duplicates in the mutation
-        check for no duplicates between mutation and database
-    */
-
-    const pathed_records_by_entity = split_mutation_by_entity(mutation)
-    const mutation_entities = Object.keys(pathed_records_by_entity)
-    const query = mutation_entities.reduce((acc, entity) => {
-        const pathed_records = pathed_records_by_entity[entity]
-        const searchable_pathed_records = pathed_records.filter(
-            ({ record }) =>
-                record?.$operation === 'update' ||
-                record?.$operation === 'delete'
-        )
-
-        // const search_fields = searchable_pathed_records.reduce((acc, { record}) => {
-        //     const identifying_fields = get_identifying_keys(entity_name, record, orma_schema)
-        //     identifying_fields.forEach(field => acc.add(field))
-        //     return acc
-        // }, new Set())
-
-        const search_fields = new Set([
-            ...get_primary_keys(entity, orma_schema),
-            ...get_unique_fields(entity, orma_schema),
-        ])
-
-        const $where = get_search_records_where(
-            searchable_pathed_records.map(({ record }) => record),
-            record => get_identifying_keys(entity, record, orma_schema),
-            escape_function
-        )
-
-        if (!$where) {
-            throw new Error(
-                'There should be a where clause. Something went wrong.'
-            )
-        }
-
-        acc[entity] = {
-            $select: [...search_fields],
-            $where,
-        }
-
-        return acc
-    }, {})
-
-    const results = await orma_query(query)
-
-    const errors = mutation_entities.map(entity => {
-        const unique_fields = new Set([
-            ...get_primary_keys(entity, orma_schema),
-            ...get_unique_fields(entity, orma_schema),
-        ])
-    })
-}
+// TODO: write a test for uniqueness showing that '1' !== 1
 
 const a = {
     $where: {

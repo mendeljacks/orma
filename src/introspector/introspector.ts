@@ -3,7 +3,7 @@
  * @module
  */
 
-import { deep_set } from '../helpers/helpers'
+import { deep_set, group_by } from '../helpers/helpers'
 
 export interface mysql_table {
     table_name: string
@@ -27,6 +27,23 @@ export interface mysql_column {
     column_comment?: string
 }
 
+export interface mysql_index {
+    table_name: string
+    non_unique: number
+    index_name: string
+    seq_in_index: number
+    column_name: string
+    collation: 'A' | 'D' | null
+    sub_part: number | null
+    packed: string | null
+    nullable: 'YES' | ''
+    index_type: string
+    comment: string
+    index_comment: string
+    is_visible: 'YES' | 'NO'
+    expression: string
+}
+
 export interface mysql_foreign_key {
     table_name: string
     column_name: string
@@ -38,7 +55,8 @@ export interface mysql_foreign_key {
 export interface orma_schema {
     [entity_name: string]: {
         $comment?: string
-        [field_name: string]: orma_field_schema | string
+        $indexes?: orma_index_schema[]
+        [field_name: string]: orma_field_schema | orma_index_schema[] | string
     }
 }
 
@@ -58,6 +76,21 @@ export interface orma_field_schema {
             [referenced_field: string]: Record<string, never>
         }
     }
+}
+
+export interface orma_index_schema {
+    index_name: string
+    is_unique: boolean
+    is_nullable: boolean
+    fields: string[]
+    index_type?: string
+    is_visible?: boolean
+    collation?: 'A' | 'D'
+    sub_part?: number | null
+    packed?: string | null
+    extra?: string
+    index_comment?: string
+    expression?: string
 }
 
 /**
@@ -94,7 +127,25 @@ export const get_introspect_sqls = (database_name: string): string[] => {
             referenced_column_name,
             constraint_name
         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`
+        WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`,
+
+        `SELECT 
+            table_name, 
+            non_unique, 
+            index_name, 
+            seq_in_index, 
+            column_name, 
+            collation, 
+            sub_part, 
+            packed, 
+            nullable, 
+            index_type, 
+            comment,
+            index_comment, 
+            is_visible, 
+            expression
+        FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = '${database_name}'`,
     ]
 
     return query_strings
@@ -127,7 +178,8 @@ export const get_introspect_sqls = (database_name: string): string[] => {
 export const generate_database_schema = (
     mysql_tables: mysql_table[],
     mysql_columns: mysql_column[],
-    mysql_foreign_keys: mysql_foreign_key[]
+    mysql_foreign_keys: mysql_foreign_key[],
+    mysql_indexes: mysql_index[]
 ) => {
     const database_schema: orma_schema = {}
 
@@ -160,6 +212,11 @@ export const generate_database_schema = (
             referenced_column_name
         ]
         deep_set(reference_path, {}, database_schema)
+    }
+
+    const index_schemas = generate_index_schemas(mysql_indexes)
+    for (const table_name of Object.keys(index_schemas)) {
+        database_schema[table_name].$indexes = index_schemas[table_name]
     }
 
     return database_schema
@@ -271,16 +328,77 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
     return field_schema
 }
 
+export const generate_index_schemas = (mysql_indexes: mysql_index[]) => {
+    const mysql_indexes_by_table = group_by(mysql_indexes, index => index.table_name)
+
+    const table_names = Object.keys(mysql_indexes_by_table)
+    const index_schemas_by_table = table_names.reduce((acc, table_name) => {
+        const mysql_indexes = mysql_indexes_by_table[table_name]
+        const mysql_indexes_by_name = group_by(mysql_indexes, index => index.index_name)
+        const index_schemas = Object.keys(mysql_indexes_by_name).map(index_name => {
+            const index = mysql_indexes_by_name[index_name][0]
+            const fields = mysql_indexes_by_name[index_name]
+                .slice()
+                .sort((a, b) => a.seq_in_index - b.seq_in_index)
+                .map(el => el.column_name)
+            return generate_index_schema(index, fields)
+        })
+        
+        acc[table_name] = index_schemas
+        return acc
+    }, {} as Record<string, orma_index_schema[]>)
+    
+    return index_schemas_by_table
+}
+
+const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
+    const {
+        table_name,
+        non_unique,
+        index_name,
+        seq_in_index,
+        column_name,
+        collation,
+        sub_part,
+        packed,
+        nullable,
+        index_type,
+        comment,
+        index_comment,
+        is_visible,
+        expression,
+    } = mysql_index
+
+
+    const orma_index_schema: orma_index_schema = {
+        index_name,
+        is_unique: Number(non_unique) === 0 ? true : false,
+        is_nullable: nullable === 'YES',
+        fields,
+        index_type,
+        is_visible: is_visible === 'YES',
+        ...collation && { collation },
+        ...sub_part && { sub_part },
+        ...packed && { packed },
+        ...comment && { extra: comment },
+        ...expression && { expression },
+        ...index_comment && { index_comment },
+    }
+    
+    return orma_index_schema
+}
+
 export const orma_introspect = async (
     db: string,
     fn: (s: string[]) => Promise<Record<string, unknown>[][]>
 ): Promise<orma_schema> => {
     const sql_strings = get_introspect_sqls(db)
     // @ts-ignore
-    const [mysql_tables, mysql_columns, mysql_foreign_keys]: [
+    const [mysql_tables, mysql_columns, mysql_foreign_keys, mysql_indexes]: [
         mysql_table[],
         mysql_column[],
-        mysql_foreign_key[]
+        mysql_foreign_key[],
+        mysql_index[],
     ] = await fn(sql_strings)
 
     // TODO: to be removed when orma lowercase bug fixed
@@ -293,7 +411,8 @@ export const orma_introspect = async (
     const orma_schema = generate_database_schema(
         mysql_tables.map(transform_keys_to_lower) as mysql_table[],
         mysql_columns.map(transform_keys_to_lower) as mysql_column[],
-        mysql_foreign_keys.map(transform_keys_to_lower) as mysql_foreign_key[]
+        mysql_foreign_keys.map(transform_keys_to_lower) as mysql_foreign_key[],
+        mysql_indexes.map(transform_keys_to_lower) as mysql_index[],
     )
 
     return orma_schema
