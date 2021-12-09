@@ -65,7 +65,6 @@ export interface orma_field_schema {
     ordinal_position?: number
     required?: boolean
     primary_key?: boolean
-    unique?: boolean
     indexed?: boolean
     character_count?: number
     decimal_places?: number
@@ -81,7 +80,6 @@ export interface orma_field_schema {
 export interface orma_index_schema {
     index_name: string
     is_unique: boolean
-    is_nullable: boolean
     fields: string[]
     index_type?: string
     is_visible?: boolean
@@ -286,10 +284,6 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         field_schema.indexed = true
     }
 
-    if (column_key === 'PRI' || column_key === 'UNI') {
-        field_schema.unique = true
-    }
-
     if (column_key === 'PRI') {
         field_schema.primary_key = true
     }
@@ -373,7 +367,6 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
     const orma_index_schema: orma_index_schema = {
         index_name,
         is_unique: Number(non_unique) === 0 ? true : false,
-        is_nullable: nullable === 'YES',
         fields,
         index_type,
         is_visible: is_visible === 'YES',

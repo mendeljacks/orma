@@ -440,7 +440,7 @@ export const get_identifying_keys = (
         return included_unique_keys[0]
     }
 
-    return undefined
+    return []
 }
 
 const throw_identifying_key_errors = (

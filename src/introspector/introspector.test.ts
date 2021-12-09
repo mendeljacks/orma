@@ -39,7 +39,6 @@ describe('introspector', () => {
             ordinal_position: 1,
             primary_key: true,
             required: true,
-            unique: true,
         })
     })
 
@@ -59,7 +58,6 @@ describe('introspector', () => {
             indexed: true,
             ordinal_position: 2,
             required: true,
-            unique: true,
         })
     })
 
@@ -170,7 +168,6 @@ describe('introspector', () => {
                 $indexes: [{
                     index_name: 'simple_index',
                     is_unique: false,
-                    is_nullable: true,
                     fields: ['id'],
                     index_type: 'BTREE',
                     is_visible: true,
@@ -260,7 +257,6 @@ describe('introspector', () => {
                 {
                     index_name: 'simple_index',
                     is_unique: false,
-                    is_nullable: true,
                     fields: ['id'],
                     index_type: 'BTREE',
                     is_visible: true,
@@ -271,7 +267,6 @@ describe('introspector', () => {
                 {
                     index_name: 'combo_unique',
                     is_unique: true,
-                    is_nullable: false,
                     fields: ['last_name', 'first_name'],
                     index_type: 'BTREE',
                     is_visible: true,
@@ -282,7 +277,6 @@ describe('introspector', () => {
                 {
                     index_name: 'posts_index',
                     is_unique: true,
-                    is_nullable: false,
                     fields: ['title'],
                     index_type: 'BTREE',
                     is_visible: false,

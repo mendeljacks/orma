@@ -88,6 +88,9 @@ export const get_search_records_where = (
 ) => {
     const records_by_search_fields = records.reduce((acc, record) => {
         const identifying_fields = get_search_fields(record)
+        if (identifying_fields.length === 0) {
+            throw new Error('Can\'t find identifying fields for record')
+        }
         const key = JSON.stringify(identifying_fields)
         if (!acc[key]) {
             acc[key] = []

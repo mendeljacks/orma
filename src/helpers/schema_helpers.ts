@@ -259,7 +259,18 @@ export const get_unique_field_groups = (
     const indexes = orma_schema[entity_name].$indexes ?? []
     const unique_field_groups = indexes
         .filter(index => index.is_unique)
-        .filter(index => exclude_nullable ? !index.is_nullable : true)
+        .filter(index => {
+            if (exclude_nullable) {
+                const all_fields_non_nullable = index.fields.every(field => {
+                    const field_schema = orma_schema[entity_name][field] as orma_field_schema
+                    return field_schema.required
+                })
+
+                return all_fields_non_nullable
+            } else {
+                return true
+            }
+        })
         .map(index => index.fields)
     return unique_field_groups
 }
