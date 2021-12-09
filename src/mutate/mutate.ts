@@ -22,6 +22,7 @@ import { path_to_string, string_to_path } from '../helpers/string_to_path'
 import { toposort } from '../helpers/toposort'
 import { orma_schema } from '../introspector/introspector'
 import { json_to_sql } from '../query/json_sql'
+import { combine_wheres } from '../query/query_helpers'
 
 export type operation = 'create' | 'update' | 'delete'
 export type mutate_fn = (
@@ -252,13 +253,41 @@ const get_delete_asts = (
         }
     })
 
-    return jsons.map((el, i) => ({
-        paths: [paths[i]],
-        entity_name,
-        command_json: el,
-        command_json_escaped: el,
-        command_sql: json_to_sql(el),
-    }))
+    const wheres = paths.map(path => {
+        const record = deep_get(path, mutation)
+        const identifying_keys = get_identifying_keys(
+            entity_name,
+            record,
+            orma_schema
+        )
+
+        throw_identifying_key_errors('delete', identifying_keys, path, mutation)
+
+        const where = generate_record_where_clause(
+            identifying_keys,
+            record,
+            escape_fn
+        )
+
+        return where
+    })
+
+    const $where = combine_wheres(wheres, '$or')
+
+    const ast = {
+        $delete_from: entity_name,
+        $where,
+    }
+
+    return [
+        {
+            paths,
+            entity_name,
+            command_json: ast,
+            command_json_escaped: ast,
+            command_sql: json_to_sql(ast),
+        },
+    ]
 }
 
 const get_create_jsons = (
