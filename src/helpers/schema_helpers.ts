@@ -5,7 +5,7 @@
 
 import { orma_field_schema, orma_schema } from '../introspector/introspector'
 
-export type edge = {
+export type Edge = {
     from_entity: string
     from_field: string
     to_entity: string
@@ -42,7 +42,7 @@ export const get_field_names = (
 export const get_parent_edges = (
     entity_name: string,
     orma_schema: orma_schema
-): edge[] => {
+): Edge[] => {
     const fields_schema = orma_schema[entity_name] ?? {}
 
     const parent_edges = Object.keys(fields_schema).flatMap(field_name => {
@@ -76,7 +76,7 @@ export const get_parent_edges = (
 /**
  * Swaps the 'from' and 'to' components of an edge
  */
-export const reverse_edge = (edge: edge): edge => ({
+export const reverse_edge = (edge: Edge): Edge => ({
     from_entity: edge.to_entity,
     from_field: edge.to_field,
     to_entity: edge.from_entity,
@@ -86,7 +86,7 @@ export const reverse_edge = (edge: edge): edge => ({
 // we use a map because it can take objects as keys (they are compared by reference)
 const child_edges_cache_by_schema = new Map<
     orma_schema,
-    Record<string, edge[]>
+    Record<string, Edge[]>
 >()
 
 // a helper method, having all the child edges in a single cache object helps it be memoized
@@ -96,7 +96,7 @@ const get_child_edges_cache = orma_schema => {
     }
 
     const entity_names = get_entity_names(orma_schema)
-    const cache: Record<string, edge[]> = {}
+    const cache: Record<string, Edge[]> = {}
     for (const entity_name of entity_names) {
         const parent_edges = get_parent_edges(entity_name, orma_schema)
         const child_edges = parent_edges.map(reverse_edge)
@@ -182,7 +182,7 @@ export const get_direct_edge = (
 export const get_edge_path = (
     entities: string[],
     orma_schema: orma_schema
-): edge[] => {
+): Edge[] => {
     if (entities.length <= 1) {
         return []
     }

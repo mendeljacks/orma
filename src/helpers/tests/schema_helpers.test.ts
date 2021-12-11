@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { orma_schema } from '../../introspector/introspector'
-import { edge, get_all_edges, get_child_edges, get_entity_names, get_field_names, get_parent_edges } from '../schema_helpers'
+import { Edge, get_all_edges, get_child_edges, get_entity_names, get_field_names, get_parent_edges } from '../schema_helpers'
 
 
 describe('schema_helpers', () => {
@@ -49,7 +49,7 @@ describe('schema_helpers', () => {
             }
 
             const parent_edges = get_parent_edges('products', orma_schema)
-            const goal: edge[] = [
+            const goal: Edge[] = [
                 { from_entity: 'products', from_field: 'vendor_id', to_entity: 'vendors', to_field: 'id' }
             ]
             expect(parent_edges.sort()).to.deep.equal(goal.sort())
@@ -74,7 +74,7 @@ describe('schema_helpers', () => {
             }
 
             const parent_edges = get_child_edges('vendors', orma_schema)
-            const goal: edge[] = [
+            const goal: Edge[] = [
                 { from_entity: 'vendors', from_field: 'id', to_entity: 'products', to_field: 'vendor_id' }
             ]
             expect(parent_edges.sort()).to.deep.equal(goal.sort())
@@ -108,7 +108,7 @@ describe('schema_helpers', () => {
             }
 
             const all_edges = get_all_edges('products', orma_schema)
-            const goal: edge[] = [
+            const goal: Edge[] = [
                 { from_entity: 'products', from_field: 'vendor_id', to_entity: 'vendors', to_field: 'id' },
                 { from_entity: 'products', from_field: 'id', to_entity: 'images', to_field: 'product_id' }
             ]
