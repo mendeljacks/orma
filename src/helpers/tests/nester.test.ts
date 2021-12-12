@@ -150,7 +150,7 @@ describe('nester', () => {
     test('handles nesting same object multiple times', () => {
         const data = [
             [['variants', 0], [{ id: 10, product_id: 1 }, { id: 11, product_id: 1 }]],
-            [['variants', 0, 'products'], [{ id: 1 }]],
+            [['variants', 0, 'products', 0], [{ id: 1 }]],
         ]
 
         const edges = [
@@ -162,11 +162,13 @@ describe('nester', () => {
         const goal = {
             variants: [{
                 id: 10,
+                product_id: 1,
                 products: [{
                     id: 1
                 }]
             }, {
                 id: 11,
+                product_id: 1,
                 products: [{
                     id: 1
                 }]
