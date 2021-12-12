@@ -3,7 +3,13 @@
 import { Schema } from 'inspector'
 import { Edge } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
-import { AllowType, IsType } from './helper_types'
+import {
+    AllowType,
+    IsType,
+    LowercaseChar,
+    NumericChar,
+    UppercaseChar,
+} from './helper_types'
 
 export type DeepReadonly<T> = T extends (infer R)[]
     ? DeepReadonlyArray<R>
@@ -25,6 +31,15 @@ export type OrmaSchema = DeepReadonly<orma_schema>
 
 export type Keyword = `$${string}`
 export type IsKeyword<Field extends `$${string}`> = Field
+
+/**
+ * Non keywords cannot start with a $
+ */
+export type NonKeyword = `${
+    | LowercaseChar
+    | UppercaseChar
+    | NumericChar
+    | '_'}${string}`
 
 // export type IsNotKeywordHelper<F extends string> = F extends `$${string}` ? never : string
 

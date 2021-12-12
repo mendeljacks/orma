@@ -1,7 +1,9 @@
 import {
-    Query
+    Query, Subquery, VirtualFieldObj
 } from './query_types'
 import {
+    GetAllEntities,
+    NonKeyword,
     OrmaSchema
 } from './schema_types'
 
@@ -102,12 +104,44 @@ type TestSchema = typeof test_schema
         },
     }
 
+    // nested subqueries
+    const good3: Query<TestSchema> = {
+        my_images: {
+            $from: 'images',
+            products: {
+                vendors: {
+                    products: {
+                        id: true
+                    }
+                }
+            },
+        },
+        images: {
+            products: {
+                id: true
+            }
+        }
+    }
+
     // orma actually doesnt allow this, since in this case a $from clause must
     // be provided, but the types allow this since I can't figure out
     // how to disallow it without ruining other parts of the type
-    const good3: test = {
+    const good4: test = {
         my_images: {
             url: true,
+        },
+    }
+
+    // orma would not allow this, since regular nested fields cant start with $,
+    // but I cant get typescript to only apply virtual fields type to strings
+    // starting with $. I tried, but that basically caused the type checker
+    // to become very unstable (ignoring types in some places but not others etc.)
+    // I believe this is something to do with the way I tried it (enumerating ever
+    // alphanumeric character except $) overloading the type checker with too
+    // many code paths, but who knows for sure
+    const good5: test = {
+        products: {
+            $sum: 'id'
         },
     }
 
@@ -125,6 +159,15 @@ type TestSchema = typeof test_schema
             $from: 'products',
             id: true,
         },
+    }
+}
+
+{
+    type test = Query<TestSchema>
+    const good: test = {
+        products: {
+            id: true
+        }
     }
 }
 

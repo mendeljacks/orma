@@ -3,13 +3,18 @@ import {
     GetAllEdges,
     GetAllEntities,
     GetFields,
+    NonKeyword,
     OrmaSchema,
 } from './schema_types'
 
 export type Query<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>
 } & {
-    [VirtualEntity in string]?: Subquery<Schema, GetAllEntities<Schema>, false>
+    [VirtualEntity in NonKeyword]?: Subquery<
+        Schema,
+        GetAllEntities<Schema>,
+        false
+    >
 }
 
 export type Subquery<
@@ -17,20 +22,21 @@ export type Subquery<
     Entities extends GetAllEntities<Schema>,
     RequireFrom extends boolean
 > = Entities extends any
-    ? FieldProps<Schema, Entities> &
-          SubqueryProps<Schema, Entities> &
-          VirtualFieldProps<Schema, Entities> &
-          FromProps<Schema, Entities, RequireFrom>
+    ? FieldObj<Schema, Entities> &
+          SubqueryObj<Schema, Entities> &
+          VirtualFieldObj<Schema, Entities> &
+          FromObj<Schema, Entities, RequireFrom> &
+          PaginationObj
     : never
 
-export type FieldProps<
+export type FieldObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
     [Field in GetFields<Schema, Entity>]?: QueryField<Schema, Entity>
 }
 
-export type SubqueryProps<
+export type SubqueryObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
@@ -41,21 +47,26 @@ export type SubqueryProps<
     >
 }
 
-export type VirtualFieldProps<
+export type VirtualFieldObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    [VirtualField in string]?:
-        | QueryField<Schema, Entity>
-        | Subquery<
-              Schema,
-              Pluck<GetAllEdges<Schema, Entity>, 'to_entity'>,
-              false
-          >
-        | Entity
+    [VirtualFieldName in string]?: VirtualField<Schema, Entity>
 }
 
-export type FromProps<
+
+export type VirtualField<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> =
+    // not all of these are valid in orma, but we need them because typescript will apply this virtual field type to
+    // all other properties too, e.g. $limit: 3 or id: true
+    | Subquery<Schema, Pluck<GetAllEdges<Schema, Entity>, 'to_entity'>, false>
+    | QueryField<Schema, Entity>
+    | Entity
+    | number
+
+export type FromObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     RequireFrom extends boolean
@@ -77,4 +88,9 @@ export type Expression<
     Entity extends GetAllEntities<Schema>
 > = {
     $sum: GetFields<Schema, Entity>
+}
+
+export type PaginationObj = {
+    $limit?: number
+    $offset?: number
 }
