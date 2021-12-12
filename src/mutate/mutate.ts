@@ -4,7 +4,7 @@ import {
     deep_for_each,
     deep_get,
     deep_set,
-    drop,
+    drop_last,
     is_simple_object,
     last,
 } from '../helpers/helpers'
@@ -367,7 +367,7 @@ const get_record_with_foreign_keys = (
 
     // get a list of the above path, as well as any below paths.
     // Some of these might by parents and some might be children.
-    const above_path = drop(2, record_path)
+    const above_path = drop_last(2, record_path)
     const below_paths = Object.keys(record)
         .filter(key => Array.isArray(record[key]))
         .map(key => [...record_path, key, 0])

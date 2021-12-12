@@ -1,4 +1,4 @@
-import { clone, deep_get, deep_set, drop, last } from '../helpers/helpers'
+import { clone, deep_get, deep_set, drop_last, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge, is_reserved_keyword } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
@@ -13,7 +13,7 @@ import { get_query_plan } from './query_plan'
 export const get_real_parent_name = (path: (string | number)[], query) => {
     if (path.length < 2) return null
 
-    return deep_get([...drop(1, path), '$from'], query, null) || path[path.length - 2]
+    return deep_get([...drop_last(1, path), '$from'], query, null) || path[path.length - 2]
 }
 
 // This function will default to the from clause
@@ -83,6 +83,7 @@ export const having_to_json_sql = (
 
 export const orma_nester = (
     results: [string[], Record<string, unknown>[]][],
+    query,
     orma_schema: orma_schema
 ) => {
     // get data in the right format for the nester
@@ -91,8 +92,8 @@ export const orma_nester = (
         if (path.length === 1) {
             return null
         }
-        const entity = last(path)
-        const higher_entity = path[path.length - 2]
+        const entity = get_real_entity_name(path,query )
+        const higher_entity = get_real_entity_name(path.slice(0, -1), query) 
         const edge = get_direct_edge(higher_entity, entity, orma_schema)
         return [edge.from_field, edge.to_field]
     })
@@ -140,7 +141,7 @@ export const orma_query = async (
         sql_strings.forEach((_, i) => results.push([paths[i], output[i]]))
     }
 
-    const output = orma_nester(results, orma_schema)
+    const output = orma_nester(results, query, orma_schema)
 
     return output
 }

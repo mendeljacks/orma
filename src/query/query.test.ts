@@ -50,6 +50,11 @@ describe('query', () => {
                     [['products'], [{ vendor_id: 1 }]],
                     [['products', 'vendors'], [{ id: 1 }]]
                 ],
+                {
+                    products: {
+                        vendors: {}
+                    }
+                },
                 orma_schema
             )
 

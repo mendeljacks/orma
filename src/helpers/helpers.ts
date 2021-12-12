@@ -15,7 +15,7 @@ export const type = (value: any): type_string => {
         ? 'Undefined'
         : Object.prototype.toString.call(value).slice(8, -1)
 }
-export const drop = (num: number, arr: any[]) => arr.slice(0, -num)
+export const drop_last = (num: number, arr: any[]) => arr.slice(0, -num)
 export const last = <T>(array: T[]): T => array[array.length - 1]
 export const deep_set = (
     path_array: (string | number)[],
