@@ -147,7 +147,37 @@ describe('nester', () => {
 
         expect(result).to.deep.equal(goal)
     })
+    test('handles nesting same object multiple times', () => {
+        const data = [
+            [['variants', 0], [{ id: 10, product_id: 1 }, { id: 11, product_id: 1 }]],
+            [['variants', 0, 'products'], [{ id: 1 }]],
+        ]
 
+        const edges = [
+            null,
+            ['product_id', 'id']
+        ]
+
+
+        const goal = {
+            variants: [{
+                id: 10,
+                products: [{
+                    id: 1
+                }]
+            }, {
+                id: 11,
+                products: [{
+                    id: 1
+                }]
+            }]
+        }
+
+
+        let result = nester(data, edges)
+
+        expect(result).to.deep.equal(goal)
+    })
 
 
 
