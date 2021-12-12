@@ -1,5 +1,4 @@
-import { orma_field_schema, orma_schema } from '../introspector/introspector'
-import { AllowType, IsUnion, Pluck } from './helper_types'
+import { Pluck } from './helper_types'
 import {
     GetAllEdges,
     GetAllEntities,
@@ -8,24 +7,10 @@ import {
 } from './schema_types'
 
 export type Query<Schema extends OrmaSchema> = {
-    [Entity in GetAllEntities<Schema>]?: // | (Subquery<Schema, GetAllEntities<Schema>, true> & {___asdasd?: never})
-    Subquery<Schema, Entity, false>
+    [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>
 } & {
-    [VirtualEntity in string]?: Subquery<Schema, GetAllEntities<Schema>, false> //UnknownSubquery<Schema, GetAllEntities<Schema>>
+    [VirtualEntity in string]?: Subquery<Schema, GetAllEntities<Schema>, false>
 }
-
-// export type UnknownSubquery<
-//     Schema extends OrmaSchema,
-//     PossibleEntities extends GetAllEntities<Schema>
-// > =
-//     // we have to split into two if statements so that we can essentially cache the result of IsUnion so we can check
-//     // if its a union before the next if statement distributes the different entities (an then no entity is a union,
-//     // since after distribution there are only single entities)
-//     IsUnion<PossibleEntities> extends AllowType<infer RequireFrom, boolean>
-//         ? PossibleEntities extends any
-//             ? Subquery<Schema, PossibleEntities, RequireFrom>
-//             : never
-//         : never
 
 export type Subquery<
     Schema extends OrmaSchema,
@@ -33,8 +18,8 @@ export type Subquery<
     RequireFrom extends boolean
 > = Entities extends any
     ? FieldProps<Schema, Entities> &
-            SubqueryProps<Schema, Entities> &
-            VirtualFieldProps<Schema, Entities> &
+          SubqueryProps<Schema, Entities> &
+          VirtualFieldProps<Schema, Entities> &
           FromProps<Schema, Entities, RequireFrom>
     : never
 

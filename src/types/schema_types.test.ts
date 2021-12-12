@@ -54,13 +54,6 @@ const test_schema = getA({
     type bad = IsKeyword<'a'>
 }
 
-// {
-//     type good = IsNotKeyword<'a'>
-//     type good2 = IsNotKeywordHelper<'a'>
-//     // @ts-expect-error
-//     type bad = IsNotKeyword<'$a'>
-// }
-
 {
     type test = GetAllEntities<typeof test_schema>
 

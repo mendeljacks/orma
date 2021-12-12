@@ -102,6 +102,15 @@ type TestSchema = typeof test_schema
         },
     }
 
+    // orma actually doesnt allow this, since in this case a $from clause must
+    // be provided, but the types allow this since I can't figure out
+    // how to disallow it without ruining other parts of the type
+    const good3: test = {
+        my_images: {
+            url: true,
+        },
+    }
+
     // searching products under the key images is disallowed on a type level.
     // Orma allows this, but I couldnt figure out how to be able to do this
     // and also have good intellisense (when I tried this, intellises for

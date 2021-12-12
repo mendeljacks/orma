@@ -1,4 +1,4 @@
-import { IsEqual, Pluck } from './helper_types'
+import { Pluck } from './helper_types'
 
 {
     type test = Pluck<{ a: 1; b: 2; c: 3 }, 'a' | 'c'>
