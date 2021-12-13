@@ -2,17 +2,14 @@ import { Pluck } from './helper_types'
 import {
     GetAllEdges,
     GetAllEntities,
-    GetFields, OrmaSchema
+    GetFields,
+    OrmaSchema,
 } from './schema_types'
 
 export type Query<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>
 } & {
-    [VirtualEntity in string]?: Subquery<
-        Schema,
-        GetAllEntities<Schema>,
-        false
-    >
+    [VirtualEntity in string]?: Subquery<Schema, GetAllEntities<Schema>, false>
 }
 
 export type Subquery<
@@ -99,7 +96,10 @@ export type GroupByObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    // $group_by?: Group
+    $group_by?: GroupBy<Schema, Entity>
 }
 
-type GroupBy<Schema extends OrmaSchema, Entity extends GetAllEntities<Schema>> = (GetFields<Schema, Entity> | Expression<Schema, Entity>)[]
+type GroupBy<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> = (GetFields<Schema, Entity> | (string & {}))[]

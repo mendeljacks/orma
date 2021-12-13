@@ -13,7 +13,7 @@ jobs:
     - name: npm install
       run: npm install @jsdevtools/npm-publish
 
-    - name: npm run build
+    - name: build
       run: yarn build
 
     - name: npm run deploy

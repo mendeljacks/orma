@@ -178,7 +178,7 @@ type TestSchema = typeof test_schema
     type test = Query<TestSchema>
     const good: test = {
         products: {
-            $group_by: ['id', 'location_id']
+            $group_by: ['id', 'asdasdasd']
         }
     }
 }
