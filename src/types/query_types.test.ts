@@ -163,10 +163,22 @@ type TestSchema = typeof test_schema
 }
 
 {
+    // test pagination
     type test = Query<TestSchema>
     const good: test = {
         products: {
-            id: true
+            $limit: 1,
+            $offset: 2
+        }
+    }
+}
+
+{
+    // test group by
+    type test = Query<TestSchema>
+    const good: test = {
+        products: {
+            $group_by: ['id', 'location_id']
         }
     }
 }

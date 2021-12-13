@@ -26,7 +26,8 @@ export type Subquery<
           SubqueryObj<Schema, Entities> &
           VirtualFieldObj<Schema, Entities> &
           FromObj<Schema, Entities, RequireFrom> &
-          PaginationObj
+          PaginationObj &
+          GroupByObj<Schema, Entities>
     : never
 
 export type FieldObj<
@@ -54,7 +55,6 @@ export type VirtualFieldObj<
     [VirtualFieldName in string]?: VirtualField<Schema, Entity>
 }
 
-
 export type VirtualField<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
@@ -65,6 +65,7 @@ export type VirtualField<
     | QueryField<Schema, Entity>
     | Entity
     | number
+    | GroupBy<Schema, Entity>
 
 export type FromObj<
     Schema extends OrmaSchema,
@@ -94,3 +95,13 @@ export type PaginationObj = {
     $limit?: number
     $offset?: number
 }
+
+// any entity name
+export type GroupByObj<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> = {
+    // $group_by?: Group
+}
+
+type GroupBy<Schema extends OrmaSchema, Entity extends GetAllEntities<Schema>> = (GetFields<Schema, Entity> | Expression<Schema, Entity>)[]
