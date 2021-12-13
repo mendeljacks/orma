@@ -100,7 +100,7 @@ type TestSchema = typeof test_schema
     const good2: test = {
         my_images: {
             $from: 'images',
-            url: true,
+            url: true
         },
     }
 

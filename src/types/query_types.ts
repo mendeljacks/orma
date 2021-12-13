@@ -2,15 +2,13 @@ import { Pluck } from './helper_types'
 import {
     GetAllEdges,
     GetAllEntities,
-    GetFields,
-    NonKeyword,
-    OrmaSchema,
+    GetFields, OrmaSchema
 } from './schema_types'
 
 export type Query<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>
 } & {
-    [VirtualEntity in NonKeyword]?: Subquery<
+    [VirtualEntity in string]?: Subquery<
         Schema,
         GetAllEntities<Schema>,
         false
