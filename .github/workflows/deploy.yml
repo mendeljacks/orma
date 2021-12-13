@@ -13,11 +13,14 @@ jobs:
     - name: npm install
       run: npm install @jsdevtools/npm-publish
 
-    - name: npm install typescript
+    - name: npm install typescript global
       run: npm install -g typescript
 
+    - name: npm install typescript
+      run: npm install typescript
+
     - name: npm run build
-      run: npm run build
+      run: yarn build
 
     - name: npm run deploy
       run: NPM_TOKEN=${{secrets.NPM_TOKEN}} npm run deploy
