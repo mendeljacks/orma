@@ -1,11 +1,5 @@
-import {
-    Query, Subquery, VirtualFieldObj
-} from './query_types'
-import {
-    GetAllEntities,
-    NonKeyword,
-    OrmaSchema
-} from './schema_types'
+import { Query, Subquery, VirtualFieldObj } from './query_types'
+import { GetAllEntities, NonKeyword, OrmaSchema } from './schema_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a
 
@@ -100,7 +94,7 @@ type TestSchema = typeof test_schema
     const good2: test = {
         my_images: {
             $from: 'images',
-            url: true
+            url: true,
         },
     }
 
@@ -111,16 +105,16 @@ type TestSchema = typeof test_schema
             products: {
                 vendors: {
                     products: {
-                        id: true
-                    }
-                }
+                        id: true,
+                    },
+                },
             },
         },
         images: {
             products: {
-                id: true
-            }
-        }
+                id: true,
+            },
+        },
     }
 
     // orma actually doesnt allow this, since in this case a $from clause must
@@ -141,7 +135,7 @@ type TestSchema = typeof test_schema
     // many code paths, but who knows for sure
     const good5: test = {
         products: {
-            $sum: 'id'
+            $sum: 'id',
         },
     }
 
@@ -168,8 +162,8 @@ type TestSchema = typeof test_schema
     const good: test = {
         products: {
             $limit: 1,
-            $offset: 2
-        }
+            $offset: 2,
+        },
     }
 }
 
@@ -178,13 +172,47 @@ type TestSchema = typeof test_schema
     type test = Query<TestSchema>
     const good: test = {
         products: {
-            $group_by: ['id', 'asdasdasd']
-        }
+            $group_by: ['id', 'asdasdasd', {
+                $sum: 'id'
+            }],
+        },
     }
 }
 
+{
+    // test order by
+    type test = Query<TestSchema>
+    const good: test = {
+        products: {
+            $order_by: [
+                'id',
+                {
+                    $asc: 'location_id',
+                },
+                {
+                    $desc: 'asdasdasdsad',
+                },
+                'asdjaskdhasjd'
+            ],
+        },
+    }
 
+    const bad1: test = {
+        products: {
+            // @ts-expect-error
+            $order_by: 'id'
+        }
+    }
 
+    const bad2: test = {
+        products: {
+            $order_by: [{
+                // @ts-expect-error
+                $not_a_real_keyword: 'id'
+            }]
+        }
+    }
+}
 
 // {
 //     type t = Pluck<GetAllEdges<TestSchema, 'products'>, 'to_entity'>

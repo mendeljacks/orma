@@ -22,7 +22,8 @@ export type Subquery<
           VirtualFieldObj<Schema, Entities> &
           FromObj<Schema, Entities, RequireFrom> &
           PaginationObj &
-          GroupByObj<Schema, Entities>
+          GroupByObj<Schema, Entities> &
+          OrderByObj<Schema, Entities>
     : never
 
 export type FieldObj<
@@ -61,6 +62,7 @@ export type VirtualField<
     | Entity
     | number
     | GroupBy<Schema, Entity>
+    | OrderBy<Schema, Entity>
 
 export type FromObj<
     Schema extends OrmaSchema,
@@ -99,7 +101,29 @@ export type GroupByObj<
     $group_by?: GroupBy<Schema, Entity>
 }
 
+type FieldOrString<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> = GetFields<Schema, Entity> | (string & {})
+
 type GroupBy<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
-> = (GetFields<Schema, Entity> | (string & {}))[]
+> = (FieldOrString<Schema, Entity> | Expression<Schema, Entity>)[]
+
+export type OrderByObj<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> = {
+    $order_by?: OrderBy<Schema, Entity>
+}
+
+type OrderBy<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> = (
+    | FieldOrString<Schema, Entity>
+    | { $asc: FieldOrString<Schema, Entity> }
+    | { $desc: FieldOrString<Schema, Entity> }
+    | Expression<Schema, Entity>
+)[]
