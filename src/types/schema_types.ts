@@ -2,7 +2,10 @@
 
 import { Schema } from 'inspector'
 import { Edge } from '../helpers/schema_helpers'
-import { orma_schema } from '../introspector/introspector'
+import {
+    mysql_to_simple_types,
+    orma_schema,
+} from '../introspector/introspector'
 import {
     AllowType,
     IsType,
@@ -30,7 +33,7 @@ export type OrmaSchema = DeepReadonly<orma_schema>
 // basic structure
 
 export type Keyword = `$${string}`
-export type IsKeyword<Field extends `$${string}`> = Field
+export type IsKeyword<Field> = Field extends Keyword ? true : false
 
 /**
  * Non keywords cannot start with a $
@@ -112,3 +115,24 @@ type FilterEdgeByFromEntity<
     EdgeParams extends Edge,
     Entities
 > = EdgeParams extends { from_entity: Entities } ? EdgeParams : never
+
+export type GetFieldType<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    Field extends GetFields<Schema, Entity>
+> = Schema[Entity][Field] extends { data_type: any }
+    ? FieldTypeStringToType<Schema[Entity][Field]['data_type']>
+    : any
+
+type FieldTypeStringToType<
+    TypeString extends typeof mysql_to_simple_types[keyof typeof mysql_to_simple_types]
+> = TypeString extends 'string'
+    ? string
+    : TypeString extends 'number'
+    ? number
+    : TypeString extends 'boolean'
+    ? boolean
+    : TypeString extends 'date'
+    ? Date
+    : any
+
