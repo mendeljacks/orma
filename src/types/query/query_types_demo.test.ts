@@ -24,19 +24,17 @@ import { as_orma_query } from '../../query/query'
     })
 
     const query = as_orma_query(schema, {
-        // products: {
-        //     id: true,
-        //     images: {
-        //         url: true,
-        //     },
-        // },
         my_products: {
             $from: 'products',
             id: true,
             images: {
                 my_url: 'url',
             },
-        },
+            // $order_by: [{
+            //     $asc: 'id'
+            // }],
+            $group_by: ['my_id']
+        }
     } as const)
 
     orma_query(

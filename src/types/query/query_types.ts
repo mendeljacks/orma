@@ -1,5 +1,6 @@
 import { Pluck } from '../helper_types'
 import {
+    DeepReadonly,
     GetAllEdges,
     GetAllEntities,
     GetFields,
@@ -109,7 +110,7 @@ type FieldOrString<
 type GroupBy<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
-> = (FieldOrString<Schema, Entity> | Expression<Schema, Entity>)[]
+> = readonly (FieldOrString<Schema, Entity> | Expression<Schema, Entity>)[]
 
 export type OrderByObj<
     Schema extends OrmaSchema,
@@ -118,12 +119,12 @@ export type OrderByObj<
     $order_by?: OrderBy<Schema, Entity>
 }
 
-type OrderBy<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
-> = (
-    | FieldOrString<Schema, Entity>
-    | { $asc: FieldOrString<Schema, Entity> }
-    | { $desc: FieldOrString<Schema, Entity> }
-    | Expression<Schema, Entity>
-)[]
+type OrderBy<Schema extends OrmaSchema, Entity extends GetAllEntities<Schema>> =
+    // using readonly allows us to do as const in the as_orma_query wrapper function which is needed to do
+    // type narrowing (for some reason types arent narrowing with both schema and query params)
+    readonly (
+        | FieldOrString<Schema, Entity>
+        | { $asc: FieldOrString<Schema, Entity> }
+        | { $desc: FieldOrString<Schema, Entity> }
+        | Expression<Schema, Entity>
+    )[]

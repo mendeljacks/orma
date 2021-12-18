@@ -175,6 +175,7 @@ describe('query', () => {
             }
 
             var actual_query = ''
+            // @ts-ignore
             const test = await orma_query(query, orma_schema, sql_strings => {
                 actual_query = sql_strings[0]
                 return Promise.resolve([])
