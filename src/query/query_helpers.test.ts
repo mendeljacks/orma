@@ -9,7 +9,7 @@ import {
 
 describe('query helpers', () => {
     describe(is_subquery.name, () => {
-        test('is subquery', () => {
+        test('data prop makes subquery', () => {
             const result = is_subquery({
                 $from: 'products',
                 id: {},
@@ -17,9 +17,23 @@ describe('query helpers', () => {
 
             expect(result).to.equal(true)
         })
+        test('$from makes subquery', () => {
+            const result = is_subquery({
+                $from: 'products'
+            })
+            
+            expect(result).to.equal(true)
+        })
+        test('empty object is not subquery', () => {
+            const result = is_subquery({
+               
+            })
+
+            expect(result).to.equal(false)
+        })
         test('not subquery', () => {
             const result = is_subquery({
-                $from: 'products',
+                $limit: 'products',
             })
 
             expect(result).to.equal(false)

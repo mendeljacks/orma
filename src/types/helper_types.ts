@@ -22,11 +22,20 @@ type PluckKey<
 > = Keys extends DesiredKeys ? Obj[Keys] : never
 
 // export type AllowEqual<T1 extends T2, T2> = AllowEqual2<T1, T2>
-export type IsEqual<T1, T2> = T1 extends T2
-    ? T2 extends T1
-        ? true
-        : false
+// export type IsEqual<T1, T2> = T1 extends T2
+//     ? T2 extends T1
+//         ? true
+//         : false
+//     : false
+
+// check type equality. IsStrictEqual<any, string> = false
+export type IsEqual<T, U> = (<G>() => G extends T ? 1 : 2) extends <
+    G
+>() => G extends U ? 1 : 2
+    ? true
     : false
+
+export type IsExtends<T, U> = T extends U ? true : false
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
     k: infer I
@@ -35,6 +44,25 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
     : never
 
 export type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
+
+// from: https://stackoverflow.com/questions/57683303/how-can-i-see-the-full-expanded-contract-of-a-typescript-type
+export type Expand<T> = T extends (...args: infer A) => infer R
+    ? (...args: Expand<A>) => Expand<R>
+    : T extends infer O
+    ? { [K in keyof O]: O[K] }
+    : never
+
+export type ExpandRecursively<T> = T extends (...args: infer A) => infer R
+    ? (...args: ExpandRecursively<A>) => ExpandRecursively<R>
+    : T extends Object
+    ? T extends infer O
+        ? { [K in keyof O]: ExpandRecursively<O[K]> }
+        : never
+    : T
+
+export type BooleanOr<A extends boolean, B extends boolean> = true extends A | B
+    ? true
+    : false
 
 export type LowercaseChar =
     | 'a'

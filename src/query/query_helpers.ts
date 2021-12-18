@@ -3,7 +3,7 @@ import { is_reserved_keyword } from '../helpers/schema_helpers'
 
 /**
  * Returns true if the parameter is a subquery. A subquery is an object that has at least one data fetching prop
- * (i.e. a prop that doesnt start with a $) or is an empty object.
+ * (i.e. a prop that doesnt start with a $), is an empty object, or has a $from keyword as a property.
  * @param subquery
  * @returns
  */
@@ -15,8 +15,9 @@ export const is_subquery = (subquery: any) => {
 
     const subquery_keys = Object.keys(subquery)
     const has_data_prop = subquery_keys.some(key => !is_reserved_keyword(key))
+    const has_from = subquery.$from !== undefined
 
-    return has_data_prop || subquery_keys.length === 0
+    return has_data_prop || has_from
 }
 
 /**

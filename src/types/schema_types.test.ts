@@ -1,12 +1,23 @@
+import { AllowType, IsEqual } from './helper_types'
 import {
-    GetAllEdges, GetAllEntities, GetChildEdges, GetFields, GetParentEdges, IsKeyword, OrmaSchema
+    GetAllEdges,
+    GetAllEntities,
+    GetChildEdges,
+    GetFields,
+    GetFieldType,
+    GetParentEdges,
+    IsKeyword,
+    IsStrictEqual,
+    OrmaSchema,
 } from './schema_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a
 
 const test_schema = getA({
     products: {
-        id: {},
+        id: {
+            data_type: 'string',
+        },
         vendor_id: {
             references: {
                 vendors: {
@@ -49,9 +60,9 @@ const test_schema = getA({
 } as const)
 
 {
-    type good = IsKeyword<'$a'>
+    type good = AllowType<IsKeyword<'$a'>, true>
     // @ts-expect-error
-    type bad = IsKeyword<'a'>
+    type bad = AllowType<IsKeyword<'a'>, true>
 }
 
 {
@@ -88,11 +99,11 @@ const test_schema = getA({
         to_entity: 'locations',
         to_field: 'id',
     }
-    
+
     // wrong entity
     const bad1: test = {
         // @ts-expect-error
-        from_entity: 'images', 
+        from_entity: 'images',
         // @ts-expect-error
         from_field: 'product_id',
         // @ts-expect-error
@@ -102,10 +113,10 @@ const test_schema = getA({
 
     // incorrect entity name
     const bad2: test = {
-        from_entity: 'products', 
+        from_entity: 'products',
         from_field: 'vendor_id',
         // @ts-expect-error
-        to_entity: 'vendorss', 
+        to_entity: 'vendorss',
         to_field: 'id',
     }
 
@@ -127,10 +138,10 @@ const test_schema = getA({
         to_entity: 'images',
         to_field: 'product_id',
     }
-    
+
     // wrong edge direction
     const bad1: test = {
-        from_entity: 'images', 
+        from_entity: 'images',
         // @ts-expect-error
         from_field: 'product_id',
         to_entity: 'products',
@@ -138,7 +149,7 @@ const test_schema = getA({
         to_field: 'id',
     }
 
-    type t1 = { [a: string]: 'hi'}
+    type t1 = { [a: string]: 'hi' }
     type t2 = keyof t1
 }
 
@@ -160,11 +171,11 @@ const test_schema = getA({
         to_entity: 'vendors',
         to_field: 'id',
     }
-    
+
     // only allow edges from products
     const bad1: test = {
         //@ts-expect-error
-        from_entity: 'images', 
+        from_entity: 'images',
         from_field: 'id',
         //@ts-expect-error
         to_entity: 'image_urls',
@@ -172,6 +183,20 @@ const test_schema = getA({
         to_field: 'image_id',
     }
 
-    type t1 = { [a: string]: 'hi'}
+    type t1 = { [a: string]: 'hi' }
     type t2 = keyof t1
+}
+
+{
+    // reads the type from the schema
+    const good: IsEqual<
+        GetFieldType<typeof test_schema, 'products', 'id'>,
+        string
+    > = true
+
+    // unknown types are cast as any
+    const good2: IsStrictEqual<
+        GetFieldType<typeof test_schema, 'products', 'location_id'>,
+        any
+    > = true
 }

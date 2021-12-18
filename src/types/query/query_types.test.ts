@@ -1,5 +1,5 @@
-import { Query, Subquery, VirtualFieldObj } from './query_types'
-import { GetAllEntities, NonKeyword, OrmaSchema } from './schema_types'
+import { OrmaQuery, Subquery, VirtualFieldObj } from './query_types'
+import { GetAllEntities, NonKeyword, OrmaSchema } from '../schema_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a
 
@@ -54,7 +54,7 @@ type TestSchema = typeof test_schema
 
 {
     // test fields
-    type test = Query<TestSchema>
+    type test = OrmaQuery<TestSchema>
 
     const good: test = {
         products: {
@@ -78,7 +78,7 @@ type TestSchema = typeof test_schema
 
 {
     // test subqueries
-    type test = Query<TestSchema>
+    type test = OrmaQuery<TestSchema>
 
     // known root entities
     const good1: test = {
@@ -99,7 +99,7 @@ type TestSchema = typeof test_schema
     }
 
     // nested subqueries
-    const good3: Query<TestSchema> = {
+    const good3: OrmaQuery<TestSchema> = {
         my_images: {
             $from: 'images',
             products: {
@@ -158,7 +158,7 @@ type TestSchema = typeof test_schema
 
 {
     // test pagination
-    type test = Query<TestSchema>
+    type test = OrmaQuery<TestSchema>
     const good: test = {
         products: {
             $limit: 1,
@@ -169,7 +169,7 @@ type TestSchema = typeof test_schema
 
 {
     // test group by
-    type test = Query<TestSchema>
+    type test = OrmaQuery<TestSchema>
     const good: test = {
         products: {
             $group_by: ['id', 'asdasdasd', {
@@ -181,7 +181,7 @@ type TestSchema = typeof test_schema
 
 {
     // test order by
-    type test = Query<TestSchema>
+    type test = OrmaQuery<TestSchema>
     const good: test = {
         products: {
             $order_by: [

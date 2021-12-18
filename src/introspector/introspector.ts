@@ -220,7 +220,7 @@ export const generate_database_schema = (
     return database_schema
 }
 
-const mysql_to_simple_types = {
+export const mysql_to_simple_types = {
     bigint: 'number',
     binary: 'string',
     bit: 'not_supported',
