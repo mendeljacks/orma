@@ -4,6 +4,8 @@
  */
 
 import { deep_set, group_by } from '../helpers/helpers'
+import { OrmaSchema } from '../types/schema_types'
+
 
 export interface mysql_table {
     table_name: string
@@ -251,6 +253,8 @@ export const mysql_to_simple_types = {
     varbinary: 'string',
     varchar: 'string'
 } as const
+
+export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) => schema
 
 export const generate_field_schema = (mysql_column: mysql_column) => {
     const {

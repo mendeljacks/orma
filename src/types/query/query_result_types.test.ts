@@ -1,3 +1,4 @@
+import { as_orma_schema } from '../../introspector/introspector'
 import { IsEqual, IsExtends } from '../helper_types'
 import { OrmaSchema } from '../schema_types'
 import {
@@ -8,9 +9,7 @@ import {
 } from './query_result_types'
 import { OrmaQuery } from './query_types'
 
-const getA = <K extends OrmaSchema>(a: K) => a
-
-const test_schema = getA({
+const test_schema = as_orma_schema({
     products: {
         id: {
             data_type: 'number',
@@ -143,13 +142,27 @@ const as_query = <T extends OrmaQuery<TestSchema>>(
     // propagates field types
     const result = as_query({
         products: {
-            id: true
-        }
+            id: true,
+        },
     })
 
     type FieldType = typeof result['products'][0]['id']
 
     const expect: IsEqual<FieldType, number> = true
+}
+
+{
+    // handles renamed entities
+    const result = as_query({
+        my_images: {
+            $from: 'images',
+            url: true
+        }
+    })
+
+    type FieldType = typeof result['my_images'][0]['url']
+
+    const expect: IsEqual<FieldType, string> = true
 }
 
 {
@@ -248,13 +261,15 @@ const as_query = <T extends OrmaQuery<TestSchema>>(
     }
     {
         // respects $from clause
-        type test = AddSchemaTypes<TestSchema, {
-            my_images: {
-                $from: 'images',
-                url: true
-
+        type test = AddSchemaTypes<
+            TestSchema,
+            {
+                my_images: {
+                    $from: 'images'
+                    url: true
+                }
             }
-        }>
+        >
 
         type FieldType = test['my_images']['url']
         const expect: IsEqual<FieldType, string> = true
@@ -263,24 +278,30 @@ const as_query = <T extends OrmaQuery<TestSchema>>(
         // handles computed fields
         // computed fields have type any for now, although in future types should really
         // propagate through founctions like $sum
-        type test = AddSchemaTypes<TestSchema, {
-            products: {
-                sum_quantity: {
-                    $sum: 'quantity'
+        type test = AddSchemaTypes<
+            TestSchema,
+            {
+                products: {
+                    sum_quantity: {
+                        $sum: 'quantity'
+                    }
                 }
             }
-        }>
+        >
 
         type FieldType = test['products']['sum_quantity']
         const expect: IsEqual<FieldType, any> = true
     }
     {
         // handles mapped fields
-        type test = AddSchemaTypes<TestSchema, {
-            products: {
-                my_id: 'id'
+        type test = AddSchemaTypes<
+            TestSchema,
+            {
+                products: {
+                    my_id: 'id'
+                }
             }
-        }>
+        >
 
         type FieldType = test['products']['my_id']
         const expect: IsEqual<FieldType, number> = true

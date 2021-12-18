@@ -2,6 +2,10 @@ import { clone, deep_get, deep_set, drop_last, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge, is_reserved_keyword } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
+import { ExpandRecursively } from '../types/helper_types'
+import { QueryResult } from '../types/query/query_result_types'
+import { OrmaQuery } from '../types/query/query_types'
+import { DeepReadonly, DeepReadonlyObject, OrmaSchema } from '../types/schema_types'
 import { json_to_sql } from './json_sql'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
@@ -108,14 +112,15 @@ export const orma_nester = (
 }
 
 // export const orma_query = async <schema>(raw_query: validate_query<schema>, orma_schema: validate_orma_schema<schema>, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
-export const orma_query = async (
-    raw_query,
-    orma_schema,
+export const orma_query = async <Schema extends OrmaSchema, Query extends OrmaQuery<Schema>>(
+    raw_query: Query,
+    orma_schema_input: Schema,
     query_function: (sql_string: string[]) => Promise<Record<string, unknown>[][]>,
     escaping_function: (value) => any
-) => {
+): Promise<QueryResult<Schema, Query>> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
-    
+    const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
+
     apply_any_path_macro(query, orma_schema)
     apply_select_macro(query, orma_schema)
 
@@ -143,5 +148,10 @@ export const orma_query = async (
 
     const output = orma_nester(results, query, orma_schema)
 
-    return output
+    return output as any
 }
+
+export const as_orma_schema =<Schema extends OrmaSchema>(schema: Schema) => schema
+export const as_orma_query = <Schema extends OrmaSchema, T extends OrmaQuery<Schema>>(schema: Schema, query: T): T => (query as T)
+
+// export const as_orma_query_result = <Schema extends OrmaSchema, Query extends OrmaQuery<Schema>>(orma_schema: Schema, query: Query): QueryResult => 

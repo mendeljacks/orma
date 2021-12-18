@@ -1,3 +1,4 @@
+import { as_orma_schema } from '../introspector/introspector'
 import { AllowType, IsEqual } from './helper_types'
 import {
     GetAllEdges,
@@ -7,13 +8,11 @@ import {
     GetFieldType,
     GetParentEdges,
     IsKeyword,
-    IsStrictEqual,
     OrmaSchema,
 } from './schema_types'
 
-const getA = <K extends OrmaSchema>(a: K) => a
 
-const test_schema = getA({
+const test_schema = as_orma_schema({
     products: {
         id: {
             data_type: 'string',
@@ -195,7 +194,7 @@ const test_schema = getA({
     > = true
 
     // unknown types are cast as any
-    const good2: IsStrictEqual<
+    const good2: IsEqual<
         GetFieldType<typeof test_schema, 'products', 'location_id'>,
         any
     > = true
