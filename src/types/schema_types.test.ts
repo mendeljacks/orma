@@ -1,16 +1,14 @@
 import { as_orma_schema } from '../introspector/introspector'
 import { AllowType, IsEqual } from './helper_types'
 import {
-    GetAllEdges,
+    FilterFieldsBySchemaProp, GetAllEdges,
     GetAllEntities,
     GetChildEdges,
     GetFields,
     GetFieldType,
     GetParentEdges,
-    IsKeyword,
-    OrmaSchema,
+    IsKeyword
 } from './schema_types'
-
 
 const test_schema = as_orma_schema({
     products: {
@@ -18,6 +16,7 @@ const test_schema = as_orma_schema({
             data_type: 'string',
         },
         vendor_id: {
+            required: true,
             references: {
                 vendors: {
                     id: {},
@@ -25,6 +24,7 @@ const test_schema = as_orma_schema({
             },
         },
         location_id: {
+            required: true,
             references: {
                 locations: {
                     id: {},
@@ -198,4 +198,26 @@ const test_schema = as_orma_schema({
         GetFieldType<typeof test_schema, 'products', 'location_id'>,
         any
     > = true
+}
+
+{
+    // finds fields with a schema prop and value
+    type T = FilterFieldsBySchemaProp<
+        typeof test_schema,
+        'products',
+        'required',
+        true
+    >
+    const expect: IsEqual<T, 'vendor_id' | 'location_id'> = true
+}
+
+{
+    // returns never if no field matches
+    type T = FilterFieldsBySchemaProp<
+        typeof test_schema,
+        'vendors',
+        'required',
+        true
+    >
+    const expect: IsEqual<T, never> = true
 }

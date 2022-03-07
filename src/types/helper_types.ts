@@ -37,7 +37,7 @@ export type IsEqual<T, U> = (<G>() => G extends T ? 1 : 2) extends <
 
 export type IsExtends<T, U> = T extends U ? true : false
 
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
     k: infer I
 ) => void
     ? I

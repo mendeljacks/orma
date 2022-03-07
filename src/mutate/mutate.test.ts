@@ -22,13 +22,13 @@ describe('mutate', () => {
         parents: {
             id: {
                 primary_key: true,
-                required: true
+                required: true,
             },
             unique1: {
-                required: true
+                required: true,
             },
             unique2: {
-                required: true
+                required: true,
             },
             quantity: {},
             grandparent_id: {
@@ -325,6 +325,48 @@ describe('mutate', () => {
                     },
                 ],
                 [{ operation: 'create', paths: [['children', 0]] }],
+            ]
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
+        test('handles zigzag nesting', () => {
+            const mutation = {
+                parents: [
+                    {
+                        $operation: 'create',
+                        children: [
+                            {
+                                $operation: 'create ',
+                                parents: [
+                                    {
+                                        $operation: 'create',
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            }
+
+            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+
+            const goal = [
+                [
+                    {
+                        operation: 'create',
+                        paths: [['parents', 0]],
+                    },
+                    {
+                        operation: 'create',
+                        paths: [['parents', 0, 'children', 0, 'parents', 0]],
+                    },
+                ],
+                [
+                    {
+                        operation: 'create',
+                        paths: [['parents', 0, 'children', 0]],
+                    },
+                ],
             ]
 
             expect(mutate_plan).to.deep.equal(goal)

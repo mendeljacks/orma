@@ -1,18 +1,12 @@
 // generate type for orma schema which plays well with as const declarations
 
-import { Schema } from 'inspector'
 import { Edge } from '../helpers/schema_helpers'
 import {
     mysql_to_simple_types,
+    orma_field_schema,
     orma_schema,
 } from '../introspector/introspector'
-import {
-    AllowType,
-    IsType,
-    LowercaseChar,
-    NumericChar,
-    UppercaseChar,
-} from './helper_types'
+import { IsEqual, UnionToIntersection } from './helper_types'
 
 export type DeepReadonly<T> = T extends (infer R)[]
     ? DeepReadonlyArray<R>
@@ -35,14 +29,14 @@ export type OrmaSchema = DeepReadonly<orma_schema>
 export type Keyword = `$${string}`
 export type IsKeyword<Field> = Field extends Keyword ? true : false
 
-/**
- * Non keywords cannot start with a $
- */
-export type NonKeyword = `${
-    | LowercaseChar
-    | UppercaseChar
-    | NumericChar
-    | '_'}${string}`
+// /**
+//  * Non keywords cannot start with a $
+//  */
+// export type NonKeyword = `${
+//     | LowercaseChar
+//     | UppercaseChar
+//     | NumericChar
+//     | '_'}${string}`
 
 // export type IsNotKeywordHelper<F extends string> = F extends `$${string}` ? never : string
 
@@ -124,6 +118,25 @@ export type GetFieldType<
     ? FieldTypeStringToType<Schema[Entity][Field]['data_type']>
     : any
 
+export type GetFieldSchema<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    Field extends GetFields<Schema, Entity>
+> = Schema[Entity][Field] extends orma_field_schema
+    ? Schema[Entity][Field]
+    : any
+
+export type GetRequiredFields<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> = GetFieldSchema<
+    Schema,
+    Entity,
+    GetFields<Schema, Entity>
+>['required'] extends true
+    ? any
+    : never
+
 type FieldTypeStringToType<
     TypeString extends typeof mysql_to_simple_types[keyof typeof mysql_to_simple_types]
 > = TypeString extends 'string'
@@ -136,3 +149,63 @@ type FieldTypeStringToType<
     ? Date
     : any
 
+// This type is equivalent to
+// fields.filter(field => schema.entities[entity].fields[field][SchemaProp] === value)
+// but typescript doesn't have higher kinded types which would allow a filter type,
+// so we need this massive, badly abstracted monstrosity instead.
+export type FilterFieldsBySchemaProp<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    SchemaProp extends string,
+    value
+> = FilterFieldsBySchemaPropWithFieldsExplicit<
+    Schema,
+    Entity,
+    GetFields<Schema, Entity>,
+    SchemaProp,
+    value
+>
+
+// type distribution of a union (in the case Fields) via a ternary operator only seems to work if the
+// union is passed directly in to the type, but not if its generated (e.g. by GetFields<> type).
+// So we need this intermediary layer to make it work. I hate typescript.
+type FilterFieldsBySchemaPropWithFieldsExplicit<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    Fields extends GetFields<Schema, Entity>,
+    SchemaProp extends string,
+    value
+> = Fields extends any
+    ? FieldSchemaPropEq<Schema, Entity, Fields, SchemaProp, value> extends true
+        ? Fields
+        : never //FilterFieldBySchemaProp<Schema, Entity, Fields, SchemaProp, value>
+    : never
+
+type FilterFieldBySchemaProp<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    Field extends GetFields<Schema, Entity>,
+    SchemaProp extends string,
+    value
+> = GetFieldSchema<Schema, Entity, Field> extends {
+    [prop in SchemaProp]: value
+}
+    ? IsEqual<
+          GetFieldSchema<Schema, Entity, Field>[SchemaProp],
+          value
+      > extends true
+        ? Field
+        : never
+    : never
+
+export type FieldSchemaPropEq<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    Field extends GetFields<Schema, Entity>,
+    SchemaProp extends string,
+    value
+> = GetFieldSchema<Schema, Entity, Field> extends {
+    [prop in SchemaProp]: value
+}
+    ? IsEqual<GetFieldSchema<Schema, Entity, Field>[SchemaProp], value>
+    : false

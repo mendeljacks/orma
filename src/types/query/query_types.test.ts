@@ -1,5 +1,5 @@
-import { OrmaQuery, Subquery, VirtualFieldObj } from './query_types'
-import { GetAllEntities, NonKeyword, OrmaSchema } from '../schema_types'
+import { OrmaSchema } from '../schema_types'
+import { OrmaQuery } from './query_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a
 
