@@ -1,6 +1,6 @@
 import { as_orma_schema } from '../../introspector/introspector'
-import { IsEqual, IsExtends } from '../helper_types'
-import { OrmaSchema } from '../schema_types'
+import { IsEqual, IsExtends, Pluck } from '../helper_types'
+import { GetAllEdges, GetParentEdges, GetParentEdgesForFields, OrmaSchema } from '../schema_types'
 import {
     AddSchemaTypes,
     IsSubquery,
@@ -85,6 +85,14 @@ const tests = () => {
 
         // @ts-expect-error
         result.vendors
+    }
+
+    {
+        const t = as_query({
+            products: {
+                id: true,
+            },
+        })
     }
 
     {

@@ -37,9 +37,9 @@ export type IsEqual<T, U> = (<G>() => G extends T ? 1 : 2) extends <
 
 export type IsExtends<T, U> = T extends U ? true : false
 
-export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-    k: infer I
-) => void
+export type UnionToIntersection<U> = (
+    U extends any ? (k: U) => void : never
+) extends (k: infer I) => void
     ? I
     : never
 
@@ -63,6 +63,12 @@ export type ExpandRecursively<T> = T extends (...args: infer A) => infer R
 export type BooleanOr<A extends boolean, B extends boolean> = true extends A | B
     ? true
     : false
+
+// from: https://stackoverflow.com/questions/42123407/does-typescript-support-mutually-exclusive-types
+type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never }
+export type XOR<T, U> = T | U extends object
+    ? (Without<T, U> & U) | (Without<U, T> & T)
+    : T | U
 
 export type LowercaseChar =
     | 'a'

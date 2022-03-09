@@ -1,6 +1,6 @@
 import { as_orma_schema } from '../../introspector/introspector'
-import { GetFields } from '../schema_types'
-import { OrmaMutation } from './mutation_types'
+import { GetFields, GetFieldType, GetParentEdges } from '../schema_types'
+import { FieldType, OrmaMutation } from './mutation_types'
 
 const test_schema = as_orma_schema({
     products: {
@@ -24,6 +24,10 @@ const test_schema = as_orma_schema({
             },
         },
         name: {
+            required: true,
+            data_type: 'string',
+        },
+        nadescriptionme: {
             data_type: 'string',
         },
         $indexes: [],
@@ -78,26 +82,56 @@ const tests = () => {
             products: [
                 {
                     $operation: 'create',
-                    vendor_id: 12,
+                    name: '12',
                     //@ts-expect-error
                     id: 'hi', // data type of id is 'number', so this is not allowed
                 },
             ],
         }
+        type T = GetParentEdges<TestSchema, 'products'>
     }
     {
         // required fields have to be included
+        // const t: Mutation = {
+        //     $operation: 'create',
+        //     products: [
+        //         //@ts-expect-error
+        //         {
+        //             $operation: 'create',
+        //         },
+        //     ],
+        // }
+    }
+    // check top level mutate
+    // check first record needs op if no top level
+    // check nested ops
+    // check operation combos
+    {
+        // can have top level operation
         const t: Mutation = {
             $operation: 'create',
-            products: [
-                //@ts-expect-error
-                {
-                    $operation: 'create',
-                },
-            ],
+            image_urls: [{
+                image_id: 12
+            }]
         }
     }
     {
-        
+        // requires an operation if there is no parent operation
+        // @ts-expect-error
+        const t: Mutation = {
+            image_urls: [{
+                // $operation required here
+                image_id: 12
+            }]
+        }
+    }
+    {
+        // // respects operation cascading
+        // const t: Mutation = {
+        //     image_urls: [{
+        //         $operation: 'create',
+        //         images: []
+        //     }]
+        // }
     }
 }

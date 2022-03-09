@@ -62,7 +62,8 @@ export type GetParentEdgesForFields<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     Fields extends GetFields<Schema, Entity>
-> = Fields extends any // map over fields
+> = 
+Fields extends GetFields<Schema, Entity> // map over fields
     ? Schema[Entity][Fields] extends { references: any } // filter fields to only include ones with foreign keys
         ? {
               from_entity: Entity
@@ -76,6 +77,21 @@ export type GetParentEdgesForFields<
           }
         : never
     : never
+
+// Fields extends any // map over fields
+//     ? Schema[Entity][Fields] extends { references: any } // filter fields to only include ones with foreign keys
+//         ? {
+//               from_entity: Entity
+//               to_entity: GetStringKeys<Schema[Entity][Fields]['references']> // pull out entity from { references: { ... }}
+//               from_field: Fields
+//               to_field: GetStringKeys<
+//                   Schema[Entity][Fields]['references'][GetStringKeys<
+//                       Schema[Entity][Fields]['references']
+//                   >]
+//               > // pull out field from references objecs
+//           }
+//         : never
+//     : never
 
 export type GetParentEdgesForAllEntities<Schema extends OrmaSchema> =
     GetParentEdges<Schema, GetAllEntities<Schema>>
