@@ -19,17 +19,15 @@ describe('query helpers', () => {
         })
         test('$from makes subquery', () => {
             const result = is_subquery({
-                $from: 'products'
-            })
-            
-            expect(result).to.equal(true)
-        })
-        test('empty object is not subquery', () => {
-            const result = is_subquery({
-               
+                $from: 'products',
             })
 
-            expect(result).to.equal(false)
+            expect(result).to.equal(true)
+        })
+        test('empty object is a subquery', () => {
+            const result = is_subquery({})
+
+            expect(result).to.equal(true)
         })
         test('not subquery', () => {
             const result = is_subquery({

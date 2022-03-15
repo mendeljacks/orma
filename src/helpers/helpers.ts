@@ -262,3 +262,5 @@ export const key_by = <T>(
     acc[key] = item
     return acc
 }, {})
+
+export const array_equals = (array1: any[], array2: any[]) => array1.every((el1, i) => el1 === array2[i])

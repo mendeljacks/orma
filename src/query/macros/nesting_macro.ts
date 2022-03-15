@@ -112,7 +112,6 @@ const get_ancestor_where_clause = (
         query
     )
 
-    // TODO refactor this so it works
     const edge_under_ancestor = get_direct_edge(
         entity_under_ancestor,
         ancestor_name,

@@ -16,8 +16,9 @@ export const is_subquery = (subquery: any) => {
     const subquery_keys = Object.keys(subquery)
     const has_data_prop = subquery_keys.some(key => !is_reserved_keyword(key))
     const has_from = subquery.$from !== undefined
+    const is_empty = subquery_keys.length === 0
 
-    return has_data_prop || has_from
+    return has_data_prop || has_from || is_empty
 }
 
 /**

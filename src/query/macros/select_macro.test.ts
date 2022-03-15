@@ -69,7 +69,7 @@ describe('select_macro', () => {
             const query = {
                 products: {
                     images: { url: true },
-                    vendors: {},
+                    vendors: { },
                 },
             }
 
