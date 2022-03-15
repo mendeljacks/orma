@@ -61,8 +61,9 @@ type FieldsObj<
     [Field in FilterFieldsBySchemaProp<
         Schema,
         Entity,
-        'required',
-        true
+        'nullable',
+        // TODO: check if this works after switching from 'required' to 'nullable', since its a filter not eq
+        false | undefined
     >]: FieldType<Schema, Entity, Field>
 }
 

@@ -20,14 +20,9 @@ describe('operation_macros.ts', () => {
         parents: {
             id: {
                 primary_key: true,
-                required: true,
             },
-            unique1: {
-                required: true,
-            },
-            unique2: {
-                required: true,
-            },
+            unique1: {},
+            unique2: {},
             quantity: {},
             grandparent_id: {
                 references: {

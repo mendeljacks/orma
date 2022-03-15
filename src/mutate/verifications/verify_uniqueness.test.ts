@@ -12,15 +12,10 @@ describe('verify_uniqueness', () => {
     const orma_schema: orma_schema = {
         users: {
             id: {
-                required: true,
                 primary_key: true,
             },
-            first_name: {
-                required: true,
-            },
-            last_name: {
-                required: true,
-            },
+            first_name: {},
+            last_name: {},
             age: {},
             $indexes: [
                 {
@@ -33,11 +28,8 @@ describe('verify_uniqueness', () => {
         products: {
             id: {
                 primary_key: true,
-                required: true,
             },
-            title: {
-                required: true,
-            },
+            title: {},
             description: {},
             $indexes: [
                 {
@@ -277,12 +269,14 @@ describe('verify_uniqueness', () => {
                         },
                     },
                 ],
-                products: [{
-                    record: {
-                        id: 13,
-                        title: 'hi',
+                products: [
+                    {
+                        record: {
+                            id: 13,
+                            title: 'hi',
+                        },
                     },
-                }],
+                ],
             }
 
             const database_records_by_id = {
@@ -318,9 +312,9 @@ describe('verify_uniqueness', () => {
                         record: {
                             id: 12,
                             first_name: 'john',
-                            last_name: 'smith'
+                            last_name: 'smith',
                         },
-                        path: ['users', 0]
+                        path: ['users', 0],
                     },
                     {
                         record: {
@@ -335,15 +329,17 @@ describe('verify_uniqueness', () => {
                             first_name: 'john',
                             last_name: 'smith',
                         },
-                        path: ['users', 2]
+                        path: ['users', 2],
                     },
                 ],
-                products: [{
-                    record: {
-                        id: 13,
-                        title: 'hi',
+                products: [
+                    {
+                        record: {
+                            id: 13,
+                            title: 'hi',
+                        },
                     },
-                }],
+                ],
             }
 
             const errors = get_mutation_uniqueness_errors(

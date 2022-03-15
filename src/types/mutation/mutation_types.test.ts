@@ -5,11 +5,10 @@ import { FieldType, OrmaMutation } from './mutation_types'
 const test_schema = as_orma_schema({
     products: {
         id: {
-            data_type: 'number',
+            data_type: 'int',
         },
         vendor_id: {
-            required: true,
-            data_type: 'number',
+            data_type: 'int',
             references: {
                 vendors: {
                     id: {},
@@ -24,11 +23,10 @@ const test_schema = as_orma_schema({
             },
         },
         name: {
-            required: true,
-            data_type: 'string',
+            data_type: 'varchar',
         },
         nadescriptionme: {
-            data_type: 'string',
+            data_type: 'varchar',
         },
         $indexes: [],
     },
@@ -38,7 +36,6 @@ const test_schema = as_orma_schema({
     images: {
         id: {},
         product_id: {
-            required: true,
             references: {
                 products: {
                     id: {},
@@ -48,7 +45,6 @@ const test_schema = as_orma_schema({
     },
     image_urls: {
         image_id: {
-            required: true,
             references: {
                 images: {
                     id: {},
@@ -110,19 +106,23 @@ const tests = () => {
         // can have top level operation
         const t: Mutation = {
             $operation: 'create',
-            image_urls: [{
-                image_id: 12
-            }]
+            image_urls: [
+                {
+                    image_id: 12,
+                },
+            ],
         }
     }
     {
         // requires an operation if there is no parent operation
         // @ts-expect-error
         const t: Mutation = {
-            image_urls: [{
-                // $operation required here
-                image_id: 12
-            }]
+            image_urls: [
+                {
+                    // $operation required here
+                    image_id: 12,
+                },
+            ],
         }
     }
     {

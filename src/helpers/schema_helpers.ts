@@ -263,7 +263,7 @@ export const get_unique_field_groups = (
             if (exclude_nullable) {
                 const all_fields_non_nullable = index.fields.every(field => {
                     const field_schema = orma_schema[entity_name][field] as orma_field_schema
-                    return field_schema.required
+                    return !field_schema.nullable
                 })
 
                 return all_fields_non_nullable

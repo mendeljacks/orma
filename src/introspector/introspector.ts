@@ -63,9 +63,9 @@ export interface orma_schema {
 }
 
 export interface orma_field_schema {
-    data_type?: typeof mysql_to_simple_types[keyof typeof mysql_to_simple_types] // values of mysql_to_simple_types
+    data_type?: keyof typeof mysql_to_typescript_types
     ordinal_position?: number
-    required?: boolean
+    nullable?: boolean
     primary_key?: boolean
     indexed?: boolean
     character_count?: number
@@ -222,7 +222,7 @@ export const generate_database_schema = (
     return database_schema
 }
 
-export const mysql_to_simple_types = {
+export const mysql_to_typescript_types = {
     bigint: 'number',
     binary: 'string',
     bit: 'not_supported',
@@ -275,13 +275,13 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
     } = mysql_column
 
     const field_schema: orma_field_schema = {
-        data_type: mysql_to_simple_types[data_type],
+        data_type: data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
         ordinal_position
     }
 
     // indices
-    if (is_nullable === 'NO') {
-        field_schema.required = true
+    if (is_nullable === 'YES') {
+        field_schema.nullable = true
     }
 
     if (column_key === 'PRI' || column_key === 'UNI' || column_key === 'MUL') {

@@ -22,13 +22,13 @@ describe('mutate', () => {
         parents: {
             id: {
                 primary_key: true,
-                required: true,
+                
             },
             unique1: {
-                required: true,
+                
             },
             unique2: {
-                required: true,
+                
             },
             quantity: {},
             grandparent_id: {
@@ -70,7 +70,7 @@ describe('mutate', () => {
                     },
                 },
             },
-            batch_id: { required: true },
+            batch_id: { },
             $indexes: [
                 {
                     index_name: 'batch_id_unique',

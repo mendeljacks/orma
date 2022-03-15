@@ -6,7 +6,7 @@ import { as_orma_query } from '../../query/query'
     const schema = as_orma_schema({
         products: {
             id: {
-                data_type: 'number',
+                data_type: 'int',
             },
         },
         images: {
@@ -18,7 +18,7 @@ import { as_orma_query } from '../../query/query'
                 },
             },
             url: {
-                data_type: 'string',
+                data_type: 'varchar',
             },
         },
     })

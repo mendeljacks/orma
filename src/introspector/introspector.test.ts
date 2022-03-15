@@ -33,12 +33,11 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: 'number',
+            data_type: 'int',
             default: 'auto_increment',
             indexed: true,
             ordinal_position: 1,
             primary_key: true,
-            required: true,
         })
     })
 
@@ -54,10 +53,9 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: 'string',
+            data_type: 'varchar',
             indexed: true,
             ordinal_position: 2,
-            required: true,
         })
     })
 
@@ -74,7 +72,7 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: 'number',
+            data_type: 'decimal',
             ordinal_position: 3,
             character_count: 4,
             decimal_places: 1,
@@ -150,7 +148,7 @@ describe('introspector', () => {
             posts: {
                 $comment: 'user posts',
                 user_id: {
-                    data_type: 'number',
+                    data_type: 'int',
                     ordinal_position: 1,
                     references: {
                         users: {
@@ -162,7 +160,7 @@ describe('introspector', () => {
             users: {
                 $comment: 'table of users',
                 id: {
-                    data_type: 'number',
+                    data_type: 'int',
                     ordinal_position: 1,
                 },
                 $indexes: [{

@@ -14,14 +14,9 @@ describe('mutation_plan.ts', () => {
         parents: {
             id: {
                 primary_key: true,
-                required: true,
             },
-            unique1: {
-                required: true,
-            },
-            unique2: {
-                required: true,
-            },
+            unique1: {},
+            unique2: {},
             quantity: {},
             grandparent_id: {
                 references: {
@@ -138,9 +133,21 @@ describe('mutation_plan.ts', () => {
 
             const goal = [
                 [
-                    { operation: 'delete', paths: [['parents', 0]], route: ['parents'] },
-                    { operation: 'update', paths: [['parents', 1]], route: ['parents'] },
-                    { operation: 'create', paths: [['parents', 2]], route: ['parents'] },
+                    {
+                        operation: 'delete',
+                        paths: [['parents', 0]],
+                        route: ['parents'],
+                    },
+                    {
+                        operation: 'update',
+                        paths: [['parents', 1]],
+                        route: ['parents'],
+                    },
+                    {
+                        operation: 'create',
+                        paths: [['parents', 2]],
+                        route: ['parents'],
+                    },
                 ],
             ]
 

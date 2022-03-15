@@ -13,7 +13,7 @@ const tests = () => {
     const test_schema = as_orma_schema({
         products: {
             id: {
-                data_type: 'number',
+                data_type: 'int',
             },
             vendor_id: {
                 references: {
@@ -45,7 +45,7 @@ const tests = () => {
                 },
             },
             url: {
-                data_type: 'string',
+                data_type: 'varchar',
             },
         },
         image_urls: {

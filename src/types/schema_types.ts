@@ -2,7 +2,7 @@
 
 import { Edge } from '../helpers/schema_helpers'
 import {
-    mysql_to_simple_types,
+    mysql_to_typescript_types,
     orma_field_schema,
     orma_schema,
 } from '../introspector/introspector'
@@ -62,8 +62,7 @@ export type GetParentEdgesForFields<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     Fields extends GetFields<Schema, Entity>
-> = 
-Fields extends GetFields<Schema, Entity> // map over fields
+> = Fields extends GetFields<Schema, Entity> // map over fields
     ? Schema[Entity][Fields] extends { references: any } // filter fields to only include ones with foreign keys
         ? {
               from_entity: Entity
@@ -131,7 +130,9 @@ export type GetFieldType<
     Entity extends GetAllEntities<Schema>,
     Field extends GetFields<Schema, Entity>
 > = Schema[Entity][Field] extends { data_type: any }
-    ? FieldTypeStringToType<Schema[Entity][Field]['data_type']>
+    ? FieldTypeStringToType<
+          MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
+      >
     : any
 
 export type GetFieldSchema<
@@ -142,19 +143,12 @@ export type GetFieldSchema<
     ? Schema[Entity][Field]
     : any
 
-export type GetRequiredFields<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
-> = GetFieldSchema<
-    Schema,
-    Entity,
-    GetFields<Schema, Entity>
->['required'] extends true
-    ? any
-    : never
+type MysqlToTypescriptTypeString<
+    TypeString extends keyof typeof mysql_to_typescript_types
+> = typeof mysql_to_typescript_types[TypeString]
 
 type FieldTypeStringToType<
-    TypeString extends typeof mysql_to_simple_types[keyof typeof mysql_to_simple_types]
+    TypeString extends typeof mysql_to_typescript_types[keyof typeof mysql_to_typescript_types]
 > = TypeString extends 'string'
     ? string
     : TypeString extends 'number'

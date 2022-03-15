@@ -13,7 +13,7 @@ import {
 const test_schema = as_orma_schema({
     products: {
         id: {
-            data_type: 'string',
+            data_type: 'varchar',
         },
         vendor_id: {
             required: true,
