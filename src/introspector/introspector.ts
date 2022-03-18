@@ -6,7 +6,6 @@
 import { deep_set, group_by } from '../helpers/helpers'
 import { OrmaSchema } from '../types/schema_types'
 
-
 export interface mysql_table {
     table_name: string
     table_comment?: string
@@ -55,23 +54,26 @@ export interface mysql_foreign_key {
 }
 
 export interface orma_schema {
-    [entity_name: string]: {
-        $comment?: string
-        $indexes?: orma_index_schema[]
-        [field_name: string]: orma_field_schema | orma_index_schema[] | string
-    }
+    [entity_name: string]: orma_entity_schema
+}
+
+export interface orma_entity_schema {
+    $comment?: string
+    $indexes?: orma_index_schema[]
+    [field_name: string]: orma_field_schema | orma_index_schema[] | string
 }
 
 export interface orma_field_schema {
     data_type?: keyof typeof mysql_to_typescript_types
+    character_count?: number
     ordinal_position?: number
+    decimal_places?: number
     nullable?: boolean
     primary_key?: boolean
     indexed?: boolean
-    character_count?: number
-    decimal_places?: number
     default?: string | number
     comment?: string
+    auto_increment?: boolean
     references?: {
         [referenced_entity: string]: {
             [referenced_field: string]: Record<string, never>
@@ -80,11 +82,11 @@ export interface orma_field_schema {
 }
 
 export interface orma_index_schema {
-    index_name: string
-    is_unique: boolean
+    index_name?: string
+    is_unique?: boolean
     fields: string[]
     index_type?: string
-    is_visible?: boolean
+    invisible?: boolean
     collation?: 'A' | 'D'
     sub_part?: number | null
     packed?: string | null
@@ -185,14 +187,15 @@ export const generate_database_schema = (
 
     for (const mysql_table of mysql_tables) {
         database_schema[mysql_table.table_name] = {
-            $comment: mysql_table.table_comment
+            $comment: mysql_table.table_comment,
         }
     }
 
     for (const mysql_column of mysql_columns) {
         const field_schema = generate_field_schema(mysql_column)
 
-        database_schema[mysql_column.table_name][mysql_column.column_name] = field_schema
+        database_schema[mysql_column.table_name][mysql_column.column_name] =
+            field_schema
     }
 
     for (const mysql_foreign_key of mysql_foreign_keys) {
@@ -201,7 +204,7 @@ export const generate_database_schema = (
             column_name,
             referenced_table_name,
             referenced_column_name,
-            constraint_name
+            constraint_name,
         } = mysql_foreign_key
 
         const reference_path = [
@@ -209,7 +212,7 @@ export const generate_database_schema = (
             column_name,
             'references',
             referenced_table_name,
-            referenced_column_name
+            referenced_column_name,
         ]
         deep_set(reference_path, {}, database_schema)
     }
@@ -251,10 +254,11 @@ export const mysql_to_typescript_types = {
     tinyint: 'boolean',
     tinytext: 'string',
     varbinary: 'string',
-    varchar: 'string'
+    varchar: 'string',
 } as const
 
-export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) => schema
+export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) =>
+    schema
 
 export const generate_field_schema = (mysql_column: mysql_column) => {
     const {
@@ -271,12 +275,13 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         column_key,
         extra,
         generation_expression,
-        column_comment
+        column_comment,
     } = mysql_column
 
     const field_schema: orma_field_schema = {
-        data_type: data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
-        ordinal_position
+        data_type:
+            data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
+        ordinal_position,
     }
 
     // indices
@@ -315,7 +320,7 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
     }
 
     if (extra === 'auto_increment') {
-        field_schema.default = extra
+        field_schema.auto_increment = true
     }
 
     // comment
@@ -327,25 +332,33 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
 }
 
 export const generate_index_schemas = (mysql_indexes: mysql_index[]) => {
-    const mysql_indexes_by_table = group_by(mysql_indexes, index => index.table_name)
+    const mysql_indexes_by_table = group_by(
+        mysql_indexes,
+        index => index.table_name
+    )
 
     const table_names = Object.keys(mysql_indexes_by_table)
     const index_schemas_by_table = table_names.reduce((acc, table_name) => {
         const mysql_indexes = mysql_indexes_by_table[table_name]
-        const mysql_indexes_by_name = group_by(mysql_indexes, index => index.index_name)
-        const index_schemas = Object.keys(mysql_indexes_by_name).map(index_name => {
-            const index = mysql_indexes_by_name[index_name][0]
-            const fields = mysql_indexes_by_name[index_name]
-                .slice()
-                .sort((a, b) => a.seq_in_index - b.seq_in_index)
-                .map(el => el.column_name)
-            return generate_index_schema(index, fields)
-        })
-        
+        const mysql_indexes_by_name = group_by(
+            mysql_indexes,
+            index => index.index_name
+        )
+        const index_schemas = Object.keys(mysql_indexes_by_name).map(
+            index_name => {
+                const index = mysql_indexes_by_name[index_name][0]
+                const fields = mysql_indexes_by_name[index_name]
+                    .slice()
+                    .sort((a, b) => a.seq_in_index - b.seq_in_index)
+                    .map(el => el.column_name)
+                return generate_index_schema(index, fields)
+            }
+        )
+
         acc[table_name] = index_schemas
         return acc
     }, {} as Record<string, orma_index_schema[]>)
-    
+
     return index_schemas_by_table
 }
 
@@ -367,21 +380,20 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
         expression,
     } = mysql_index
 
-
     const orma_index_schema: orma_index_schema = {
         index_name,
         is_unique: Number(non_unique) === 0 ? true : false,
         fields,
         index_type,
-        is_visible: is_visible === 'YES',
-        ...collation && { collation },
-        ...sub_part && { sub_part },
-        ...packed && { packed },
-        ...comment && { extra: comment },
-        ...expression && { expression },
-        ...index_comment && { index_comment },
+        invisible: is_visible === 'NO',
+        ...(collation && { collation }),
+        ...(sub_part && { sub_part }),
+        ...(packed && { packed }),
+        ...(comment && { extra: comment }),
+        ...(expression && { expression }),
+        ...(index_comment && { index_comment }),
     }
-    
+
     return orma_index_schema
 }
 
@@ -395,7 +407,7 @@ export const orma_introspect = async (
         mysql_table[],
         mysql_column[],
         mysql_foreign_key[],
-        mysql_index[],
+        mysql_index[]
     ] = await fn(sql_strings)
 
     // TODO: to be removed when orma lowercase bug fixed
@@ -409,7 +421,7 @@ export const orma_introspect = async (
         mysql_tables.map(transform_keys_to_lower) as mysql_table[],
         mysql_columns.map(transform_keys_to_lower) as mysql_column[],
         mysql_foreign_keys.map(transform_keys_to_lower) as mysql_foreign_key[],
-        mysql_indexes.map(transform_keys_to_lower) as mysql_index[],
+        mysql_indexes.map(transform_keys_to_lower) as mysql_index[]
     )
 
     return orma_schema

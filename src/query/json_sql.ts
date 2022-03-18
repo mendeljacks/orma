@@ -1,8 +1,8 @@
 /**
- * This file implements a simple json syntax which maps to standard sql queries. 
- * 
+ * This file implements a simple json syntax which maps to standard sql queries.
+ *
  * For example the json object
- * 
+ *
  * {
  *   select: ['column1', 'column2'],
  *   from: 'my_table',
@@ -11,29 +11,27 @@
  *     in: ['id', [1, 2, 3]]
  *   }
  * }
- * 
+ *
  * maps to the sql statement
- * 
- * SELECT column1, column2 FROM my_table WHERE id IN (1, 2, 3) LIMIT 1 
- * 
- * Every sql statement has a corresponding json object, and every json object has a corresponding sql 
- * statement - in other words, the set of sql statements and the set of sql jsons are equivalent sets. 
+ *
+ * SELECT column1, column2 FROM my_table WHERE id IN (1, 2, 3) LIMIT 1
+ *
+ * Every sql statement has a corresponding json object, and every json object has a corresponding sql
+ * statement - in other words, the set of sql statements and the set of sql jsons are equivalent sets.
  * This is true theoretically, however some sql functions may not be implemented due to time limitations.
- * 
+ *
  * @module json_sql
  */
 
 import { is_simple_object, last } from '../helpers/helpers'
 
-
 type expression =
     | {
-        [commands: string]: expression | expression[]
-    }
+          [commands: string]: expression | expression[]
+      }
     | primitive
 
 type primitive = string | number | Date | Array<any>
-
 
 export const json_to_sql = (expression: expression, path = []) => {
     // strings and other non-objects are returned as-is
@@ -43,12 +41,14 @@ export const json_to_sql = (expression: expression, path = []) => {
     }
 
     // sql commands are ordered but json keys are not, so we have to sort the keys
-    const sorted_commands = Object.keys(expression).sort((command1, command2) => {
-        // commands not in the ordering array will go at the beginning of the sql statement
-        const i1 = command_order[command1] || -1
-        const i2 = command_order[command2] || -1
-        return i1 - i2
-    })
+    const sorted_commands = Object.keys(expression).sort(
+        (command1, command2) => {
+            // commands not in the ordering array will go at the beginning of the sql statement
+            const i1 = command_order[command1] || -1
+            const i2 = command_order[command2] || -1
+            return i1 - i2
+        }
+    )
 
     const parsed_commands = sorted_commands
         .map(command => {
@@ -86,7 +86,7 @@ const command_order_array = [
     '$limit',
     '$offset',
     '$insert_into',
-    '$values'
+    '$values',
 ]
 
 // turn the array into an object for fast lookups
@@ -96,12 +96,14 @@ const command_order = command_order_array.reduce((acc, val, i) => {
 }, {})
 
 const sql_command_parsers = {
+    // DML commands
     $select: args => `SELECT ${args.join(', ')}`,
     $as: args => `(${args[0]}) AS ${args[1]}`,
     $from: args => `FROM ${args}`,
     $where: args => `WHERE ${args}`,
     $having: args => `HAVING ${args}`,
-    $in: (args, path) => `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IN (${args[1]})`,
+    $in: (args, path) =>
+        `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IN (${args[1]})`,
     $group_by: args => `GROUP BY ${args.join(', ')}`,
     $order_by: args => `ORDER BY ${args.join(', ')}`,
     $asc: args => `${args} ASC`,
@@ -120,25 +122,110 @@ const sql_command_parsers = {
         args[1] === null
             ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL`
             : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
-    $gt: (args, path) => `${args[0]} ${last(path) === '$not' ? '<=' : '>'} ${args[1]}`,
-    $lt: (args, path) => `${args[0]} ${last(path) === '$not' ? '>=' : '<'} ${args[1]}`,
-    $gte: (args, path) => `${args[0]} ${last(path) === '$not' ? '<' : '>='} ${args[1]}`,
-    $lte: (args, path) => `${args[0]} ${last(path) === '$not' ? '>' : '<='} ${args[1]}`,
-    $exists: (args, path) => `${last(path) === '$not' ? 'NOT ' : ''}EXISTS (${args})`,
+    $gt: (args, path) =>
+        `${args[0]} ${last(path) === '$not' ? '<=' : '>'} ${args[1]}`,
+    $lt: (args, path) =>
+        `${args[0]} ${last(path) === '$not' ? '>=' : '<'} ${args[1]}`,
+    $gte: (args, path) =>
+        `${args[0]} ${last(path) === '$not' ? '<' : '>='} ${args[1]}`,
+    $lte: (args, path) =>
+        `${args[0]} ${last(path) === '$not' ? '>' : '<='} ${args[1]}`,
+    $exists: (args, path) =>
+        `${last(path) === '$not' ? 'NOT ' : ''}EXISTS (${args})`,
     $limit: args => `LIMIT ${args}`,
     $offset: args => `OFFSET ${args}`,
     $like: (args, path) => {
         const string_arg = args[1].toString()
         const search_value = string_arg.replace(/^\'/, '').replace(/\'$/, '') // get rid of quotes if they were put there by escape()
-        return `${args[0]}${last(path) === '$not' ? ' NOT' : ''} LIKE '%${search_value}%'`
+        return `${args[0]}${
+            last(path) === '$not' ? ' NOT' : ''
+        } LIKE '%${search_value}%'`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
     $sum: args => `SUM(${args})`,
     $insert_into: ([table_name, [...columns]]) =>
         `INSERT INTO ${table_name} (${columns.join(', ')})`,
     $values: (values: any[][]) =>
-        `VALUES ${values.map(inner_values => `(${inner_values.join(', ')})`).join(', ')}`,
+        `VALUES ${values
+            .map(inner_values => `(${inner_values.join(', ')})`)
+            .join(', ')}`,
     $update: table_name => `UPDATE ${table_name}`,
-    $set: (items) => `SET ${items.map(([column, value]) => `${column} = ${value}`).join(', ')}`,
-    $delete_from: table_name => `DELETE FROM ${table_name}`
+    $set: items =>
+        `SET ${items
+            .map(([column, value]) => `${column} = ${value}`)
+            .join(', ')}`,
+    $delete_from: table_name => `DELETE FROM ${table_name}`,
+
+    // DDL commands
 }
+
+/*
+ 
+{
+    $create_table: {
+        $table_name: 'test',
+        // table level props
+        $table_fields: [
+            ['col1', {
+                field level props
+            }]
+        ]
+    }
+}
+
+
+{
+    $create_table: 'my_table',
+    $temporary: true,
+    $if_not_exists: true,
+    $columns: [{
+        // column_definition
+    }]
+    $like: 'my_other_table',
+    $as: { 
+        $select: ['col'], 
+        $from:'my_other_table'
+    },
+    $ignore: true, // xor with replace
+    $replace: true,
+    // table options
+    $autoextend_size: 0,
+    $auto_increment: 1,
+    $avg_row_length: 100,
+    $character_set: 'DEFAULT',
+    $checksum: 1,
+    $comment: 'My table',
+    $compression: 'Zlib',
+    $connection: '',
+    $data_directory: '...',
+    $index_directory: '...',
+    $delay_key_write: 1,
+    $encryption: 'Y',
+    $engine_attribute: '',
+    $secondary_engine_attribute: '',
+    $insert_method: 'FIRST',
+    $key_block_size: 64,
+    $max_rows: 1000,
+    $min_rows: 500,
+    $pack_keys: 'DEFAULT',
+    $row_format: '',
+    $stats_auto_recalc: 0,
+    $states_persistent
+}
+
+// column definition
+{
+    $data_type: ['decimal', 6, 2], // check sql docs page to make sure we have everything for data type
+    $not_null: true,
+    $default: 123,
+    $invisible: true,
+    $auto_increment: true,
+    $comment: 'my column',
+    $collate: 'utf8_bin',
+    $generated_always_as: 'SQRT(col1)',
+    $stored: true
+}
+
+
+
+ */

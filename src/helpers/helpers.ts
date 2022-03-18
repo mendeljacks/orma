@@ -242,25 +242,69 @@ function getRegExpFlags(regExp) {
 export const group_by = <T>(
     array: T[],
     key_function: (item: T, i?: number) => string
-): Record<string, T[]> => array.reduce((acc, item, i) => {
-    const key = key_function(item, i)
-    if (!acc[key]) {
-        acc[key] = []
-    }
+): Record<string, T[]> =>
+    array.reduce((acc, item, i) => {
+        const key = key_function(item, i)
+        if (!acc[key]) {
+            acc[key] = []
+        }
 
-    acc[key].push(item)
-    return acc
-}, {})
-
+        acc[key].push(item)
+        return acc
+    }, {})
 
 export const key_by = <T>(
     array: T[],
     key_function: (item: T, i?: number) => string
-): Record<string, T> => array.reduce((acc, item, i) => {
-    const key = key_function(item, i)
+): Record<string, T> =>
+    array.reduce((acc, item, i) => {
+        const key = key_function(item, i)
 
-    acc[key] = item
-    return acc
-}, {})
+        acc[key] = item
+        return acc
+    }, {})
 
-export const array_equals = (array1: any[], array2: any[]) => array1.every((el1, i) => el1 === array2[i])
+export const array_equals = (array1: any[], array2: any[]) =>
+    array1.every((el1, i) => el1 === array2[i])
+
+// from: https://stackoverflow.com/a/69424269
+/**
+ * Tests whether two values are deeply equal using same-value equality.
+ *
+ * Two values are considered deeply equal iff 1) they are the same value, or
+ * 2) they are both non-callable objects whose own, enumerable, string-keyed
+ * properties are deeply equal.
+ *
+ * Caution: This function does not fully support circular references. Use this
+ * function only if you are sure that at least one of the arguments has no
+ * circular references.
+ */
+function deep_equal(x, y) {
+    // check primitive values
+    if (
+        typeof x !== 'object' ||
+        x === null ||
+        typeof y !== 'object' ||
+        y === null
+    ) {
+        return Object.is(x, y)
+    }
+
+    if (x === y) {
+        return true
+    }
+
+    const keys = Object.keys(x)
+    if (Object.keys(y).length !== keys.length) return false
+
+    for (const key of keys) {
+        if (
+            !Object.prototype.propertyIsEnumerable.call(y, key) ||
+            !deep_equal(x[key], y[key])
+        ) {
+            return false
+        }
+    }
+
+    return true
+}
