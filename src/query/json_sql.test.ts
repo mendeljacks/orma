@@ -3,13 +3,12 @@ import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
 import { json_to_sql } from './json_sql'
 
-
-describe('query', () => { 
+describe('query', () => {
     describe('json_to_sql', () => {
         test('joins commands', () => {
             const json = {
                 $select: ['a'],
-                $from: 'b'
+                $from: 'b',
             }
 
             const sql = format(json_to_sql(json))
@@ -20,8 +19,8 @@ describe('query', () => {
         test('nested command work', () => {
             const json = {
                 $where: {
-                    $eq: ['a', 'b']
-                }
+                    $eq: ['a', 'b'],
+                },
             }
 
             const sql = format(json_to_sql(json))
@@ -29,11 +28,11 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
-        test("'not' command works", () => {
+        test("'$not' command works", () => {
             const json = {
                 $not: {
-                    $in: ['a', [1, 2]]
-                }
+                    $in: ['a', [1, 2]],
+                },
             }
 
             const sql = format(json_to_sql(json))
@@ -41,9 +40,27 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
+        test("ignores even number of '$not' commands", () => {
+            const json = {
+                $not: {
+                    $not: {
+                        $not: {
+                            $not: {
+                                $in: ['a', [1, 2]],
+                            },
+                        },
+                    },
+                },
+            }
+
+            const sql = format(json_to_sql(json))
+            const goal = format('a IN (1, 2)')
+
+            expect(sql).to.equal(goal)
+        })
         test('ignores undefined properties', () => {
             const json = {
-                $having: undefined
+                $having: undefined,
             }
             const sql = format(json_to_sql(json))
             const goal = format('')

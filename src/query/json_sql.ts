@@ -103,46 +103,53 @@ const sql_command_parsers = {
     $where: args => `WHERE ${args}`,
     $having: args => `HAVING ${args}`,
     $in: (args, path) =>
-        `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IN (${args[1]})`,
+        `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IN (${args[1]})`,
     $group_by: args => `GROUP BY ${args.join(', ')}`,
     $order_by: args => `ORDER BY ${args.join(', ')}`,
     $asc: args => `${args} ASC`,
     $desc: args => `${args} DESC`,
     $and: (args, path) => {
         const res = `(${args.join(') AND (')})`
-        return last(path) === '$not' ? `NOT (${res})` : res
+        return nested_under_odd_nots(path) ? `NOT (${res})` : res
     },
     $or: (args, path) => {
         const res = `(${args.join(') OR (')})`
-        return last(path) === '$not' ? `NOT (${res})` : res
+        return nested_under_odd_nots(path) ? `NOT (${res})` : res
     },
     $any: args => `ANY (${args})`,
     $all: args => `ALL (${args})`,
     $eq: (args, path) =>
         args[1] === null
-            ? `${args[0]}${last(path) === '$not' ? ' NOT' : ''} IS NULL`
-            : `${args[0]} ${last(path) === '$not' ? '!' : ''}= ${args[1]}`,
+            ? `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IS NULL`
+            : `${args[0]} ${nested_under_odd_nots(path) ? '!' : ''}= ${args[1]}`,
     $gt: (args, path) =>
-        `${args[0]} ${last(path) === '$not' ? '<=' : '>'} ${args[1]}`,
+        `${args[0]} ${nested_under_odd_nots(path) ? '<=' : '>'} ${args[1]}`,
     $lt: (args, path) =>
-        `${args[0]} ${last(path) === '$not' ? '>=' : '<'} ${args[1]}`,
+        `${args[0]} ${nested_under_odd_nots(path) ? '>=' : '<'} ${args[1]}`,
     $gte: (args, path) =>
-        `${args[0]} ${last(path) === '$not' ? '<' : '>='} ${args[1]}`,
+        `${args[0]} ${nested_under_odd_nots(path) ? '<' : '>='} ${args[1]}`,
     $lte: (args, path) =>
-        `${args[0]} ${last(path) === '$not' ? '>' : '<='} ${args[1]}`,
+        `${args[0]} ${nested_under_odd_nots(path) ? '>' : '<='} ${args[1]}`,
     $exists: (args, path) =>
-        `${last(path) === '$not' ? 'NOT ' : ''}EXISTS (${args})`,
+        `${nested_under_odd_nots(path) ? 'NOT ' : ''}EXISTS (${args})`,
     $limit: args => `LIMIT ${args}`,
     $offset: args => `OFFSET ${args}`,
     $like: (args, path) => {
-        const string_arg = args[1].toString()
-        const search_value = string_arg.replace(/^\'/, '').replace(/\'$/, '') // get rid of quotes if they were put there by escape()
+        // const string_arg = args[1].toString()
+        // const search_value = string_arg.replace(/^\'/, '').replace(/\'$/, '') // get rid of quotes if they were put there by escape()
+        // return `${args[0]}${
+        // nested_under_odd_nots(path) ? ' NOT' : ''
+        // } LIKE '%${search_value}%'`
         return `${args[0]}${
-            last(path) === '$not' ? ' NOT' : ''
-        } LIKE '%${search_value}%'`
+            nested_under_odd_nots(path) ? ' NOT' : ''
+        } LIKE ${args[1]}`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
+
+    // SQL functions
     $sum: args => `SUM(${args})`,
+
+    // mutations
     $insert_into: ([table_name, [...columns]]) =>
         `INSERT INTO ${table_name} (${columns.join(', ')})`,
     $values: (values: any[][]) =>
@@ -157,6 +164,25 @@ const sql_command_parsers = {
     $delete_from: table_name => `DELETE FROM ${table_name}`,
 
     // DDL commands
+}
+
+/**
+ * Returns true if the last n elements of a path are $not and n is odd. So ['a', '$not'] returns true
+ * but ['a', '$not', '$not'] returns false
+ */
+const nested_under_odd_nots = (path: any[]) => {
+    let not_count = 0
+    for (let i = 0; i < path.length; i++) {
+        const path_element = path[path.length - 1 - i]
+        if (path_element === '$not') {
+            not_count += 1
+        } else {
+            break
+        }
+    }
+
+    const is_odd = not_count % 2 === 1
+    return is_odd
 }
 
 /*

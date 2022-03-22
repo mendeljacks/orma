@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { orma_schema } from '../introspector/introspector'
-import { validator } from './validate_query'
+import { validator } from './validate_query_manual'
 
 
 const schema: orma_schema = {

@@ -1,0 +1,20 @@
+If a key is an entity name, then $from is not needed. Otherwise $from is needed.
+The entity name (from a $from if existing, otherwise from the key name) determines the fields.
+
+1. Generate a $ref for the case where a $from is provided for each entity, and another for each entity without $from
+  + default JSON schema, so more compatible
+  - effectively doubles the schema size
+  - cant really modify schema anymore since there is code duplication between the refs
+2. Use a $data, which supports relative ref or $merge and $patch which can combine a $from schema with a base entity schema
+  + no code duplication
+  - not standard JSON Schema syntax, only with ajv
+  - Good luck parsing the schema (e.g. docs generation)
+3. Eject from the schema (i.e. validate all $from, fields etc against all entities and all fields)
+  + simplest schema, no wierd hacks
+  - alot of the validation must be done in js
+4. Remove the $from inference macro
+  + schema will be much simpler to implement with no duplication (using simple $ref for recursion)
+  + simplify schema for less code and easier to parse for external tooling
+  - makes queries more verbose (have to have $from even if its obvious where it should take from)\
+  ? what about fields, should { id: true } be disallowed to force { id: 'id' } ?
+  

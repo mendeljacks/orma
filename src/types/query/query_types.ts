@@ -124,7 +124,7 @@ type OrderBy<Schema extends OrmaSchema, Entity extends GetAllEntities<Schema>> =
     // type narrowing (for some reason types arent narrowing with both schema and query params)
     readonly (
         | FieldOrString<Schema, Entity>
-        | { $asc: FieldOrString<Schema, Entity> }
-        | { $desc: FieldOrString<Schema, Entity> }
         | Expression<Schema, Entity>
+        | { $asc: FieldOrString<Schema, Entity> | Expression<Schema, Entity> }
+        | { $desc: FieldOrString<Schema, Entity> | Expression<Schema, Entity> }
     )[]
