@@ -5,16 +5,13 @@ import { OrmaSchema } from '../types/schema_types'
 
 const ajv = new Ajv()
 
-describe.only('query_validation', () => {
+describe('query_validation', () => {
     test('dev', () => {
         // const validate = ajv.compile(test_schema)
-
         // const data = {
         //     variants: {
-
         //     }
         // }
-
         // const valid = validate(data)
     })
     // tests:
