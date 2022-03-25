@@ -1,5 +1,5 @@
 import { extract_subpaths } from './extract_subpaths'
-import { deep_get, deep_set, drop_last, last } from './helpers'
+import { clone, deep_get, deep_set, drop_last, last } from './helpers'
 import { lir_join } from './lir_join'
 import { push_path } from './push_path'
 
@@ -22,26 +22,33 @@ export const nester = (data, edges) => {
                 result,
                 list,
                 el => deep_get([...el, edges[i][0]], result),
-                (l, i, r) => {
-                    r.forEach(right_adjacent => {
-                        l.forEach(left_adjacent => {
+                (l, acc, r) => {
+                    r.forEach((right_adjacent, r_index) => {
+                        l.forEach((left_adjacent, l_index) => {
+                            // When the same item appears in multiple spots
+                            // we want to make a copy of it
+                            const item_to_nest =
+                                l_index === 0
+                                    ? right_adjacent
+                                    : clone(right_adjacent)
+
                             if (array_mode) {
                                 push_path(
                                     [...left_adjacent, last(path)],
-                                    right_adjacent,
-                                    i
+                                    item_to_nest,
+                                    acc
                                 )
                             } else {
                                 deep_set(
                                     [...left_adjacent, last(path)],
-                                    right_adjacent,
-                                    i
+                                    item_to_nest,
+                                    acc
                                 )
                             }
                         })
                     })
 
-                    return i
+                    return acc
                 },
                 el => el[edges[i][1]]
             )
