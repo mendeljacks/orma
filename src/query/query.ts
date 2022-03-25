@@ -1,3 +1,4 @@
+import { error_type } from '../helpers/error_handling'
 import { clone, deep_get, deep_set, drop_last, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge, is_reserved_keyword } from '../helpers/schema_helpers'
@@ -12,6 +13,7 @@ import { apply_escape_macro } from './macros/escaping_macros'
 import { apply_nesting_macro } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import { get_query_plan } from './query_plan'
+import { get_any_path_errors, postprocess_query_for_validation, preprocess_query_for_validation } from './query_validation'
 
 // This function will default to the from clause
 export const get_real_parent_name = (path: (string | number)[], query) => {
@@ -116,11 +118,28 @@ export const orma_query = async <Schema extends OrmaSchema, Query extends OrmaQu
     raw_query: Query,
     orma_schema_input: Schema,
     query_function: (sql_string: string[]) => Promise<Record<string, unknown>[][]>,
-    escaping_function: (value) => any
-): Promise<QueryResult<Schema, Query>> => {
+    escaping_function: (value) => any,
+    validation_function: (query) => any[]
+): Promise<(QueryResult<Schema, Query> & { $success: true }) | { $success: false, errors: error_type[]}> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
 
+    // validation
+    preprocess_query_for_validation(query, orma_schema)
+    const errors = [
+        ...validation_function(query),
+        ...get_any_path_errors(query, orma_schema)
+    ]
+
+    if (errors.length > 0) {
+        return {
+            $success: false,
+            errors
+        }
+    }
+    postprocess_query_for_validation(query)
+
+    // simple macros
     apply_any_path_macro(query, orma_schema)
     apply_select_macro(query, orma_schema)
 
@@ -147,6 +166,8 @@ export const orma_query = async <Schema extends OrmaSchema, Query extends OrmaQu
     }
 
     const output = orma_nester(results, query, orma_schema)
+    // @ts-ignore
+    output.$success = true
 
     return output as any
 }

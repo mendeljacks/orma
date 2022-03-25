@@ -16,7 +16,7 @@ export type Edge = {
  * @returns a list of entities specified in the schema
  */
 export const get_entity_names = (orma_schema: orma_schema) => {
-    return Object.keys(orma_schema)
+    return Object.keys(orma_schema).filter(el => !is_reserved_keyword(el))
 }
 
 /**
@@ -26,7 +26,7 @@ export const get_field_names = (
     entity_name: string,
     orma_schema: orma_schema
 ) => {
-    return Object.keys(orma_schema[entity_name] ?? {})
+    return Object.keys(orma_schema[entity_name] ?? {}).filter(el => !is_reserved_keyword(el))
 }
 
 // /**

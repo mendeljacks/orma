@@ -44,7 +44,7 @@ import { orma_schema } from '../../introspector/introspector'
     })
 }
 
-const get_any_path_context_entity = (path, query) => {
+export const get_any_path_context_entity = (path, query) => {
     const previous_entities = path.flatMap((path_el, i) => {
         if (path_el === '$where' || path_el === '$having') {
             return path[i - 1]

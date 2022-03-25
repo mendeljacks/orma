@@ -1,32 +1,77 @@
 import { JSONSchemaType } from 'ajv'
+import { error_type } from '../helpers/error_handling'
+import { deep_for_each, last } from '../helpers/helpers'
 import {
     get_all_edges,
     get_entity_names,
     get_field_names,
+    is_parent_entity,
 } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
+import { OrmaQuery } from '../types/query/query_types'
+import { OrmaSchema } from '../types/schema_types'
+import { get_any_path_context_entity } from './macros/any_path_macro'
+import { get_real_entity_name } from './query'
+import { query_for_each } from './query_helpers'
 
 export const get_query_schema = (orma_schema: orma_schema) => {
     const entity_names = get_entity_names(orma_schema)
 
     const schema = {
         type: 'object',
-        // discriminator speeds up validation (discriminator is an OpenAPI keyword, but not part of JSON Schema)
-        discriminator: { propertyName: '$from' },
         properties: entity_names.reduce((acc, entity_name) => {
             acc[entity_name] = get_entity_schema(orma_schema, entity_name)
             return acc
         }, {}),
-        patternProperties: {
-            // this regex key matches anything. There are no restrictions on the key since
-            // a $from clause will be required in the subschema
-            '': {
-                anyOf: entity_names.map(entity_name => ({
-                    $ref: `#/properties/${entity_name}`,
-                })),
-            },
+        additionalProperties: {
+            // discriminator speeds up validation (discriminator is an OpenAPI keyword, but not part of JSON Schema)
+            type: 'object',
+            discriminator: { propertyName: '$from' },
+            oneOf: entity_names.map(entity_name => ({
+                $ref: `#/properties/${entity_name}`,
+            })),
         },
-        additionalProperties: false,
+        $defs: {
+            entity_name: {
+                type: 'string',
+                enum: entity_names,
+            },
+            $where: {
+                any_path: get_any_path_schema(orma_schema, '$where'),
+            },
+            $having: {
+                any_path: get_any_path_schema(orma_schema, '$having'),
+            },
+            entities: entity_names.reduce((acc, entity_name) => {
+                acc[entity_name] = {
+                    $where: {
+                        operation: get_operation_schema(
+                            orma_schema,
+                            entity_name,
+                            '$where'
+                        ),
+                        field: get_where_field_schema(
+                            orma_schema,
+                            entity_name,
+                            '$where'
+                        ),
+                    },
+                    $having: {
+                        operation: get_operation_schema(
+                            orma_schema,
+                            entity_name,
+                            '$having'
+                        ),
+                        field: get_where_field_schema(
+                            orma_schema,
+                            entity_name,
+                            '$having'
+                        ),
+                    },
+                }
+                return acc
+            }, {}),
+        },
     }
 
     return schema
@@ -48,6 +93,7 @@ const get_entity_schema = (orma_schema: orma_schema, entity_name: string) => {
     //      entity in the $from clause
 
     const entity_schema = {
+        type: 'object',
         properties: {
             ...field_names.reduce((acc, field_name) => {
                 acc[field_name] = {
@@ -74,30 +120,32 @@ const get_entity_schema = (orma_schema: orma_schema, entity_name: string) => {
                 minimum: 0,
             },
             $order_by: get_order_by_schema(orma_schema, entity_name),
-            $group_by: get_expression_schemas(orma_schema, entity_name),
-            $where: get_where_schema(orma_schema, entity_name, 'where'),
-            $having: get_where_schema(orma_schema, entity_name, 'having'),
-        },
-        patternProperties: {
-            '': {
-                anyOf: [
-                    ...get_expression_schemas(orma_schema, entity_name),
-                    {
-                        type: 'object',
-                        properties: {
-                            $as: {
-                                type: 'array',
-                            },
-                        },
-                        additionalProperties: false,
-                    },
-                    ...connected_entities.map(entity_name => ({
-                        $ref: `#/properties/${entity_name}`,
-                    })),
-                ],
+            $group_by: {
+                type: 'array',
+                items: {
+                    $ref: `#/$defs/entities/${entity_name}/$having/field`,
+                },
             },
+            $where: get_where_schema(orma_schema, entity_name, '$where'),
+            $having: get_where_schema(orma_schema, entity_name, '$having'),
         },
-        additionalProperties: false,
+        additionalProperties: {
+            anyOf: [
+                ...get_expression_schemas(orma_schema, entity_name),
+                {
+                    type: 'object',
+                    properties: {
+                        $as: {
+                            type: 'array',
+                        },
+                    },
+                    additionalProperties: false,
+                },
+                ...connected_entities.map(entity_name => ({
+                    $ref: `#/properties/${entity_name}`,
+                })),
+            ],
+        },
         required: ['$from'],
     }
 
@@ -111,28 +159,31 @@ const get_entity_schema = (orma_schema: orma_schema, entity_name: string) => {
 }
 
 const get_order_by_schema = (orma_schema: orma_schema, entity_name: string) => {
+    const expression_schema = {
+        $ref: `#/$defs/entities/${entity_name}/$having/field`,
+    }
+
     const order_by_schema = {
-        anyOf: [
-            ...get_expression_schemas(orma_schema, entity_name),
-            {
-                type: 'object',
-                additionalProperties: false,
-                properties: {
-                    $asc: {
-                        anyOf: get_expression_schemas(orma_schema, entity_name),
+        type: 'array',
+        items: {
+            anyOf: [
+                expression_schema,
+                {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                        $asc: expression_schema,
                     },
                 },
-            },
-            {
-                type: 'object',
-                additionalProperties: false,
-                properties: {
-                    $desc: {
-                        anyOf: get_expression_schemas(orma_schema, entity_name),
+                {
+                    type: 'object',
+                    additionalProperties: false,
+                    properties: {
+                        $desc: expression_schema,
                     },
                 },
-            },
-        ],
+            ],
+        },
     }
 
     return order_by_schema
@@ -152,9 +203,11 @@ const get_expression_schemas = (
         },
         {
             type: 'object',
-            $sum: {
-                type: 'string',
-                enum: field_names,
+            properties: {
+                $sum: {
+                    type: 'string',
+                    enum: field_names,
+                },
             },
             additionalProperties: false,
         },
@@ -164,48 +217,10 @@ const get_expression_schemas = (
 const get_where_schema = (
     orma_schema: orma_schema,
     entity_name: string,
-    where_type: 'having' | 'where'
+    where_type: '$having' | '$where'
 ) => {
-    const field_names = get_field_names(entity_name, orma_schema)
-    const entity_names = get_entity_names(orma_schema)
-
-    const field_schema =
-        where_type === 'having'
-            ? {
-                  anyOf: get_expression_schemas(orma_schema, entity_name),
-              }
-            : {
-                  type: 'string',
-                  enum: field_names,
-              }
-
-    const primitive_value_schema = {
-        anyOf: [
-            { type: 'string' },
-            { type: 'number' },
-            { type: 'boolean' },
-            { type: 'null' },
-        ],
-    }
-
-    const operation_argument_schema = {
-        anyOf: [
-            field_schema,
-            {
-                type: 'object',
-                additionalItems: false,
-                properties: {
-                    $escape: primitive_value_schema,
-                },
-            },
-        ],
-    }
-
     const operation_schema = {
-        type: 'array',
-        prefixItems: [operation_argument_schema, operation_argument_schema],
-        minItems: 2,
-        maxItems: 2,
+        $ref: `#/$defs/entities/${entity_name}/${where_type}/operation`,
     }
 
     const this_schema = {
@@ -238,10 +253,15 @@ const get_where_schema = (
                 maxItems: 2,
                 // TODO: add a validation for a $select statement and add it to the $in keyword
                 prefixItems: [
-                    field_schema,
+                    {
+                        $ref: `#/$defs/entities/${entity_name}/${where_type}/field`,
+                    },
                     {
                         type: 'array',
-                        items: field_schema,
+                        minItems: 1,
+                        items: {
+                            $ref: `#/$defs/entities/${entity_name}/${where_type}/operation/items`,
+                        },
                     },
                 ],
             },
@@ -249,12 +269,35 @@ const get_where_schema = (
         { $not: this_schema },
     ]
 
+    const where_schema = {
+        oneOf: [
+            ...where_clauses.map(properties => ({
+                type: 'object',
+                additionalProperties: false,
+                properties,
+            })),
+            {
+                $ref: `#/$defs/${where_type}/any_path`,
+            },
+        ],
+    }
+
+    return where_schema
+}
+
+const get_any_path_schema = (
+    orma_schema: orma_schema,
+    clause_type: '$where' | '$having'
+) => {
+    const entity_names = get_entity_names(orma_schema)
+
     const any_path_schema = {
+        type: 'object',
+        discriminator: { propertyName: '$any_path_last_entity' },
+        required: ['$any_path_last_entity'],
         oneOf: entity_names.map(any_path_entity => ({
             type: 'object',
             additionalProperties: false,
-            discriminator: { propertyName: '$any_path_last_entity' },
-            required: ['$any_path_last_entity'],
             properties: {
                 $any_path_last_entity: {
                     type: 'string',
@@ -268,40 +311,155 @@ const get_where_schema = (
                         {
                             type: 'array',
                             items: {
-                                type: 'string',
-                                enum: entity_names,
+                                $ref: `#/$defs/entity_name`,
                             },
                         },
                         {
-                            $ref: `#/properties/${any_path_entity}/properties/${where_type}`,
+                            $ref: `#/properties/${any_path_entity}/properties/${clause_type}`,
                         },
                     ],
                 },
             },
         })),
     }
+    return any_path_schema
+}
 
-    const where_schema = {
-        oneOf: [
-            ...where_clauses.map(properties => ({
-                type: 'object',
-                additionalProperties: false,
-                properties,
-            })),
-            any_path_schema,
+const get_where_field_schema = (
+    orma_schema: orma_schema,
+    entity_name: string,
+    clause_type: '$where' | '$having'
+) => {
+    const field_names = get_field_names(entity_name, orma_schema)
+
+    const field_schema =
+        clause_type === '$having'
+            ? {
+                  anyOf: get_expression_schemas(orma_schema, entity_name),
+              }
+            : {
+                  type: 'string',
+                  enum: field_names,
+              }
+
+    return field_schema
+}
+
+const get_operation_schema = (
+    orma_schema: orma_schema,
+    entity_name: string,
+    clause_type: '$where' | '$having'
+) => {
+    const primitive_value_schema = {
+        anyOf: [
+            { type: 'string' },
+            { type: 'number' },
+            { type: 'boolean' },
+            { type: 'null' },
         ],
     }
 
-    return where_schema
+    const operation_argument_schema = {
+        anyOf: [
+            {
+                $ref: `#/$defs/entities/${entity_name}/${clause_type}/field`,
+            },
+            {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                    $escape: primitive_value_schema,
+                },
+            },
+        ],
+    }
+
+    const operation_schema = {
+        type: 'array',
+        items: operation_argument_schema,
+        minItems: 2,
+        maxItems: 2,
+    }
+
+    return operation_schema
 }
 
-const get_fields_schema = (orma_schema: orma_schema) => {}
+/**
+ * Fills in extra data that is only used for validation. Mutates the input query
+ */
+export const preprocess_query_for_validation = (
+    query: any,
+    orma_schema: orma_schema
+) => {
+    deep_for_each(query, (value, path) => {
+        if (value.$any_path) {
+            value.$any_path_last_entity = last(value.$any_path[0])
+        }
+    })
+}
+
+/**
+ * Removes extra data that was only used for validation. Mutates the input query
+ */
+export const postprocess_query_for_validation = (
+    query: any
+) => {
+    deep_for_each(query, (value, path) => {
+        if (value.$any_path) {
+            delete value.$any_path_last_entity
+        }
+    })
+}
+
+export const get_any_path_errors = (
+    query: any,
+    orma_schema: orma_schema
+) => {
+    let all_errors: error_type[] = []
+
+    deep_for_each(query, (value, path) => {
+        if (value.$any_path) {
+            const context_entity = get_any_path_context_entity(path, query)
+            const any_path_entities: string[] = value.$any_path?.[0] ?? []
+            const any_path_errors = any_path_entities.flatMap(
+                (any_path_entity, i) => {
+                    const previous_entity =
+                        i === 0 ? context_entity : value.$any_path[0][i - 1]
+                    const is_valid_entity =
+                        is_parent_entity(
+                            any_path_entity,
+                            previous_entity,
+                            orma_schema
+                        ) ||
+                        is_parent_entity(
+                            previous_entity,
+                            any_path_entity,
+                            orma_schema
+                        )
+
+                    if (is_valid_entity) {
+                        return []
+                    } else {
+                        const error: error_type = {
+                            message: `Entity ${any_path_entity} must be a parent or a child of the previous entity, ${previous_entity}.`
+                        }
+                        return [error]
+                    }
+                }
+            )
+
+            all_errors.push(...any_path_errors)
+        }
+    })
+
+    return all_errors
+}
 
 /*
 TODO in regular js (because JSON schema doesnt support them, or other reasons)
 
-- Add $from based on key names matching an entity
-- Check that the selected fields match what is in the group_by if applicable (deep equality for sql function asts?)
+- Add $from based on key names matching an entity (handled by doing macro before validation)
+- Check that the selected fields match what is in the group_by if applicable (deep equality for sql function asts?) (skipping for now, will just result in an sql error)
 - validation for all operations (we can't check anything, since we can't access the custom keys so we don't know
   what exactly is valid in the having clause for 'as' aliased)
 - check that the entity path of $any_path is valid

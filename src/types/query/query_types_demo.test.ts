@@ -33,17 +33,20 @@ import { as_orma_query } from '../../query/query'
             // $order_by: [{
             //     $asc: 'id'
             // }],
-            $group_by: ['my_id']
-        }
+            $group_by: ['my_id'],
+        },
     } as const)
 
     orma_query(
         query,
         schema,
         async () => ({} as any),
-        () => {}
+        () => {},
+        () => []
     ).then(result => {
-        result.my_products[0].id
-        result.my_products[0].images[0].my_url
+        if (result.$success) {
+            result.my_products[0].id
+            result.my_products[0].images[0].my_url
+        }
     })
 }
