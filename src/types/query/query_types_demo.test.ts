@@ -1,9 +1,8 @@
 import { orma_query } from '../..'
-import { as_orma_schema } from '../../introspector/introspector'
 import { as_orma_query } from '../../query/query'
 
 {
-    const schema = as_orma_schema({
+    const schema = {
         products: {
             id: {
                 data_type: 'int',
@@ -21,7 +20,7 @@ import { as_orma_query } from '../../query/query'
                 data_type: 'varchar',
             },
         },
-    })
+    } as const
 
     const query = as_orma_query(schema, {
         my_products: {
@@ -33,9 +32,9 @@ import { as_orma_query } from '../../query/query'
             // $order_by: [{
             //     $asc: 'id'
             // }],
-            $group_by: ['my_id'],
+            $group_by: ['id'],
         },
-    } as const)
+    })
 
     orma_query(
         query,

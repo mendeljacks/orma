@@ -16,19 +16,21 @@ describe('mutate', () => {
         grandparents: {
             id: {
                 primary_key: true,
+                not_null: true,
             },
             quantity: {},
         },
         parents: {
             id: {
                 primary_key: true,
+                not_null: true,
                 
             },
             unique1: {
-                
+                not_null: true,
             },
             unique2: {
-                
+                not_null: true,
             },
             quantity: {},
             grandparent_id: {
@@ -59,9 +61,11 @@ describe('mutate', () => {
         children: {
             id1: {
                 primary_key: true,
+                not_null: true,
             },
             id2: {
                 primary_key: true,
+                not_null: true,
             },
             parent_id: {
                 references: {
@@ -82,6 +86,7 @@ describe('mutate', () => {
         step_children: {
             id: {
                 primary_key: true,
+                not_null: true,
             },
             parent_id: {
                 references: {

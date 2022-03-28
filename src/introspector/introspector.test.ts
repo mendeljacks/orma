@@ -25,7 +25,7 @@ describe('introspector', () => {
             table_name: 'users',
             column_name: 'id',
             ordinal_position: 1,
-            is_nullable: 'NO',
+            is_nullable: 'YES',
             data_type: 'int',
             column_key: 'PRI',
             extra: 'auto_increment',
@@ -34,7 +34,7 @@ describe('introspector', () => {
 
         expect(field_schema).to.deep.equal({
             data_type: 'int',
-            default: 'auto_increment',
+            auto_increment: true,
             indexed: true,
             ordinal_position: 1,
             primary_key: true,
@@ -54,6 +54,7 @@ describe('introspector', () => {
 
         expect(field_schema).to.deep.equal({
             data_type: 'varchar',
+            not_null: true,
             indexed: true,
             ordinal_position: 2,
         })
@@ -168,7 +169,7 @@ describe('introspector', () => {
                     is_unique: false,
                     fields: ['id'],
                     index_type: 'BTREE',
-                    is_visible: true,
+                    invisible: false,
                     collation: 'A',
                     sub_part: 1,
                     index_comment: 'my index',
@@ -257,7 +258,7 @@ describe('introspector', () => {
                     is_unique: false,
                     fields: ['id'],
                     index_type: 'BTREE',
-                    is_visible: true,
+                    invisible: false,
                     collation: 'A',
                     sub_part: 1,
                     index_comment: 'my index',
@@ -267,7 +268,7 @@ describe('introspector', () => {
                     is_unique: true,
                     fields: ['last_name', 'first_name'],
                     index_type: 'BTREE',
-                    is_visible: true,
+                    invisible: false,
                     collation: 'A',
                 },
             ],
@@ -277,7 +278,7 @@ describe('introspector', () => {
                     is_unique: true,
                     fields: ['title'],
                     index_type: 'BTREE',
-                    is_visible: false,
+                    invisible: true,
                     collation: 'A',
                 },
             ],

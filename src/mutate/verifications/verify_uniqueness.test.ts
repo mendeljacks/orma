@@ -13,9 +13,14 @@ describe('verify_uniqueness', () => {
         users: {
             id: {
                 primary_key: true,
+                not_null: true,
             },
-            first_name: {},
-            last_name: {},
+            first_name: {
+                not_null: true,
+            },
+            last_name: {
+                not_null: true,
+            },
             age: {},
             $indexes: [
                 {
@@ -28,8 +33,11 @@ describe('verify_uniqueness', () => {
         products: {
             id: {
                 primary_key: true,
+                not_null: true,
             },
-            title: {},
+            title: {
+                not_null: true,
+            },
             description: {},
             $indexes: [
                 {

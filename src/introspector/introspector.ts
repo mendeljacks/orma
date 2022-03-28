@@ -68,7 +68,7 @@ export interface orma_field_schema {
     character_count?: number
     ordinal_position?: number
     decimal_places?: number
-    nullable?: boolean
+    not_null?: boolean
     primary_key?: boolean
     indexed?: boolean
     default?: string | number
@@ -285,8 +285,8 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
     }
 
     // indices
-    if (is_nullable === 'YES') {
-        field_schema.nullable = true
+    if (is_nullable === 'NO') {
+        field_schema.not_null = true
     }
 
     if (column_key === 'PRI' || column_key === 'UNI' || column_key === 'MUL') {

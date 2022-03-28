@@ -1,25 +1,32 @@
 import { error_type } from '../helpers/error_handling'
-import { clone, deep_get, deep_set, drop_last, last } from '../helpers/helpers'
+import { clone, deep_get, drop_last, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
-import { get_direct_edge, is_reserved_keyword } from '../helpers/schema_helpers'
+import { get_direct_edge } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
-import { ExpandRecursively } from '../types/helper_types'
 import { QueryResult } from '../types/query/query_result_types'
 import { OrmaQuery } from '../types/query/query_types'
-import { DeepReadonly, DeepReadonlyObject, OrmaSchema } from '../types/schema_types'
+import { OrmaSchema } from '../types/schema_types'
 import { json_to_sql } from './json_sql'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
 import { apply_nesting_macro } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import { get_query_plan } from './query_plan'
-import { get_any_path_errors, postprocess_query_for_validation, preprocess_query_for_validation } from './query_validation'
+import {
+    get_any_path_errors,
+    postprocess_query_for_validation,
+    preprocess_query_for_validation,
+} from './query_validation'
+import { DeepReadonly } from '../types/schema_types'
 
 // This function will default to the from clause
 export const get_real_parent_name = (path: (string | number)[], query) => {
     if (path.length < 2) return null
 
-    return deep_get([...drop_last(1, path), '$from'], query, null) || path[path.length - 2]
+    return (
+        deep_get([...drop_last(1, path), '$from'], query, null) ||
+        path[path.length - 2]
+    )
 }
 
 // This function will default to the from clause
@@ -98,8 +105,8 @@ export const orma_nester = (
         if (path.length === 1) {
             return null
         }
-        const entity = get_real_entity_name(path,query )
-        const higher_entity = get_real_entity_name(path.slice(0, -1), query) 
+        const entity = get_real_entity_name(path, query)
+        const higher_entity = get_real_entity_name(path.slice(0, -1), query)
         const edge = get_direct_edge(higher_entity, entity, orma_schema)
         return [edge.from_field, edge.to_field]
     })
@@ -114,13 +121,21 @@ export const orma_nester = (
 }
 
 // export const orma_query = async <schema>(raw_query: validate_query<schema>, orma_schema: validate_orma_schema<schema>, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
-export const orma_query = async <Schema extends OrmaSchema, Query extends OrmaQuery<Schema>>(
+export const orma_query = async <
+    Schema extends OrmaSchema,
+    Query extends OrmaQuery<Schema>
+>(
     raw_query: Query,
     orma_schema_input: Schema,
-    query_function: (sql_string: string[]) => Promise<Record<string, unknown>[][]>,
+    query_function: (
+        sql_string: string[]
+    ) => Promise<Record<string, unknown>[][]>,
     escaping_function: (value) => any,
     validation_function: (query) => any[]
-): Promise<(QueryResult<Schema, Query> & { $success: true }) | { $success: false, errors: error_type[]}> => {
+): Promise<
+    | (QueryResult<Schema, Query> & { $success: true })
+    | { $success: false; errors: error_type[] }
+> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
 
@@ -128,13 +143,13 @@ export const orma_query = async <Schema extends OrmaSchema, Query extends OrmaQu
     preprocess_query_for_validation(query, orma_schema)
     const errors = [
         ...validation_function(query),
-        ...get_any_path_errors(query, orma_schema)
+        ...get_any_path_errors(query, orma_schema),
     ]
 
     if (errors.length > 0) {
         return {
             $success: false,
-            errors
+            errors,
         }
     }
     postprocess_query_for_validation(query)
@@ -172,7 +187,15 @@ export const orma_query = async <Schema extends OrmaSchema, Query extends OrmaQu
     return output as any
 }
 
-export const as_orma_schema =<Schema extends OrmaSchema>(schema: Schema) => schema
-export const as_orma_query = <Schema extends OrmaSchema, T extends OrmaQuery<Schema>>(schema: Schema, query: T): T => (query as T)
+export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) =>
+    schema
+    
+export const as_orma_query = <
+    Schema extends OrmaSchema,
+    T extends DeepReadonly<OrmaQuery<Schema>>
+>(
+    schema: Schema,
+    query: T
+): T => query
 
-// export const as_orma_query_result = <Schema extends OrmaSchema, Query extends OrmaQuery<Schema>>(orma_schema: Schema, query: Query): QueryResult => 
+// export const as_orma_query_result = <Schema extends OrmaSchema, Query extends OrmaQuery<Schema>>(orma_schema: Schema, query: Query): QueryResult =>

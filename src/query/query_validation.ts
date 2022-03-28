@@ -1,18 +1,13 @@
-import { JSONSchemaType } from 'ajv'
 import { error_type } from '../helpers/error_handling'
 import { deep_for_each, last } from '../helpers/helpers'
 import {
     get_all_edges,
     get_entity_names,
     get_field_names,
-    is_parent_entity,
+    is_parent_entity
 } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
-import { OrmaQuery } from '../types/query/query_types'
-import { OrmaSchema } from '../types/schema_types'
 import { get_any_path_context_entity } from './macros/any_path_macro'
-import { get_real_entity_name } from './query'
-import { query_for_each } from './query_helpers'
 
 export const get_query_schema = (orma_schema: orma_schema) => {
     const entity_names = get_entity_names(orma_schema)

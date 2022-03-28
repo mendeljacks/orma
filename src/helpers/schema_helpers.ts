@@ -29,12 +29,12 @@ export const get_field_names = (
     return Object.keys(orma_schema[entity_name] ?? {}).filter(el => !is_reserved_keyword(el))
 }
 
-// /**
-//  * @returns given an entity, returns true if the entity is in the schema
-//  */
-// export const is_entity_name = (entity_name, orma_schema) => !!orma_schema.entities?.[entity_name]
+/**
+ * @returns given an entity, returns true if the entity is in the schema
+ */
+export const is_entity_name = (entity_name, orma_schema) => !!orma_schema?.[entity_name]
 
-// export const is_field_name = (entity_name, field_name, orma_schema) => !!orma_schema.entities?.[entity_name]?.fields?.[field_name]
+export const is_field_name = (entity_name, field_name, orma_schema) => !!orma_schema?.[entity_name]?.[field_name]
 
 /**
  * Gets a list of edges from given entity -> parent entity
@@ -256,14 +256,14 @@ export const get_unique_field_groups = (
     exclude_nullable: boolean,
     orma_schema: orma_schema
 ) => {
-    const indexes = orma_schema[entity_name].$indexes ?? []
+    const indexes = orma_schema[entity_name]?.$indexes ?? []
     const unique_field_groups = indexes
         .filter(index => index.is_unique)
         .filter(index => {
             if (exclude_nullable) {
                 const all_fields_non_nullable = index.fields.every(field => {
                     const field_schema = orma_schema[entity_name][field] as orma_field_schema
-                    return !field_schema.nullable
+                    return field_schema.not_null
                 })
 
                 return all_fields_non_nullable
@@ -281,4 +281,14 @@ export const field_exists = (
     schema: orma_schema
 ) => {
     return schema[entity]?.[field]
+}
+
+/**
+ * Returns true if a field is required to be initially provided by the user. Any field with a default is not required,
+ * which includes nullable fields which default to null.
+ */
+export const is_required_field = (entity: string, field: string, schema: orma_schema) => {
+    const field_schema = schema?.[entity]?.[field] as orma_field_schema
+    const is_required = field_schema.not_null && !field_schema.default && !field_schema.auto_increment
+    return is_required
 }

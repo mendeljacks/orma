@@ -1617,6 +1617,11 @@
   dependencies:
     "minimist" "^1.2.5"
 
+"jsonschema@^1.4.0":
+  "integrity" "sha512-/YgW6pRMr6M7C+4o8kS+B/2myEpHCrxO4PEWnqJNBFMjn7EWXqlQ4tGwL6xTHeRplwuZmcAncdvfOad1nT2yMw=="
+  "resolved" "https://registry.npmjs.org/jsonschema/-/jsonschema-1.4.0.tgz"
+  "version" "1.4.0"
+
 "kind-of@^3.0.2", "kind-of@^3.0.3":
   "integrity" "sha1-MeohpzS6ubuw8yRm2JOupR5KPGQ="
   "resolved" "https://registry.npmjs.org/kind-of/-/kind-of-3.2.2.tgz"
@@ -2474,6 +2479,11 @@
   "version" "4.0.2"
   dependencies:
     "argparse" "^2.0.1"
+
+"sqlstring@^2.3.3":
+  "integrity" "sha512-qC9iz2FlN7DQl3+wjwn3802RTyjCx7sDvfQEXchwa6CWOx07/WVfh91gBmQ9fahw8snwGEWU3xGzOt4tFyHLxg=="
+  "resolved" "https://registry.npmjs.org/sqlstring/-/sqlstring-2.3.3.tgz"
+  "version" "2.3.3"
 
 "static-extend@^0.1.1":
   "integrity" "sha1-YICcOcv/VTNyJv1eC1IPNB8ftcY="

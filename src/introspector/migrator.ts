@@ -62,7 +62,7 @@ const field_schema_to_sql = (
         .join(', ')
 
     return `${field_name} ${field_schema.data_type}(${data_type_args}) ${
-        field_schema.nullable ? 'NULL' : 'NOT NULL'
+        field_schema.not_null ? 'NOT NULL' : 'NULL'
     }${field_schema.primary_key ? ' PRIMARY KEY' : ''}${
         field_schema.default ? ` DEFAULT ${field_schema.default}` : ''
     }${field_schema.auto_increment ? ' AUTO INCREMENT' : ''}`

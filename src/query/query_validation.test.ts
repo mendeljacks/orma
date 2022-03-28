@@ -6,7 +6,7 @@ import { get_any_path_errors, get_query_schema, postprocess_query_for_validation
 
 const ajv = new Ajv({ discriminator: true })
 
-describe.only('query_validation', () => {
+describe('query_validation', () => {
     const orma_schema = as_orma_schema({
         products: {
             id: {
