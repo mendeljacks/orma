@@ -1,11 +1,11 @@
+import { orma_escape } from '../../helpers/escape'
 import {
     deep_for_each,
     deep_set
 } from '../../helpers/helpers'
 
 export const apply_escape_macro = (
-    query,
-    escaping_function: (value) => any
+    query
 ) => {
     let raw_paths = []
 
@@ -27,6 +27,6 @@ export const apply_escape_macro = (
                 )
             }
         }
-        deep_set(path, escaping_function(value.$escape), query)
+        deep_set(path, orma_escape(value.$escape), query)
     })
 }
