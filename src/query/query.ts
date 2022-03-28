@@ -130,7 +130,6 @@ export const orma_query = async <
     query_function: (
         sql_string: string[]
     ) => Promise<Record<string, unknown>[][]>,
-    escaping_function: (value) => any,
     validation_function: (query) => any[]
 ): Promise<
     | (QueryResult<Schema, Query> & { $success: true })
@@ -168,7 +167,7 @@ export const orma_query = async <
             apply_nesting_macro(query, path, results, orma_schema)
 
             const subquery = deep_get(path, query)
-            apply_escape_macro(subquery, escaping_function)
+            apply_escape_macro(subquery)
 
             return json_to_sql(subquery)
         })
