@@ -257,6 +257,11 @@
   "resolved" "https://registry.npmjs.org/@types/node/-/node-16.3.2.tgz"
   "version" "16.3.2"
 
+"@types/sqlstring@^2.3.0":
+  "integrity" "sha512-kMFecDYYFk/f5fljO0UFrSPwU1JxY4mIjX6ic7MHv5nD6sEd3NYLoWcOV/3s6Drs7RHdCwTQdD5NdgVl0I2zzg=="
+  "resolved" "https://registry.npmjs.org/@types/sqlstring/-/sqlstring-2.3.0.tgz"
+  "version" "2.3.0"
+
 "@ungap/promise-all-settled@1.1.2":
   "integrity" "sha512-sL/cEvJWAnClXw0wHk85/2L0G6Sj8UB0Ctc1TEMbKSsmpRosqhwj9gWgFRZSrBr2f9tiXISwNhCPmlfqUqyb9Q=="
   "resolved" "https://registry.npmjs.org/@ungap/promise-all-settled/-/promise-all-settled-1.1.2.tgz"

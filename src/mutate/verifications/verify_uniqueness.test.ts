@@ -64,8 +64,7 @@ describe('verify_uniqueness', () => {
 
             const result = get_verify_uniqueness_query(
                 pathed_records_by_entity,
-                orma_schema,
-                el => el
+                orma_schema
             )
 
             expect(result).to.deep.equal({
@@ -94,8 +93,7 @@ describe('verify_uniqueness', () => {
 
             const result = get_verify_uniqueness_query(
                 pathed_records_by_entity,
-                orma_schema,
-                el => el
+                orma_schema
             )
 
             expect(result).to.deep.equal({
@@ -106,10 +104,10 @@ describe('verify_uniqueness', () => {
                     $where: {
                         $and: [
                             {
-                                $eq: ['first_name', 'john'],
+                                $eq: ['first_name', "'john'"],
                             },
                             {
-                                $eq: ['last_name', 'smith'],
+                                $eq: ['last_name', "'smith'"],
                             },
                         ],
                     },
@@ -144,8 +142,7 @@ describe('verify_uniqueness', () => {
 
             const result = get_verify_uniqueness_query(
                 pathed_records_by_entity,
-                orma_schema,
-                el => el
+                orma_schema
             )
 
             expect(result).to.deep.equal({
@@ -189,8 +186,7 @@ describe('verify_uniqueness', () => {
 
             const result = get_verify_uniqueness_query(
                 pathed_records_by_entity,
-                orma_schema,
-                el => el
+                orma_schema
             )
 
             expect(result).to.deep.equal({
@@ -203,7 +199,7 @@ describe('verify_uniqueness', () => {
                                 $in: ['id', [12]],
                             },
                             {
-                                $in: ['title', ['chair']],
+                                $in: ['title', ["'chair'"]],
                             },
                         ],
                     },

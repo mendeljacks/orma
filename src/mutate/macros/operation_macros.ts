@@ -1,26 +1,26 @@
+import { escape } from 'sqlstring'
 import { error_type } from '../../helpers/error_handling'
+import { orma_escape } from '../../helpers/escape'
 import { deep_get, drop_last, is_simple_object } from '../../helpers/helpers'
 import {
     get_direct_edge,
     is_parent_entity,
-    is_reserved_keyword,
+    is_reserved_keyword
 } from '../../helpers/schema_helpers'
 import { path_to_string } from '../../helpers/string_to_path'
 import { orma_schema } from '../../introspector/introspector'
-import { json_to_sql } from '../../query/json_sql'
 import { combine_wheres } from '../../query/query_helpers'
 import {
     generate_record_where_clause,
     get_identifying_keys,
-    path_to_entity,
+    path_to_entity
 } from '../mutate'
 
 export const get_update_asts = (
     entity_name: string,
     paths: (string | number)[][],
     mutation,
-    orma_schema: orma_schema,
-    escape_fn
+    orma_schema: orma_schema
 ) => {
     if (paths.length === 0) {
         return []
@@ -38,8 +38,7 @@ export const get_update_asts = (
 
         const where = generate_record_where_clause(
             identifying_keys,
-            record,
-            escape_fn
+            record
         )
 
         const keys_to_set = Object.keys(record)
@@ -53,7 +52,7 @@ export const get_update_asts = (
 
         return {
             $update: entity_name,
-            $set: keys_to_set.map(key => [key, escape_fn(record[key])]),
+            $set: keys_to_set.map(key => [key, orma_escape(record[key])]),
             $where: where,
         }
     })
@@ -65,34 +64,11 @@ export const get_delete_ast = (
     entity_name: string,
     paths: (string | number)[][],
     mutation,
-    orma_schema: orma_schema,
-    escape_fn
+    orma_schema: orma_schema
 ) => {
     if (paths.length === 0) {
         return []
     }
-
-    // const jsons = paths.map(path => {
-    //     const record = deep_get(path, mutation)
-    //     const identifying_keys = get_identifying_keys(
-    //         entity_name,
-    //         record,
-    //         orma_schema
-    //     )
-
-    //     throw_identifying_key_errors('delete', identifying_keys, path, mutation)
-
-    //     const where = generate_record_where_clause(
-    //         identifying_keys,
-    //         record,
-    //         escape_fn
-    //     )
-
-    //     return {
-    //         $delete_from: entity_name,
-    //         $where: where,
-    //     }
-    // })
 
     const wheres = paths.map(path => {
         const record = deep_get(path, mutation)
@@ -106,8 +82,7 @@ export const get_delete_ast = (
 
         const where = generate_record_where_clause(
             identifying_keys,
-            record,
-            escape_fn
+            record
         )
 
         return where
@@ -128,8 +103,7 @@ export const get_create_ast = (
     paths: (string | number)[][],
     mutation,
     tier_results,
-    orma_schema: orma_schema,
-    escape_fn
+    orma_schema: orma_schema
 ) => {
     if (paths.length === 0) {
         return []
@@ -171,7 +145,7 @@ export const get_create_ast = (
         const record = records[i]
         const record_values = [...insert_keys].map(key => record[key] ?? null)
         const escaped_record_values = record_values.map(value =>
-            escape_fn(value)
+            orma_escape(value)
         )
         return escaped_record_values
     })

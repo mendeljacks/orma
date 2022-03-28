@@ -1,4 +1,6 @@
+import { escape } from 'sqlstring'
 import { deep_merge } from '../helpers/deep_merge'
+import { orma_escape } from '../helpers/escape'
 import {
     array_equals,
     clone,
@@ -30,7 +32,6 @@ import { get_mutate_plan } from './mutate_plan'
 
 export type operation = 'create' | 'update' | 'delete' | 'query'
 export type mysql_fn = (statements) => Promise<Record<string, any>[][]>
-export type escape_fn = (string) => string
 export type statements = {
     sql_ast: Record<any, any>
     sql_string: string
@@ -41,7 +42,6 @@ export type statements = {
 export const orma_mutate = async (
     input_mutation,
     mysql_function: mysql_fn,
-    escape_fn: escape_fn,
     orma_schema: orma_schema
 ) => {
     // clone to allow macros to mutation the mutation without changing the user input mutation object
@@ -68,8 +68,7 @@ export const orma_mutate = async (
                     paths,
                     mutation,
                     tier_results,
-                    orma_schema,
-                    escape_fn
+                    orma_schema
                 )
                 return statements.map(statement => ({
                     ...statement,
@@ -90,8 +89,7 @@ export const orma_mutate = async (
                     mutation,
                     last(route),
                     paths,
-                    orma_schema,
-                    escape_fn
+                    orma_schema
                 )
 
                 // sql ast can be undefined if there are no foreign keys to search for on this entity
@@ -179,8 +177,7 @@ export const generate_foreign_key_query = (
     mutation,
     entity_name: string,
     paths: (string | number)[][],
-    orma_schema: orma_schema,
-    escape_fn
+    orma_schema: orma_schema
 ) => {
     const foreign_keys = [
         ...new Set(
@@ -214,8 +211,7 @@ export const generate_foreign_key_query = (
 
         const where = generate_record_where_clause(
             identifying_keys,
-            record,
-            escape_fn
+            record
         )
         return where
     })
@@ -264,8 +260,7 @@ export const get_mutation_statements = (
     paths: (string | number)[][],
     mutation,
     tier_results,
-    orma_schema: orma_schema,
-    escape_fn
+    orma_schema: orma_schema
 ): { sql_ast: Record<any, any>; paths: (string | number)[][] }[] => {
     let statements: ReturnType<typeof get_mutation_statements>
 
@@ -274,8 +269,7 @@ export const get_mutation_statements = (
             entity_name,
             paths,
             mutation,
-            orma_schema,
-            escape_fn
+            orma_schema
         ).map((ast, i) => ({
             paths: [paths[i]],
             sql_ast: ast,
@@ -287,8 +281,7 @@ export const get_mutation_statements = (
                     entity_name,
                     paths,
                     mutation,
-                    orma_schema,
-                    escape_fn
+                    orma_schema
                 ),
                 paths,
             },
@@ -301,8 +294,7 @@ export const get_mutation_statements = (
                     paths,
                     mutation,
                     tier_results,
-                    orma_schema,
-                    escape_fn
+                    orma_schema
                 ),
                 paths,
             },
@@ -365,11 +357,10 @@ export const get_mutation_statements = (
 
 export const generate_record_where_clause = (
     identifying_keys: string[],
-    record: Record<string, unknown>,
-    escape_fn
+    record: Record<string, unknown>
 ) => {
     const where_clauses = identifying_keys.map(key => ({
-        $eq: [key, escape_fn(record[key])],
+        $eq: [key, orma_escape(record[key])],
     }))
 
     const where =

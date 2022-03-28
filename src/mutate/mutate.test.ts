@@ -9,8 +9,6 @@ import {
     statements,
 } from './mutate'
 
-const escape_fn = el => (typeof el === 'string' ? `\`${el}\`` : el)
-
 describe('mutate', () => {
     const orma_schema: orma_schema = {
         grandparents: {
@@ -306,7 +304,6 @@ describe('mutate', () => {
             const results = await orma_mutate(
                 mutation,
                 mysql_fn,
-                escape_fn,
                 orma_schema
             )
 
@@ -367,11 +364,10 @@ describe('mutate', () => {
 
                 return []
             }
-            // const escape_fn = val => typeof val === 'string' ? `"${val}"` : val
+
             const results = await orma_mutate(
                 mutation,
                 mutate_fn,
-                escape_fn,
                 orma_schema
             )
 

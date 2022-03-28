@@ -7,8 +7,6 @@ import {
     get_update_asts,
 } from './operation_macros'
 
-const escape_fn = el => (typeof el === 'string' ? `\`${el}\`` : el)
-
 describe('operation_macros.ts', () => {
     const orma_schema: orma_schema = {
         grandparents: {
@@ -105,8 +103,7 @@ describe('operation_macros.ts', () => {
                 'grandparents',
                 [['grandparents', 0]],
                 mutation,
-                orma_schema,
-                escape_fn
+                orma_schema
             )
             const goal = [
                 {
@@ -132,13 +129,12 @@ describe('operation_macros.ts', () => {
                 'parents',
                 [['parents', 0]],
                 mutation,
-                orma_schema,
-                escape_fn
+                orma_schema
             )
             const goal = [
                 {
                     $update: 'parents',
-                    $set: [['unique1', '`john`']],
+                    $set: [['unique1', "'john'"]],
                     $where: { $eq: ['id', 1] },
                 },
             ]
@@ -159,14 +155,13 @@ describe('operation_macros.ts', () => {
                 'parents',
                 [['parents', 0]],
                 mutation,
-                orma_schema,
-                escape_fn
+                orma_schema
             )
             const goal = [
                 {
                     $update: 'parents',
                     $set: [['quantity', 5]],
-                    $where: { $eq: ['unique1', '`john`'] },
+                    $where: { $eq: ['unique1', "'john'"] },
                 },
             ]
 
@@ -186,8 +181,7 @@ describe('operation_macros.ts', () => {
                     'parents',
                     [['parents', 0]],
                     mutation,
-                    orma_schema,
-                    escape_fn
+                    orma_schema
                 )
                 expect('should have thrown an error').to.equal(true)
             } catch (error) {
@@ -210,8 +204,7 @@ describe('operation_macros.ts', () => {
                     'parents',
                     [['parents', 0]],
                     mutation,
-                    orma_schema,
-                    escape_fn
+                    orma_schema
                 )
                 expect('should have thrown an error').to.equal(true)
             } catch (error) {}
@@ -231,8 +224,7 @@ describe('operation_macros.ts', () => {
                 'children',
                 [['children', 0]],
                 mutation,
-                orma_schema,
-                escape_fn
+                orma_schema
             )
             const goal = [
                 {
@@ -271,8 +263,7 @@ describe('operation_macros.ts', () => {
                 'parents',
                 [['parents', 0]],
                 mutation,
-                orma_schema,
-                escape_fn
+                orma_schema
             )
             const goal = {
                 $delete_from: 'parents',

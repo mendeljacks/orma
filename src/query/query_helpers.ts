@@ -1,3 +1,5 @@
+import { escape } from 'sqlstring'
+import { orma_escape } from '../helpers/escape'
 import { deep_get, is_simple_object } from '../helpers/helpers'
 import { is_reserved_keyword } from '../helpers/schema_helpers'
 
@@ -85,8 +87,7 @@ export const combine_wheres = (
 
 export const get_search_records_where = (
     records: Record<string, any>[],
-    get_search_fields: (record: Record<string, any>) => string[],
-    escape_function: (value) => any
+    get_search_fields: (record: Record<string, any>) => string[]
 ) => {
     const records_by_search_fields = records.reduce((acc, record) => {
         const identifying_fields = get_search_fields(record)
@@ -110,7 +111,7 @@ export const get_search_records_where = (
             return {
                 $in: [
                     field,
-                    records.map(record => escape_function(record[field])),
+                    records.map(record => orma_escape(record[field])),
                 ],
             }
         } else {
@@ -118,7 +119,7 @@ export const get_search_records_where = (
             // generate an or per record and an and per identifying field
             return records.map(record => ({
                 $and: identifying_fields.map(field => ({
-                    $eq: [field, escape_function(record[field])],
+                    $eq: [field, orma_escape(record[field])],
                 })),
             }))
         }

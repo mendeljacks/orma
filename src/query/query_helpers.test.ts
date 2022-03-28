@@ -118,12 +118,11 @@ describe('query helpers', () => {
 
             const result = get_search_records_where(
                 records,
-                record => ['field1'],
-                el => el
+                record => ['field1']
             )
 
             expect(result).to.deep.equal({
-                $in: ['field1', ['hi']],
+                $in: ['field1', ["'hi'"]],
             })
         })
         test('handles escaping', () => {
@@ -135,12 +134,11 @@ describe('query helpers', () => {
 
             const result = get_search_records_where(
                 records,
-                record => ['field1'],
-                el => `"${el}"`
+                record => ['field1']
             )
 
             expect(result).to.deep.equal({
-                $in: ['field1', ['"hi"']],
+                $in: ['field1', ["'hi'"]],
             })
         })
         test('handles multiple fields', () => {
@@ -154,17 +152,16 @@ describe('query helpers', () => {
 
             const result = get_search_records_where(
                 records,
-                record => ['field1', 'field2'],
-                el => el
+                record => ['field1', 'field2']
             )
 
             expect(result).to.deep.equal({
                 $and: [
                     {
-                        $eq: ['field1', 'hi'],
+                        $eq: ['field1', "'hi'"],
                     },
                     {
-                        $eq: ['field2', 'hi2'],
+                        $eq: ['field2', "'hi2'"],
                     },
                 ],
             })
@@ -194,32 +191,31 @@ describe('query helpers', () => {
             const result = get_search_records_where(
                 records,
                 record =>
-                    record.type === 1 ? ['field1'] : ['field1', 'field2'],
-                el => el
+                    record.type === 1 ? ['field1'] : ['field1', 'field2']
             )
 
             expect(result).to.deep.equal({
                 $or: [
                     {
-                        $in: ['field1', ['a', 'b']],
+                        $in: ['field1', ["'a'", "'b'"]],
                     },
                     {
                         $and: [
                             {
-                                $eq: ['field1', 'c1'],
+                                $eq: ['field1', "'c1'"],
                             },
                             {
-                                $eq: ['field2', 'c2'],
+                                $eq: ['field2', "'c2'"],
                             },
                         ],
                     },
                     {
                         $and: [
                             {
-                                $eq: ['field1', 'd1'],
+                                $eq: ['field1', "'d1'"],
                             },
                             {
-                                $eq: ['field2', 'd2'],
+                                $eq: ['field2', "'d2'"],
                             },
                         ],
                     },

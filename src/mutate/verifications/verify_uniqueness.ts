@@ -16,14 +16,12 @@ import { split_mutation_by_entity } from '../mutate_helpers'
  *   2. records from the mutation conflict with other records from the mutation
  * 
  * @param orma_query a function which takes an orma query and gives the results of running the query
- * @param escape_function used to escape values that go in the generated query
  * @returns 
  */
 export const verify_uniqueness = async (
     mutation,
     orma_query: (query) => Promise<any>,
-    orma_schema: orma_schema,
-    escape_function: (value) => any
+    orma_schema: orma_schema
 ) => {
     /*
     check that no two rows have the same value for the same unique column, and also make sure that no unique value
@@ -42,8 +40,7 @@ export const verify_uniqueness = async (
 
     const query = get_verify_uniqueness_query(
         pathed_records_by_entity,
-        orma_schema,
-        escape_function
+        orma_schema
     )
 
     const results = await orma_query(query)
@@ -70,8 +67,7 @@ export const verify_uniqueness = async (
  */
 export const get_verify_uniqueness_query = (
     pathed_records_by_entity: Record<string, PathedRecord[]>,
-    orma_schema: orma_schema,
-    escape_function: (value) => any
+    orma_schema: orma_schema
 ) => {
     const mutation_entities = Object.keys(pathed_records_by_entity)
     const query = mutation_entities.reduce((acc, entity) => {
@@ -95,8 +91,7 @@ export const get_verify_uniqueness_query = (
         // searches all records for the entity
         const $where = get_search_records_where(
             searchable_pathed_records.map(({ record }) => record),
-            record => get_identifying_keys(entity, record, orma_schema),
-            escape_function
+            record => get_identifying_keys(entity, record, orma_schema)
         )
 
         if (!$where) {
