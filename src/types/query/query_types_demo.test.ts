@@ -40,7 +40,6 @@ import { as_orma_query } from '../../query/query'
         query,
         schema,
         async () => ({} as any),
-        () => {},
         () => []
     ).then(result => {
         if (result.$success) {

@@ -20,15 +20,7 @@ describe('escaping_macros', () => {
                 },
             }
 
-            apply_escape_macro(query, value => {
-                if (typeof value === 'string') {
-                    return `"${value}"`
-                } else if (value instanceof Date) {
-                    return `"2021-01-02"`
-                } else {
-                    return value
-                }
-            })
+            apply_escape_macro(query)
 
             expect(query).to.deep.equal({
                 my_products: {
@@ -46,13 +38,7 @@ describe('escaping_macros', () => {
                 }]}]
             }
 
-            apply_escape_macro(query, value => {
-                if (Array.isArray(value)) {
-                    return value
-                } else {
-                    return `"${value}"`
-                }
-            })
+            apply_escape_macro(query)
 
             expect(query).to.deep.equal({
                 in: ['column', ['"val"']],
