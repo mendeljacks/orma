@@ -107,18 +107,20 @@ export const orma_mutate = async (
             })
             .filter(el => el !== undefined)
 
-        const query_results = await mysql_function(query_statements)
+        if (query_statements.length > 0) {
+            const query_results = await mysql_function(query_statements)
 
-        const new_tier_results = add_foreign_key_indexes(
-            query_statements,
-            query_results,
-            mutation,
-            orma_schema
-        )
+            const new_tier_results = add_foreign_key_indexes(
+                query_statements,
+                query_results,
+                mutation,
+                orma_schema
+            )
 
-        tier_results = {
-            ...tier_results,
-            ...new_tier_results,
+            tier_results = {
+                ...tier_results,
+                ...new_tier_results,
+            }
         }
     }
 
@@ -126,7 +128,7 @@ export const orma_mutate = async (
     Object.entries(tier_results).forEach(([path_string, database_row]) => {
         const path = string_to_path(path_string)
         const mutation_obj = deep_get(path, mutation, undefined)
-       
+
         // merge database row
         Object.keys(database_row).forEach(key => {
             mutation_obj[key] = database_row[key]
@@ -209,10 +211,7 @@ export const generate_foreign_key_query = (
 
         identifying_keys.forEach(field => all_identifying_keys.add(field))
 
-        const where = generate_record_where_clause(
-            identifying_keys,
-            record
-        )
+        const where = generate_record_where_clause(identifying_keys, record)
         return where
     })
 
