@@ -146,7 +146,7 @@ export const orma_query = async <
     ]
 
     if (errors.length > 0) {
-        return {
+        throw {
             $success: false,
             errors,
         }
