@@ -118,6 +118,7 @@ export const get_introspect_sqls = (database_name: string): string[] => {
             numeric_scale,
             character_maximum_length,
             column_default,
+            extra,
             column_comment
         FROM information_schema.COLUMNS  
         WHERE table_schema = '${database_name}'`,
