@@ -11,7 +11,7 @@ export type QueryResult<
     Schema extends OrmaSchema,
     Query extends object,
     Entity extends GetAllEntities<Schema> = never
-> = {
+> = Omit<{
     // should be returned as a result if the key is not a keyword and the value is not a subquery
     [Key in keyof Query]: Key extends Keyword
         ? never // keywords are not in the results
@@ -24,7 +24,7 @@ export type QueryResult<
                 : QueryResult<Schema, Query[Key], Key>[]
             : never
         : GetSchemaTypeForField<Schema, Entity, Key, Query[Key]>
-}
+}, Keyword>
 
 type GetSchemaTypeForField<
     Schema extends OrmaSchema,
