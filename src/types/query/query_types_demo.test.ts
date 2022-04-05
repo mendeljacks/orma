@@ -1,5 +1,8 @@
 import { orma_query } from '../..'
+import { error_type } from '../../helpers/error_handling'
 import { as_orma_query } from '../../query/query'
+import { QueryResult } from './query_result_types'
+import { OrmaQuery } from './query_types'
 
 {
     const schema = {
@@ -21,6 +24,16 @@ import { as_orma_query } from '../../query/query'
             },
         },
     } as const
+
+    const q = <Query extends OrmaQuery<typeof schema>>(
+        query: Query
+    ): Promise<
+        | (QueryResult<typeof schema, Query> & { $success: true })
+        | { $success: false; errors: error_type[] }
+    > => {
+        const a: any = ''
+        return a
+    }
 
     const query = as_orma_query(schema, {
         my_products: {
