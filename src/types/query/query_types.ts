@@ -64,6 +64,7 @@ export type VirtualField<
     | number
     | GroupBy<Schema, Entity>
     | OrderBy<Schema, Entity>
+    | any[] // TODO: replace this with a proper type for a $where clause. any[] is just for $eq: [] clauses
 
 export type FromObj<
     Schema extends OrmaSchema,

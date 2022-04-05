@@ -213,3 +213,15 @@ type TestSchema = typeof test_schema
         }
     }
 }
+
+{
+    // handles where clause
+    const good: OrmaQuery<TestSchema> = {
+        products: {
+            id: true,
+            $where: {
+                $eq: ['id', { $escape: true }]
+            }
+        }
+    }
+}
