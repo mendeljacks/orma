@@ -3,7 +3,7 @@ import { IsEqual } from '../helper_types'
 import { QueryResult } from './query_result_types'
 import { OrmaQuery } from './query_types'
 
-{
+const test = () => {
     const test_schema = as_orma_schema({
         products: {
             id: {
@@ -25,7 +25,7 @@ import { OrmaQuery } from './query_types'
                 },
             },
             name: {
-                data_type: 'varchar'
+                data_type: 'varchar',
             },
             $indexes: [],
         },
@@ -87,7 +87,7 @@ import { OrmaQuery } from './query_types'
         // infers entity name from prop
         const result = query_response({
             products: {
-                id: true
+                id: true,
             },
         })
 
@@ -99,7 +99,7 @@ import { OrmaQuery } from './query_types'
         // allows prop renaming
         const result = query_response({
             products: {
-                my_id: 'id'
+                my_id: 'id',
             },
         })
 
@@ -114,9 +114,9 @@ import { OrmaQuery } from './query_types'
             products: {
                 images: {
                     products: {
-                        name: true
-                    }
-                }
+                        name: true,
+                    },
+                },
             },
         })
 

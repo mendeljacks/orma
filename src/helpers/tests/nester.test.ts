@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { nester } from '../nester'
 
-describe('nester', () => {
+describe.only('nester', () => {
     test('basic deep nesting', async () => {
         const data = [
             [
@@ -320,5 +320,32 @@ describe('nester', () => {
         const result: any = nester(data, edges)
         const len = result.order_items[0].variants[0].products.length
         expect(len).to.equal(1)
+    })
+    test('dev test', () => {
+        const data = [
+            [
+                ['products', 0],
+                [
+                    {
+                        id: 2497,
+                    },
+                ],
+            ],
+            [
+                ['products', 0, 'variants', 0],
+                [
+                    {
+                        id: 909,
+                        product_id: 2497,
+                    },
+                ],
+            ],
+        ]
+
+        const edges = [null, ['id', 'product_id']]
+
+        const output = nester(data, edges)
+
+        const a = 1
     })
 })

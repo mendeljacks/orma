@@ -57,8 +57,13 @@ export const json_to_sql = (expression: expression, path = []) => {
             }
 
             const command_parser = sql_command_parsers[command]
+            // commands must start with $, so we can safely ignore any other commands, for instance nested subqueries
             if (!command_parser) {
-                throw new Error(`Cannot find command parser for ${command}.`)
+                if (command[0] === '$') {
+                    throw new Error(`Cannot find command parser for ${command}.`)
+                } else {
+                    return ''
+                }
             }
 
             const args = expression[command]

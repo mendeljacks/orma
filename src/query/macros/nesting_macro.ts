@@ -51,6 +51,14 @@ export const get_nesting_where = (
             previous_result[0].toString() === ancestor_path.toString()
     )[0]
 
+    if (ancestor_result === undefined) {
+        // there can be no previous results if this is a nested entity and there is no higher entity. In this case
+        // we want nothing of the lower entity to be queried, so we use an impossible where clause that returns nothing
+        return {
+            $eq: ['1', '2']
+        }
+    }
+
     const ancestor_rows = ancestor_result[1] as Record<string, unknown>[]
 
     const ancestor_to_entity_path = subquery_path.slice(
