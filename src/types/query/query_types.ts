@@ -88,6 +88,10 @@ export type Expression<
     Entity extends GetAllEntities<Schema>
 > = {
     $sum: GetFields<Schema, Entity>
+} | {
+    $min: GetFields<Schema, Entity>
+} | {
+    $max: GetFields<Schema, Entity>
 }
 
 export type PaginationObj = {

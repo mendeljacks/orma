@@ -148,6 +148,8 @@ const sql_command_parsers = {
 
     // SQL functions
     $sum: args => `SUM(${args})`,
+    $min: args => `MIN(${args})`,
+    $max: args => `MAX(${args})`,
 
     // mutations
     $insert_into: ([table_name, [...columns]]) =>
