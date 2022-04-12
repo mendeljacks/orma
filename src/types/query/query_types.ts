@@ -87,12 +87,14 @@ export type Expression<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    $sum: GetFields<Schema, Entity>
+    $sum: Expression<Schema, Entity>
 } | {
-    $min: GetFields<Schema, Entity>
+    $min: Expression<Schema, Entity>
 } | {
-    $max: GetFields<Schema, Entity>
-}
+    $max: Expression<Schema, Entity>
+} | {
+    $coalesce: Expression<Schema, Entity>
+} | GetFields<Schema, Entity>
 
 export type PaginationObj = {
     $limit?: number

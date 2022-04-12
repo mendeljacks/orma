@@ -150,6 +150,7 @@ const sql_command_parsers = {
     $sum: args => `SUM(${args})`,
     $min: args => `MIN(${args})`,
     $max: args => `MAX(${args})`,
+    $coalesce: args => `COALESCE(${args.join(', ')})`,
 
     // mutations
     $insert_into: ([table_name, [...columns]]) =>
