@@ -1,6 +1,6 @@
 import { escape } from 'sqlstring'
 import { orma_escape } from '../helpers/escape'
-import { deep_get, is_simple_object } from '../helpers/helpers'
+import { deep_get, is_simple_object, last } from '../helpers/helpers'
 import { is_reserved_keyword } from '../helpers/schema_helpers'
 
 /**
@@ -29,7 +29,7 @@ export const is_subquery = (subquery: any) => {
  */
 export const query_for_each = (
     query: Record<string, any>,
-    processor: (value: any, path: string[]) => void,
+    processor: (value: any, path: string[], entity_name: string) => void,
     current_path: string[] = []
 ) => {
     const root_paths = Object.keys(query).map(key => [key])
@@ -46,7 +46,8 @@ export const query_for_each = (
 
         if (path.length > 0) {
             // dont call processor on query root, since this doesnt correspond with an entity
-            processor(subquery, path)
+            const entity_name = subquery.$from ?? last(path)
+            processor(subquery, path, entity_name)
         }
     }
 }

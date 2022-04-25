@@ -9,8 +9,19 @@ import {
 
 export type OrmaQuery<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>
-} & {
-    [VirtualEntity in string]?: Subquery<Schema, GetAllEntities<Schema>, false>
+} 
+//& {
+//     // virtual entities cant really be $where_connected macros, but we need this due to limitations with typescript
+//     [VirtualEntity in string]?:
+//         | Subquery<Schema, GetAllEntities<Schema>, false>
+//         | WhereConnected<OrmaSchema>
+// }
+ & { $where_connected?: WhereConnected<OrmaSchema> }
+
+type WhereConnected<Schema extends OrmaSchema> = {
+    [Entity in GetAllEntities<Schema>]?: {
+        [Field in GetFields<Schema, Entity>]?: (string | number)[]
+    }
 }
 
 export type Subquery<
@@ -86,15 +97,20 @@ export type QueryField<
 export type Expression<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
-> = {
-    $sum: Expression<Schema, Entity>
-} | {
-    $min: Expression<Schema, Entity>
-} | {
-    $max: Expression<Schema, Entity>
-} | {
-    $coalesce: Expression<Schema, Entity>
-} | GetFields<Schema, Entity>
+> =
+    | {
+          $sum: Expression<Schema, Entity>
+      }
+    | {
+          $min: Expression<Schema, Entity>
+      }
+    | {
+          $max: Expression<Schema, Entity>
+      }
+    | {
+          $coalesce: Expression<Schema, Entity>
+      }
+    | GetFields<Schema, Entity>
 
 export type PaginationObj = {
     $limit?: number

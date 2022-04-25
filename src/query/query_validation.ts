@@ -484,4 +484,22 @@ Features that are currently disabled due to validation:
         }
     }
 
+
+
+*/
+
+/*
+
+    new syntax ideas:
+    
+    {
+        $where_connected: {
+            vendors: [1, 3, 4],
+            warehouses: [66, 12]
+        }
+    }
+
+    {
+        $foreign_key: ['waraehouse_id_origin']
+    }
 */

@@ -108,7 +108,7 @@ type TestSchema = typeof test_schema
                         id: true,
                     },
                 },
-            },
+            }
         },
         images: {
             products: {
@@ -221,6 +221,25 @@ type TestSchema = typeof test_schema
             id: true,
             $where: {
                 $eq: ['id', { $escape: true }]
+            }
+        }
+    }
+}
+
+{
+    // handles $where_connected macro
+    const good: OrmaQuery<TestSchema> = {
+        $where_connected: {
+            products: {
+                id: [1, 'a']
+            }
+        }
+    }
+
+    const bad: OrmaQuery<TestSchema> = {
+        $where_connected: {
+            products: {
+                fake_column: [1, 'a']
             }
         }
     }
