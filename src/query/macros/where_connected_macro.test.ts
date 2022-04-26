@@ -402,7 +402,11 @@ describe.only('where_connected_macro.ts', () => {
                 }]
             })
         })
-        test.skip('applies to $where $in clauses')
+        test('applies to $where $in clauses', () => {
+            
+        })
+        test.skip('skips regularly nested subqueries')
+        test.skip('skips regularly nested $where $in clauses')
         test('handles no $where_connected', () => {
             const query = {}
             apply_where_connected_macro(query, {})
