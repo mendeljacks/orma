@@ -7,7 +7,7 @@ import {
     get_upwards_connection_paths,
 } from './where_connected_macro'
 
-describe('where_connected_macro.ts', () => {
+describe.only('where_connected_macro.ts', () => {
     const schema = as_orma_schema({
         grandparents: {
             id: {
@@ -43,7 +43,7 @@ describe('where_connected_macro.ts', () => {
         },
     })
 
-    describe(get_upwards_connection_paths.name, () => {
+    describe.only(get_upwards_connection_paths.name, () => {
         test('generates nested paths', () => {
             const schema: orma_schema = {
                 grandparents: {
@@ -73,7 +73,7 @@ describe('where_connected_macro.ts', () => {
 
             const connection_paths = get_upwards_connection_paths(schema)
 
-            expect(connection_paths.children).to.deep.equal([
+            expect(connection_paths.children.grandparents).to.deep.equal([
                 [
                     {
                         from_entity: 'children',
@@ -83,12 +83,110 @@ describe('where_connected_macro.ts', () => {
                     },
                     {
                         from_entity: 'parents',
-                        from_field: 'parent_id',
+                        from_field: 'grandparent_id',
                         to_entity: 'grandparents',
                         to_field: 'id',
-                    }
+                    },
                 ],
             ])
+        })
+        test('handles mutiple ways to get to same entity', () => {
+            const schema: orma_schema = {
+                grandparents: {
+                    id: {},
+                },
+                parents_1: {
+                    id: {},
+                    grandparent_id: {
+                        references: {
+                            grandparents: {
+                                id: {},
+                            },
+                        },
+                    },
+                },
+                parents_2: {
+                    id: {},
+                    grandparent_id: {
+                        references: {
+                            grandparents: {
+                                id: {},
+                            },
+                        },
+                    },
+                },
+                children: {
+                    id: {},
+                    parent_1_id: {
+                        references: {
+                            parents_1: {
+                                id: {},
+                            },
+                        },
+                    },
+                    parent_2_id: {
+                        references: {
+                            parents_2: {
+                                id: {},
+                            },
+                        },
+                    },
+                },
+            }
+
+            const connection_paths = get_upwards_connection_paths(schema)
+
+            expect(connection_paths.children.grandparents).to.deep.equal([
+                [
+                    {
+                        from_entity: 'children',
+                        from_field: 'parent_1_id',
+                        to_entity: 'parents_1',
+                        to_field: 'id',
+                    },
+                    {
+                        from_entity: 'parents_1',
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
+                [
+                    {
+                        from_entity: 'children',
+                        from_field: 'parent_2_id',
+                        to_entity: 'parents_2',
+                        to_field: 'id',
+                    },
+                    {
+                        from_entity: 'parents_2',
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
+            ])
+        })
+        test('ignores children', () => {
+            const schema: orma_schema = { 
+                parents: {
+                    id: {},
+                },
+                children: {
+                    id: {},
+                    parent_id: {
+                        references: {
+                            parents: {
+                                id: {},
+                            },
+                        },
+                    },
+                },
+            }
+
+            const connection_paths = get_upwards_connection_paths(schema)
+
+            expect(connection_paths.parents).to.equal(undefined)
         })
     })
 

@@ -103,7 +103,8 @@
  * @module
  */
 
-import { last } from '../../helpers/helpers'
+import { deep_set, last } from '../../helpers/helpers'
+import { push_path } from '../../helpers/push_path'
 import {
     Edge,
     get_entity_names,
@@ -117,7 +118,9 @@ This defines the concept of 'connected' for this macro. Each entity gets a list 
 For each of these paths, where clauses will be generated.
  */
 export type ConnectionPaths = {
-    [entity_name: string]: Edge[][]
+    [source_entity: string]: {
+        [destination_entity: string]: Edge[][]
+    }
 }
 
 /*
@@ -143,11 +146,13 @@ export const get_upwards_connection_paths = (orma_schema: orma_schema) => {
 
             // every path before this index is done, in other words there are no more paths that we can get
             // by appending some parent edge onto that path
-            let done_until_index = -1
+            let next_index = 0
 
             // keep looping while there are still paths to process
-            while (done_until_index < entity_paths.length - 1) {
-                for (let i = done_until_index; i < entity_paths.length; i++) {
+            while (next_index < entity_paths.length) {
+                const current_index = next_index
+                next_index = entity_paths.length
+                for (let i = current_index; i < entity_paths.length; i++) {
                     // for each unprocessed path, generate new paths by appending all possible 
                     // parent edges onto its end
                     const entity_path = entity_paths[i]
@@ -161,7 +166,10 @@ export const get_upwards_connection_paths = (orma_schema: orma_schema) => {
                 }
             }
 
-            acc[entity_name] = entity_paths
+            entity_paths.forEach(entity_path => {
+                const target_entity = last(entity_path).to_entity
+                push_path([entity_name, target_entity], entity_path, acc)
+            })
 
             return acc
         },
@@ -340,3 +348,48 @@ export const apply_where_connected_macro = (
 
 //     return ownership_where
 // }
+
+
+/*
+
+{
+    $where_connected: {
+        vendors: {
+            id: [1, 2]
+        }
+    }
+}
+
+{
+    $where_connected: [
+        ['vendors', 'id', [1, 2]]
+    ]
+}
+
+{
+    $any_path: [['variants', 'images'], {
+        $eq: [...]
+    }]
+}
+
+{
+    $any_path: {
+        $path: ['variants', 'images'],
+        $path_where: {
+
+        }
+    }
+}
+
+{
+    $where_connected: [
+        {
+            $entity: 'vendors',
+            $field: 'id',
+            $values: [1, 2]
+        }
+    ]
+}
+
+
+*/
