@@ -245,9 +245,163 @@ describe.only('where_connected_macro.ts', () => {
                 ],
             })
         })
-        test.skip('handles nesting for tables without connection paths')
-        test.skip('handles multiple connection paths')
-        test.skip('combined with existing $where clause')
+        test('handles nesting for tables without connection paths', () => {
+            const query = {
+                $where_connected: [
+                    {
+                        $entity: 'grandparents',
+                        $field: 'id',
+                        $values: [1, 2],
+                    },
+                ],
+                children: {
+                    id: true,
+                },
+            }
+
+            apply_where_connected_macro(query, { })
+
+            // @ts-ignore
+            expect(query.children.$where).to.equal(undefined)
+        })
+        test('handles multiple connection paths', () => {
+            const query = {
+                $where_connected: [
+                    {
+                        $entity: 'grandparents',
+                        $field: 'id',
+                        $values: [1, 2],
+                    },
+                ],
+                children: {
+                    id: true,
+                },
+            }
+
+            apply_where_connected_macro(query, {
+                children: {
+                    grandparents: [
+                        [
+                            {
+                                from_entity: 'children',
+                                from_field: 'parent_1_id',
+                                to_entity: 'parents_1',
+                                to_field: 'id',
+                            },
+                            {
+                                from_entity: 'parents_1',
+                                from_field: 'grandparent_id',
+                                to_entity: 'grandparents',
+                                to_field: 'id',
+                            },
+                        ],
+                        [
+                            {
+                                from_entity: 'children',
+                                from_field: 'parent_2_id',
+                                to_entity: 'parents_2',
+                                to_field: 'id',
+                            },
+                            {
+                                from_entity: 'parents_2',
+                                from_field: 'grandparent_id',
+                                to_entity: 'grandparents',
+                                to_field: 'id',
+                            },
+                        ],
+                    ],
+                },
+            })
+
+            // @ts-ignore
+            expect(query.children.$where).to.deep.equal({
+                $and: [{
+                    $in: [
+                        'parent_1_id',
+                        {
+                            $select: ['id'],
+                            $from: 'parents_1',
+                            $where: {
+                                $in: ['grandparent_id', {
+                                    $select: ['id'],
+                                    $from: 'grandparents',
+                                    $where: {
+                                        $in: ['id', [1, 2]]
+                                    }
+                                }],
+                            },
+                        },
+                    ],
+                }, {
+                    $in: [
+                        'parent_2_id',
+                        {
+                            $select: ['id'],
+                            $from: 'parents_2',
+                            $where: {
+                                $in: ['grandparent_id', {
+                                    $select: ['id'],
+                                    $from: 'grandparents',
+                                    $where: {
+                                        $in: ['id', [1, 2]]
+                                    }
+                                }],
+                            },
+                        },
+                    ],
+                }]
+            })
+        })
+        test('combines with existing $where clause', () => {
+            const query = {
+                $where_connected: [
+                    {
+                        $entity: 'parents',
+                        $field: 'id',
+                        $values: [1, 2],
+                    },
+                ],
+                children: {
+                    id: true,
+                    $where: {
+                        $eq: ['id', 13]
+                    }
+                },
+            }
+
+            apply_where_connected_macro(query, {
+                children: {
+                    parents: [
+                        [
+                            {
+                                from_entity: 'children',
+                                from_field: 'parent_id',
+                                to_entity: 'parents',
+                                to_field: 'id',
+                            }
+                        ],
+                    ],
+                },
+            })
+
+            // @ts-ignore
+            expect(query.children.$where).to.deep.equal({
+                $and: [{
+                    $eq: ['id', 13]
+                }, {
+                    $in: [
+                        'parent_id',
+                        {
+                            $select: ['id'],
+                            $from: 'parents',
+                            $where: {
+                                $in: ['id', [1, 2]],
+                            },
+                        },
+                    ],
+                }]
+            })
+        })
         test.skip('applies to $where $in clauses')
         test('handles no $where_connected', () => {
             const query = {}
