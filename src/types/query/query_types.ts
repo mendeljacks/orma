@@ -9,20 +9,24 @@ import {
 
 export type OrmaQuery<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>
-} 
-//& {
-//     // virtual entities cant really be $where_connected macros, but we need this due to limitations with typescript
-//     [VirtualEntity in string]?:
-//         | Subquery<Schema, GetAllEntities<Schema>, false>
-//         | WhereConnected<OrmaSchema>
-// }
- & { $where_connected?: WhereConnected<OrmaSchema> }
+} & {
+    // virtual entities cant really be $where_connected macros, but we need this due to limitations with typescript
+    [VirtualEntity in string]?:
+        | Subquery<Schema, GetAllEntities<Schema>, false>
+        | WhereConnected<OrmaSchema, GetAllEntities<Schema>>
+} &
+{ $where_connected?: WhereConnected<Schema, GetAllEntities<Schema>> }
 
-type WhereConnected<Schema extends OrmaSchema> = {
-    [Entity in GetAllEntities<Schema>]?: {
-        [Field in GetFields<Schema, Entity>]?: (string | number)[]
-    }
-}
+type WhereConnected<
+    Schema extends OrmaSchema,
+    Entities extends GetAllEntities<Schema>
+> = Entities extends any
+    ? {
+          $entity: Entities
+          $field: GetFields<Schema, Entities>
+          $values: (string | number)[]
+      }[]
+    : never
 
 export type Subquery<
     Schema extends OrmaSchema,

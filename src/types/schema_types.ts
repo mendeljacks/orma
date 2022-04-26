@@ -49,7 +49,7 @@ export type GetAllEntities<Schema extends OrmaSchema> = GetStringKeys<Schema> //
 export type GetFields<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
-> = Exclude<GetStringKeys<Schema[Entity]>, Keyword>
+> = Entity extends any ? Exclude<GetStringKeys<Schema[Entity]>, Keyword> : never
 
 export type GetParentEdges<
     Schema extends OrmaSchema,

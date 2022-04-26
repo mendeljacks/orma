@@ -1,4 +1,4 @@
-import { OrmaSchema } from '../schema_types'
+import { GetAllEntities, GetFields, OrmaSchema } from '../schema_types'
 import { OrmaQuery } from './query_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a
@@ -108,7 +108,7 @@ type TestSchema = typeof test_schema
                         id: true,
                     },
                 },
-            }
+            },
         },
         images: {
             products: {
@@ -172,9 +172,13 @@ type TestSchema = typeof test_schema
     type test = OrmaQuery<TestSchema>
     const good: test = {
         products: {
-            $group_by: ['id', 'asdasdasd', {
-                $sum: 'id'
-            }],
+            $group_by: [
+                'id',
+                'asdasdasd',
+                {
+                    $sum: 'id',
+                },
+            ],
         },
     }
 }
@@ -192,7 +196,7 @@ type TestSchema = typeof test_schema
                 {
                     $desc: 'asdasdasdsad',
                 },
-                'asdjaskdhasjd'
+                'asdjaskdhasjd',
             ],
         },
     }
@@ -200,17 +204,19 @@ type TestSchema = typeof test_schema
     const bad1: test = {
         products: {
             // @ts-expect-error
-            $order_by: 'id'
-        }
+            $order_by: 'id',
+        },
     }
 
     const bad2: test = {
         products: {
-            $order_by: [{
-                // @ts-expect-error
-                $not_a_real_keyword: 'id'
-            }]
-        }
+            $order_by: [
+                {
+                    // @ts-expect-error
+                    $not_a_real_keyword: 'id',
+                },
+            ],
+        },
     }
 }
 
@@ -220,27 +226,35 @@ type TestSchema = typeof test_schema
         products: {
             id: true,
             $where: {
-                $eq: ['id', { $escape: true }]
-            }
-        }
+                $eq: ['id', { $escape: true }],
+            },
+        },
     }
 }
 
 {
     // handles $where_connected macro
     const good: OrmaQuery<TestSchema> = {
-        $where_connected: {
-            products: {
-                id: [1, 'a']
-            }
-        }
+        $where_connected: [
+            {
+                $entity: 'products',
+                $field: 'id',
+                $values: [1, 'a'],
+            },
+        ],
     }
 
     const bad: OrmaQuery<TestSchema> = {
-        $where_connected: {
-            products: {
-                fake_column: [1, 'a']
-            }
-        }
+        $where_connected: [
+            // @ts-ignore
+            {
+                $entity: 'products',
+                $field: 'url', // this is invalid since url is not a field of products
+                $values: [1, 'a'],
+            },
+        ],
     }
+
+    type t1 = GetAllEntities<TestSchema>
+    type t = GetFields<TestSchema, GetAllEntities<TestSchema>>
 }

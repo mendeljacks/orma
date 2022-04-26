@@ -168,7 +168,7 @@ describe.only('where_connected_macro.ts', () => {
             ])
         })
         test('ignores children', () => {
-            const schema: orma_schema = { 
+            const schema: orma_schema = {
                 parents: {
                     id: {},
                 },
@@ -193,33 +193,37 @@ describe.only('where_connected_macro.ts', () => {
     describe(apply_where_connected_macro.name, () => {
         test('handles nested entities', () => {
             const query = {
-                $where_connected: {
-                    grandparents: {
-                        id: [1, 2],
+                $where_connected: [
+                    {
+                        $entity: 'grandparents',
+                        $field: 'id',
+                        $values: [1, 2],
                     },
-                },
+                ],
                 children: {
                     id: true,
                 },
             }
 
             apply_where_connected_macro(query, {
-                children: [
-                    [
-                        {
-                            from_entity: 'children',
-                            from_field: 'parent_id',
-                            to_entity: 'parents',
-                            to_field: 'id',
-                        },
-                        {
-                            from_entity: 'parents',
-                            from_field: 'grandparent_id',
-                            to_entity: 'grandparents',
-                            to_field: 'id',
-                        },
+                children: {
+                    grandparents: [
+                        [
+                            {
+                                from_entity: 'children',
+                                from_field: 'parent_id',
+                                to_entity: 'parents',
+                                to_field: 'id',
+                            },
+                            {
+                                from_entity: 'parents',
+                                from_field: 'grandparent_id',
+                                to_entity: 'grandparents',
+                                to_field: 'id',
+                            },
+                        ],
                     ],
-                ],
+                },
             })
 
             // @ts-ignore
@@ -230,7 +234,7 @@ describe.only('where_connected_macro.ts', () => {
                         $select: ['id'],
                         $from: 'parents',
                         $where: {
-                            // we dont need another layer of nesting since we are filtering against grandparents.id which
+                            // the last layer doesn't need a $select / $where clause since we are filtering against grandparents.id which
                             // is guaranteed to match parents.grandparent_id since it has a foreign key
                             $in: ['grandparent_id', [1, 2]],
                         },
@@ -239,5 +243,12 @@ describe.only('where_connected_macro.ts', () => {
             })
         })
         test.skip('handles nesting for tables without connection paths')
+        test.skip('handles multiple connection paths')
+        test.skip('combined with existing $where clause')
+        test('handles no $where_connected', () => {
+            const query = {}
+            apply_where_connected_macro(query, {})
+            expect(query).to.deep.equal({})
+        })
     })
 })
