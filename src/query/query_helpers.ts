@@ -32,14 +32,16 @@ export const query_for_each = (
     processor: (value: any, path: string[], entity_name: string) => void,
     current_path: string[] = []
 ) => {
-    const root_paths = Object.keys(query).map(key => [key])
+    const root_paths = Object.keys(query)
+        .filter(el => !is_reserved_keyword(el))
+        .map(key => [key])
     const queue = root_paths
 
     while (queue.length > 0) {
         const path = queue.shift()
         const subquery = deep_get(path, query)
         const subquery_keys = Object.keys(subquery).filter(
-            key => is_subquery(subquery[key]) && !is_reserved_keyword(key)
+            key => !is_reserved_keyword(key) && is_subquery(subquery[key])
         )
         const subquery_paths = subquery_keys.map(key => [...path, key])
         queue.push(...subquery_paths)
@@ -93,7 +95,7 @@ export const get_search_records_where = (
     const records_by_search_fields = records.reduce((acc, record) => {
         const identifying_fields = get_search_fields(record)
         if (identifying_fields.length === 0) {
-            throw new Error('Can\'t find identifying fields for record')
+            throw new Error("Can't find identifying fields for record")
         }
         const key = JSON.stringify(identifying_fields)
         if (!acc[key]) {
@@ -110,10 +112,7 @@ export const get_search_records_where = (
         if (identifying_fields.length === 1) {
             const field = identifying_fields[0]
             return {
-                $in: [
-                    field,
-                    records.map(record => orma_escape(record[field])),
-                ],
+                $in: [field, records.map(record => orma_escape(record[field]))],
             }
         } else {
             // 2 or more, e.g. combo unique

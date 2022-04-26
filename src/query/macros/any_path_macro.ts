@@ -1,5 +1,5 @@
 import { deep_for_each, deep_get, last } from '../../helpers/helpers'
-import { get_edge_path } from '../../helpers/schema_helpers'
+import { Edge, get_edge_path } from '../../helpers/schema_helpers'
 import { orma_schema } from '../../introspector/introspector'
 
 /**
@@ -77,8 +77,19 @@ export const process_any_clause = (
     const [any_path, subquery] = any_clause.$any_path
 
     const full_path = [initial_entity].concat(any_path)
-    const edge_path = get_edge_path(full_path, orma_schema).reverse()
-    const clause = edge_path.reduce((acc, edge) => {
+
+    const edge_path = get_edge_path(full_path, orma_schema)
+    const clause = edge_path_to_where_ins(edge_path, filter_type, subquery)
+
+    return clause
+}
+
+export const edge_path_to_where_ins = (edge_path: Edge[], filter_type: '$having' | '$where', subquery: any) => {
+    // we need to reverse the edge path since we are building the where ins 
+    // from the inside out
+    const reversed_edge_path = edge_path.slice().reverse()
+    
+    const clause = reversed_edge_path.reduce((acc, edge) => {
         return {
             $in: [
                 edge.from_field,

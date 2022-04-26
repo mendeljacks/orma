@@ -49,7 +49,11 @@ export type GetAllEntities<Schema extends OrmaSchema> = GetStringKeys<Schema> //
 export type GetFields<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
-> = Entity extends any ? Exclude<GetStringKeys<Schema[Entity]>, Keyword> : never
+> = Entity extends any
+    ? // we need to use a ternary to map over the given Entity (which may be a union). This lets 
+    // GetFields<Schema, 'entity1' | 'entity2'> return the union of all the fields of entity1 and entity2
+      Exclude<GetStringKeys<Schema[Entity]>, Keyword>
+    : never
 
 export type GetParentEdges<
     Schema extends OrmaSchema,

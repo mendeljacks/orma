@@ -111,7 +111,10 @@ import {
     get_parent_edges,
 } from '../../helpers/schema_helpers'
 import { orma_schema } from '../../introspector/introspector'
-import { query_for_each } from '../query_helpers'
+import { WhereConnected } from '../../types/query/query_types'
+import { GetAllEntities, OrmaSchema } from '../../types/schema_types'
+import { combine_wheres, query_for_each } from '../query_helpers'
+import { edge_path_to_where_ins, process_any_clause } from './any_path_macro'
 
 /*
 This defines the concept of 'connected' for this macro. Each entity gets a list of paths that are considered connected.
@@ -187,9 +190,38 @@ export const apply_where_connected_macro = (
         return
     }
 
+    const $where_connected = query.$where_connected as WhereConnected<OrmaSchema>
+
     query_for_each(query, (subquery, path) => {
         const entity_name = last(path)
+        const connection_clauses = $where_connected.flatMap(({ $entity, $field, $values}) => {
+            const entity_connection_paths = connection_paths?.[entity_name]?.[$entity] ?? []
+            if (entity_connection_paths.length === 0) {
+                return []
+            }
+
+            const clauses = entity_connection_paths.map(connection_path => {
+                const reversed_connection_path = connection_path.slice().reverse()
+                const clause = edge_path_to_where_ins(connection_path, '$where', {
+                    $in: [$field, $values]
+                })
+
+                return clause
+            })
+
+            return clauses
+        })
+
+        const existing_wheres = [subquery.$where] ?? []
+        const new_where = combine_wheres([...existing_wheres, ...connection_clauses], '$and')
+        subquery.$where = new_where
     })
+
+    return query
+}
+
+const get_connected_where_clause = (connection_paths: ConnectionPaths, $where_connected: WhereConnected<OrmaSchema>) => {
+
 }
 
 // /**
@@ -293,23 +325,6 @@ export const apply_where_connected_macro = (
 // }
 
 // /**
-//  * Takes a list of where clauses and combines them with a connective. Handles cases where there are none,
-//  * one, or multiple where clauses
-//  */
-// export const combine_wheres = (wheres: any[], connective: 'AND' | 'OR') => {
-//     const valid_wheres = wheres.filter(el => !!el)
-
-//     const combined_where =
-//         valid_wheres.length === 0
-//             ? undefined
-//             : valid_wheres.length === 1
-//             ? valid_wheres[0]
-//             : { [connective]: valid_wheres }
-
-//     return combined_where
-// }
-
-// /**
 //  * Returns true if the table_name is a key of the ownership_paths
 //  */
 // export const is_table_name = (
@@ -320,13 +335,21 @@ export const apply_where_connected_macro = (
 // }
 
 // /**
-//  * Generates a single ownership where clause
+//  * Generates a single ownership where clause. ownership paths should all point to the same entity
 //  */
 // const generate_ownership_where = (
-//     ownership_path: string[],
-//     owner_column: string,
+//     ownership_paths: Edge[][],
+//     owner_field: string,
 //     owner_values: any[]
 // ) => {
+//     const clauses = ownership_paths.map(ownership_path => {
+
+//         if (owner_column === last(ownership_path).to_field) {
+
+//         }
+//     })
+
+
 //     const inner_where = {
 //         [owner_column]: {
 //             in: owner_values,
@@ -393,3 +416,5 @@ export const apply_where_connected_macro = (
 
 
 */
+
+// TODO: make validation that ensures an entity / field combination cannot appear more than once in a $where_connected

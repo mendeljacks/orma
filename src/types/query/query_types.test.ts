@@ -1,5 +1,5 @@
 import { GetAllEntities, GetFields, OrmaSchema } from '../schema_types'
-import { OrmaQuery } from './query_types'
+import { OrmaQuery, WhereConnected } from './query_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a
 
@@ -246,7 +246,7 @@ type TestSchema = typeof test_schema
 
     const bad: OrmaQuery<TestSchema> = {
         $where_connected: [
-            // @ts-ignore
+            // @ts-expect-error
             {
                 $entity: 'products',
                 $field: 'url', // this is invalid since url is not a field of products
@@ -254,7 +254,4 @@ type TestSchema = typeof test_schema
             },
         ],
     }
-
-    type t1 = GetAllEntities<TestSchema>
-    type t = GetFields<TestSchema, GetAllEntities<TestSchema>>
 }

@@ -139,7 +139,7 @@ export const get_all_edges = (entity_name, orma_schema) => {
  * Returns true if the input is a reserved keyword, which means it starts with $ like $select or $or
  */
 export const is_reserved_keyword = (keyword: any) =>
-    typeof keyword === 'string' && keyword[0] === '$'
+    keyword?.[0] === '$'
 
 /**
  * Gets possible parent or child edges between two tables that are immediate child/parent or parent/child

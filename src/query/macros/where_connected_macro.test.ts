@@ -43,7 +43,7 @@ describe.only('where_connected_macro.ts', () => {
         },
     })
 
-    describe.only(get_upwards_connection_paths.name, () => {
+    describe(get_upwards_connection_paths.name, () => {
         test('generates nested paths', () => {
             const schema: orma_schema = {
                 grandparents: {
@@ -189,8 +189,7 @@ describe.only('where_connected_macro.ts', () => {
             expect(connection_paths.parents).to.equal(undefined)
         })
     })
-
-    describe(apply_where_connected_macro.name, () => {
+    describe.only(apply_where_connected_macro.name, () => {
         test('handles nested entities', () => {
             const query = {
                 $where_connected: [
@@ -234,9 +233,13 @@ describe.only('where_connected_macro.ts', () => {
                         $select: ['id'],
                         $from: 'parents',
                         $where: {
-                            // the last layer doesn't need a $select / $where clause since we are filtering against grandparents.id which
-                            // is guaranteed to match parents.grandparent_id since it has a foreign key
-                            $in: ['grandparent_id', [1, 2]],
+                            $in: ['grandparent_id', {
+                                $select: ['id'],
+                                $from: 'grandparents',
+                                $where: {
+                                    $in: ['id', [1, 2]]
+                                }
+                            }],
                         },
                     },
                 ],
@@ -245,6 +248,7 @@ describe.only('where_connected_macro.ts', () => {
         test.skip('handles nesting for tables without connection paths')
         test.skip('handles multiple connection paths')
         test.skip('combined with existing $where clause')
+        test.skip('applies to $where $in clauses')
         test('handles no $where_connected', () => {
             const query = {}
             apply_where_connected_macro(query, {})
