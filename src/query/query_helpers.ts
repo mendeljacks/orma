@@ -69,12 +69,12 @@ export const combine_wheres = (
 ) => {
     const combined_where = where_clauses
         .filter(el => el !== undefined)
-        .reduce((combined_where, where_clause) => {
+        .reduce((combined_where, new_where) => {
             if (combined_where === undefined) {
-                return where_clause
+                return new_where
             }
 
-            const wheres: any[] = where_clause[connective] ?? [where_clause]
+            const wheres: any[] = new_where[connective] ?? [new_where]
             if (!combined_where[connective]) {
                 return {
                     [connective]: [combined_where, ...wheres],

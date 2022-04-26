@@ -190,38 +190,39 @@ export const apply_where_connected_macro = (
         return
     }
 
-    const $where_connected = query.$where_connected as WhereConnected<OrmaSchema>
-
     query_for_each(query, (subquery, path) => {
-        const entity_name = last(path)
-        const connection_clauses = $where_connected.flatMap(({ $entity, $field, $values}) => {
-            const entity_connection_paths = connection_paths?.[entity_name]?.[$entity] ?? []
-            if (entity_connection_paths.length === 0) {
-                return []
-            }
-
-            const clauses = entity_connection_paths.map(connection_path => {
-                const reversed_connection_path = connection_path.slice().reverse()
-                const clause = edge_path_to_where_ins(connection_path, '$where', {
-                    $in: [$field, $values]
-                })
-
-                return clause
-            })
-
-            return clauses
-        })
-
         const existing_wheres = [subquery.$where] ?? []
-        const new_where = combine_wheres([...existing_wheres, ...connection_clauses], '$and')
+        const connected_where = get_connected_where_clause(connection_paths, query.$where_connected, path)
+        const new_where = combine_wheres([...existing_wheres, connected_where], '$and')
+        
         subquery.$where = new_where
     })
 
     return query
 }
 
-const get_connected_where_clause = (connection_paths: ConnectionPaths, $where_connected: WhereConnected<OrmaSchema>) => {
+const get_connected_where_clause = (connection_paths: ConnectionPaths, $where_connected: WhereConnected<OrmaSchema>, query_path: string[]) => {
+    const entity_name = last(query_path)
+    
+    const connection_clauses = $where_connected.flatMap(({ $entity, $field, $values}) => {
+        const edge_paths = connection_paths?.[entity_name]?.[$entity] ?? []
 
+        if (edge_paths.length === 0) {
+            return []
+        }
+
+        const clauses = edge_paths.map(edge_path => {
+            const clause = edge_path_to_where_ins(edge_path, '$where', {
+                $in: [$field, $values]
+            })
+
+            return clause
+        })
+
+        return clauses
+    })
+
+    return combine_wheres(connection_clauses, '$and')
 }
 
 // /**
