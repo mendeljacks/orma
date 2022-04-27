@@ -233,13 +233,16 @@ describe.only('where_connected_macro.ts', () => {
                         $select: ['id'],
                         $from: 'parents',
                         $where: {
-                            $in: ['grandparent_id', {
-                                $select: ['id'],
-                                $from: 'grandparents',
-                                $where: {
-                                    $in: ['id', [1, 2]]
-                                }
-                            }],
+                            $in: [
+                                'grandparent_id',
+                                {
+                                    $select: ['id'],
+                                    $from: 'grandparents',
+                                    $where: {
+                                        $in: ['id', [1, 2]],
+                                    },
+                                },
+                            ],
                         },
                     },
                 ],
@@ -259,7 +262,7 @@ describe.only('where_connected_macro.ts', () => {
                 },
             }
 
-            apply_where_connected_macro(query, { })
+            apply_where_connected_macro(query, {})
 
             // @ts-ignore
             expect(query.children.$where).to.equal(undefined)
@@ -315,41 +318,50 @@ describe.only('where_connected_macro.ts', () => {
 
             // @ts-ignore
             expect(query.children.$where).to.deep.equal({
-                $and: [{
-                    $in: [
-                        'parent_1_id',
-                        {
-                            $select: ['id'],
-                            $from: 'parents_1',
-                            $where: {
-                                $in: ['grandparent_id', {
-                                    $select: ['id'],
-                                    $from: 'grandparents',
-                                    $where: {
-                                        $in: ['id', [1, 2]]
-                                    }
-                                }],
+                $and: [
+                    {
+                        $in: [
+                            'parent_1_id',
+                            {
+                                $select: ['id'],
+                                $from: 'parents_1',
+                                $where: {
+                                    $in: [
+                                        'grandparent_id',
+                                        {
+                                            $select: ['id'],
+                                            $from: 'grandparents',
+                                            $where: {
+                                                $in: ['id', [1, 2]],
+                                            },
+                                        },
+                                    ],
+                                },
                             },
-                        },
-                    ],
-                }, {
-                    $in: [
-                        'parent_2_id',
-                        {
-                            $select: ['id'],
-                            $from: 'parents_2',
-                            $where: {
-                                $in: ['grandparent_id', {
-                                    $select: ['id'],
-                                    $from: 'grandparents',
-                                    $where: {
-                                        $in: ['id', [1, 2]]
-                                    }
-                                }],
+                        ],
+                    },
+                    {
+                        $in: [
+                            'parent_2_id',
+                            {
+                                $select: ['id'],
+                                $from: 'parents_2',
+                                $where: {
+                                    $in: [
+                                        'grandparent_id',
+                                        {
+                                            $select: ['id'],
+                                            $from: 'grandparents',
+                                            $where: {
+                                                $in: ['id', [1, 2]],
+                                            },
+                                        },
+                                    ],
+                                },
                             },
-                        },
-                    ],
-                }]
+                        ],
+                    },
+                ],
             })
         })
         test('combines with existing $where clause', () => {
@@ -364,8 +376,8 @@ describe.only('where_connected_macro.ts', () => {
                 children: {
                     id: true,
                     $where: {
-                        $eq: ['id', 13]
-                    }
+                        $eq: ['id', 13],
+                    },
                 },
             }
 
@@ -378,7 +390,7 @@ describe.only('where_connected_macro.ts', () => {
                                 from_field: 'parent_id',
                                 to_entity: 'parents',
                                 to_field: 'id',
-                            }
+                            },
                         ],
                     ],
                 },
@@ -386,27 +398,84 @@ describe.only('where_connected_macro.ts', () => {
 
             // @ts-ignore
             expect(query.children.$where).to.deep.equal({
-                $and: [{
-                    $eq: ['id', 13]
-                }, {
-                    $in: [
-                        'parent_id',
-                        {
-                            $select: ['id'],
-                            $from: 'parents',
-                            $where: {
-                                $in: ['id', [1, 2]],
+                $and: [
+                    {
+                        $eq: ['id', 13],
+                    },
+                    {
+                        $in: [
+                            'parent_id',
+                            {
+                                $select: ['id'],
+                                $from: 'parents',
+                                $where: {
+                                    $in: ['id', [1, 2]],
+                                },
                             },
-                        },
-                    ],
-                }]
+                        ],
+                    },
+                ],
             })
         })
         test('applies to $where $in clauses', () => {
-            
+            const query = {
+                $where_connected: [
+                    {
+                        $entity: 'parents',
+                        $field: 'id',
+                        $values: [1, 2],
+                    },
+                ],
+                children: {
+                    id: true,
+                    $where: {
+                        and: [
+                            {
+                                $in: [
+                                    'parent_id',
+                                    {
+                                        $select: ['id'],
+                                        $from: 'parents',
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                },
+            }
+
+            apply_where_connected_macro(query, {
+                parents: {
+                    grandparents: [
+                        [
+                            {
+                                from_entity: 'parents',
+                                from_field: 'grandparent_id',
+                                to_entity: 'grandparents',
+                                to_field: 'id',
+                            },
+                        ],
+                    ],
+                },
+            })
+
+            // @ts-ignore
+            expect(query.children.$where.and[0].$in[1].$where).to.deep.equal({
+                $in: [
+                    'parent_id',
+                    {
+                        $select: ['id'],
+                        $from: 'parents',
+                        $where: {
+                            $in: ['id', [1, 2]],
+                        },
+                    },
+                ],
+            })
         })
         test.skip('skips regularly nested subqueries')
         test.skip('skips regularly nested $where $in clauses')
+        test.skip('handles loops in the schema')
         test('handles no $where_connected', () => {
             const query = {}
             apply_where_connected_macro(query, {})
