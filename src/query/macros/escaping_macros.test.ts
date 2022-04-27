@@ -2,7 +2,7 @@ import { describe, test } from 'mocha'
 import { apply_escape_macro } from './escaping_macros'
 import { expect } from 'chai'
 
-describe('escaping_macros', () => {
+describe.only('escaping_macros', () => {
     describe(apply_escape_macro.name, () => {
         test('escapes primitives', () => {
             const query = {
@@ -12,7 +12,7 @@ describe('escaping_macros', () => {
                         $in: [
                             { $escape: 'created_at' },
                             [
-                                { $escape: new Date('2021-01-02') },
+                                { $escape: new Date(Date.UTC(2021, 0, 2)) },
                                 { $escape: 12 },
                             ],
                         ],
@@ -26,22 +26,34 @@ describe('escaping_macros', () => {
                 my_products: {
                     $from: 'products',
                     $where: {
-                        $in: ['"created_at"', ['"2021-01-02"', 12]],
+                        $in: [
+                            "'created_at'",
+                            ["'2021-01-02 00:00:00.000'", 12],
+                        ],
                     },
                 },
             })
         })
         test('handles nested $escapes', () => {
             const query = {
-                in: ['column', { $escape: [{
-                    $escape: 'val'
-                }]}]
+                in: [
+                    'column',
+                    [
+                        {
+                            $escape: [
+                                {
+                                    $escape: 'val',
+                                },
+                            ],
+                        },
+                    ],
+                ],
             }
 
             apply_escape_macro(query)
 
             expect(query).to.deep.equal({
-                in: ['column', ['"val"']],
+                in: ['column', ["'\\'val\\''"]],
             })
         })
     })

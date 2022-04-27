@@ -5,5 +5,5 @@ import { escape } from 'sqlstring'
  * (which it does for some reason)
  */
 export const orma_escape = (val: any) => {
-    return typeof val === 'number' ? val : escape(val)
+    return typeof val === 'number' ? val : escape(val, true, '+00')
 }
