@@ -4,22 +4,26 @@ import { orma_schema } from '../../introspector/introspector'
 import { as_orma_schema } from '../query'
 import {
     apply_where_connected_macro,
-    get_upwards_connection_paths,
+    get_upwards_connection_edges,
 } from './where_connected_macro'
 
 describe.only('where_connected_macro.ts', () => {
     const schema = as_orma_schema({
         grandparents: {
-            id: {
-                not_null: true,
-                primary_key: true,
-            },
+            id: {},
         },
         parents: {
-            id: {
-                not_null: true,
-                primary_key: true,
+            id: {},
+            grandparent_id: {
+                references: {
+                    grandparents: {
+                        id: {},
+                    },
+                },
             },
+        },
+        parents_2: {
+            id: {},
             grandparent_id: {
                 references: {
                     grandparents: {
@@ -29,13 +33,17 @@ describe.only('where_connected_macro.ts', () => {
             },
         },
         children: {
-            id: {
-                not_null: true,
-                primary_key: true,
-            },
+            id: {},
             parent_id: {
                 references: {
-                    parents: {
+                    parents_1: {
+                        id: {},
+                    },
+                },
+            },
+            parents_2_id: {
+                references: {
+                    parents_2: {
                         id: {},
                     },
                 },
@@ -43,8 +51,8 @@ describe.only('where_connected_macro.ts', () => {
         },
     })
 
-    describe(get_upwards_connection_paths.name, () => {
-        test('generates nested paths', () => {
+    describe(get_upwards_connection_edges.name, () => {
+        test('handles multiple entities', () => {
             const schema: orma_schema = {
                 grandparents: {
                     id: {},
@@ -71,16 +79,10 @@ describe.only('where_connected_macro.ts', () => {
                 },
             }
 
-            const connection_paths = get_upwards_connection_paths(schema)
+            const connection_paths = get_upwards_connection_edges(schema)
 
-            expect(connection_paths.children.grandparents).to.deep.equal([
-                [
-                    {
-                        from_entity: 'children',
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
-                        to_field: 'id',
-                    },
+            expect(connection_paths).to.deep.equal({
+                parents: [
                     {
                         from_entity: 'parents',
                         from_field: 'grandparent_id',
@@ -88,43 +90,34 @@ describe.only('where_connected_macro.ts', () => {
                         to_field: 'id',
                     },
                 ],
-            ])
-        })
-        test('handles mutiple ways to get to same entity', () => {
-            const schema: orma_schema = {
-                grandparents: {
-                    id: {},
-                },
-                parents_1: {
-                    id: {},
-                    grandparent_id: {
-                        references: {
-                            grandparents: {
-                                id: {},
-                            },
-                        },
+                children: [
+                    {
+                        from_entity: 'children',
+                        from_field: 'parent_id',
+                        to_entity: 'parents',
+                        to_field: 'id',
                     },
+                ],
+            })
+        })
+        test('handles multiple edges', () => {
+            const schema: orma_schema = {
+                parents: {
+                    id: {},
                 },
                 parents_2: {
                     id: {},
-                    grandparent_id: {
-                        references: {
-                            grandparents: {
-                                id: {},
-                            },
-                        },
-                    },
                 },
                 children: {
                     id: {},
-                    parent_1_id: {
+                    parent_id: {
                         references: {
-                            parents_1: {
+                            parents: {
                                 id: {},
                             },
                         },
                     },
-                    parent_2_id: {
+                    parents_2_id: {
                         references: {
                             parents_2: {
                                 id: {},
@@ -134,49 +127,32 @@ describe.only('where_connected_macro.ts', () => {
                 },
             }
 
-            const connection_paths = get_upwards_connection_paths(schema)
+            const connection_paths = get_upwards_connection_edges(schema)
 
-            expect(connection_paths.children.grandparents).to.deep.equal([
-                [
+            expect(connection_paths).to.deep.equal({
+                children: [
                     {
                         from_entity: 'children',
-                        from_field: 'parent_1_id',
-                        to_entity: 'parents_1',
+                        from_field: 'parent_id',
+                        to_entity: 'parents',
                         to_field: 'id',
                     },
                     {
-                        from_entity: 'parents_1',
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
-                ],
-                [
-                    {
                         from_entity: 'children',
-                        from_field: 'parent_2_id',
+                        from_field: 'parents_2_id',
                         to_entity: 'parents_2',
                         to_field: 'id',
                     },
-                    {
-                        from_entity: 'parents_2',
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
                 ],
-            ])
+            })
         })
-        test('ignores children', () => {
+        test('skips edges from an entity to itself', () => {
             const schema: orma_schema = {
-                parents: {
+                entity: {
                     id: {},
-                },
-                children: {
-                    id: {},
-                    parent_id: {
+                    entity_id: {
                         references: {
-                            parents: {
+                            entity: {
                                 id: {},
                             },
                         },
@@ -184,12 +160,12 @@ describe.only('where_connected_macro.ts', () => {
                 },
             }
 
-            const connection_paths = get_upwards_connection_paths(schema)
+            const connection_paths = get_upwards_connection_edges(schema)
 
-            expect(connection_paths.parents).to.equal(undefined)
+            expect(connection_paths).to.deep.equal({})
         })
     })
-    describe.only(apply_where_connected_macro.name, () => {
+    describe(apply_where_connected_macro.name, () => {
         test('handles nested entities', () => {
             const query = {
                 $where_connected: [
@@ -205,24 +181,20 @@ describe.only('where_connected_macro.ts', () => {
             }
 
             apply_where_connected_macro(query, {
-                children: {
-                    grandparents: [
-                        [
-                            {
-                                from_entity: 'children',
-                                from_field: 'parent_id',
-                                to_entity: 'parents',
-                                to_field: 'id',
-                            },
-                            {
-                                from_entity: 'parents',
-                                from_field: 'grandparent_id',
-                                to_entity: 'grandparents',
-                                to_field: 'id',
-                            },
-                        ],
-                    ],
-                },
+                children: [
+                    {
+                        from_field: 'parent_id',
+                        to_entity: 'parents',
+                        to_field: 'id',
+                    },
+                ],
+                parents: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
             })
 
             // @ts-ignore
@@ -248,25 +220,6 @@ describe.only('where_connected_macro.ts', () => {
                 ],
             })
         })
-        test('handles nesting for tables without connection paths', () => {
-            const query = {
-                $where_connected: [
-                    {
-                        $entity: 'grandparents',
-                        $field: 'id',
-                        $values: [1, 2],
-                    },
-                ],
-                children: {
-                    id: true,
-                },
-            }
-
-            apply_where_connected_macro(query, {})
-
-            // @ts-ignore
-            expect(query.children.$where).to.equal(undefined)
-        })
         test('handles multiple connection paths', () => {
             const query = {
                 $where_connected: [
@@ -282,38 +235,32 @@ describe.only('where_connected_macro.ts', () => {
             }
 
             apply_where_connected_macro(query, {
-                children: {
-                    grandparents: [
-                        [
-                            {
-                                from_entity: 'children',
-                                from_field: 'parent_1_id',
-                                to_entity: 'parents_1',
-                                to_field: 'id',
-                            },
-                            {
-                                from_entity: 'parents_1',
-                                from_field: 'grandparent_id',
-                                to_entity: 'grandparents',
-                                to_field: 'id',
-                            },
-                        ],
-                        [
-                            {
-                                from_entity: 'children',
-                                from_field: 'parent_2_id',
-                                to_entity: 'parents_2',
-                                to_field: 'id',
-                            },
-                            {
-                                from_entity: 'parents_2',
-                                from_field: 'grandparent_id',
-                                to_entity: 'grandparents',
-                                to_field: 'id',
-                            },
-                        ],
-                    ],
-                },
+                children: [
+                    {
+                        from_field: 'parent_id',
+                        to_entity: 'parents',
+                        to_field: 'id',
+                    },
+                    {
+                        from_field: 'parents_2_id',
+                        to_entity: 'parents_2',
+                        to_field: 'id',
+                    },
+                ],
+                parents: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
+                parents_2: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
             })
 
             // @ts-ignore
@@ -321,10 +268,10 @@ describe.only('where_connected_macro.ts', () => {
                 $and: [
                     {
                         $in: [
-                            'parent_1_id',
+                            'parent_id',
                             {
                                 $select: ['id'],
-                                $from: 'parents_1',
+                                $from: 'parents',
                                 $where: {
                                     $in: [
                                         'grandparent_id',
@@ -342,7 +289,7 @@ describe.only('where_connected_macro.ts', () => {
                     },
                     {
                         $in: [
-                            'parent_2_id',
+                            'parents_2_id',
                             {
                                 $select: ['id'],
                                 $from: 'parents_2',
@@ -368,12 +315,12 @@ describe.only('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'parents',
+                        $entity: 'children',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                children: {
+                parents: {
                     id: true,
                     $where: {
                         $eq: ['id', 13],
@@ -381,33 +328,30 @@ describe.only('where_connected_macro.ts', () => {
                 },
             }
 
+            // notice we are using backwards nesting here, this is supported for example if the user specified
+            // some backwards parent -> child connections to add to the child -> parent ones generated by orma
             apply_where_connected_macro(query, {
-                children: {
-                    parents: [
-                        [
-                            {
-                                from_entity: 'children',
-                                from_field: 'parent_id',
-                                to_entity: 'parents',
-                                to_field: 'id',
-                            },
-                        ],
-                    ],
-                },
+                parents: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'children',
+                        to_field: 'parent_id',
+                    },
+                ],
             })
 
             // @ts-ignore
-            expect(query.children.$where).to.deep.equal({
+            expect(query.parents.$where).to.deep.equal({
                 $and: [
                     {
                         $eq: ['id', 13],
                     },
                     {
                         $in: [
-                            'parent_id',
+                            'id',
                             {
-                                $select: ['id'],
-                                $from: 'parents',
+                                $select: ['parent_id'],
+                                $from: 'children',
                                 $where: {
                                     $in: ['id', [1, 2]],
                                 },
@@ -421,7 +365,7 @@ describe.only('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'parents',
+                        $entity: 'grandparents',
                         $field: 'id',
                         $values: [1, 2],
                     },
@@ -445,27 +389,22 @@ describe.only('where_connected_macro.ts', () => {
             }
 
             apply_where_connected_macro(query, {
-                parents: {
-                    grandparents: [
-                        [
-                            {
-                                from_entity: 'parents',
-                                from_field: 'grandparent_id',
-                                to_entity: 'grandparents',
-                                to_field: 'id',
-                            },
-                        ],
-                    ],
-                },
+                parents: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
             })
 
             // @ts-ignore
             expect(query.children.$where.and[0].$in[1].$where).to.deep.equal({
                 $in: [
-                    'parent_id',
+                    'grandparent_id',
                     {
                         $select: ['id'],
-                        $from: 'parents',
+                        $from: 'grandparents',
                         $where: {
                             $in: ['id', [1, 2]],
                         },
@@ -473,9 +412,66 @@ describe.only('where_connected_macro.ts', () => {
                 ],
             })
         })
-        test.skip('skips regularly nested subqueries')
-        test.skip('skips regularly nested $where $in clauses')
-        test.skip('handles loops in the schema')
+        test('skips regularly nested subqueries', () => {
+            const query = {
+                $where_connected: [
+                    {
+                        $entity: 'grandparents',
+                        $field: 'id',
+                        $values: [1, 2],
+                    },
+                ],
+                parents: {
+                    id: true,
+                    children: {
+                        id: true,
+                    },
+                },
+            }
+
+            // notice we are using backwards nesting here, this is supported for example if the user specified
+            // some backwards parent -> child connections to add to the child -> parent ones generated by orma
+            apply_where_connected_macro(query, {
+                children: [
+                    {
+                        from_field: 'parent_id',
+                        to_entity: 'parents',
+                        to_field: 'id',
+                    },
+                ],
+                parents: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
+            })
+
+            // @ts-ignore
+            expect(query.parents.$where).to.not.equal(undefined)
+            // @ts-ignore
+            expect(query.parents.children.$where).to.equal(undefined)
+        })
+        test('handles no connection paths', () => {
+            const query = {
+                $where_connected: [
+                    {
+                        $entity: 'grandparents',
+                        $field: 'id',
+                        $values: [1, 2],
+                    },
+                ],
+                children: {
+                    id: true,
+                },
+            }
+
+            apply_where_connected_macro(query, {})
+
+            // @ts-ignore
+            expect(query.children.$where).to.equal(undefined)
+        })
         test('handles no $where_connected', () => {
             const query = {}
             apply_where_connected_macro(query, {})

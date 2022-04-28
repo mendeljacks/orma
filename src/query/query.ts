@@ -20,7 +20,7 @@ import {
 import { DeepReadonly } from '../types/schema_types'
 
 // This function will default to the from clause
-export const get_real_parent_name = (path: (string | number)[], query) => {
+export const get_real_higher_entity_name = (path: (string | number)[], query) => {
     if (path.length < 2) return null
 
     return (

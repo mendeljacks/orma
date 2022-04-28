@@ -2,7 +2,7 @@ import { describe, test } from 'mocha'
 import { apply_escape_macro } from './escaping_macros'
 import { expect } from 'chai'
 
-describe.only('escaping_macros', () => {
+describe('escaping_macros', () => {
     describe(apply_escape_macro.name, () => {
         test('escapes primitives', () => {
             const query = {

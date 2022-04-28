@@ -158,7 +158,7 @@ cant nest things on to a parent with group_by if the nesting field is not includ
 */
 
 import { orma_schema } from "../introspector/introspector"
-import { get_real_entity_name, get_real_parent_name } from "./query"
+import { get_real_entity_name, get_real_higher_entity_name } from "./query"
 import { is_subquery } from './query_helpers'
 
 export const validator = (query, schema): error_type[] => {
@@ -258,7 +258,7 @@ const ensure_valid_eq = (val, path, query, schema) => {
 
     // First val must be a valid column name
     const first_arg = args[0]
-    const parent_entity = get_real_parent_name(path, query)
+    const parent_entity = get_real_higher_entity_name(path, query)
     if (typeof first_arg !== 'string' || !schema[parent_entity][first_arg]) {
         const error: error_type = {
             message: `First argument to $eq must be string and be a valid column name from ${parent_entity}`,
@@ -283,7 +283,7 @@ const last_path_equals = (desired_key, path) => {
 const validate_edges = (path, query, schema) => {
     
     if (path.length > 1) {
-        const parent_name = get_real_parent_name(path, query)
+        const parent_name = get_real_higher_entity_name(path, query)
         const entity_name = get_real_entity_name(path, query)
         const direct_edges = get_direct_edges(parent_name, entity_name, schema)
         if (direct_edges.length === 0) {
@@ -299,7 +299,7 @@ const validate_edges = (path, query, schema) => {
 }
 
 const ensure_field_exists = (val, path: (string | number)[], query, schema: orma_schema) => {
-    const parent_entity = get_real_parent_name(path, query)
+    const parent_entity = get_real_higher_entity_name(path, query)
     const original_field = val['$field']
     if (typeof original_field !== 'string' || !schema[parent_entity][original_field]) {
         const error: error_type = {
@@ -313,7 +313,7 @@ const ensure_field_exists = (val, path: (string | number)[], query, schema: orma
 
 const validate_field_exists = (val, path: (string | number)[], schema: orma_schema, query) => {
     // User is requesting a specific field be in the response
-    const parent_entity = get_real_parent_name(path, query)
+    const parent_entity = get_real_higher_entity_name(path, query)
     const requested_field = last(path)
 
     if (!field_exists(parent_entity, requested_field, schema)) {
