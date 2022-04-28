@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { clone } from '../../../helpers/helpers'
+import { clone, last } from '../../../helpers/helpers'
 import { orma_schema } from '../../../introspector/introspector'
 import { orma_mutate } from '../../mutate'
 import { apply_guid_macro } from '../guid_macro'
@@ -90,6 +90,7 @@ describe('Guid', () => {
             inventory_adjustments: {
                 id: { primary_key: true, not_null: true },
                 resource_id: { not_null: true },
+                variant_id: { references: { variants: { id: {} } } },
                 $indexes: [
                     {
                         index_name: 'unique',
@@ -117,25 +118,24 @@ describe('Guid', () => {
             },
         }
 
-        let query_results = [
-            [{ id: 11, resource_id: 11 }],
-            [{ id: 22, resource_id: 22 }],
-        ]
         const mutation = {
             $operation: 'create',
             variants: [
                 {
-                    resource_id: 1,
+                    resource_id: 'variants',
                     inventory_adjustments: [
-                        { id: { $guid: 11 }, resource_id: 11 },
+                        {
+                            id: { $guid: 11 },
+                            resource_id: 'inventory_adjustments',
+                        },
                     ],
                     shipment_items: [
                         {
-                            resource_id: 22,
+                            resource_id: 'shipment_items',
                             shipment_items_received: [
                                 {
                                     inventory_adjustment_id: { $guid: 11 },
-                                    resource_id: 333,
+                                    resource_id: 'shipment_items_received',
                                 },
                             ],
                         },
@@ -144,11 +144,21 @@ describe('Guid', () => {
             ],
         }
 
-        const results = await orma_mutate(
-            mutation,
-            async statements => query_results,
-            orma_schema
-        )
+        let query_result_maker = [
+            [[{ id: 1, resource_id: 'variants' }]],
+            [[{ id: 11, resource_id: 'inventory_adjustments' }]],
+            [[{ id: 12, resource_id: 'shipment_items' }]],
+            [[{ id: 111, resource_id: 'shipment_items_received' }]],
+        ]
+        const mysql_fn = async statements => {
+            return statements.map(statement =>
+                query_result_maker.find(
+                    q => q[0][0].resource_id === last(statement.route)
+                )
+            )
+        }
+
+        const results = await orma_mutate(mutation, mysql_fn, orma_schema)
         debugger
     })
 })
