@@ -1,11 +1,10 @@
-import { escape } from 'sqlstring'
 import { error_type } from '../../helpers/error_handling'
 import { orma_escape } from '../../helpers/escape'
 import { deep_get, drop_last, is_simple_object } from '../../helpers/helpers'
 import {
     get_direct_edge,
     is_parent_entity,
-    is_reserved_keyword
+    is_reserved_keyword,
 } from '../../helpers/schema_helpers'
 import { path_to_string } from '../../helpers/string_to_path'
 import { orma_schema } from '../../introspector/introspector'
@@ -13,7 +12,7 @@ import { combine_wheres } from '../../query/query_helpers'
 import {
     generate_record_where_clause,
     get_identifying_keys,
-    path_to_entity
+    path_to_entity,
 } from '../mutate'
 
 export const get_update_asts = (
@@ -36,10 +35,7 @@ export const get_update_asts = (
 
         throw_identifying_key_errors('update', identifying_keys, path, mutation)
 
-        const where = generate_record_where_clause(
-            identifying_keys,
-            record
-        )
+        const where = generate_record_where_clause(identifying_keys, record)
 
         const keys_to_set = Object.keys(record)
             .filter(key => !identifying_keys.includes(key))
@@ -80,10 +76,7 @@ export const get_delete_ast = (
 
         throw_identifying_key_errors('delete', identifying_keys, path, mutation)
 
-        const where = generate_record_where_clause(
-            identifying_keys,
-            record
-        )
+        const where = generate_record_where_clause(identifying_keys, record)
 
         return where
     })
@@ -256,7 +249,7 @@ export const get_foreign_keys_obj = (
             // parent record of the mutation
             obj[edge.from_field] =
                 previous_result[edge.to_field] === undefined
-                    ? parent_record[edge.to_field] 
+                    ? parent_record[edge.to_field]
                     : previous_result[edge.to_field]
             return obj
         },

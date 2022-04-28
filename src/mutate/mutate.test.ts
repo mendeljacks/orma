@@ -1,101 +1,100 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { orma_schema } from '../introspector/introspector'
+import { add_foreign_key_indexes } from './helpers/add_foreign_key_indexes'
 import {
-    add_foreign_key_indexes,
     generate_foreign_key_query,
     mysql_fn,
     orma_mutate,
     statements,
 } from './mutate'
 
-describe('mutate', () => {
-    const orma_schema: orma_schema = {
-        grandparents: {
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            quantity: {},
+export const orma_test_schema: orma_schema = {
+    grandparents: {
+        id: {
+            primary_key: true,
+            not_null: true,
         },
-        parents: {
-            id: {
-                primary_key: true,
-                not_null: true,
-                
-            },
-            unique1: {
-                not_null: true,
-            },
-            unique2: {
-                not_null: true,
-            },
-            quantity: {},
-            grandparent_id: {
-                references: {
-                    grandparents: {
-                        id: {},
-                    },
-                },
-            },
-            $indexes: [
-                {
-                    index_name: 'primary',
-                    fields: ['id'],
-                    is_unique: true,
-                },
-                {
-                    index_name: 'unique1',
-                    fields: ['unique1'],
-                    is_unique: true,
-                },
-                {
-                    index_name: 'unique2',
-                    fields: ['unique2'],
-                    is_unique: true,
-                },
-            ],
+        quantity: {},
+    },
+    parents: {
+        id: {
+            primary_key: true,
+            not_null: true,
         },
-        children: {
-            id1: {
-                primary_key: true,
-                not_null: true,
-            },
-            id2: {
-                primary_key: true,
-                not_null: true,
-            },
-            parent_id: {
-                references: {
-                    parents: {
-                        id: {},
-                    },
-                },
-            },
-            batch_id: { },
-            $indexes: [
-                {
-                    index_name: 'batch_id_unique',
-                    fields: ['batch_id'],
-                    is_unique: true,
-                },
-            ],
+        unique1: {
+            not_null: true,
         },
-        step_children: {
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            parent_id: {
-                references: {
-                    parents: {
-                        id: {},
-                    },
+        unique2: {
+            not_null: true,
+        },
+        quantity: {},
+        grandparent_id: {
+            references: {
+                grandparents: {
+                    id: {},
                 },
             },
         },
-    }
+        $indexes: [
+            {
+                index_name: 'primary',
+                fields: ['id'],
+                is_unique: true,
+            },
+            {
+                index_name: 'unique1',
+                fields: ['unique1'],
+                is_unique: true,
+            },
+            {
+                index_name: 'unique2',
+                fields: ['unique2'],
+                is_unique: true,
+            },
+        ],
+    },
+    children: {
+        id1: {
+            primary_key: true,
+            not_null: true,
+        },
+        id2: {
+            primary_key: true,
+            not_null: true,
+        },
+        parent_id: {
+            references: {
+                parents: {
+                    id: {},
+                },
+            },
+        },
+        batch_id: {},
+        $indexes: [
+            {
+                index_name: 'batch_id_unique',
+                fields: ['batch_id'],
+                is_unique: true,
+            },
+        ],
+    },
+    step_children: {
+        id: {
+            primary_key: true,
+            not_null: true,
+        },
+        parent_id: {
+            references: {
+                parents: {
+                    id: {},
+                },
+            },
+        },
+    },
+}
 
+describe('mutate', () => {
     describe(add_foreign_key_indexes.name, () => {
         test('works with multiple identifying keys', () => {
             const statements = [
@@ -138,7 +137,9 @@ describe('mutate', () => {
                 statements,
                 query_results,
                 mutation,
-                orma_schema
+                orma_test_schema,
+                {},
+                {}
             )
 
             expect(result).to.deep.equal({
@@ -193,7 +194,9 @@ describe('mutate', () => {
                 statements,
                 query_results,
                 mutation,
-                orma_schema
+                orma_test_schema,
+                {},
+                {}
             )
 
             expect(result).to.deep.equal({
@@ -238,7 +241,9 @@ describe('mutate', () => {
                 statements,
                 query_results,
                 mutation,
-                orma_schema
+                orma_test_schema,
+                {},
+                {}
             )
 
             // it should add foreign keys to both locations, even though they have the same id and there is only
@@ -304,7 +309,7 @@ describe('mutate', () => {
             const results = await orma_mutate(
                 mutation,
                 mysql_fn,
-                orma_schema
+                orma_test_schema
             )
 
             const goal = {
@@ -368,7 +373,7 @@ describe('mutate', () => {
             const results = await orma_mutate(
                 mutation,
                 mutate_fn,
-                orma_schema
+                orma_test_schema
             )
 
             const goal = {
@@ -381,7 +386,7 @@ describe('mutate', () => {
                             {
                                 $operation: 'create',
                                 id: 0,
-                                unique1: 12
+                                unique1: 12,
                             },
                         ],
                     },

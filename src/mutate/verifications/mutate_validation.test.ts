@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../introspector/introspector'
+import { orma_schema } from '../../introspector/introspector'
 import { validate_mutation } from './mutate_validation'
 
 describe('mutation_validation', () => {
@@ -8,7 +8,7 @@ describe('mutation_validation', () => {
         products: {
             id: {
                 data_type: 'int',
-                primary_key: true
+                primary_key: true,
             },
             vendor_id: {
                 data_type: 'int',
@@ -28,7 +28,7 @@ describe('mutation_validation', () => {
         },
         vendors: {
             id: {
-                primary_key: true
+                primary_key: true,
             },
         },
         images: {
@@ -58,8 +58,8 @@ describe('mutation_validation', () => {
             const test_mutation = {
                 $operation: 'create',
                 products: {
-                    name: 'hi'
-                }
+                    name: 'hi',
+                },
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -68,11 +68,13 @@ describe('mutation_validation', () => {
         test('recognises inherited operations', () => {
             const test_mutation = {
                 $operation: 'create',
-                products: [{
-                    // no primary or unique field is needed here because validation recognises that this will be
-                    // a create
-                    name: 'hi'
-                }]
+                products: [
+                    {
+                        // no primary or unique field is needed here because validation recognises that this will be
+                        // a create
+                        name: 'hi',
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -80,10 +82,12 @@ describe('mutation_validation', () => {
         })
         test('allows no top level operation', () => {
             const test_mutation = {
-                products: [{
-                    $operation: 'create',
-                    name: 'hi'
-                }]
+                products: [
+                    {
+                        $operation: 'create',
+                        name: 'hi',
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -91,9 +95,11 @@ describe('mutation_validation', () => {
         })
         test('requires an inherited operation', () => {
             const test_mutation = {
-                products: [{
-                    name: 'hi'
-                }]
+                products: [
+                    {
+                        name: 'hi',
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -102,9 +108,11 @@ describe('mutation_validation', () => {
         test('requires an identifying key for update', () => {
             const test_mutation = {
                 $operation: 'update',
-                products: [{
-                    name: 'hi'
-                }]
+                products: [
+                    {
+                        name: 'hi',
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -113,9 +121,11 @@ describe('mutation_validation', () => {
         test('requires valid field names', () => {
             const test_mutation = {
                 $operation: 'create',
-                products: [{
-                    not_a_field: 'hi'
-                }]
+                products: [
+                    {
+                        not_a_field: 'hi',
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -124,9 +134,11 @@ describe('mutation_validation', () => {
         test('requires valid top-level entity names', () => {
             const test_mutation = {
                 $operation: 'create',
-                not_an_entity: [{
-                    not_a_field: 'hi'
-                }]
+                not_an_entity: [
+                    {
+                        not_a_field: 'hi',
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -135,10 +147,12 @@ describe('mutation_validation', () => {
         test('allows empty mutations', () => {
             const test_mutation = {
                 $operation: 'create',
-                products: [{
-                    vendors: []
-                }],
-                vendors: []
+                products: [
+                    {
+                        vendors: [],
+                    },
+                ],
+                vendors: [],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -147,9 +161,11 @@ describe('mutation_validation', () => {
         test('requires valid nested entity names', () => {
             const test_mutation = {
                 $operation: 'create',
-                products: [{
-                    not_an_entity: []
-                }]
+                products: [
+                    {
+                        not_an_entity: [],
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -158,13 +174,17 @@ describe('mutation_validation', () => {
         test('requires valid nested operations', () => {
             const test_mutation = {
                 $operation: 'create',
-                vendors: [{
-                    // vendors is a create, but you cant create a parent and update a child
-                    products: [{
-                        $operation: 'update',
-                        id: 1
-                    }]
-                }]
+                vendors: [
+                    {
+                        // vendors is a create, but you cant create a parent and update a child
+                        products: [
+                            {
+                                $operation: 'update',
+                                id: 1,
+                            },
+                        ],
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -172,14 +192,18 @@ describe('mutation_validation', () => {
         })
         test('requires valid nested operations in reverse nesting', () => {
             const test_mutation = {
-                products: [{
-                    $operation: 'delete',
-                    id: 1,
-                    vendors: [{
-                        // vendors is actually the parent of products, so this operation nesting is illegal
-                        $operation: 'create'
-                    }]
-                }]
+                products: [
+                    {
+                        $operation: 'delete',
+                        id: 1,
+                        vendors: [
+                            {
+                                // vendors is actually the parent of products, so this operation nesting is illegal
+                                $operation: 'create',
+                            },
+                        ],
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -187,10 +211,12 @@ describe('mutation_validation', () => {
         })
         test('required fields must be present in creates', () => {
             const test_mutation = {
-                image_urls: [{
-                    $operation: 'create'
-                    // image_id is required here
-                }]
+                image_urls: [
+                    {
+                        $operation: 'create',
+                        // image_id is required here
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
@@ -199,12 +225,16 @@ describe('mutation_validation', () => {
         test('allows no required foreign key in a nested create', () => {
             const test_mutation = {
                 $operation: 'create',
-                images: [{
-                    image_urls: [{
-                        // image_id id not required here, since the image_id is automatically taken from the
-                        // parent image's id
-                    }]
-                }]
+                images: [
+                    {
+                        image_urls: [
+                            {
+                                // image_id id not required here, since the image_id is automatically taken from the
+                                // parent image's id
+                            },
+                        ],
+                    },
+                ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)

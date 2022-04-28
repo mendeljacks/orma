@@ -7,16 +7,16 @@ import {
 import { orma_schema } from '../../introspector/introspector'
 import { get_search_records_where } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'
+import { split_mutation_by_entity } from '../helpers/mutate_helpers'
 import { get_identifying_keys } from '../mutate'
-import { split_mutation_by_entity } from '../mutate_helpers'
 
 /**
  * Generates errors when unique fields are duplicates in two cases:
  *   1. records from the mutation conflict with records in the database
  *   2. records from the mutation conflict with other records from the mutation
- * 
+ *
  * @param orma_query a function which takes an orma query and gives the results of running the query
- * @returns 
+ * @returns
  */
 export const verify_uniqueness = async (
     mutation,
@@ -130,7 +130,6 @@ export const get_database_uniqueness_errors = (
     const database_entities = Object.keys(database_records_by_entity)
 
     const errors = database_entities.flatMap(entity => {
-
         // a field group is a set of fields that together are unique
         const field_groups = [
             get_primary_keys(entity, orma_schema),
@@ -218,7 +217,9 @@ export const get_mutation_uniqueness_errors = (
 
             // we get false positives since a record always matches itself, so basically every record is picked up as a duplicate
             // to prevent this we need to filter out all the entries with only 1 duplicate
-            const real_duplicate_indices = duplicate_indices.filter(([i1, i2]) => i1 !== i2)
+            const real_duplicate_indices = duplicate_indices.filter(
+                ([i1, i2]) => i1 !== i2
+            )
 
             const duplicate_errors = real_duplicate_indices.flatMap(
                 ([record_index1, record_index2]) => {
@@ -272,7 +273,6 @@ export const get_duplicate_record_indices = (
     records2: Record<string, any>[],
     identifying_fields: string[]
 ) => {
-
     const records_to_indices_with_fields = (records: Record<string, any>[]) =>
         records
             .map((el, i) => i)

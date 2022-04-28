@@ -1,17 +1,7 @@
-import { escape } from 'sqlstring'
-import { deep_merge } from '../helpers/deep_merge'
 import { orma_escape } from '../helpers/escape'
-import {
-    array_equals,
-    clone,
-    deep_get,
-    deep_set,
-    key_by,
-    last,
-} from '../helpers/helpers'
+import { array_equals, clone, deep_get, key_by, last } from '../helpers/helpers'
 import {
     get_child_edges,
-    get_parent_edges,
     get_primary_keys,
     get_unique_field_groups,
 } from '../helpers/schema_helpers'
@@ -19,6 +9,7 @@ import { string_to_path } from '../helpers/string_to_path'
 import { orma_schema } from '../introspector/introspector'
 import { json_to_sql } from '../query/json_sql'
 import { combine_wheres } from '../query/query_helpers'
+import { apply_guid_macro } from './macros/guid_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
 import {
     get_create_ast,
@@ -27,8 +18,9 @@ import {
     get_update_asts,
     throw_identifying_key_errors,
 } from './macros/operation_macros'
-import { mutation_entity_deep_for_each } from './mutate_helpers'
-import { get_mutate_plan } from './mutate_plan'
+import { mutation_entity_deep_for_each } from './helpers/mutate_helpers'
+import { get_mutate_plan } from './plan/mutate_plan'
+import { add_foreign_key_indexes } from './helpers/add_foreign_key_indexes'
 
 export type operation = 'create' | 'update' | 'delete' | 'query'
 export type mysql_fn = (statements) => Promise<Record<string, any>[][]>
@@ -39,6 +31,7 @@ export type statements = {
     operation: operation
     paths: (string | number)[][]
 }[]
+export type GuidValuesResolved = { [guid: string]: string | number }
 export const orma_mutate = async (
     input_mutation,
     mysql_function: mysql_fn,
@@ -48,6 +41,7 @@ export const orma_mutate = async (
     const mutation = clone(input_mutation)
 
     apply_inherit_operations_macro(mutation)
+    const { guid_map } = apply_guid_macro(mutation)
     // [[{"operation":"create","paths":[...]]}],[{"operation":"create","paths":[...]}]]
     const mutate_plan = get_mutate_plan(mutation, orma_schema)
 
@@ -55,13 +49,14 @@ export const orma_mutate = async (
         // Will be built up as each phase of the mutate_plan is executed
         // [path]: {...}
     }
+    let guid_values_resolved: GuidValuesResolved = {}
 
     for (let i = 0; i < mutate_plan.length; i++) {
         const planned_statements = mutate_plan[i]
 
         const mutation_statements: statements = planned_statements.flatMap(
             ({ operation, paths, route }) => {
-                const entity_name = last(route)
+                const entity_name: string = last(route)
                 const statements = get_mutation_statements(
                     operation,
                     entity_name,
@@ -408,118 +403,3 @@ export const get_identifying_keys = (
 
     return []
 }
-
-/**
- * This function is used to index database records (e.g. containing foreign keys) by mutation paths. Specifically,
- * given a list of statements and results for those statements, generates an object where the keys are all the paths
- * contained in the statements and the values are the database rows matched with those paths. Matching paths with
- * database rows is done by checking equality with the values of the identifying keys gotten from
- * {@link get_identifying_keys}. Note that query results[i] should contain the results of all the paths in
- * planned_statements[i].paths.
- */
-export const add_foreign_key_indexes = (
-    planned_statements: {
-        paths: (string | number)[][]
-        route: string[]
-    }[],
-    query_results: Record<string, any>[][],
-    mutation: any,
-    orma_schema: orma_schema
-) => {
-    const tier_results = {}
-    if (query_results.length !== planned_statements.length) {
-        throw new Error(
-            'Mysql function should return one array of rows per planned statement'
-        )
-    }
-
-    planned_statements.forEach((planned_statement, i) => {
-        const database_rows = query_results[i]
-        const entity_name = last(planned_statement.route)
-        const mutation_rows = planned_statement.paths.map(path =>
-            deep_get(path, mutation, undefined)
-        )
-
-        // - we get a list of identifying keys for the mutation rows
-        // - for each identifying key, we index the database rows by that key (so we end up with one
-        //   index per key).
-        // - we use these indexes to match database rows with mutation rows
-        const unique_keys_set = new Set<string>()
-        mutation_rows.forEach((mutation_row, i) => {
-            const identifying_keys = get_identifying_keys(
-                entity_name,
-                mutation_row,
-                orma_schema
-            )
-
-            throw_identifying_key_errors(
-                'unknown',
-                identifying_keys,
-                planned_statement.paths[i],
-                mutation
-            )
-
-            unique_keys_set.add(JSON.stringify(identifying_keys))
-        })
-        const all_identifying_keys: string[][] = [...unique_keys_set].map(el =>
-            JSON.parse(el)
-        )
-
-        const database_row_indexes = all_identifying_keys.map(unique_key => {
-            const index = key_by(database_rows, db_row =>
-                // we chose the unique key such that none of its fields are nullable, and they are all actually
-                // supplied in the mutation. Therefore we can safely stringify without worrying about null values getting
-                // lost, or collisions between two rows that both have null fields (mysql allows this on unique indexes)
-                JSON.stringify(unique_key.map(field => db_row[field]))
-            )
-            return index
-        })
-
-        // we order these so that ordered_database_rows[i] has the foreign keys of mutation_rows[i]
-        const ordered_database_rows = mutation_rows.map(mutation_row => {
-            // TODO: make all these get_identifying_leys calls more efficient by caching them
-            const identifying_keys = get_identifying_keys(
-                entity_name,
-                mutation_row,
-                orma_schema
-            )
-            const identifying_key_index = all_identifying_keys.findIndex(keys =>
-                array_equals(keys, identifying_keys)
-            )
-            const database_row_index =
-                database_row_indexes[identifying_key_index]
-            const identifying_values = identifying_keys.map(
-                key => mutation_row[key]
-            )
-            const database_row =
-                database_row_index[JSON.stringify(identifying_values)]
-
-            if (!database_row) {
-                throw new Error(
-                    `Could not find database row for mutation row with keys ${identifying_keys} and values ${identifying_values}`
-                )
-            }
-            return database_row
-        })
-
-        ordered_database_rows.forEach((database_row, i) => {
-            // paths is aligned with mutation_rows which is aligned with ordered_database_rows, which is why this
-            // is justified
-            const path = planned_statement.paths[i]
-            tier_results[JSON.stringify(path)] = database_row
-        })
-    })
-
-    return tier_results
-}
-/*
-Comments:
-
-How can the user mutate on renamed children (if they queried renamed fields, we can the query object to be the same as the mutate object. Myabe add $from to every query result and have mutate respect that? would add data though... Myabe user has to include the from manually, like from: 'name_of_real_table' or from: { $from_table: true })
-
-
-{
-    products
-}
-
-*/

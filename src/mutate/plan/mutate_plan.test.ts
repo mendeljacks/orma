@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../introspector/introspector'
+import { orma_schema } from '../../introspector/introspector'
 import { get_mutate_plan } from './mutate_plan'
 
 describe('mutation_plan.ts', () => {

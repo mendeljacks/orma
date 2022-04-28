@@ -1,5 +1,5 @@
 import { validate } from 'jsonschema'
-import { error_type } from '../helpers/error_handling'
+import { error_type } from '../../helpers/error_handling'
 import {
     get_all_edges,
     get_field_names,
@@ -8,10 +8,10 @@ import {
     is_parent_entity,
     is_required_field,
     is_reserved_keyword,
-} from '../helpers/schema_helpers'
-import { orma_schema } from '../introspector/introspector'
-import { get_foreign_keys_in_mutation } from './macros/operation_macros'
-import { get_identifying_keys } from './mutate'
+} from '../../helpers/schema_helpers'
+import { orma_schema } from '../../introspector/introspector'
+import { get_foreign_keys_in_mutation } from '.././macros/operation_macros'
+import { get_identifying_keys } from '../mutate'
 
 export const mutate_validation_schema = {
     type: 'object',
@@ -269,13 +269,10 @@ const validate_required_fields = (
     const errors: error_type[] = required_fields.flatMap(required_field => {
         // required fields are only applicable in creates, for updates (and deletes), the user never needs to
         // supply anything since required fields would already be in the database
-        if (
-            operation === 'create' &&
-            record[required_field] === undefined
-        ) {
+        if (operation === 'create' && record[required_field] === undefined) {
             // any foreign key that is for a connected parent record does not have to be supplied by the user since it
-            // will be auto-inserted via foreign key propagation from the parent. (the parent record must be a create 
-            // to have a valid operation nesting, since this record is a create) 
+            // will be auto-inserted via foreign key propagation from the parent. (the parent record must be a create
+            // to have a valid operation nesting, since this record is a create)
             const foreign_keys = get_foreign_keys_in_mutation(
                 mutation,
                 record_path,

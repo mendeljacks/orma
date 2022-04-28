@@ -3,12 +3,11 @@ import {
     deep_get,
     is_simple_object,
     last,
-} from '../helpers/helpers'
-import { is_parent_entity } from '../helpers/schema_helpers'
-import { path_to_string, string_to_path } from '../helpers/string_to_path'
-import { toposort } from '../helpers/toposort'
-import { orma_schema } from '../introspector/introspector'
-import { operation } from './mutate'
+} from '../../helpers/helpers'
+import { is_parent_entity } from '../../helpers/schema_helpers'
+import { path_to_string, string_to_path } from '../../helpers/string_to_path'
+import { toposort } from '../../helpers/toposort'
+import { orma_schema } from '../../introspector/introspector'
 
 export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
     /*

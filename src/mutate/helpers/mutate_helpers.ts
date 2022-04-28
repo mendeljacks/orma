@@ -1,5 +1,5 @@
-import { deep_for_each, last } from '../helpers/helpers'
-import { Path, PathedRecord } from '../types'
+import { deep_for_each, last } from '../../helpers/helpers'
+import { Path, PathedRecord } from '../../types'
 
 export const split_mutation_by_entity = mutation => {
     const paths_by_entity: Record<string, PathedRecord[]> = {}
