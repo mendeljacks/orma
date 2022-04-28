@@ -31,7 +31,6 @@ export type statements = {
     operation: operation
     paths: (string | number)[][]
 }[]
-export type GuidValuesResolved = { [guid: string]: string | number }
 export const orma_mutate = async (
     input_mutation,
     mysql_function: mysql_fn,
@@ -49,7 +48,6 @@ export const orma_mutate = async (
         // Will be built up as each phase of the mutate_plan is executed
         // [path]: {...}
     }
-    let guid_values_resolved: GuidValuesResolved = {}
 
     for (let i = 0; i < mutate_plan.length; i++) {
         const planned_statements = mutate_plan[i]
