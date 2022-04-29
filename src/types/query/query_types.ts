@@ -19,7 +19,7 @@ export type OrmaQuery<Schema extends OrmaSchema> = {
 
 export type WhereConnected<Schema extends OrmaSchema> = WhereConnectedMapped<Schema, GetAllEntities<Schema>>
 
-// uselessly have to break this into two because typescript is annoying
+// have to uselessly break this function into two because typescript is annoying
 type WhereConnectedMapped<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>

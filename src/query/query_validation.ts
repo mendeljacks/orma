@@ -4,7 +4,9 @@ import {
     get_all_edges,
     get_entity_names,
     get_field_names,
-    is_parent_entity
+    is_entity_name,
+    is_field_name,
+    is_parent_entity,
 } from '../helpers/schema_helpers'
 import { orma_schema } from '../introspector/introspector'
 import { get_any_path_context_entity } from './macros/any_path_macro'
@@ -14,10 +16,36 @@ export const get_query_schema = (orma_schema: orma_schema) => {
 
     const schema = {
         type: 'object',
-        properties: entity_names.reduce((acc, entity_name) => {
-            acc[entity_name] = get_entity_schema(orma_schema, entity_name)
-            return acc
-        }, {}),
+        properties: entity_names.reduce(
+            (acc, entity_name) => {
+                acc[entity_name] = get_entity_schema(orma_schema, entity_name)
+                return acc
+            },
+            {
+                $where_connected: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            $entity: { type: 'string' },
+                            $field: { type: 'string' },
+                            $values: {
+                                type: 'array',
+                                items: {
+                                    oneOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                    ],
+                                },
+                                minItems: 1,
+                            },
+                        },
+                        additionalProperties: false,
+                        required: ['$entity', '$field', '$values'],
+                    },
+                },
+            }
+        ),
         additionalProperties: {
             // discriminator speeds up validation (discriminator is an OpenAPI keyword, but not part of JSON Schema)
             type: 'object',
@@ -396,9 +424,7 @@ export const preprocess_query_for_validation = (
 /**
  * Removes extra data that was only used for validation. Mutates the input query
  */
-export const postprocess_query_for_validation = (
-    query: any
-) => {
+export const postprocess_query_for_validation = (query: any) => {
     deep_for_each(query, (value, path) => {
         if (value.$any_path) {
             delete value.$any_path_last_entity
@@ -406,10 +432,7 @@ export const postprocess_query_for_validation = (
     })
 }
 
-export const get_any_path_errors = (
-    query: any,
-    orma_schema: orma_schema
-) => {
+export const get_any_path_errors = (query: any, orma_schema: orma_schema) => {
     let all_errors: error_type[] = []
 
     deep_for_each(query, (value, path) => {
@@ -436,7 +459,7 @@ export const get_any_path_errors = (
                         return []
                     } else {
                         const error: error_type = {
-                            message: `Entity ${any_path_entity} must be a parent or a child of the previous entity, ${previous_entity}.`
+                            message: `Entity ${any_path_entity} must be a parent or a child of the previous entity, ${previous_entity}.`,
                         }
                         return [error]
                     }
@@ -448,6 +471,39 @@ export const get_any_path_errors = (
     })
 
     return all_errors
+}
+
+export const validate_where_connected = (
+    query: any,
+    orma_schema: orma_schema
+) => {
+    let errors: error_type[] = []
+
+    if (query.$where_connected) {
+        query.$where_connected.forEach(({ $entity, $field, $values }) => {
+            if (!is_entity_name($entity, orma_schema)) {
+                errors.push({
+                    message: `${$entity} is not a valid entity name.`,
+                    additional_info: {
+                        valid_entities: get_entity_names(orma_schema),
+                    },
+                    original_data: query,
+                    path: ['$where_connected', '$entity'],
+                })
+            } else if (!is_field_name($entity, $field, orma_schema)) {
+                errors.push({
+                    message: `${$entity} is not the name of a field for the entity ${$entity}.`,
+                    additional_info: {
+                        valid_entities: get_entity_names(orma_schema),
+                    },
+                    original_data: query,
+                    path: ['$where_connected', '$field'],
+                })
+            }
+        })
+    }
+
+    return errors
 }
 
 /*

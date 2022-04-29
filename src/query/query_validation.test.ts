@@ -2,7 +2,13 @@ import Ajv from 'ajv/dist/2020'
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { as_orma_schema } from './query'
-import { get_any_path_errors, get_query_schema, postprocess_query_for_validation, preprocess_query_for_validation } from './query_validation'
+import {
+    get_any_path_errors,
+    get_query_schema,
+    postprocess_query_for_validation,
+    preprocess_query_for_validation,
+    validate_where_connected,
+} from './query_validation'
 
 const ajv = new Ajv({ discriminator: true })
 
@@ -262,11 +268,17 @@ describe('query_validation', () => {
                     $where: {
                         // this is required because JSON schema cant directly validate the last element in an array
                         $any_path_last_entity: 'image_urls',
-                        $any_path: [['images', 'image_urls'], {
-                            $eq: ['image_id', {
-                                $escape: 12
-                            }]
-                        }]
+                        $any_path: [
+                            ['images', 'image_urls'],
+                            {
+                                $eq: [
+                                    'image_id',
+                                    {
+                                        $escape: 12,
+                                    },
+                                ],
+                            },
+                        ],
                     },
                 },
             })
@@ -281,13 +293,51 @@ describe('query_validation', () => {
                     $where: {
                         // this is required because JSON schema cant directly validate the last element in an array
                         $any_path_last_entity: 'image_urls',
-                        $any_path: [['images', 'image_urls'], {
-                            // vendor_id is on the products, not image_urls, so this is an error
-                            $eq: ['vendor_id', {
-                                $escape: 12
-                            }]
-                        }]
+                        $any_path: [
+                            ['images', 'image_urls'],
+                            {
+                                // vendor_id is on the products, not image_urls, so this is an error
+                                $eq: [
+                                    'vendor_id',
+                                    {
+                                        $escape: 12,
+                                    },
+                                ],
+                            },
+                        ],
                     },
+                },
+            })
+
+            expect(validate.errors?.length).to.be.greaterThan(0)
+        })
+        test('allows $where_connected', () => {
+            validate({
+                $where_connected: [
+                    {
+                        $entity: 'vendors',
+                        $field: 'id',
+                        values: [1, 'a'],
+                    },
+                ],
+                products: {
+                    id: true,
+                },
+            })
+
+            expect(validate.errors?.length).to.equal(0)
+        })
+        test('$where_connected must have values', () => {
+            validate({
+                $where_connected: [
+                    {
+                        $entity: 'vendors',
+                        $field: 'description',
+                        values: [], // this cant be empty
+                    },
+                ],
+                products: {
+                    id: true,
                 },
             })
 
@@ -300,11 +350,14 @@ describe('query_validation', () => {
                 products: {
                     id: true,
                     $where: {
-                        $any_path: [['images', 'image_urls'], {
-                            $eq: ['id', 'id']
-                        }]
-                    }
-                }
+                        $any_path: [
+                            ['images', 'image_urls'],
+                            {
+                                $eq: ['id', 'id'],
+                            },
+                        ],
+                    },
+                },
             } as const
 
             //@ts-ignore
@@ -315,11 +368,14 @@ describe('query_validation', () => {
                     id: true,
                     $where: {
                         $any_path_last_entity: 'image_urls',
-                        $any_path: [['images', 'image_urls'], {
-                            $eq: ['id', 'id']
-                        }]
-                    }
-                }
+                        $any_path: [
+                            ['images', 'image_urls'],
+                            {
+                                $eq: ['id', 'id'],
+                            },
+                        ],
+                    },
+                },
             })
         })
     })
@@ -330,11 +386,14 @@ describe('query_validation', () => {
                     id: true,
                     $where: {
                         $any_path_last_entity: 'image_urls',
-                        $any_path: [['images', 'image_urls'], {
-                            $eq: ['id', 'id']
-                        }]
-                    }
-                }
+                        $any_path: [
+                            ['images', 'image_urls'],
+                            {
+                                $eq: ['id', 'id'],
+                            },
+                        ],
+                    },
+                },
             } as const
 
             //@ts-ignore
@@ -344,11 +403,14 @@ describe('query_validation', () => {
                 products: {
                     id: true,
                     $where: {
-                        $any_path: [['images', 'image_urls'], {
-                            $eq: ['id', 'id']
-                        }]
-                    }
-                }
+                        $any_path: [
+                            ['images', 'image_urls'],
+                            {
+                                $eq: ['id', 'id'],
+                            },
+                        ],
+                    },
+                },
             })
         })
     })
@@ -358,11 +420,14 @@ describe('query_validation', () => {
                 products: {
                     id: true,
                     $where: {
-                        $any_path: [['image_urls'], {
-                            $eq: ['image_id', 'image_id']
-                        }]
-                    }
-                }
+                        $any_path: [
+                            ['image_urls'],
+                            {
+                                $eq: ['image_id', 'image_id'],
+                            },
+                        ],
+                    },
+                },
             }
 
             //@ts-ignore
@@ -375,11 +440,14 @@ describe('query_validation', () => {
                 products: {
                     id: true,
                     $where: {
-                        $any_path: [['images', 'vendors'], {
-                            $eq: ['image_id', 'image_id']
-                        }]
-                    }
-                }
+                        $any_path: [
+                            ['images', 'vendors'],
+                            {
+                                $eq: ['image_id', 'image_id'],
+                            },
+                        ],
+                    },
+                },
             }
 
             //@ts-ignore
@@ -388,6 +456,49 @@ describe('query_validation', () => {
             expect(errors.length).to.equal(1)
         })
     })
+    describe.only(validate_where_connected.name, () => {
+        test('must use a valid entity', () => {
+            const errors = validate_where_connected(
+                {
+                    $where_connected: [
+                        {
+                            $entity: 'not_an_entity',
+                            $field: 'id',
+                            $values: [1, 'a'],
+                        },
+                    ],
+                    products: {
+                        id: true,
+                        $from: 'products',
+                    },
+                }, //@ts-ignore
+                orma_schema
+            )
+
+            expect(errors?.length).to.be.greaterThan(0)
+        })
+        test('must use a valid field', () => {
+            const errors = validate_where_connected(
+                {
+                    $where_connected: [
+                        {
+                            $entity: 'vendors',
+                            $field: 'description', // description is a property of products, not vendors
+                            $values: [1, 'a'],
+                        },
+                    ],
+                    products: {
+                        id: true,
+                        $from: 'products',
+                    },
+                }, //@ts-ignore
+                orma_schema
+            )
+
+            expect(errors?.length).to.be.greaterThan(0)
+        })
+    })
+
     // tests:
     // inferred table name
     // random table name

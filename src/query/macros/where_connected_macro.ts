@@ -1,3 +1,4 @@
+import { orma_escape } from '../../helpers/escape'
 import { deep_for_each, deep_set, last } from '../../helpers/helpers'
 import { push_path } from '../../helpers/push_path'
 import {
@@ -32,11 +33,11 @@ export const get_upwards_connection_edges = (orma_schema: orma_schema) => {
             const upwards_edges = get_parent_edges(
                 entity_name,
                 orma_schema
-            ).filter(el => el.from_entity !== el.to_entity) 
+            ).filter(el => el.from_entity !== el.to_entity)
 
             if (upwards_edges.length > 0) {
                 acc[entity_name] = upwards_edges
-            } 
+            }
 
             return acc
         },
@@ -193,7 +194,7 @@ const get_connected_where_clause = (
 
             const clauses = edge_paths.map(edge_path => {
                 const clause = edge_path_to_where_ins(edge_path, '$where', {
-                    $in: [$field, $values],
+                    $in: [$field, $values.map(el => orma_escape(el))],
                 })
 
                 return clause
