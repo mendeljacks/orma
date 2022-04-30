@@ -317,15 +317,16 @@ describe('query_validation', () => {
                     {
                         $entity: 'vendors',
                         $field: 'id',
-                        values: [1, 'a'],
+                        $values: [1, 'a'],
                     },
                 ],
                 products: {
                     id: true,
+                    $from: 'products'
                 },
             })
 
-            expect(validate.errors?.length).to.equal(0)
+            expect(validate.errors).to.equal(null)
         })
         test('$where_connected must have values', () => {
             validate({

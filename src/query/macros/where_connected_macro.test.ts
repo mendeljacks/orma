@@ -7,7 +7,7 @@ import {
     get_upwards_connection_edges,
 } from './where_connected_macro'
 
-describe.only('where_connected_macro.ts', () => {
+describe('where_connected_macro.ts', () => {
     const schema = as_orma_schema({
         grandparents: {
             id: {},
