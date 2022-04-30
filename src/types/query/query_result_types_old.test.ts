@@ -1,6 +1,10 @@
 import { as_orma_schema } from '../../introspector/introspector'
 import { IsEqual, IsExtends, Pluck } from '../helper_types'
-import { GetAllEdges, GetParentEdges, GetParentEdgesForFields, OrmaSchema } from '../schema_types'
+import {
+    GetAllEdges,
+    GetParentEdges,
+    GetParentEdgesForFields,
+} from '../schema_types'
 import {
     AddSchemaTypes,
     IsSubquery,

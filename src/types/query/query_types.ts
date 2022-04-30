@@ -1,10 +1,10 @@
+import { OrmaSchema } from '../../introspector/introspector'
 import { Pluck } from '../helper_types'
 import {
     DeepReadonly,
     GetAllEdges,
     GetAllEntities,
     GetFields,
-    OrmaSchema,
 } from '../schema_types'
 
 export type OrmaQuery<Schema extends OrmaSchema> = {
@@ -14,10 +14,12 @@ export type OrmaQuery<Schema extends OrmaSchema> = {
     [VirtualEntity in string]?:
         | Subquery<Schema, GetAllEntities<Schema>, false>
         | WhereConnected<OrmaSchema>
-} &
-{ $where_connected?: WhereConnected<Schema> }
+} & { $where_connected?: WhereConnected<Schema> }
 
-export type WhereConnected<Schema extends OrmaSchema> = WhereConnectedMapped<Schema, GetAllEntities<Schema>>
+export type WhereConnected<Schema extends OrmaSchema> = WhereConnectedMapped<
+    Schema,
+    GetAllEntities<Schema>
+>
 
 // have to uselessly break this function into two because typescript is annoying
 type WhereConnectedMapped<
@@ -30,7 +32,6 @@ type WhereConnectedMapped<
           $values: (string | number)[]
       }[]
     : never
-
 
 export type Subquery<
     Schema extends OrmaSchema,

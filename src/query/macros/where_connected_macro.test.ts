@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { as_orma_schema } from '../query'
 import {
     apply_where_connected_macro,
@@ -53,7 +53,7 @@ describe('where_connected_macro.ts', () => {
 
     describe(get_upwards_connection_edges.name, () => {
         test('handles multiple entities', () => {
-            const schema: orma_schema = {
+            const schema: OrmaSchema = {
                 grandparents: {
                     id: {},
                 },
@@ -101,7 +101,7 @@ describe('where_connected_macro.ts', () => {
             })
         })
         test('handles multiple edges', () => {
-            const schema: orma_schema = {
+            const schema: OrmaSchema = {
                 parents: {
                     id: {},
                 },
@@ -147,7 +147,7 @@ describe('where_connected_macro.ts', () => {
             })
         })
         test('skips edges from an entity to itself', () => {
-            const schema: orma_schema = {
+            const schema: OrmaSchema = {
                 entity: {
                     id: {},
                     entity_id: {

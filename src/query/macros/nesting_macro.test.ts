@@ -1,10 +1,10 @@
 import { describe, test } from 'mocha'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { expect } from 'chai'
 import { apply_nesting_macro } from './nesting_macro'
 
 describe('query_macros', () => {
-    const orma_schema: orma_schema = {
+    const orma_schema: OrmaSchema = {
         products: {
             id: {},
             vendor_id: {
@@ -52,7 +52,12 @@ describe('query_macros', () => {
 
             const previous_results = [[['products'], [{ id: 1 }, { id: 2 }]]]
 
-            apply_nesting_macro(query, ['products', 'images'], previous_results, orma_schema)
+            apply_nesting_macro(
+                query,
+                ['products', 'images'],
+                previous_results,
+                orma_schema
+            )
 
             const goal = {
                 products: {
@@ -100,14 +105,14 @@ describe('query_macros', () => {
                                         $select: ['id'],
                                         $from: 'images',
                                         $where: {
-                                            $in: ['product_id', [1, 2]]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                }
+                                            $in: ['product_id', [1, 2]],
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                },
             }
 
             expect(query).to.deep.equal(goal)
@@ -167,7 +172,12 @@ describe('query_macros', () => {
                 [['my_products', 'my_images'], [{ id: 3 }]],
             ]
 
-            apply_nesting_macro(query, ['my_products', 'my_images'], previous_results, orma_schema)
+            apply_nesting_macro(
+                query,
+                ['my_products', 'my_images'],
+                previous_results,
+                orma_schema
+            )
 
             apply_nesting_macro(
                 query,
@@ -188,16 +198,16 @@ describe('query_macros', () => {
                                 },
                                 {
                                     $in: ['product_id', [1]],
-                                }
-                            ]
+                                },
+                            ],
                         },
                         image_urls: {
                             $where: {
-                                $in: ['image_id', [3]]
-                            }
-                        }
-                    }
-                }
+                                $in: ['image_id', [3]],
+                            },
+                        },
+                    },
+                },
             }
 
             expect(query).to.deep.equal(goal)

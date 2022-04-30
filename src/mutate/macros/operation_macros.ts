@@ -1,26 +1,26 @@
-import { escape } from 'sqlstring'
 import { error_type } from '../../helpers/error_handling'
 import { orma_escape } from '../../helpers/escape'
 import { deep_get, drop_last, is_simple_object } from '../../helpers/helpers'
 import {
     get_direct_edge,
     is_parent_entity,
-    is_reserved_keyword
+    is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import { path_to_string } from '../../helpers/string_to_path'
-import { orma_schema } from '../../introspector/introspector'
+import { path_to_string, string_to_path } from '../../helpers/string_to_path'
+import { OrmaSchema as OrmaSchema } from '../../introspector/introspector'
 import { combine_wheres } from '../../query/query_helpers'
 import {
     generate_record_where_clause,
     get_identifying_keys,
-    path_to_entity
+    path_to_entity,
 } from '../mutate'
+import { GuidByPath, PathsByGuid } from './guid_macro'
 
 export const get_update_asts = (
     entity_name: string,
     paths: (string | number)[][],
     mutation,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     if (paths.length === 0) {
         return []
@@ -36,10 +36,7 @@ export const get_update_asts = (
 
         throw_identifying_key_errors('update', identifying_keys, path, mutation)
 
-        const where = generate_record_where_clause(
-            identifying_keys,
-            record
-        )
+        const where = generate_record_where_clause(identifying_keys, record)
 
         const keys_to_set = Object.keys(record)
             .filter(key => !identifying_keys.includes(key))
@@ -64,7 +61,7 @@ export const get_delete_ast = (
     entity_name: string,
     paths: (string | number)[][],
     mutation,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     if (paths.length === 0) {
         return []
@@ -80,10 +77,7 @@ export const get_delete_ast = (
 
         throw_identifying_key_errors('delete', identifying_keys, path, mutation)
 
-        const where = generate_record_where_clause(
-            identifying_keys,
-            record
-        )
+        const where = generate_record_where_clause(identifying_keys, record)
 
         return where
     })
@@ -102,8 +96,10 @@ export const get_create_ast = (
     entity_name: string,
     paths: (string | number)[][],
     mutation,
-    tier_results,
-    orma_schema: orma_schema
+    db_row_by_path,
+    orma_schema: OrmaSchema,
+    guid_by_path: GuidByPath,
+    paths_by_guid: PathsByGuid
 ) => {
     if (paths.length === 0) {
         return []
@@ -114,12 +110,21 @@ export const get_create_ast = (
         const foreign_key_obj = get_foreign_keys_obj(
             mutation,
             path,
-            tier_results,
+            db_row_by_path,
             orma_schema
+        )
+        const guid_obj = get_guid_obj(
+            mutation,
+            path,
+            db_row_by_path,
+            orma_schema,
+            guid_by_path,
+            paths_by_guid
         )
         return {
             ...raw_record,
             foreign_key_obj,
+            ...guid_obj,
         }
     })
 
@@ -184,7 +189,7 @@ export const throw_identifying_key_errors = (
 export const get_foreign_keys_in_mutation = (
     mutation,
     record_path: (string | number)[],
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const entity_name = path_to_entity(record_path)
     const record = deep_get(record_path, mutation)
@@ -232,7 +237,7 @@ export const get_foreign_keys_obj = (
     mutation,
     record_path: (string | number)[],
     results_by_path,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ): Record<string, unknown> => {
     const foreing_keys = get_foreign_keys_in_mutation(
         mutation,
@@ -256,7 +261,7 @@ export const get_foreign_keys_obj = (
             // parent record of the mutation
             obj[edge.from_field] =
                 previous_result[edge.to_field] === undefined
-                    ? parent_record[edge.to_field] 
+                    ? parent_record[edge.to_field]
                     : previous_result[edge.to_field]
             return obj
         },
@@ -264,4 +269,34 @@ export const get_foreign_keys_obj = (
     )
 
     return foreign_key_obj
+}
+
+/**
+ * Gets an object containing all the guid values which resolved
+ * looking at the guid_by_path and the paths this partial guid obj can be built
+ * Example output { inventory_adjustment_id: 11 } for something which used to be { inventory_adjustment_id: { $guid: 'my_guid'}}
+ */
+export const get_guid_obj = (
+    mutation,
+    path: (string | number)[],
+    db_row_by_path,
+    orma_schema: OrmaSchema,
+    guid_by_path: GuidByPath,
+    paths_by_guid: PathsByGuid
+): Record<string, unknown> => {
+    const path_string = path_to_string(path)
+    const { guid, column_name } = guid_by_path[path_string] || {}
+    if (!guid) return {}
+
+    let path_strings = paths_by_guid[guid]
+    let resolved = path_strings.reduce((acc, path_string, i) => {
+        const { column_name: other_column_name } =
+            guid_by_path[path_string] || {}
+        const resolved_value = db_row_by_path[path_string]?.[other_column_name]
+        if (resolved_value && !acc[column_name]) {
+            acc[column_name] = resolved_value
+        }
+        return acc
+    }, {})
+    return resolved
 }

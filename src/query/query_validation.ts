@@ -8,10 +8,10 @@ import {
     is_field_name,
     is_parent_entity,
 } from '../helpers/schema_helpers'
-import { orma_schema } from '../introspector/introspector'
+import { OrmaSchema } from '../introspector/introspector'
 import { get_any_path_context_entity } from './macros/any_path_macro'
 
-export const get_query_schema = (orma_schema: orma_schema) => {
+export const get_query_schema = (orma_schema: OrmaSchema) => {
     const entity_names = get_entity_names(orma_schema)
 
     const schema = {
@@ -100,7 +100,7 @@ export const get_query_schema = (orma_schema: orma_schema) => {
     return schema
 }
 
-const get_entity_schema = (orma_schema: orma_schema, entity_name: string) => {
+const get_entity_schema = (orma_schema: OrmaSchema, entity_name: string) => {
     const field_names = get_field_names(entity_name, orma_schema)
     const connected_entities = get_all_edges(entity_name, orma_schema).map(
         edge => edge.to_entity
@@ -181,7 +181,7 @@ const get_entity_schema = (orma_schema: orma_schema, entity_name: string) => {
     return entity_schema
 }
 
-const get_order_by_schema = (orma_schema: orma_schema, entity_name: string) => {
+const get_order_by_schema = (orma_schema: OrmaSchema, entity_name: string) => {
     const expression_schema = {
         $ref: `#/$defs/entities/${entity_name}/$having/field`,
     }
@@ -214,7 +214,7 @@ const get_order_by_schema = (orma_schema: orma_schema, entity_name: string) => {
 
 // expressions resolve to fields, such as $sum or just a field name string
 const get_expression_schemas = (
-    orma_schema: orma_schema,
+    orma_schema: OrmaSchema,
     entity_name: string
 ) => {
     const field_names = get_field_names(entity_name, orma_schema)
@@ -238,7 +238,7 @@ const get_expression_schemas = (
 }
 
 const get_where_schema = (
-    orma_schema: orma_schema,
+    orma_schema: OrmaSchema,
     entity_name: string,
     where_type: '$having' | '$where'
 ) => {
@@ -309,7 +309,7 @@ const get_where_schema = (
 }
 
 const get_any_path_schema = (
-    orma_schema: orma_schema,
+    orma_schema: OrmaSchema,
     clause_type: '$where' | '$having'
 ) => {
     const entity_names = get_entity_names(orma_schema)
@@ -349,7 +349,7 @@ const get_any_path_schema = (
 }
 
 const get_where_field_schema = (
-    orma_schema: orma_schema,
+    orma_schema: OrmaSchema,
     entity_name: string,
     clause_type: '$where' | '$having'
 ) => {
@@ -369,7 +369,7 @@ const get_where_field_schema = (
 }
 
 const get_operation_schema = (
-    orma_schema: orma_schema,
+    orma_schema: OrmaSchema,
     entity_name: string,
     clause_type: '$where' | '$having'
 ) => {
@@ -412,7 +412,7 @@ const get_operation_schema = (
  */
 export const preprocess_query_for_validation = (
     query: any,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     deep_for_each(query, (value, path) => {
         if (value.$any_path) {
@@ -432,7 +432,7 @@ export const postprocess_query_for_validation = (query: any) => {
     })
 }
 
-export const get_any_path_errors = (query: any, orma_schema: orma_schema) => {
+export const get_any_path_errors = (query: any, orma_schema: OrmaSchema) => {
     let all_errors: error_type[] = []
 
     deep_for_each(query, (value, path) => {
@@ -475,7 +475,7 @@ export const get_any_path_errors = (query: any, orma_schema: orma_schema) => {
 
 export const validate_where_connected = (
     query: any,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     let errors: error_type[] = []
 

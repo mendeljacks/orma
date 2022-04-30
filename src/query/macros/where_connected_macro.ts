@@ -6,9 +6,8 @@ import {
     get_entity_names,
     get_parent_edges,
 } from '../../helpers/schema_helpers'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { WhereConnected } from '../../types/query/query_types'
-import { GetAllEntities, OrmaSchema } from '../../types/schema_types'
 import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { combine_wheres, query_for_each } from '../query_helpers'
 import { edge_path_to_where_ins, process_any_clause } from './any_path_macro'
@@ -26,7 +25,7 @@ export type ConnectionEdges = {
     }[]
 }
 
-export const get_upwards_connection_edges = (orma_schema: orma_schema) => {
+export const get_upwards_connection_edges = (orma_schema: OrmaSchema) => {
     const connection_edges = get_entity_names(orma_schema).reduce(
         (acc, entity_name) => {
             // dont make edges from an entity to itself. This prevents infinite loops

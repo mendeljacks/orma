@@ -1,10 +1,10 @@
+import { OrmaSchema } from '../../introspector/introspector'
 import { BooleanOr, IsEqual, IsExtends } from '../helper_types'
 import {
     GetAllEntities,
     GetFields,
     GetFieldType,
     Keyword,
-    OrmaSchema,
 } from '../schema_types'
 import { OrmaQuery } from './query_types'
 

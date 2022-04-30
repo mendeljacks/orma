@@ -1,10 +1,10 @@
 import { describe, test } from 'mocha'
 import { apply_select_macro } from './select_macro'
 import { expect } from 'chai'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 
 describe('select_macro', () => {
-    const orma_schema: orma_schema = {
+    const orma_schema: OrmaSchema = {
         products: {
             id: {},
             vendor_id: {
@@ -69,7 +69,7 @@ describe('select_macro', () => {
             const query = {
                 products: {
                     images: { url: true },
-                    vendors: { },
+                    vendors: {},
                 },
             }
 
@@ -85,7 +85,7 @@ describe('select_macro', () => {
                     },
                     vendors: {
                         $select: ['id'],
-                        $from: 'vendors'
+                        $from: 'vendors',
                     },
                 },
             }

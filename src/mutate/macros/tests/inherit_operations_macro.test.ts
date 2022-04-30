@@ -1,5 +1,5 @@
 import { describe, test } from 'mocha'
-import { apply_inherit_operations_macro } from './inherit_operations_macro'
+import { apply_inherit_operations_macro } from '../inherit_operations_macro'
 import { expect } from 'chai'
 
 describe('inherit_operations_macro', () => {

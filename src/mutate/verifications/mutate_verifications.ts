@@ -1,20 +1,4 @@
 // import { orma_schema } from '../introspector/introspector'
-// import { get_mutate_plan, operation } from './mutate'
-
-import { error_type } from '../helpers/error_handling'
-import { key_by } from '../helpers/helpers'
-import {
-    get_primary_keys,
-    get_unique_field_groups,
-} from '../helpers/schema_helpers'
-import { orma_schema } from '../introspector/introspector'
-import {
-    combine_wheres,
-    get_search_records_where,
-} from '../query/query_helpers'
-import { PathedRecord } from '../types'
-import { get_identifying_keys } from './mutate'
-import { split_mutation_by_entity } from './mutate_helpers'
 
 // export const verify_foreign_keys = async (mutation, mutation_path,  orma_schema: orma_schema) => {
 //     // this should probably be split into data collection (returns sql string) and checking (returns errors)
@@ -28,7 +12,6 @@ export const verify_independence = async (
     // undefined behaviours (since updates or an update and a delete can run in parallel). Also it could break
     // if a unique key is edited and then the old unique key value is used to try to edit something
 }
-
 
 // TODO: write a test for uniqueness showing that '1' !== 1
 

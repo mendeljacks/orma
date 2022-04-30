@@ -1,6 +1,6 @@
 import { deep_get } from '../../helpers/helpers'
 import { get_direct_edge } from '../../helpers/schema_helpers'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { get_real_entity_name } from '../query'
 import { combine_wheres } from '../query_helpers'
 import { process_any_clause } from './any_path_macro'
@@ -12,7 +12,7 @@ export const apply_nesting_macro = (
     query,
     subquery_path: string[],
     previous_results: (string[] | Record<string, unknown>[])[][],
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const subquery = deep_get(subquery_path, query)
 
@@ -33,7 +33,7 @@ export const get_nesting_where = (
     query,
     subquery_path: string[],
     previous_results: (string[] | Record<string, unknown>[])[][],
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const is_root_subquery = subquery_path.length <= 1
     if (is_root_subquery) {
@@ -55,7 +55,7 @@ export const get_nesting_where = (
         // there can be no previous results if this is a nested entity and there is no higher entity. In this case
         // we want nothing of the lower entity to be queried, so we use an impossible where clause that returns nothing
         return {
-            $eq: ['1', '2']
+            $eq: ['1', '2'],
         }
     }
 
@@ -110,7 +110,7 @@ const get_ancestor_where_clause = (
     ancestor_path: string[],
     ancestor_to_entity_path: string[],
     query,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const ancestor_name = get_real_entity_name(ancestor_path, query)
 

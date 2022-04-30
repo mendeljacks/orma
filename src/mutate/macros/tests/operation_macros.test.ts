@@ -1,14 +1,14 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../../introspector/introspector'
 import {
     get_create_ast,
     get_delete_ast,
     get_update_asts,
-} from './operation_macros'
+} from '../operation_macros'
 
 describe('operation_macros.ts', () => {
-    const orma_schema: orma_schema = {
+    const orma_schema: OrmaSchema = {
         grandparents: {
             id: {
                 primary_key: true,
