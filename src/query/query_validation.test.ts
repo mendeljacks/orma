@@ -456,7 +456,7 @@ describe('query_validation', () => {
             expect(errors.length).to.equal(1)
         })
     })
-    describe.only(validate_where_connected.name, () => {
+    describe(validate_where_connected.name, () => {
         test('must use a valid entity', () => {
             const errors = validate_where_connected(
                 {

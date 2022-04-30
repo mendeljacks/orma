@@ -109,28 +109,41 @@ export const apply_where_connected_macro = (
         return
     }
 
+    // traverse the query and find all subqueries and $where $in clauses that we need to generated
+    // where clauses for
+    let subquery_locations: { value; path }[] = []
+    let where_clause_locations: { value; path }[] = []
     query_for_each(query, (subquery, path) => {
         if (subquery.$where) {
             deep_for_each(subquery.$where, (value, path) => {
                 if (value?.$from) {
-                    const entity_name = value.$from
-                    apply_where_connected_to_subquery(
-                        connection_edges,
-                        query.$where_connected,
-                        value,
-                        entity_name,
-                        undefined
-                    )
+                    where_clause_locations.push({ value, path })
                 }
             })
         }
 
-        const entity_name = get_real_entity_name(path, subquery)
-        const higher_entity = get_real_higher_entity_name(path, subquery)
+        subquery_locations.push({ value: subquery, path })
+    })
+
+    // generate where clauses for all the paths that we found
+    where_clause_locations.forEach(({ value, path }) => {
+        const entity_name = value.$from
         apply_where_connected_to_subquery(
             connection_edges,
             query.$where_connected,
-            subquery,
+            value,
+            entity_name,
+            undefined
+        )
+    })
+
+    subquery_locations.forEach(({ value, path }) => {
+        const entity_name = get_real_entity_name(path, value)
+        const higher_entity = get_real_higher_entity_name(path, value)
+        apply_where_connected_to_subquery(
+            connection_edges,
+            query.$where_connected,
+            value,
             entity_name,
             higher_entity
         )
@@ -188,17 +201,26 @@ const get_connected_where_clause = (
                     edge_path[0].to_entity !== higher_entity
             )
 
-            if (edge_paths.length === 0) {
-                return []
+            const inner_clause = {
+                $in: [$field, $values.map(el => orma_escape(el))],
             }
 
             const clauses = edge_paths.map(edge_path => {
-                const clause = edge_path_to_where_ins(edge_path, '$where', {
-                    $in: [$field, $values.map(el => orma_escape(el))],
-                })
+                const clause = edge_path_to_where_ins(
+                    edge_path,
+                    '$where',
+                    inner_clause
+                )
 
                 return clause
             })
+
+            // if the entity that we are generating the where clause for is the same as the $where_connected entity,
+            // then we need to generate an extra where clause, since an entity is always connected to itself,
+            // but there is no edge in the connection_edges stating this
+            if ($entity === entity_name) {
+                clauses.push(inner_clause)
+            }
 
             return clauses
         }
