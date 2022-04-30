@@ -38,6 +38,15 @@ export const mutate_validation_schema = {
                     { type: 'boolean' },
                     { type: 'null' },
                     {
+                        type: 'object',
+                        properties: {
+                            $guid: {
+                                oneOf: [{ type: 'string' }, { type: 'number' }],
+                            },
+                        },
+                        additionalProperties: false,
+                    },
+                    {
                         // ref to this bit of the subschema
                         $ref: '#/additionalProperties',
                     },

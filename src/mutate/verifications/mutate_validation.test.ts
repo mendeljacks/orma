@@ -65,6 +65,24 @@ describe('mutation_validation', () => {
             const errors = validate_mutation(test_mutation, orma_schema)
             expect(errors).to.have.lengthOf(1)
         })
+        test('Allows guid object', () => {
+            const test_mutation = {
+                $operation: 'create',
+                products: [
+                    {
+                        id: { $guid: '123' },
+                        images: [
+                            {
+                                product_id: { $guid: '123' },
+                            },
+                        ],
+                    },
+                ],
+            }
+
+            const errors = validate_mutation(test_mutation, orma_schema)
+            expect(errors).to.have.lengthOf(0)
+        })
         test('recognises inherited operations', () => {
             const test_mutation = {
                 $operation: 'create',
