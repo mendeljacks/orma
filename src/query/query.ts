@@ -2,10 +2,8 @@ import { error_type } from '../helpers/error_handling'
 import { clone, deep_get, drop_last, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
-import { OrmaSchema } from '../introspector/introspector'
 import { QueryResult } from '../types/query/query_result_types'
 import { OrmaQuery } from '../types/query/query_types'
-import { OrmaSchema } from '../types/schema_types'
 import { json_to_sql } from './json_sql'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
@@ -18,6 +16,7 @@ import {
     preprocess_query_for_validation,
 } from './query_validation'
 import { DeepReadonly } from '../types/schema_types'
+import { OrmaSchema } from '../introspector/introspector'
 
 // This function will default to the from clause
 export const get_real_parent_name = (path: (string | number)[], query) => {

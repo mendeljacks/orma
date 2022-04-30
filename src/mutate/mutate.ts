@@ -391,7 +391,7 @@ export const get_identifying_keys = (
     entity_name: string,
     record: Record<string, any>,
     orma_schema: OrmaSchema
-) => {
+): string[] => {
     const primary_keys = get_primary_keys(entity_name, orma_schema)
     const has_primary_keys = primary_keys.every(
         primary_key => record[primary_key] !== undefined
@@ -412,7 +412,7 @@ export const get_identifying_keys = (
     )
     if (included_unique_keys.length === 1) {
         // if there are 2 or more unique keys, we cant use them since it would be ambiguous which we choose
-        return included_unique_keys[0]
+        return included_unique_keys[0] as string[]
     }
 
     return []

@@ -136,7 +136,7 @@ export const get_database_uniqueness_errors = (
             ...get_unique_field_groups(entity, false, orma_schema),
         ]
 
-        const entity_errors = field_groups.flatMap(field_group => {
+        const entity_errors = field_groups.flatMap((field_group: any) => {
             const database_records = database_records_by_entity[entity]
             const mutation_pathed_records =
                 mutation_pathed_records_by_entity[entity]
@@ -205,7 +205,7 @@ export const get_mutation_uniqueness_errors = (
             ...get_unique_field_groups(entity, false, orma_schema),
         ]
 
-        const entity_errors = field_groups.flatMap(field_group => {
+        const entity_errors = field_groups.flatMap((field_group: any) => {
             const pathed_records = mutation_pathed_records_by_entity[entity]
             const records = pathed_records.map(({ record }) => record)
 

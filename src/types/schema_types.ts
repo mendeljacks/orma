@@ -3,10 +3,10 @@
 import { Edge } from '../helpers/schema_helpers'
 import {
     mysql_to_typescript_types,
-    orma_field_schema,
     OrmaSchema,
+    orma_field_schema,
 } from '../introspector/introspector'
-import { IsEqual, UnionToIntersection } from './helper_types'
+import { IsEqual } from './helper_types'
 
 export type DeepReadonly<T> = T extends (infer R)[]
     ? DeepReadonlyArray<R>
@@ -22,7 +22,7 @@ export type DeepReadonlyObject<T> = {
     readonly [P in keyof T]: DeepReadonly<T[P]>
 }
 
-export type OrmaSchema = DeepReadonly<OrmaSchema>
+// export type OrmaSchema = DeepReadonly<OrmaSchema>
 
 // basic structure
 

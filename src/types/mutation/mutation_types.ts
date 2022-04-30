@@ -1,14 +1,11 @@
-import { Edge } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
-import { UnionToIntersection, XOR } from '../helper_types'
+import { XOR } from '../helper_types'
 import {
-    OrmaSchema,
+    FieldSchemaPropEq,
+    FilterFieldsBySchemaProp,
     GetAllEntities,
     GetFields,
-    GetFieldSchema,
-    FilterFieldsBySchemaProp,
     GetFieldType,
-    FieldSchemaPropEq,
     GetParentEdges,
 } from '../schema_types'
 

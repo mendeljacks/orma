@@ -137,9 +137,7 @@ describe('mutate', () => {
                 statements,
                 query_results,
                 mutation,
-                orma_test_schema,
-                {},
-                {}
+                orma_test_schema
             )
 
             expect(result).to.deep.equal({
@@ -194,9 +192,7 @@ describe('mutate', () => {
                 statements,
                 query_results,
                 mutation,
-                orma_test_schema,
-                {},
-                {}
+                orma_test_schema
             )
 
             expect(result).to.deep.equal({
@@ -241,9 +237,7 @@ describe('mutate', () => {
                 statements,
                 query_results,
                 mutation,
-                orma_test_schema,
-                {},
-                {}
+                orma_test_schema
             )
 
             // it should add foreign keys to both locations, even though they have the same id and there is only
