@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import {
     Edge,
     get_all_edges,
@@ -13,7 +13,7 @@ import {
 describe('schema_helpers', () => {
     describe('get_entity_names', () => {
         test('gets entity names', () => {
-            const orma_schema: orma_schema = {
+            const orma_schema: OrmaSchema = {
                 vendors: {},
                 products: {},
             }
@@ -26,7 +26,7 @@ describe('schema_helpers', () => {
     })
     describe('get_field_names', () => {
         test('gets field names', () => {
-            const orma_schema: orma_schema = {
+            const orma_schema: OrmaSchema = {
                 vendors: {},
                 products: {
                     id: {},
@@ -40,7 +40,7 @@ describe('schema_helpers', () => {
     })
     describe('get_parent_edges', () => {
         test('gets parent edges', () => {
-            const orma_schema: orma_schema = {
+            const orma_schema: OrmaSchema = {
                 vendors: {
                     id: {},
                 },
@@ -70,7 +70,7 @@ describe('schema_helpers', () => {
     })
     describe('get_child_edges', () => {
         test('gets child edges', () => {
-            const orma_schema: orma_schema = {
+            const orma_schema: OrmaSchema = {
                 vendors: {
                     id: {},
                 },
@@ -100,7 +100,7 @@ describe('schema_helpers', () => {
     })
     describe('get_all_edges', () => {
         test('gets all edges', () => {
-            const orma_schema: orma_schema = {
+            const orma_schema: OrmaSchema = {
                 vendors: {
                     id: {},
                 },

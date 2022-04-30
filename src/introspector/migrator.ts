@@ -4,12 +4,12 @@ import {
     orma_entity_schema,
     orma_field_schema,
     orma_index_schema,
-    orma_schema,
+    OrmaSchema,
 } from './introspector'
 
 export const migrator = (
-    target_schema: orma_schema,
-    database_schema: orma_schema = {}
+    target_schema: OrmaSchema,
+    database_schema: OrmaSchema = {}
 ) => {
     const target_entities = Object.keys(target_schema).filter(
         key => !is_reserved_keyword(key)
@@ -94,5 +94,7 @@ const index_schema_to_sql = (index_schema: orma_index_schema) => {
 
     return `${
         index_schema.index_name ? `CONSTRAINT ${index_schema.index_name}` : ''
-    } UNIQUE (${index_schema.fields.join(', ')})${index_schema.invisible ? ' INVISIBLE' : ''}`
+    } UNIQUE (${index_schema.fields.join(', ')})${
+        index_schema.invisible ? ' INVISIBLE' : ''
+    }`
 }

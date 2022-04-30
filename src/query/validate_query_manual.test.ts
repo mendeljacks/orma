@@ -1,10 +1,9 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../introspector/introspector'
+import { OrmaSchema } from '../introspector/introspector'
 import { validator } from './validate_query_manual'
 
-
-const schema: orma_schema = {
+const schema: OrmaSchema = {
     grand_parent: {
         id: {},
         grand_parent_column: {},
@@ -15,9 +14,9 @@ const schema: orma_schema = {
         grand_parent_id: {
             references: {
                 grand_parent: {
-                    id: {}
-                }
-            }
+                    id: {},
+                },
+            },
         },
     },
     child: {
@@ -26,11 +25,11 @@ const schema: orma_schema = {
         parent_id: {
             references: {
                 parent: {
-                    id: {}
-                }
-            }
+                    id: {},
+                },
+            },
         },
-    }
+    },
 }
 
 /*
@@ -62,16 +61,21 @@ describe('validate_query.ts', () => {
                         parent_column: true,
                         child: {
                             id: true,
-                            child_column_oops: true
-                        }
-                    }
-                }
+                            child_column_oops: true,
+                        },
+                    },
+                },
             }
 
             const errors = validator(query, schema)
 
             expect(errors.length).to.deep.equal(1)
-            expect(errors[0].path).to.deep.equal(['grand_parent', 'parent', 'child', 'child_column_oops'])
+            expect(errors[0].path).to.deep.equal([
+                'grand_parent',
+                'parent',
+                'child',
+                'child_column_oops',
+            ])
         })
     })
 
@@ -80,12 +84,11 @@ describe('validate_query.ts', () => {
             const query = {
                 parent: {
                     custom_name: { $field: 'parent_column' },
-                    custom_name2: { $field: 'oops' }
-                }
+                    custom_name2: { $field: 'oops' },
+                },
             }
 
             const errors = validator(query, schema)
-
 
             expect(errors[0].path).to.deep.equal(['parent', 'custom_name2'])
             expect(errors.length).to.deep.equal(1)
@@ -98,22 +101,23 @@ describe('validate_query.ts', () => {
                 parent: {
                     good: {
                         $from: 'child',
-                        id: true
+                        id: true,
                     },
                     bad: {
                         $from: 'oops',
-                        id: true
-                    }
-                }
+                        id: true,
+                    },
+                },
             }
 
             const errors = validator(data, schema)
 
-            const from_clause_errors = errors.filter(err =>
-                JSON.stringify(err.path) ===
-                JSON.stringify(['parent', 'bad', 'id']))
+            const from_clause_errors = errors.filter(
+                err =>
+                    JSON.stringify(err.path) ===
+                    JSON.stringify(['parent', 'bad', 'id'])
+            )
             expect(from_clause_errors.length).to.equal(1)
-
         })
         test('validates subquery connections', () => {
             const data = {
@@ -123,19 +127,23 @@ describe('validate_query.ts', () => {
                         child: {
                             id: true,
                             grand_parent: {
-                                id: true
-                            }
-                        }
-                    }
-                }
+                                id: true,
+                            },
+                        },
+                    },
+                },
             }
 
             const errors = validator(data, schema)
 
             expect(errors.length).to.equal(1)
-            expect(errors[0].path).to.deep.equal(['grand_parent', 'john', 'child', 'grand_parent'])
+            expect(errors[0].path).to.deep.equal([
+                'grand_parent',
+                'john',
+                'child',
+                'grand_parent',
+            ])
         })
-
     })
 
     describe.skip('clauses', () => {
@@ -143,12 +151,12 @@ describe('validate_query.ts', () => {
             const data = {
                 parent: {
                     $where: {
-                        $eq: ['my_id', 5]
+                        $eq: ['my_id', 5],
                     },
                     my_id: {
-                        $field: 'id'
-                    }
-                }
+                        $field: 'id',
+                    },
+                },
             }
 
             const errors = validator(data, schema)
@@ -160,12 +168,12 @@ describe('validate_query.ts', () => {
             const data = {
                 parent: {
                     $having: {
-                        $eq: ['my_id', 5]
+                        $eq: ['my_id', 5],
                     },
                     my_id: {
-                        $field: 'id'
-                    }
-                }
+                        $field: 'id',
+                    },
+                },
             }
 
             const errors = validator(data, schema)
@@ -176,10 +184,10 @@ describe('validate_query.ts', () => {
             const data = {
                 parent: {
                     $where: {
-                        $eq: ['name', { $field: 'id' }]
+                        $eq: ['name', { $field: 'id' }],
                     },
-                    id: 'id'
-                }
+                    id: 'id',
+                },
             }
 
             const errors = validator(data, schema)
@@ -190,10 +198,10 @@ describe('validate_query.ts', () => {
             const data = {
                 parent: {
                     $where: {
-                        $lte: ['name', { $field: 'id' }]
+                        $lte: ['name', { $field: 'id' }],
                     },
-                    id: 'id'
-                }
+                    id: 'id',
+                },
             }
 
             const errors = validator(data, schema)
@@ -204,12 +212,14 @@ describe('validate_query.ts', () => {
             const data = {
                 parent: {
                     $where: {
-                        $and: [{
-                            $eq: ['id', '5']
-                        }]
+                        $and: [
+                            {
+                                $eq: ['id', '5'],
+                            },
+                        ],
                     },
-                    id: 'id'
-                }
+                    id: 'id',
+                },
             }
 
             const errors = validator(data, schema)
@@ -220,16 +230,19 @@ describe('validate_query.ts', () => {
             const data = {
                 parent: {
                     $where: {
-                        $in: ['id', {
-                            $select: ['parent_id'],
-                            $from: 'child',
-                            $where: {
-                                $eq: ['name', 3] // invalid because 'name' is a field of parent, not child
-                            }
-                        }]
+                        $in: [
+                            'id',
+                            {
+                                $select: ['parent_id'],
+                                $from: 'child',
+                                $where: {
+                                    $eq: ['name', 3], // invalid because 'name' is a field of parent, not child
+                                },
+                            },
+                        ],
                     },
-                    id: 'id'
-                }
+                    id: 'id',
+                },
             }
 
             const errors = validator(data, schema)
@@ -240,13 +253,16 @@ describe('validate_query.ts', () => {
             const data = {
                 parent: {
                     $where: {
-                        $in: ['id', {
-                            $select: ['invalid_field'],
-                            $from: 'child',
-                        }]
+                        $in: [
+                            'id',
+                            {
+                                $select: ['invalid_field'],
+                                $from: 'child',
+                            },
+                        ],
                     },
-                    id: 'id'
-                }
+                    id: 'id',
+                },
             }
 
             const errors = validator(data, schema)
@@ -257,19 +273,21 @@ describe('validate_query.ts', () => {
             const data = {
                 parent: {
                     $where: {
-                        $in: ['id', {
-                            $select: ['name'],
-                            $from: 'fake_table',
-                        }]
+                        $in: [
+                            'id',
+                            {
+                                $select: ['name'],
+                                $from: 'fake_table',
+                            },
+                        ],
                     },
-                    id: 'id'
-                }
+                    id: 'id',
+                },
             }
 
             const errors = validator(data, schema)
 
             expect(errors.length).to.equal(1)
         })
-
     })
 })

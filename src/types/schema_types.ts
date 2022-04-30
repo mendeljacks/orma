@@ -4,7 +4,7 @@ import { Edge } from '../helpers/schema_helpers'
 import {
     mysql_to_typescript_types,
     orma_field_schema,
-    orma_schema,
+    OrmaSchema,
 } from '../introspector/introspector'
 import { IsEqual, UnionToIntersection } from './helper_types'
 
@@ -22,7 +22,7 @@ export type DeepReadonlyObject<T> = {
     readonly [P in keyof T]: DeepReadonly<T[P]>
 }
 
-export type OrmaSchema = DeepReadonly<orma_schema>
+export type OrmaSchema = DeepReadonly<OrmaSchema>
 
 // basic structure
 
@@ -50,8 +50,8 @@ export type GetFields<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = Entity extends any
-    ? // we need to use a ternary to map over the given Entity (which may be a union). This lets 
-    // GetFields<Schema, 'entity1' | 'entity2'> return the union of all the fields of entity1 and entity2
+    ? // we need to use a ternary to map over the given Entity (which may be a union). This lets
+      // GetFields<Schema, 'entity1' | 'entity2'> return the union of all the fields of entity1 and entity2
       Exclude<GetStringKeys<Schema[Entity]>, Keyword>
     : never
 

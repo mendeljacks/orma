@@ -1,12 +1,15 @@
 import { is_simple_object, last } from '../../helpers/helpers'
-import { get_direct_edge, is_reserved_keyword } from '../../helpers/schema_helpers'
-import { orma_schema } from '../../introspector/introspector'
+import {
+    get_direct_edge,
+    is_reserved_keyword,
+} from '../../helpers/schema_helpers'
+import { OrmaSchema } from '../../introspector/introspector'
 import { is_subquery, query_for_each } from '../query_helpers'
 
 /**
  * Applies the select macro. Mutates the input query
  */
- export const apply_select_macro = (query, orma_schema: orma_schema) => {
+export const apply_select_macro = (query, orma_schema: OrmaSchema) => {
     query_for_each(query, (value, path) => {
         const new_select = get_select(value, path, orma_schema)
         const existing_select = query.$select ?? []
@@ -21,7 +24,9 @@ import { is_subquery, query_for_each } from '../query_helpers'
             value.$from = $from
         }
 
-        const new_select_names = new_select.map(el => el?.$as ? el.$as[1] : el)
+        const new_select_names = new_select.map(el =>
+            el?.$as ? el.$as[1] : el
+        )
         for (const select of new_select_names) {
             delete value[select]
         }
@@ -31,7 +36,7 @@ import { is_subquery, query_for_each } from '../query_helpers'
 export const get_select = (
     subquery,
     subquery_path: string[],
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const entity_name = last(subquery_path)
 

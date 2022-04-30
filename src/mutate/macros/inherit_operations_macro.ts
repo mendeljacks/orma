@@ -1,13 +1,14 @@
 import { deep_for_each, is_simple_object } from '../../helpers/helpers'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 
-export const apply_inherit_operations_macro = (
-    mutation
-) => {
+export const apply_inherit_operations_macro = mutation => {
     inherit_operations_macro_recursive(mutation)
 }
 
-const inherit_operations_macro_recursive = (item, inherited_operation=undefined) => {
+const inherit_operations_macro_recursive = (
+    item,
+    inherited_operation = undefined
+) => {
     const is_object = is_simple_object(item)
     const is_array = Array.isArray(item)
 
@@ -16,7 +17,10 @@ const inherit_operations_macro_recursive = (item, inherited_operation=undefined)
     if (is_object) {
         // if there is no operation, set it based on the ancestor operation
         // otherwise, change the inherited operation to the existing operation
-        if (item.$operation === undefined && inherited_operation !== undefined) {
+        if (
+            item.$operation === undefined &&
+            inherited_operation !== undefined
+        ) {
             item.$operation = inherited_operation
         } else {
             operation = item.$operation

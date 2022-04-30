@@ -53,7 +53,7 @@ export interface mysql_foreign_key {
     constraint_name: string
 }
 
-export interface orma_schema {
+export interface OrmaSchema {
     [entity_name: string]: orma_entity_schema
 }
 
@@ -184,7 +184,7 @@ export const generate_database_schema = (
     mysql_foreign_keys: mysql_foreign_key[],
     mysql_indexes: mysql_index[]
 ) => {
-    const database_schema: orma_schema = {}
+    const database_schema: OrmaSchema = {}
 
     for (const mysql_table of mysql_tables) {
         database_schema[mysql_table.table_name] = {
@@ -401,7 +401,7 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
 export const orma_introspect = async (
     db: string,
     fn: (s: string[]) => Promise<Record<string, unknown>[][]>
-): Promise<orma_schema> => {
+): Promise<OrmaSchema> => {
     const sql_strings = get_introspect_sqls(db)
     // @ts-ignore
     const [mysql_tables, mysql_columns, mysql_foreign_keys, mysql_indexes]: [

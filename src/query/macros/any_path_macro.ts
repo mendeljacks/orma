@@ -1,6 +1,6 @@
 import { deep_for_each, deep_get, last } from '../../helpers/helpers'
 import { Edge, get_edge_path } from '../../helpers/schema_helpers'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 
 /**
  * The first argument to the $any_path macro is a list of connected entities, with the
@@ -17,7 +17,7 @@ import { orma_schema } from '../../introspector/introspector'
  *   }
  * }
  */
- export const apply_any_path_macro = (query, orma_schema: orma_schema) => {
+export const apply_any_path_macro = (query, orma_schema: OrmaSchema) => {
     let paths_to_any = []
     deep_for_each(query, (clause, path) => {
         if (clause.$any_path) {
@@ -40,7 +40,9 @@ import { orma_schema } from '../../introspector/introspector'
             orma_schema
         )
         Object.keys(clause).forEach(key => delete clause[key])
-        Object.keys(processed_clause).forEach(key => clause[key] = processed_clause[key])
+        Object.keys(processed_clause).forEach(
+            key => (clause[key] = processed_clause[key])
+        )
     })
 }
 
@@ -48,7 +50,8 @@ export const get_any_path_context_entity = (path, query) => {
     const previous_entities = path.flatMap((path_el, i) => {
         if (path_el === '$where' || path_el === '$having') {
             return path[i - 1]
-        } else if (path_el === '$any_path') { // TODO: add test for this
+        } else if (path_el === '$any_path') {
+            // TODO: add test for this
             const path_segment = path.slice(0, i + 1)
             const previous_any = deep_get(path_segment, query)
             return last(previous_any[0])
@@ -72,7 +75,7 @@ export const process_any_clause = (
     any_clause,
     initial_entity: string,
     filter_type: '$having' | '$where',
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const [any_path, subquery] = any_clause.$any_path
 
@@ -84,18 +87,22 @@ export const process_any_clause = (
     return clause
 }
 
-export const edge_path_to_where_ins = (edge_path: Edge[], filter_type: '$having' | '$where', subquery: any) => {
-    // we need to reverse the edge path since we are building the where ins 
+export const edge_path_to_where_ins = (
+    edge_path: Edge[],
+    filter_type: '$having' | '$where',
+    subquery: any
+) => {
+    // we need to reverse the edge path since we are building the where ins
     // from the inside out
     const reversed_edge_path = edge_path.slice().reverse()
-    
+
     const clause = reversed_edge_path.reduce((acc, edge) => {
         return {
             $in: [
                 edge.from_field,
                 {
                     $select: [edge.to_field],
-                    $from: edge.to_entity ,
+                    $from: edge.to_entity,
                     [filter_type]: acc,
                 },
             ],

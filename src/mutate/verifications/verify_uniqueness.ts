@@ -4,7 +4,7 @@ import {
     get_primary_keys,
     get_unique_field_groups,
 } from '../../helpers/schema_helpers'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { get_search_records_where } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'
 import { split_mutation_by_entity } from '../helpers/mutate_helpers'
@@ -21,7 +21,7 @@ import { get_identifying_keys } from '../mutate'
 export const verify_uniqueness = async (
     mutation,
     orma_query: (query) => Promise<any>,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     /*
     check that no two rows have the same value for the same unique column, and also make sure that no unique value
@@ -67,7 +67,7 @@ export const verify_uniqueness = async (
  */
 export const get_verify_uniqueness_query = (
     pathed_records_by_entity: Record<string, PathedRecord[]>,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const mutation_entities = Object.keys(pathed_records_by_entity)
     const query = mutation_entities.reduce((acc, entity) => {
@@ -125,7 +125,7 @@ export const get_database_uniqueness_errors = (
     mutation_pathed_records_by_entity: Record<string, PathedRecord[]>,
     database_records_by_entity: Record<string, Record<string, any>[]>,
     mutation,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const database_entities = Object.keys(database_records_by_entity)
 
@@ -195,7 +195,7 @@ export const get_database_uniqueness_errors = (
 export const get_mutation_uniqueness_errors = (
     mutation_pathed_records_by_entity: Record<string, PathedRecord[]>,
     mutation,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const entities = Object.keys(mutation_pathed_records_by_entity)
 

@@ -1,10 +1,10 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../introspector/introspector'
+import { OrmaSchema } from '../introspector/introspector'
 import { orma_nester, orma_query } from './query'
 
 describe('query', () => {
-    const orma_schema: orma_schema = {
+    const orma_schema: OrmaSchema = {
         products: {
             id: {},
             vendor_id: {

@@ -7,9 +7,9 @@ import {
 import { is_parent_entity } from '../../helpers/schema_helpers'
 import { path_to_string, string_to_path } from '../../helpers/string_to_path'
 import { toposort } from '../../helpers/toposort'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 
-export const get_mutate_plan = (mutation, orma_schema: orma_schema) => {
+export const get_mutate_plan = (mutation, orma_schema: OrmaSchema) => {
     /*
     This function is an algorithm that wont make sense without an explanation. The idea is to generate a mutate plan
     which splits rows (specified by paths to that row) into tiers. Each tier can be run in parallel (so order within a

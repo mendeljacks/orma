@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../introspector/introspector'
+import { OrmaSchema } from '../introspector/introspector'
 import { add_foreign_key_indexes } from './helpers/add_foreign_key_indexes'
 import {
     generate_foreign_key_query,
@@ -9,7 +9,7 @@ import {
     statements,
 } from './mutate'
 
-export const orma_test_schema: orma_schema = {
+export const orma_test_schema: OrmaSchema = {
     grandparents: {
         id: {
             primary_key: true,

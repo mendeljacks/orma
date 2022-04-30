@@ -1,10 +1,10 @@
 import { describe, test } from 'mocha'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { apply_any_path_macro } from './any_path_macro'
 import { expect } from 'chai'
 
 describe('query_macros', () => {
-    const orma_schema: orma_schema = {
+    const orma_schema: OrmaSchema = {
         products: {
             id: {},
             vendor_id: {

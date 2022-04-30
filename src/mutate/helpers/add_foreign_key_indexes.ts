@@ -1,5 +1,5 @@
 import { array_equals, deep_get, key_by, last } from '../../helpers/helpers'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { throw_identifying_key_errors } from '../macros/operation_macros'
 import { get_identifying_keys } from '../mutate'
 
@@ -20,9 +20,9 @@ export const add_foreign_key_indexes = (
     }[],
     query_results: Record<string, any>[][], // left list
     mutation: any, //right list
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
-    const tier_results = {}
+    const db_row_by_path = {}
     if (query_results.length !== planned_statements.length) {
         throw new Error(
             'Mysql function should return one array of rows per planned statement'
@@ -102,11 +102,11 @@ export const add_foreign_key_indexes = (
             // paths is aligned with mutation_rows which is aligned with ordered_database_rows, which is why this
             // is justified
             const path = planned_statement.paths[i]
-            tier_results[JSON.stringify(path)] = database_row
+            db_row_by_path[JSON.stringify(path)] = database_row
         })
     })
 
-    return tier_results
+    return db_row_by_path
 }
 /*
 Comments:

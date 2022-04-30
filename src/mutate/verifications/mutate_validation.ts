@@ -9,7 +9,7 @@ import {
     is_required_field,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { get_foreign_keys_in_mutation } from '.././macros/operation_macros'
 import { get_identifying_keys } from '../mutate'
 
@@ -47,7 +47,7 @@ export const mutate_validation_schema = {
     },
 }
 
-export const validate_mutation = (mutation, orma_schema: orma_schema) => {
+export const validate_mutation = (mutation, orma_schema: OrmaSchema) => {
     const schema_response = validate(mutation, mutate_validation_schema)
     if (schema_response.errors.length > 0) {
         // if the shape of the data is incorrect, we can't run the js validation since this may produce
@@ -62,7 +62,7 @@ export const validate_mutation = (mutation, orma_schema: orma_schema) => {
  * Handles the validation that is difficult for JSON schema, e.g. things which rely on the orma schema (and so would
  * require a code-generated JSON schema) or things which reference parent values such as operation inheritance
  */
-const validate_mutation_js = (mutation, orma_schema: orma_schema) => {
+const validate_mutation_js = (mutation, orma_schema: OrmaSchema) => {
     // check root level props which must be entity names,
     // then generate errors for nested mutations
     const field_errors = Object.keys(mutation)
@@ -98,7 +98,7 @@ const validate_mutation_record = (
     mutation,
     record,
     record_path,
-    orma_schema: orma_schema,
+    orma_schema: OrmaSchema,
     higher_operation = undefined
 ): error_type[] => {
     const operation = record.$operation ?? higher_operation
@@ -195,7 +195,7 @@ const validate_fields_and_nested_mutations = (
     record: any,
     entity_name: string,
     operation: any,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const connected_entities = get_all_edges(entity_name, orma_schema).map(
         el => el.to_entity
@@ -260,7 +260,7 @@ const validate_required_fields = (
     record: any,
     entity_name: string,
     operation: any,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const required_fields = get_field_names(entity_name, orma_schema).filter(
         field_name => is_required_field(entity_name, field_name, orma_schema)
@@ -306,7 +306,7 @@ const validate_operation_nesting = (
     entity_name: string,
     operation: 'create' | 'update' | 'delete',
     higher_operation: 'create' | 'update' | 'delete',
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const higher_entity = get_ancestor_name_from_path(record_path, 1)
     const higher_entity_is_parent = is_parent_entity(
@@ -359,7 +359,7 @@ const validate_identifying_keys = (
     record_path: any,
     record: any,
     operation: any,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     let identifying_key_errors: error_type[] = []
     if (operation === 'update' || operation === 'delete') {

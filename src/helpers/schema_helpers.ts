@@ -3,7 +3,7 @@
  * @module
  */
 
-import { orma_field_schema, orma_schema } from '../introspector/introspector'
+import { orma_field_schema, OrmaSchema } from '../introspector/introspector'
 
 export type Edge = {
     from_entity: string
@@ -15,7 +15,7 @@ export type Edge = {
 /**
  * @returns a list of entities specified in the schema
  */
-export const get_entity_names = (orma_schema: orma_schema) => {
+export const get_entity_names = (orma_schema: OrmaSchema) => {
     return Object.keys(orma_schema).filter(el => !is_reserved_keyword(el))
 }
 
@@ -24,24 +24,28 @@ export const get_entity_names = (orma_schema: orma_schema) => {
  */
 export const get_field_names = (
     entity_name: string,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
-    return Object.keys(orma_schema[entity_name] ?? {}).filter(el => !is_reserved_keyword(el))
+    return Object.keys(orma_schema[entity_name] ?? {}).filter(
+        el => !is_reserved_keyword(el)
+    )
 }
 
 /**
  * @returns given an entity, returns true if the entity is in the schema
  */
-export const is_entity_name = (entity_name, orma_schema) => !!orma_schema?.[entity_name]
+export const is_entity_name = (entity_name, orma_schema) =>
+    !!orma_schema?.[entity_name]
 
-export const is_field_name = (entity_name, field_name, orma_schema) => !!orma_schema?.[entity_name]?.[field_name]
+export const is_field_name = (entity_name, field_name, orma_schema) =>
+    !!orma_schema?.[entity_name]?.[field_name]
 
 /**
  * Gets a list of edges from given entity -> parent entity
  */
 export const get_parent_edges = (
     entity_name: string,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ): Edge[] => {
     const fields_schema = orma_schema[entity_name] ?? {}
 
@@ -85,7 +89,7 @@ export const reverse_edge = (edge: Edge): Edge => ({
 
 // we use a map because it can take objects as keys (they are compared by reference)
 const child_edges_cache_by_schema = new Map<
-    orma_schema,
+    OrmaSchema,
     Record<string, Edge[]>
 >()
 
@@ -119,7 +123,7 @@ const get_child_edges_cache = orma_schema => {
  */
 export const get_child_edges = (
     entity_name: string,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const child_edges_cache = get_child_edges_cache(orma_schema)
 
@@ -138,8 +142,7 @@ export const get_all_edges = (entity_name, orma_schema) => {
 /**
  * Returns true if the input is a reserved keyword, which means it starts with $ like $select or $or
  */
-export const is_reserved_keyword = (keyword: any) =>
-    keyword?.[0] === '$'
+export const is_reserved_keyword = (keyword: any) => keyword?.[0] === '$'
 
 /**
  * Gets possible parent or child edges between two tables that are immediate child/parent or parent/child
@@ -147,7 +150,7 @@ export const is_reserved_keyword = (keyword: any) =>
 export const get_direct_edges = (
     from_entity: string,
     to_entity: string,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const possible_edges = get_all_edges(from_entity, orma_schema)
     const edges = possible_edges.filter(el => el.to_entity === to_entity)
@@ -160,7 +163,7 @@ export const get_direct_edges = (
 export const get_direct_edge = (
     from_entity: string,
     to_entity: string,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const edges = get_direct_edges(from_entity, to_entity, orma_schema)
 
@@ -181,7 +184,7 @@ export const get_direct_edge = (
  */
 export const get_edge_path = (
     entities: string[],
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ): Edge[] => {
     if (entities.length <= 1) {
         return []
@@ -214,7 +217,7 @@ export const get_edge_path = (
 export const is_parent_entity = (
     entity1: string,
     entity2: string,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const edges = get_child_edges(entity1, orma_schema)
     return edges.some(edge => edge.to_entity === entity2)
@@ -225,11 +228,13 @@ export const is_parent_entity = (
  */
 export const get_primary_keys = (
     entity_name: string,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const fields = get_field_names(entity_name, orma_schema)
     const primary_key_fields = fields.filter(field => {
-        const field_schema = orma_schema[entity_name][field] as orma_field_schema
+        const field_schema = orma_schema[entity_name][
+            field
+        ] as orma_field_schema
         if (typeof field_schema === 'string') {
             return false
         }
@@ -254,7 +259,7 @@ export const get_primary_keys = (
 export const get_unique_field_groups = (
     entity_name: string,
     exclude_nullable: boolean,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const indexes = orma_schema[entity_name]?.$indexes ?? []
     const unique_field_groups = indexes
@@ -262,7 +267,9 @@ export const get_unique_field_groups = (
         .filter(index => {
             if (exclude_nullable) {
                 const all_fields_non_nullable = index.fields.every(field => {
-                    const field_schema = orma_schema[entity_name][field] as orma_field_schema
+                    const field_schema = orma_schema[entity_name][
+                        field
+                    ] as orma_field_schema
                     return field_schema.not_null
                 })
 
@@ -278,7 +285,7 @@ export const get_unique_field_groups = (
 export const field_exists = (
     entity: string,
     field: string | number,
-    schema: orma_schema
+    schema: OrmaSchema
 ) => {
     return schema[entity]?.[field]
 }
@@ -287,8 +294,15 @@ export const field_exists = (
  * Returns true if a field is required to be initially provided by the user. Any field with a default is not required,
  * which includes nullable fields which default to null.
  */
-export const is_required_field = (entity: string, field: string, schema: orma_schema) => {
+export const is_required_field = (
+    entity: string,
+    field: string,
+    schema: OrmaSchema
+) => {
     const field_schema = schema?.[entity]?.[field] as orma_field_schema
-    const is_required = field_schema.not_null && !field_schema.default && !field_schema.auto_increment
+    const is_required =
+        field_schema.not_null &&
+        !field_schema.default &&
+        !field_schema.auto_increment
     return is_required
 }

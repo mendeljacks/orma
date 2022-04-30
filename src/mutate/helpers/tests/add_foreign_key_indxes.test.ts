@@ -5,7 +5,7 @@ import { orma_test_schema } from '../../mutate.test'
 
 import { apply_guid_macro } from '../../macros/guid_macro'
 import { clone } from '../../../helpers/helpers'
-import { orma_schema } from '../../../introspector/introspector'
+import { OrmaSchema } from '../../../introspector/introspector'
 
 const test_statements = [
     {

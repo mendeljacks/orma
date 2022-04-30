@@ -1,5 +1,5 @@
 import { describe, test } from 'mocha'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import {
     get_database_uniqueness_errors,
     get_duplicate_record_indices,
@@ -9,7 +9,7 @@ import {
 import { expect } from 'chai'
 
 describe('verify_uniqueness', () => {
-    const orma_schema: orma_schema = {
+    const orma_schema: OrmaSchema = {
         users: {
             id: {
                 primary_key: true,

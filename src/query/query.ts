@@ -2,7 +2,7 @@ import { error_type } from '../helpers/error_handling'
 import { clone, deep_get, drop_last, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
-import { orma_schema } from '../introspector/introspector'
+import { OrmaSchema } from '../introspector/introspector'
 import { QueryResult } from '../types/query/query_result_types'
 import { OrmaQuery } from '../types/query/query_types'
 import { OrmaSchema } from '../types/schema_types'
@@ -86,7 +86,7 @@ export const get_real_entity_name = (path: (string | number)[], query) => {
 export const having_to_json_sql = (
     query: any,
     subquery_path: string[],
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const subquery = deep_get(subquery_path, query)
     const $having = subquery.$having
@@ -97,7 +97,7 @@ export const having_to_json_sql = (
 export const orma_nester = (
     results: [string[], Record<string, unknown>[]][],
     query,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     // get data in the right format for the nester
     const edges = results.map(result => {
@@ -188,7 +188,7 @@ export const orma_query = async <
 
 export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) =>
     schema
-    
+
 export const as_orma_query = <
     Schema extends OrmaSchema,
     T extends DeepReadonly<OrmaQuery<Schema>>

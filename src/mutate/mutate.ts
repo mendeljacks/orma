@@ -6,15 +6,16 @@ import {
     get_unique_field_groups,
 } from '../helpers/schema_helpers'
 import { string_to_path } from '../helpers/string_to_path'
-import { orma_schema } from '../introspector/introspector'
+import { OrmaSchema } from '../introspector/introspector'
 import { json_to_sql } from '../query/json_sql'
 import { combine_wheres } from '../query/query_helpers'
-import { apply_guid_macro } from './macros/guid_macro'
+import { apply_guid_macro, GuidByPath, PathsByGuid } from './macros/guid_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
 import {
     get_create_ast,
     get_delete_ast,
     get_foreign_keys_obj,
+    get_guid_obj,
     get_update_asts,
     throw_identifying_key_errors,
 } from './macros/operation_macros'
@@ -34,17 +35,17 @@ export type statements = {
 export const orma_mutate = async (
     input_mutation,
     mysql_function: mysql_fn,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     // clone to allow macros to mutation the mutation without changing the user input mutation object
     const mutation = clone(input_mutation)
 
     apply_inherit_operations_macro(mutation)
-    const { guid_map } = apply_guid_macro(mutation)
+    const { guid_by_path, paths_by_guid } = apply_guid_macro(mutation)
     // [[{"operation":"create","paths":[...]]}],[{"operation":"create","paths":[...]}]]
     const mutate_plan = get_mutate_plan(mutation, orma_schema)
 
-    let tier_results = {
+    let db_row_by_path = {
         // Will be built up as each phase of the mutate_plan is executed
         // [path]: {...}
     }
@@ -60,8 +61,10 @@ export const orma_mutate = async (
                     entity_name,
                     paths,
                     mutation,
-                    tier_results,
-                    orma_schema
+                    db_row_by_path,
+                    orma_schema,
+                    guid_by_path,
+                    paths_by_guid
                 )
                 return statements.map(statement => ({
                     ...statement,
@@ -103,22 +106,22 @@ export const orma_mutate = async (
         if (query_statements.length > 0) {
             const query_results = await mysql_function(query_statements)
 
-            const new_tier_results = add_foreign_key_indexes(
+            const new_db_row_by_path = add_foreign_key_indexes(
                 query_statements,
                 query_results,
                 mutation,
                 orma_schema
             )
 
-            tier_results = {
-                ...tier_results,
-                ...new_tier_results,
+            db_row_by_path = {
+                ...db_row_by_path,
+                ...new_db_row_by_path,
             }
         }
     }
 
     // merge database rows into mutation
-    Object.entries(tier_results).forEach(([path_string, database_row]) => {
+    Object.entries(db_row_by_path).forEach(([path_string, database_row]) => {
         const path = string_to_path(path_string)
         const mutation_obj = deep_get(path, mutation, undefined)
 
@@ -133,26 +136,35 @@ export const orma_mutate = async (
         const foreign_key_obj = get_foreign_keys_obj(
             mutation,
             path,
-            tier_results,
+            db_row_by_path,
             orma_schema
         )
+        const guid_obj = get_guid_obj(
+            mutation,
+            path,
+            db_row_by_path,
+            orma_schema,
+            guid_by_path,
+            paths_by_guid
+        )
+        let db_obj = { ...foreign_key_obj, ...guid_obj }
 
-        Object.keys(foreign_key_obj).forEach(key => {
-            record[key] = foreign_key_obj[key]
+        Object.keys(db_obj).forEach(key => {
+            record[key] = db_obj[key]
         })
     })
 
     // merge foreign keys into mutation
 
     // })
-    // const mutation_response = Object.entries(tier_results).reduce(
+    // const mutation_response = Object.entries(db_row_by_path).reduce(
     //     (acc, [path_string, database_row]: [string, {}], i) => {
     //         const path = string_to_path(path_string)
     //         const mutation_record_with_foreign_keys =
     //             get_record_with_foreign_keys(
     //                 mutation,
     //                 path,
-    //                 tier_results,
+    //                 db_row_by_path,
     //                 orma_schema
     //             )
     //         const merged = deep_merge(mutation_record_with_foreign_keys, database_row)
@@ -172,7 +184,7 @@ export const generate_foreign_key_query = (
     mutation,
     entity_name: string,
     paths: (string | number)[][],
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const foreign_keys = [
         ...new Set(
@@ -251,8 +263,10 @@ export const get_mutation_statements = (
     entity_name: string,
     paths: (string | number)[][],
     mutation,
-    tier_results,
-    orma_schema: orma_schema
+    db_row_by_path,
+    orma_schema: OrmaSchema,
+    guid_by_path: GuidByPath,
+    paths_by_guid: PathsByGuid
 ): { sql_ast: Record<any, any>; paths: (string | number)[][] }[] => {
     let statements: ReturnType<typeof get_mutation_statements>
 
@@ -285,8 +299,10 @@ export const get_mutation_statements = (
                     entity_name,
                     paths,
                     mutation,
-                    tier_results,
-                    orma_schema
+                    db_row_by_path,
+                    orma_schema,
+                    guid_by_path,
+                    paths_by_guid
                 ),
                 paths,
             },
@@ -374,7 +390,7 @@ export const path_to_entity = (path: (number | string)[]) => {
 export const get_identifying_keys = (
     entity_name: string,
     record: Record<string, any>,
-    orma_schema: orma_schema
+    orma_schema: OrmaSchema
 ) => {
     const primary_keys = get_primary_keys(entity_name, orma_schema)
     const has_primary_keys = primary_keys.every(

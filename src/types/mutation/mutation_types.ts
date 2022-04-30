@@ -1,5 +1,5 @@
 import { Edge } from '../../helpers/schema_helpers'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { UnionToIntersection, XOR } from '../helper_types'
 import {
     OrmaSchema,
@@ -12,24 +12,25 @@ import {
     GetParentEdges,
 } from '../schema_types'
 
-export type OrmaMutation<Schema extends OrmaSchema> = 
-({
-    [Entity in GetAllEntities<Schema>]?: MutationRecord<
-        Schema,
-        Entity,
-        // we only need to do this on the top level, since after the highest entity everything will have an operation,
-        // either directly provided or through cascading from the highest entity
-        true 
-    >[]
-}) | ({
-    [Entity in GetAllEntities<Schema>]?: MutationRecord<
-        Schema,
-        Entity,
-        false
-    >[]
-} & {
-    $operation: Operation
-})
+export type OrmaMutation<Schema extends OrmaSchema> =
+    | {
+          [Entity in GetAllEntities<Schema>]?: MutationRecord<
+              Schema,
+              Entity,
+              // we only need to do this on the top level, since after the highest entity everything will have an operation,
+              // either directly provided or through cascading from the highest entity
+              true
+          >[]
+      }
+    | ({
+          [Entity in GetAllEntities<Schema>]?: MutationRecord<
+              Schema,
+              Entity,
+              false
+          >[]
+      } & {
+          $operation: Operation
+      })
 
 type MutationRecord<
     Schema extends OrmaSchema,
@@ -37,7 +38,12 @@ type MutationRecord<
     RequireOperation extends boolean
 > = FieldsObj<Schema, Entity> &
     OperationObj<RequireOperation> &
-    ForeignKeyFieldsObj<Schema, Entity, GetParentEdges<Schema, Entity>, RequireOperation>
+    ForeignKeyFieldsObj<
+        Schema,
+        Entity,
+        GetParentEdges<Schema, Entity>,
+        RequireOperation
+    >
 
 type OperationObj<RequireOperation extends boolean> =
     RequireOperation extends true
@@ -72,21 +78,24 @@ type ForeignKeyFieldsObj<
     Entity extends GetAllEntities<Schema>,
     ParentEdges extends GetParentEdges<Schema, Entity>,
     RequireOperation extends boolean
-> = 
-    ParentEdges extends GetParentEdges<Schema, Entity>
-        ? XOR<
-              {
-                  [Field in ParentEdges['from_field']]: FieldType<
-                      Schema,
-                      Entity,
-                      Field
-                  >
-              },
-              {
-                  [Field in ParentEdges['to_entity']]: MutationRecord<Schema, Field, false>[]
-              }
-          >
-        : never
+> = ParentEdges extends GetParentEdges<Schema, Entity>
+    ? XOR<
+          {
+              [Field in ParentEdges['from_field']]: FieldType<
+                  Schema,
+                  Entity,
+                  Field
+              >
+          },
+          {
+              [Field in ParentEdges['to_entity']]: MutationRecord<
+                  Schema,
+                  Field,
+                  false
+              >[]
+          }
+      >
+    : never
 
 // type ForeignKeyFieldsObj<
 //     Schema extends OrmaSchema,

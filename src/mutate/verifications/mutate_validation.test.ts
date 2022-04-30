@@ -1,10 +1,10 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../introspector/introspector'
 import { validate_mutation } from './mutate_validation'
 
 describe('mutation_validation', () => {
-    const orma_schema: orma_schema = {
+    const orma_schema: OrmaSchema = {
         products: {
             id: {
                 data_type: 'int',
