@@ -205,7 +205,8 @@ export const generate_foreign_key_query = (
         const identifying_keys = get_identifying_keys(
             entity_name,
             record,
-            orma_schema
+            orma_schema,
+            record.$operation === 'create' // if it is a create, we can choose any unique column - we dont care about ambiguity
         )
         throw_identifying_key_errors(
             record.$operation,
@@ -390,7 +391,8 @@ export const path_to_entity = (path: (number | string)[]) => {
 export const get_identifying_keys = (
     entity_name: string,
     record: Record<string, any>,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    choose_first_unique_key: boolean = false
 ): string[] => {
     const primary_keys = get_primary_keys(entity_name, orma_schema)
     const has_primary_keys = primary_keys.every(
@@ -410,10 +412,15 @@ export const get_identifying_keys = (
     const included_unique_keys = unique_field_groups.filter(unique_fields =>
         unique_fields.every(field => record[field] !== undefined)
     )
-    if (included_unique_keys.length === 1) {
-        // if there are 2 or more unique keys, we cant use them since it would be ambiguous which we choose
-        return included_unique_keys[0] as string[]
-    }
 
-    return []
+    if (choose_first_unique_key) {
+        return included_unique_keys[0] as string[]
+    } else {
+        if (included_unique_keys.length === 1) {
+            // if there are 2 or more unique keys, we cant use them since it would be ambiguous which we choose
+            return included_unique_keys[0] as string[]
+        }
+    
+        return []
+    }
 }

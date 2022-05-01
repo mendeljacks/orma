@@ -253,6 +253,46 @@ describe('mutate', () => {
                 },
             })
         })
+        test('allows taking first unique key in creates', () => {
+            // this situation could happen e.g. if there are rows in different locations in the mutation
+            const statements = [
+                {
+                    paths: [['parents', 0]],
+                    route: ['parents'],
+                },
+            ]
+
+            const query_results = [
+                [
+                    {
+                        id: 1,
+                        unique1: 1,
+                        unique2: 2,
+                    },
+                ],
+            ]
+
+            const mutation = {
+                parents: [{ $operation: 'create', unique1: 1, unique2: 2 }],
+            }
+
+            const result = add_foreign_key_indexes(
+                statements,
+                query_results,
+                mutation,
+                orma_test_schema
+            )
+
+            // it should add foreign keys to both locations, even though they have the same id and there is only
+            // on record returned from the database
+            expect(result).to.deep.equal({
+                '["parents",0]': {
+                    id: 1,
+                    unique1: 1,
+                    unique2: 2,
+                },
+            })
+        })
     })
 
     describe(generate_foreign_key_query.name, () => {

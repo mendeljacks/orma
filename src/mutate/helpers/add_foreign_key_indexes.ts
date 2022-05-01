@@ -45,15 +45,18 @@ export const add_foreign_key_indexes = (
             const identifying_keys = get_identifying_keys(
                 entity_name,
                 mutation_row,
-                orma_schema
+                orma_schema,
+                mutation_row.$operation === 'create'
             )
 
-            throw_identifying_key_errors(
-                'unknown',
-                identifying_keys,
-                planned_statement.paths[i],
-                mutation
-            )
+            if (mutation_row.$operation !== 'create') {
+                throw_identifying_key_errors(
+                    mutation_row.$operation,
+                    identifying_keys,
+                    planned_statement.paths[i],
+                    mutation
+                )
+            }
 
             unique_keys_set.add(JSON.stringify(identifying_keys))
         })
@@ -77,7 +80,8 @@ export const add_foreign_key_indexes = (
             const identifying_keys = get_identifying_keys(
                 entity_name,
                 mutation_row,
-                orma_schema
+                orma_schema,
+                mutation_row.$operation === 'create'
             )
             const identifying_key_index = all_identifying_keys.findIndex(keys =>
                 array_equals(keys, identifying_keys)
