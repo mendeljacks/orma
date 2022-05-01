@@ -12,9 +12,6 @@
         "coverage-watch": "live-server coverage",
         "compile-validation": "node -e \"require('./src/scripts/compile_validation').compile_validation()\""
     },
-    "files": [
-        "build/**/*"
-    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/mendeljacks/orma.git"
