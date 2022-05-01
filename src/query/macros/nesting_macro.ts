@@ -51,9 +51,10 @@ export const get_nesting_where = (
             previous_result[0].toString() === ancestor_path.toString()
     )[0]
 
-    if (ancestor_result === undefined) {
-        // there can be no previous results if this is a nested entity and there is no higher entity. In this case
-        // we want nothing of the lower entity to be queried, so we use an impossible where clause that returns nothing
+    if (ancestor_result === undefined || ancestor_result[1].length === 0) {
+        // this case where there are no ancestor results can happen if, for example, this is a nested lower entitiy but 
+        // nothing was returned from the higher entitiy. In this case, we want nothing of this entity to be queried 
+        // so we use an impossible where clause that returns nothing.
         return {
             $eq: ['1', '2'],
         }

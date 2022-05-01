@@ -27,7 +27,7 @@ describe('query_macros', () => {
                     },
                 },
             },
-        },
+        }, //TODO: make a table connected with 2 foreign keys
         image_urls: {
             image_id: {
                 references: {
@@ -226,6 +226,53 @@ describe('query_macros', () => {
             const previous_results = [
                 [['products'], [{ id: 1 }, { id: 2 }]],
                 [['products', 'images'], [{ id: 3 }]],
+            ]
+            apply_nesting_macro(
+                query,
+                ['products', 'images', 'image_urls'],
+                previous_results,
+                orma_schema
+            )
+
+            const goal = {
+                products: {
+                    images: {
+                        $where: undefined,
+                        $having: undefined,
+                        image_urls: {
+                            $where: {
+                                $in: [
+                                    'image_id',
+                                    {
+                                        $select: ['id'],
+                                        $from: 'images',
+                                        $where: {
+                                            $in: ['product_id', [1, 2]],
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                },
+            }
+
+            expect(query).to.deep.equal(goal)
+        })
+        test('respects $foreign_key', () => {
+            const query = {
+                products: {
+                    images: {
+                        $where: undefined,
+                        $having: undefined,
+                        image_urls: {},
+                    },
+                },
+            }
+
+            const previous_results = [
+                [['products'], [{ id: 1 }, { id: 2 }]],
+                // [['products', 'images'], [{ id: 3 }]],
             ]
             apply_nesting_macro(
                 query,
