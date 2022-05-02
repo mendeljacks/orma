@@ -123,7 +123,7 @@ export const get_create_ast = (
         )
         return {
             ...raw_record,
-            foreign_key_obj,
+            ...foreign_key_obj,
             ...guid_obj,
         }
     })
