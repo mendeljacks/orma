@@ -18,6 +18,33 @@ describe('query_macros', () => {
         vendors: {
             id: {},
         },
+        payments: {
+            id: {},
+            from_vendor_id: {
+                references: {
+                    vendors: {
+                        id: {},
+                    },
+                },
+            },
+            to_vendor_id: {
+                references: {
+                    vendors: {
+                        id: {},
+                    },
+                },
+            },
+        },
+        receipts: {
+            id: {},
+            payment_id: {
+                references: {
+                    payments: {
+                        id: {},
+                    },
+                },
+            },
+        },
         images: {
             id: {},
             product_id: {
@@ -27,7 +54,7 @@ describe('query_macros', () => {
                     },
                 },
             },
-        }, //TODO: make a table connected with 2 foreign keys
+        },
         image_urls: {
             image_id: {
                 references: {
@@ -261,40 +288,40 @@ describe('query_macros', () => {
         })
         test('respects $foreign_key', () => {
             const query = {
-                products: {
-                    images: {
-                        $where: undefined,
-                        $having: undefined,
-                        image_urls: {},
+                vendors: {
+                    payments: {
+                        $foreign_key: ['from_vendor_id'],
+                        receipts: {
+                            id: true
+                        },
                     },
                 },
             }
 
             const previous_results = [
-                [['products'], [{ id: 1 }, { id: 2 }]],
-                // [['products', 'images'], [{ id: 3 }]],
+                [['vendors'], [{ id: 1 }, { id: 2 }]],
             ]
             apply_nesting_macro(
                 query,
-                ['products', 'images', 'image_urls'],
+                ['vendors', 'payments', 'receipts'],
                 previous_results,
                 orma_schema
             )
 
             const goal = {
-                products: {
-                    images: {
-                        $where: undefined,
-                        $having: undefined,
-                        image_urls: {
+                vendors: {
+                    payments: {
+                        $foreign_key: ['from_vendor_id'],
+                        receipts: {
+                            id: true,
                             $where: {
                                 $in: [
-                                    'image_id',
+                                    'payment_id',
                                     {
                                         $select: ['id'],
-                                        $from: 'images',
+                                        $from: 'payments',
                                         $where: {
-                                            $in: ['product_id', [1, 2]],
+                                            $in: ['from_vendor_id', [1, 2]],
                                         },
                                     },
                                 ],

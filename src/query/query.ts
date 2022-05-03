@@ -19,7 +19,10 @@ import { DeepReadonly } from '../types/schema_types'
 import { OrmaSchema } from '../introspector/introspector'
 
 // This function will default to the from clause
-export const get_real_higher_entity_name = (path: (string | number)[], query) => {
+export const get_real_higher_entity_name = (
+    path: (string | number)[],
+    query
+) => {
     if (path.length < 2) return null
 
     return (
@@ -29,8 +32,11 @@ export const get_real_higher_entity_name = (path: (string | number)[], query) =>
 }
 
 // This function will default to the from clause
-export const get_real_entity_name = (path: (string | number)[], query) => {
-    return deep_get([...path, '$from'], query, null) || last(path)
+export const get_real_entity_name = (
+    last_path_item: string,
+    subquery: Record<string, any>
+) => {
+    return subquery.$from ?? last_path_item
 }
 
 // export const get_subquery_sql = (
@@ -104,9 +110,20 @@ export const orma_nester = (
         if (path.length === 1) {
             return null
         }
-        const entity = get_real_entity_name(path, query)
-        const higher_entity = get_real_entity_name(path.slice(0, -1), query)
-        const edge = get_direct_edge(higher_entity, entity, orma_schema)
+        const higher_entity_path = path.slice(0, -1)
+        const higher_entity = deep_get(higher_entity_path, query)
+        const entity = higher_entity[last(path)]
+        const entity_name = get_real_entity_name(last(path), entity)
+        const higher_entity_name = get_real_entity_name(
+            last(higher_entity_path),
+            higher_entity
+        )
+        const edge = get_direct_edge(
+            higher_entity_name,
+            entity_name,
+            orma_schema,
+            entity.$foreign_key
+        )
         return [edge.from_field, edge.to_field]
     })
 

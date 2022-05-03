@@ -1,6 +1,7 @@
 import { is_simple_object, last } from '../../helpers/helpers'
 import {
     get_direct_edge,
+    get_direct_edges,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
@@ -25,6 +26,7 @@ export const apply_select_macro = (query, orma_schema: OrmaSchema) => {
         }
 
         const new_select_names = new_select.map(el =>
+            // @ts-ignore
             el?.$as ? el.$as[1] : el
         )
         for (const select of new_select_names) {
@@ -60,13 +62,13 @@ export const get_select = (
         if (is_simple_object(subquery[key]) && is_subquery(subquery[key])) {
             const lower_subquery = subquery[key]
             const lower_subquery_entity = lower_subquery.$from ?? key
-            const edge_to_lower_table = get_direct_edge(
+            const edges_to_lower_table = get_direct_edges(
                 entity_name,
                 lower_subquery_entity,
                 orma_schema
             )
 
-            return edge_to_lower_table.from_field
+            return edges_to_lower_table.map(el => el.from_field)
         }
 
         return [] // subqueries are not handled here
@@ -74,12 +76,12 @@ export const get_select = (
 
     if (subquery_path.length > 1) {
         const higher_entity = subquery_path[subquery_path.length - 2]
-        const edge_to_higher_entity = get_direct_edge(
+        const edges_to_higher_entity = get_direct_edges(
             entity_name,
             higher_entity,
             orma_schema
         )
-        $select.push(edge_to_higher_entity.from_field)
+        $select.push(...edges_to_higher_entity.map(el => el.from_field))
     }
 
     return [...new Set($select)] // unique values

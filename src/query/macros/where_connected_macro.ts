@@ -110,39 +110,39 @@ export const apply_where_connected_macro = (
 
     // traverse the query and find all subqueries and $where $in clauses that we need to generated
     // where clauses for
-    let subquery_locations: { value; path }[] = []
-    let where_clause_locations: { value; path }[] = []
-    query_for_each(query, (subquery, path) => {
+    let subquery_locations: { subquery; subquery_path }[] = []
+    let where_clause_locations: { where_clause; where_clause_path }[] = []
+    query_for_each(query, (subquery, subquery_path) => {
         if (subquery.$where) {
-            deep_for_each(subquery.$where, (value, path) => {
-                if (value?.$from) {
-                    where_clause_locations.push({ value, path })
+            deep_for_each(subquery.$where, (where_clause, where_clause_path) => {
+                if (where_clause?.$from) {
+                    where_clause_locations.push({ where_clause, where_clause_path })
                 }
             })
         }
 
-        subquery_locations.push({ value: subquery, path })
+        subquery_locations.push({ subquery, subquery_path })
     })
 
     // generate where clauses for all the paths that we found
-    where_clause_locations.forEach(({ value, path }) => {
-        const entity_name = value.$from
+    where_clause_locations.forEach(({ where_clause, where_clause_path }) => {
+        const entity_name = where_clause.$from
         apply_where_connected_to_subquery(
             connection_edges,
             query.$where_connected,
-            value,
+            where_clause,
             entity_name,
             undefined
         )
     })
 
-    subquery_locations.forEach(({ value, path }) => {
-        const entity_name = get_real_entity_name(path, value)
-        const higher_entity = get_real_higher_entity_name(path, value)
+    subquery_locations.forEach(({ subquery, subquery_path }) => {
+        const entity_name = get_real_entity_name(last(subquery_path), subquery)
+        const higher_entity = get_real_higher_entity_name(subquery_path, subquery)
         apply_where_connected_to_subquery(
             connection_edges,
             query.$where_connected,
-            value,
+            subquery,
             entity_name,
             higher_entity
         )

@@ -163,9 +163,29 @@ export const get_direct_edges = (
 export const get_direct_edge = (
     from_entity: string,
     to_entity: string,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    foreign_key_override: string[] = undefined
 ) => {
-    const edges = get_direct_edges(from_entity, to_entity, orma_schema)
+    const parent_edges = get_parent_edges(from_entity, orma_schema).filter(
+        el => el.to_entity === to_entity
+    )
+    const child_edges = get_child_edges(from_entity, orma_schema).filter(
+        el => el.to_entity === to_entity
+    )
+
+    const filtered_parent_edges = foreign_key_override
+        ? parent_edges.filter(
+              edge => edge.from_field === foreign_key_override[0]
+          )
+        : parent_edges
+
+    const filtered_child_edges = foreign_key_override
+        ? child_edges.filter(
+              edge => edge.to_field === foreign_key_override[0]
+          )
+        : child_edges
+
+    const edges = [...filtered_parent_edges, ...filtered_child_edges]
 
     if (edges.length !== 1) {
         throw Error(

@@ -1,9 +1,13 @@
-import { deep_get } from '../../helpers/helpers'
-import { get_direct_edge } from '../../helpers/schema_helpers'
+import { deep_get, last } from '../../helpers/helpers'
+import {
+    Edge,
+    get_direct_edge,
+    reverse_edge,
+} from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { get_real_entity_name } from '../query'
 import { combine_wheres } from '../query_helpers'
-import { process_any_clause } from './any_path_macro'
+import { edge_path_to_where_ins, process_any_clause } from './any_path_macro'
 
 /**
  * Add a where clause which handles only getting records that are connected to previous records. Mutates the input query.
@@ -52,8 +56,8 @@ export const get_nesting_where = (
     )[0]
 
     if (ancestor_result === undefined || ancestor_result[1].length === 0) {
-        // this case where there are no ancestor results can happen if, for example, this is a nested lower entitiy but 
-        // nothing was returned from the higher entitiy. In this case, we want nothing of this entity to be queried 
+        // this case where there are no ancestor results can happen if, for example, this is a nested lower entitiy but
+        // nothing was returned from the higher entitiy. In this case, we want nothing of this entity to be queried
         // so we use an impossible where clause that returns nothing.
         return {
             $eq: ['1', '2'],
@@ -69,8 +73,8 @@ export const get_nesting_where = (
 
     const ancestor_where_clause = get_ancestor_where_clause(
         ancestor_rows,
-        ancestor_path,
-        ancestor_to_entity_path,
+        subquery_path,
+        nesting_ancestor_index,
         query,
         orma_schema
     )
@@ -108,55 +112,78 @@ const get_nesting_ancestor_index = (query, subquery_path: string[]): number => {
  */
 const get_ancestor_where_clause = (
     ancestor_rows: Record<string, unknown>[],
-    ancestor_path: string[],
-    ancestor_to_entity_path: string[],
+    entity_path: string[],
+    ancestor_index: number,
     query,
     orma_schema: OrmaSchema
 ) => {
-    const ancestor_name = get_real_entity_name(ancestor_path, query)
-
-    const under_ancestor_path = [...ancestor_path, ancestor_to_entity_path[0]]
-    const entity_under_ancestor = get_real_entity_name(
-        under_ancestor_path,
-        query
-    )
-
-    const edge_under_ancestor = get_direct_edge(
-        entity_under_ancestor,
-        ancestor_name,
+    const ancestor_to_entity_edge_path = get_query_edge_path(
+        query,
+        entity_path,
+        ancestor_index,
         orma_schema
     )
 
+    const edge_under_ancestor = ancestor_to_entity_edge_path[0]
+
     if (ancestor_rows === undefined || ancestor_rows.length === 0) {
+        const ancestor_name = ancestor_to_entity_edge_path[0].from_entity
         throw Error(`No ancestor rows provided for ${ancestor_name}`)
     }
 
     const ancestor_foreign_key_values = ancestor_rows.map(
-        row => row[edge_under_ancestor.to_field]
+        row => row[edge_under_ancestor.from_field]
     )
 
-    const entity_to_ancestor_path = ancestor_to_entity_path.slice().reverse()
-    const any_path = entity_to_ancestor_path.slice(
-        1,
-        entity_to_ancestor_path.length
-    )
-    const entity_name = entity_to_ancestor_path[0]
-    const ancestor_query = process_any_clause(
-        {
-            $any_path: [
-                any_path,
-                {
-                    $in: [
-                        edge_under_ancestor.from_field,
-                        ancestor_foreign_key_values,
-                    ],
-                },
-            ],
-        },
-        entity_name,
+    // reverse the path since we are making the where clause in the entity and want to search based on ancestor
+    const entity_to_ancestor_edge_path = ancestor_to_entity_edge_path
+        // exclude the entity closest to the ancestor, since this entity is already accounted for in the final $in clause
+        .slice(1, Infinity) 
+        // to reverse the path, we have to reverse the order of the edges but also reverse each
+        // individual edge
+        .reverse()
+        .map(edge => reverse_edge(edge))
+    const ancestor_query = edge_path_to_where_ins(
+        entity_to_ancestor_edge_path,
         '$where',
-        orma_schema
+        {
+            $in: [edge_under_ancestor.to_field, ancestor_foreign_key_values],
+        }
     )
 
     return ancestor_query
+}
+
+const get_query_edge_path = (
+    query: any,
+    path_to_last_subquery: string[],
+    start_path_index: number,
+    orma_schema: OrmaSchema
+) => {
+    let edge_path: Edge[] = []
+    // dont run the for loop on the last element, since each for loop iteration makes an edge to the
+    for (let i = start_path_index; i < path_to_last_subquery.length - 1; i++) {
+        const subquery_path = path_to_last_subquery.slice(0, i + 1)
+
+        const subquery = deep_get(subquery_path, query)
+        const subquery_entity = get_real_entity_name(
+            path_to_last_subquery[i],
+            subquery
+        )
+        const next_subquery = subquery[path_to_last_subquery[i + 1]]
+        const next_subquery_entity = get_real_entity_name(
+            path_to_last_subquery[i + 1],
+            next_subquery
+        )
+
+        const edge = get_direct_edge(
+            subquery_entity,
+            next_subquery_entity,
+            orma_schema,
+            next_subquery.$foreign_key
+        )
+        edge_path.push(edge)
+    }
+
+    return edge_path
 }
