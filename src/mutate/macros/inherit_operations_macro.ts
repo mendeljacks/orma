@@ -29,7 +29,10 @@ const inherit_operations_macro_recursive = (
 
     if (is_object) {
         for (const prop in item) {
-            inherit_operations_macro_recursive(item[prop], operation)
+            // we dont want to propagate operations into nested objects, such as $guid objects
+            if (Array.isArray(item[prop])) {
+                inherit_operations_macro_recursive(item[prop], operation)
+            }
         }
     }
 

@@ -96,5 +96,18 @@ describe('inherit_operations_macro', () => {
                 ],
             })
         })
+        test('skips nested objects', () => {
+            const mutation = {
+                $operation: 'create',
+                products: {}
+            }
+
+            apply_inherit_operations_macro(mutation)
+
+            expect(mutation).to.deep.equal({
+                $operation: 'create',
+                products: {}
+            })
+        })
     })
 })
