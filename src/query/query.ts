@@ -179,10 +179,16 @@ export const orma_query = async <
     // Sequential for query plan
     for (const paths of query_plan) {
         const sql_strings = paths.map(path => {
-            // the nesting macro needs previous results, so we cant do it in the beginning
-            apply_nesting_macro(query, path, results, orma_schema)
+            // this pretty inefficient, but nesting macro gets confused when it sees the where clauses
+            // that it put in the query and thinks that they were there before mutation planning.
+            // The data about tier results should really come from the mutation plan and not from
+            // the (mutated) query. But this works for now.
+            const tier_query = clone(query)
 
-            const subquery = deep_get(path, query)
+            // the nesting macro needs previous results, so we cant do it in the beginning
+            apply_nesting_macro(tier_query, path, results, orma_schema)
+
+            const subquery = deep_get(path, tier_query)
             apply_escape_macro(subquery)
 
             return json_to_sql(subquery)
