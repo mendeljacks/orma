@@ -55,21 +55,10 @@ export const get_nesting_where = (
             previous_result[0].toString() === ancestor_path.toString()
     )[0]
 
-    if (ancestor_result === undefined || ancestor_result[1].length === 0) {
-        // this case where there are no ancestor results can happen if, for example, this is a nested lower entitiy but
-        // nothing was returned from the higher entitiy. In this case, we want nothing of this entity to be queried
-        // so we use an impossible where clause that returns nothing.
-        return {
-            $eq: ['1', '2'],
-        }
-    }
-
-    const ancestor_rows = ancestor_result[1] as Record<string, unknown>[]
-
-    const ancestor_to_entity_path = subquery_path.slice(
-        nesting_ancestor_index + 1,
-        Infinity
-    )
+    const ancestor_rows = (ancestor_result?.[1] ?? []) as Record<
+        string,
+        unknown
+    >[]
 
     const ancestor_where_clause = get_ancestor_where_clause(
         ancestor_rows,
@@ -131,14 +120,25 @@ const get_ancestor_where_clause = (
         throw Error(`No ancestor rows provided for ${ancestor_name}`)
     }
 
-    const ancestor_foreign_key_values = ancestor_rows.map(
-        row => row[edge_under_ancestor.from_field]
-    )
+    const ancestor_foreign_key_values = ancestor_rows
+        .map(row => row[edge_under_ancestor.from_field])
+        // we need to filter out nulls since foreign keys can be nullable
+        .filter(el => el !== null)
+
+    if (ancestor_foreign_key_values.length === 0) {
+        // this case where there are no ancestor results can happen if, for example, this is a nested lower entitiy but
+        // nothing was returned from the higher entitiy. In this case, we want nothing of this entity to be queried
+        // so we use an impossible where clause that returns nothing. We can't use a regular $where $in setup,
+        // since that would create an sql error.
+        return {
+            $eq: ['1', '2'],
+        }
+    }
 
     // reverse the path since we are making the where clause in the entity and want to search based on ancestor
     const entity_to_ancestor_edge_path = ancestor_to_entity_edge_path
         // exclude the entity closest to the ancestor, since this entity is already accounted for in the final $in clause
-        .slice(1, Infinity) 
+        .slice(1, Infinity)
         // to reverse the path, we have to reverse the order of the edges but also reverse each
         // individual edge
         .reverse()
