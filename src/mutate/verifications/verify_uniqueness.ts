@@ -1,4 +1,4 @@
-import { error_type } from '../../helpers/error_handling'
+import { OrmaError } from '../../helpers/error_handling'
 import { group_by, key_by } from '../../helpers/helpers'
 import {
     get_primary_keys,
@@ -160,7 +160,7 @@ export const get_database_uniqueness_errors = (
 
                     const values = field_group.map(el => database_record[el])
 
-                    const error: error_type = {
+                    const error: OrmaError = {
                         message: `Record is not unique. Fields ${field_group.join(
                             ', '
                         )} must be unique but values ${values.join(
@@ -231,7 +231,7 @@ export const get_mutation_uniqueness_errors = (
                         el => pathed_record1.record[el]
                     )
 
-                    const errors: error_type[] = [
+                    const errors: OrmaError[] = [
                         pathed_record1,
                         pathed_record2,
                     ].map(record => {

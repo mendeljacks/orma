@@ -73,7 +73,9 @@ export const deep_set = (
 }
 
 // from https://stackoverflow.com/a/16608074
-export const is_simple_object = val => !!val && (val.constructor === Object || val.constructor?.name === 'RowDataPacket')
+export const is_simple_object = val =>
+    !!val &&
+    (val.constructor === Object || val.constructor?.name === 'RowDataPacket')
 
 export const deep_get = (
     path_array: (string | number)[],
@@ -308,3 +310,6 @@ function deep_equal(x, y) {
 
     return true
 }
+
+export const force_array = <T>(param: T | T[]) =>
+    Array.isArray(param) ? param : [param]

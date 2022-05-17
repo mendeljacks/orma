@@ -23,6 +23,7 @@
  * @module json_sql
  */
 
+import { SomeJSONSchema } from 'ajv/dist/types/json-schema'
 import { is_simple_object, last } from '../helpers/helpers'
 
 type expression =
@@ -65,7 +66,7 @@ export const json_to_sql = (expression: expression, path = []) => {
                 //     return ''
                 // }
 
-                // some commands need to be left in the statement for later use, so we just ignore them 
+                // some commands need to be left in the statement for later use, so we just ignore them
                 // (e.g. $foreign_key is needed by the nester which runs after the sql statement is executed)
                 return ''
             }
@@ -104,6 +105,18 @@ const command_order = command_order_array.reduce((acc, val, i) => {
     return acc
 }, {})
 
+export const sql_function_definitions: {
+    [function_name: string]: {
+        ast_to_sql: (args: any) => string
+        // later we can add other metadata here
+    }
+} = {
+    $sum: { ast_to_sql: args => `SUM(${args})` },
+    $min: { ast_to_sql: args => `MIN(${args})` },
+    $max: { ast_to_sql: args => `MAX(${args})` },
+    $coalesce: { ast_to_sql: args => `COALESCE(${args.join(', ')})` },
+}
+
 const sql_command_parsers = {
     // DML commands
     $select: args => `SELECT ${args.join(', ')}`,
@@ -112,7 +125,9 @@ const sql_command_parsers = {
     $where: args => `WHERE ${args}`,
     $having: args => `HAVING ${args}`,
     $in: (args, path) =>
-        `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IN (${args[1]})`,
+        `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IN (${
+            args[1]
+        })`,
     $group_by: args => `GROUP BY ${args.join(', ')}`,
     $order_by: args => `ORDER BY ${args.join(', ')}`,
     $asc: args => `${args} ASC`,
@@ -130,7 +145,9 @@ const sql_command_parsers = {
     $eq: (args, path) =>
         args[1] === null
             ? `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IS NULL`
-            : `${args[0]} ${nested_under_odd_nots(path) ? '!' : ''}= ${args[1]}`,
+            : `${args[0]} ${nested_under_odd_nots(path) ? '!' : ''}= ${
+                  args[1]
+              }`,
     $gt: (args, path) =>
         `${args[0]} ${nested_under_odd_nots(path) ? '<=' : '>'} ${args[1]}`,
     $lt: (args, path) =>
@@ -149,17 +166,17 @@ const sql_command_parsers = {
         // return `${args[0]}${
         // nested_under_odd_nots(path) ? ' NOT' : ''
         // } LIKE '%${search_value}%'`
-        return `${args[0]}${
-            nested_under_odd_nots(path) ? ' NOT' : ''
-        } LIKE ${args[1]}`
+        return `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} LIKE ${
+            args[1]
+        }`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
 
     // SQL functions
-    $sum: args => `SUM(${args})`,
-    $min: args => `MIN(${args})`,
-    $max: args => `MAX(${args})`,
-    $coalesce: args => `COALESCE(${args.join(', ')})`,
+    ...Object.keys(sql_function_definitions).reduce((acc, key) => { 
+        acc[key] = sql_function_definitions[key].ast_to_sql
+        return acc
+    }, {}),
 
     // mutations
     $insert_into: ([table_name, [...columns]]) =>

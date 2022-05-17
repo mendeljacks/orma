@@ -1,4 +1,4 @@
-import { error_type } from '../helpers/error_handling'
+import { OrmaError } from '../helpers/error_handling'
 import { clone, deep_get, drop_last, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
@@ -14,7 +14,7 @@ import {
     get_any_path_errors,
     postprocess_query_for_validation,
     preprocess_query_for_validation,
-} from './query_validation'
+} from './query_validation_OLD'
 import { DeepReadonly } from '../types/schema_types'
 import { OrmaSchema } from '../introspector/introspector'
 
@@ -35,7 +35,7 @@ export const get_real_higher_entity_name = (
 export const get_real_entity_name = (
     last_path_item: string,
     subquery: Record<string, any>
-) => {
+): string => {
     return subquery.$from ?? last_path_item
 }
 
@@ -149,7 +149,7 @@ export const orma_query = async <
     validation_function: (query) => any[]
 ): Promise<
     | (QueryResult<Schema, Query> & { $success: true })
-    | { $success: false; errors: error_type[] }
+    | { $success: false; errors: OrmaError[] }
 > => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed

@@ -8,7 +8,7 @@ import {
     postprocess_query_for_validation,
     preprocess_query_for_validation,
     validate_where_connected,
-} from './query_validation'
+} from './query_validation_OLD'
 
 const ajv = new Ajv({ discriminator: true })
 

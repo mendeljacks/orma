@@ -1,5 +1,5 @@
 import { orma_query } from '../..'
-import { error_type } from '../../helpers/error_handling'
+import { OrmaError } from '../../helpers/error_handling'
 import { as_orma_query } from '../../query/query'
 import { QueryResult } from './query_result_types'
 import { OrmaQuery } from './query_types'
@@ -29,7 +29,7 @@ import { OrmaQuery } from './query_types'
         query: Query
     ): Promise<
         | (QueryResult<typeof schema, Query> & { $success: true })
-        | { $success: false; errors: error_type[] }
+        | { $success: false; errors: OrmaError[] }
     > => {
         const a: any = ''
         return a

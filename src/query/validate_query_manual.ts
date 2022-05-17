@@ -1,4 +1,4 @@
-import { error_type } from '../helpers/error_handling'
+import { OrmaError } from '../helpers/error_handling'
 import { deep_for_each, is_simple_object, last } from '../helpers/helpers'
 import {
     field_exists,
@@ -165,8 +165,8 @@ import { OrmaSchema } from '../introspector/introspector'
 import { get_real_entity_name, get_real_higher_entity_name } from './query'
 import { is_subquery } from './query_helpers'
 
-export const validator = (query, schema): error_type[] => {
-    let errors: error_type[] = []
+export const validator = (query, schema): OrmaError[] => {
+    let errors: OrmaError[] = []
 
     // Walk the query
     deep_for_each(query, (val, path) => {
@@ -187,7 +187,7 @@ export const validator = (query, schema): error_type[] => {
 
             if (is_renamed_field) {
                 if (!is_exclusive_key('$field', val)) {
-                    const error: error_type = {
+                    const error: OrmaError = {
                         message: `$field must be the only key when renaming a field`,
                         original_data: query,
                         path: path,
@@ -201,7 +201,7 @@ export const validator = (query, schema): error_type[] => {
 
             if (is_eq) {
                 if (!last_path_equals('$where', path)) {
-                    const error: error_type = {
+                    const error: OrmaError = {
                         message: `$eq can only be used in $where`,
                         original_data: query,
                         path: path,
@@ -210,7 +210,7 @@ export const validator = (query, schema): error_type[] => {
                 }
 
                 if (!is_exclusive_key('$eq', val)) {
-                    const error: error_type = {
+                    const error: OrmaError = {
                         message: `$eq can only be used in $where`,
                         original_data: query,
                         path: path,
@@ -242,7 +242,7 @@ const ensure_valid_eq = (val, path, query, schema) => {
     const args = val['$eq']
 
     if (!Array.isArray(args) || args.length !== 2) {
-        const error: error_type = {
+        const error: OrmaError = {
             message: `$eq must be an array of length 2`,
             original_data: query,
             path,
@@ -254,7 +254,7 @@ const ensure_valid_eq = (val, path, query, schema) => {
     const first_arg = args[0]
     const parent_entity = get_real_higher_entity_name(path, query)
     if (typeof first_arg !== 'string' || !schema[parent_entity][first_arg]) {
-        const error: error_type = {
+        const error: OrmaError = {
             message: `First argument to $eq must be string and be a valid column name from ${parent_entity}`,
             path,
             original_data: query,
@@ -279,7 +279,7 @@ const validate_edges = (path, query, schema) => {
         const entity_name = get_real_entity_name(path, query)
         const direct_edges = get_direct_edges(parent_name, entity_name, schema)
         if (direct_edges.length === 0) {
-            const error: error_type = {
+            const error: OrmaError = {
                 message: `${parent_name} is not connected to ${entity_name}.`,
                 path: path,
                 original_data: query,
@@ -301,7 +301,7 @@ const ensure_field_exists = (
         typeof original_field !== 'string' ||
         !schema[parent_entity][original_field]
     ) {
-        const error: error_type = {
+        const error: OrmaError = {
             message: `$field must be a string which exists in ${parent_entity}`,
             original_data: query,
             path: path,
@@ -321,7 +321,7 @@ const validate_field_exists = (
     const requested_field = last(path)
 
     if (!field_exists(parent_entity, requested_field, schema)) {
-        const error: error_type = {
+        const error: OrmaError = {
             message: `Field ${requested_field} does not exist on entity ${parent_entity}`,
             path: path,
             original_data: query,

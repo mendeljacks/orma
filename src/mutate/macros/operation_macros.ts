@@ -1,4 +1,4 @@
-import { error_type } from '../../helpers/error_handling'
+import { OrmaError } from '../../helpers/error_handling'
 import { orma_escape } from '../../helpers/escape'
 import { deep_get, drop_last, is_simple_object } from '../../helpers/helpers'
 import {
@@ -178,7 +178,7 @@ export const throw_identifying_key_errors = (
             additional_info: {
                 identifying_columns: identifying_keys ?? 'none',
             },
-        } as error_type
+        } as OrmaError
     }
 }
 

@@ -1,4 +1,4 @@
-export interface error_type {
+export interface OrmaError {
     message: string
     path?: (string | number)[]
     original_data?: any

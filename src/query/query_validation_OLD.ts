@@ -1,4 +1,4 @@
-import { error_type } from '../helpers/error_handling'
+import { OrmaError } from '../helpers/error_handling'
 import { deep_for_each, last } from '../helpers/helpers'
 import {
     get_all_edges,
@@ -433,7 +433,7 @@ export const postprocess_query_for_validation = (query: any) => {
 }
 
 export const get_any_path_errors = (query: any, orma_schema: OrmaSchema) => {
-    let all_errors: error_type[] = []
+    let all_errors: OrmaError[] = []
 
     deep_for_each(query, (value, path) => {
         if (value.$any_path) {
@@ -458,7 +458,7 @@ export const get_any_path_errors = (query: any, orma_schema: OrmaSchema) => {
                     if (is_valid_entity) {
                         return []
                     } else {
-                        const error: error_type = {
+                        const error: OrmaError = {
                             message: `Entity ${any_path_entity} must be a parent or a child of the previous entity, ${previous_entity}.`,
                         }
                         return [error]
@@ -477,7 +477,7 @@ export const validate_where_connected = (
     query: any,
     orma_schema: OrmaSchema
 ) => {
-    let errors: error_type[] = []
+    let errors: OrmaError[] = []
 
     if (query.$where_connected) {
         query.$where_connected.forEach(({ $entity, $field, $values }) => {

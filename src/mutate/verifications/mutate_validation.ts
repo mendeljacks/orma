@@ -1,5 +1,5 @@
 import { validate } from 'jsonschema'
-import { error_type } from '../../helpers/error_handling'
+import { OrmaError } from '../../helpers/error_handling'
 import {
     get_all_edges,
     get_field_names,
@@ -96,7 +96,7 @@ const validate_mutation_js = (mutation, orma_schema: OrmaSchema) => {
                         path: [key],
                         original_data: mutation,
                     },
-                ] as error_type[]
+                ] as OrmaError[]
             }
         })
 
@@ -109,7 +109,7 @@ const validate_mutation_record = (
     record_path,
     orma_schema: OrmaSchema,
     higher_operation = undefined
-): error_type[] => {
+): OrmaError[] => {
     const operation = record.$operation ?? higher_operation
     const entity_name = get_ancestor_name_from_path(record_path, 0)
 
@@ -224,7 +224,7 @@ const validate_fields_and_nested_mutations = (
                             path: [...record_path, key],
                             original_data: mutation,
                         },
-                    ] as error_type[]
+                    ] as OrmaError[]
                 }
 
                 return value.flatMap((nested_record, i) =>
@@ -245,7 +245,7 @@ const validate_fields_and_nested_mutations = (
                             path: [...record_path, key],
                             original_data: mutation,
                         },
-                    ] as error_type[]
+                    ] as OrmaError[]
                 }
 
                 return []
@@ -257,7 +257,7 @@ const validate_fields_and_nested_mutations = (
                         path: [...record_path, key],
                         original_data: mutation,
                     },
-                ] as error_type[]
+                ] as OrmaError[]
             }
         })
     return field_errors
@@ -275,7 +275,7 @@ const validate_required_fields = (
         field_name => is_required_field(entity_name, field_name, orma_schema)
     )
 
-    const errors: error_type[] = required_fields.flatMap(required_field => {
+    const errors: OrmaError[] = required_fields.flatMap(required_field => {
         // required fields are only applicable in creates, for updates (and deletes), the user never needs to
         // supply anything since required fields would already be in the database
         if (operation === 'create' && record[required_field] === undefined) {
@@ -330,7 +330,7 @@ const validate_operation_nesting = (
         ? operation
         : higher_operation
 
-    let operation_nesting_errors: error_type[] = []
+    let operation_nesting_errors: OrmaError[] = []
     // if either the current operation or the higher operation are undefined, it doesnt make sense to talk about
     // checking the operation nesting. In either case, we are either guaranteed a good operation nesting (e.g.
     // we are dealing with a root level record, which has no higher operation) or we already got an error from the
@@ -370,7 +370,7 @@ const validate_identifying_keys = (
     operation: any,
     orma_schema: OrmaSchema
 ) => {
-    let identifying_key_errors: error_type[] = []
+    let identifying_key_errors: OrmaError[] = []
     if (operation === 'update' || operation === 'delete') {
         const entity_name = get_ancestor_name_from_path(record_path, 0)
         const identifying_keys = get_identifying_keys(
