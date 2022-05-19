@@ -52,8 +52,7 @@ import { OrmaQuery } from './query_types'
     orma_query(
         query,
         schema,
-        async () => ({} as any),
-        () => []
+        async () => ({} as any)
     ).then(result => {
         if (result.$success) {
             result.my_products[0].id

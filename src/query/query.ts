@@ -145,29 +145,13 @@ export const orma_query = async <
     orma_schema_input: Schema,
     query_function: (
         sql_string: string[]
-    ) => Promise<Record<string, unknown>[][]>,
-    validation_function: (query) => any[]
+    ) => Promise<Record<string, unknown>[][]>
 ): Promise<
     | (QueryResult<Schema, Query> & { $success: true })
     | { $success: false; errors: OrmaError[] }
 > => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
-
-    // validation
-    preprocess_query_for_validation(query, orma_schema)
-    const errors = [
-        ...validation_function(query),
-        ...get_any_path_errors(query, orma_schema),
-    ]
-
-    if (errors.length > 0) {
-        throw {
-            $success: false,
-            errors,
-        }
-    }
-    postprocess_query_for_validation(query)
 
     // simple macros
     apply_any_path_macro(query, orma_schema)
