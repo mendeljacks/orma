@@ -25,27 +25,62 @@ const expression_schema = {
             type: 'string',
         },
         // or an sql function
-        ...Object.keys(sql_function_definitions).map(key => ({
-            type: 'object',
-            properties: {
-                [key]: {
-                    $ref: '#/$defs/expression',
+        ...Object.keys(sql_function_definitions).map(function_name => {
+            const sql_function_definition =
+                sql_function_definitions[function_name]
+
+            const distinct_schema = sql_function_definition.allow_distinct
+                ? [
+                      {
+                          $type: 'object',
+                          properties: {
+                              $distinct: {
+                                  $ref: '#/$defs/expression',
+                              },
+                          },
+                          additionalProperties: false,
+                      },
+                  ]
+                : []
+
+            const star_schema = sql_function_definition.allow_star
+                ? [
+                      {
+                          const: '*',
+                      },
+                  ]
+                : []
+
+            const field_schema = {
+                type: 'object',
+                properties: {
+                    [function_name]: {
+                        $ref: '#/$defs/expression',
+                    },
                 },
-            },
-            additionalProperties: false,
-        })),
+                additionalProperties: false,
+            }
+
+            const schemas = [...distinct_schema, ...star_schema, field_schema]
+
+            return schemas.length > 0
+                ? {
+                      oneOf: schemas,
+                  }
+                : schemas
+        }),
         // or an escaped value
         {
             type: 'object',
             properties: {
-                $escape: primitive_schema
+                $escape: primitive_schema,
             },
             additionalProperties: false,
         },
         // or a subquery
         {
-            $ref: '#/$defs/inner_query'
-        }
+            $ref: '#/$defs/inner_query',
+        },
     ],
 }
 
@@ -238,7 +273,7 @@ const inner_query_schema = {
         },
         ...query_shared_props,
     },
-    additionalProperties: false
+    additionalProperties: false,
 }
 
 const where_connected_schema = {
@@ -248,19 +283,19 @@ const where_connected_schema = {
         type: 'object',
         properties: {
             $entity: {
-                type: 'string'
+                type: 'string',
             },
             $field: {
-                type: 'string'
+                type: 'string',
             },
             $values: {
                 type: 'array',
                 minItems: 1,
-                items: primitive_schema
-            }
+                items: primitive_schema,
+            },
         },
-        additionalProperties: false
-    }
+        additionalProperties: false,
+    },
 }
 
 export const query_validation_schema = {
@@ -273,7 +308,7 @@ export const query_validation_schema = {
     },
     type: 'object',
     properties: {
-        $where_connected: where_connected_schema
+        $where_connected: where_connected_schema,
     },
     additionalProperties: {
         $ref: '#/$defs/outer_query',

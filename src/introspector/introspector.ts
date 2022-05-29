@@ -258,6 +258,7 @@ export const mysql_to_typescript_types = {
     tinytext: 'string',
     varbinary: 'string',
     varchar: 'string',
+    json: 'string'
 } as const
 
 export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) =>

@@ -538,5 +538,37 @@ describe.only('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['$where_connected', 1]])
         })
+        test('allows $distinct in aggregate functions', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        max_id: {
+                            $max: {
+                                $distinct: 'id'
+                            }
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
+        test('allows $count *', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        count: {
+                            $count: '*'
+                        }
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
     })
 })

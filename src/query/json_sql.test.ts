@@ -40,6 +40,17 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
+        test("handles aggregate functions", () => {
+            const json = {
+                $min: 'field',
+                $count: '*'
+            }
+
+            const sql = format(json_to_sql(json))
+            const goal = format('MIN(field) COUNT(*)')
+
+            expect(sql).to.equal(goal)
+        })
         test("ignores even number of '$not' commands", () => {
             const json = {
                 $not: {

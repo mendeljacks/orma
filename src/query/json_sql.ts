@@ -108,13 +108,42 @@ const command_order = command_order_array.reduce((acc, val, i) => {
 export const sql_function_definitions: {
     [function_name: string]: {
         ast_to_sql: (args: any) => string
-        // later we can add other metadata here
+        aggregate?: boolean
+        allow_star?: boolean
+        allow_distinct?: boolean
     }
 } = {
-    $sum: { ast_to_sql: args => `SUM(${args})` },
-    $min: { ast_to_sql: args => `MIN(${args})` },
-    $max: { ast_to_sql: args => `MAX(${args})` },
-    $coalesce: { ast_to_sql: args => `COALESCE(${args.join(', ')})` },
+    // aggregate functions
+    $sum: {
+        ast_to_sql: args => `SUM(${args})`,
+        aggregate: true,
+        allow_distinct: true,
+    },
+    $min: {
+        ast_to_sql: args => `MIN(${args})`,
+        aggregate: true,
+        allow_distinct: true,
+    },
+    $max: {
+        ast_to_sql: args => `MAX(${args})`,
+        aggregate: true,
+        allow_distinct: true,
+    },
+    $avg: {
+        ast_to_sql: args => `COALESCE(${args.join(', ')})`,
+        aggregate: true,
+        allow_distinct: true,
+    },
+    $count: {
+        ast_to_sql: args => `COALESCE(${args.join(', ')})`,
+        aggregate: true,
+        allow_distinct: true,
+        allow_star: true,
+    },
+    // non-aggregate functions
+    $coalesce: {
+        ast_to_sql: args => `COALESCE(${args.join(', ')})`,
+    },
 }
 
 const sql_command_parsers = {
@@ -173,7 +202,7 @@ const sql_command_parsers = {
     $not: args => args, // not logic is different depending on the children, so the children handle it
 
     // SQL functions
-    ...Object.keys(sql_function_definitions).reduce((acc, key) => { 
+    ...Object.keys(sql_function_definitions).reduce((acc, key) => {
         acc[key] = sql_function_definitions[key].ast_to_sql
         return acc
     }, {}),
@@ -191,6 +220,7 @@ const sql_command_parsers = {
             .map(([column, value]) => `${column} = ${value}`)
             .join(', ')}`,
     $delete_from: table_name => `DELETE FROM ${table_name}`,
+    $distinct: column_name => `DISTINCT ${column_name}`
 
     // DDL commands
 }

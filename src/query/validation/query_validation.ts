@@ -10,6 +10,7 @@ import {
 import { OrmaSchema } from '../../introspector/introspector'
 import { Path } from '../../types'
 import { WhereConnected } from '../../types/query/query_types'
+import { sql_function_definitions } from '../json_sql'
 import { get_real_entity_name } from '../query'
 import { is_subquery } from '../query_helpers'
 import { query_validation_schema } from './query_validation_schema'
@@ -228,6 +229,12 @@ const validate_expression = (
     orma_schema
 ): OrmaError[] => {
     if (typeof expression === 'string') {
+        const function_name = last(expression_path)
+        const sql_function_definition = sql_function_definitions[function_name]
+        if (expression === '*' && sql_function_definition.allow_star === true) {
+            return []
+        }
+        
         return !is_field_name(context_entity, expression, orma_schema) &&
             !field_aliases.includes(expression)
             ? [
