@@ -130,12 +130,12 @@ export const sql_function_definitions: {
         allow_distinct: true,
     },
     $avg: {
-        ast_to_sql: args => `COALESCE(${args.join(', ')})`,
+        ast_to_sql: args => `AVG(${args})`,
         aggregate: true,
         allow_distinct: true,
     },
     $count: {
-        ast_to_sql: args => `COALESCE(${args.join(', ')})`,
+        ast_to_sql: args => `COUNT(${args})`,
         aggregate: true,
         allow_distinct: true,
         allow_star: true,

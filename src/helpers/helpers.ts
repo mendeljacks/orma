@@ -281,7 +281,7 @@ export const array_equals = (array1: any[], array2: any[]) =>
  * function only if you are sure that at least one of the arguments has no
  * circular references.
  */
-function deep_equal(x, y) {
+export function deep_equal(x, y) {
     // check primitive values
     if (
         typeof x !== 'object' ||
@@ -313,3 +313,7 @@ function deep_equal(x, y) {
 
 export const force_array = <T>(param: T | T[]) =>
     Array.isArray(param) ? param : [param]
+
+export const has_prop = (prop, obj) => {
+    return Object.prototype.hasOwnProperty.call(obj, prop)
+}

@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import { as_orma_schema } from '../query'
 import { validate_query } from './query_validation'
 
-describe.only('query_validation.ts', () => {
+describe('query_validation.ts', () => {
     const orma_schema = as_orma_schema({
         products: {
             id: {
