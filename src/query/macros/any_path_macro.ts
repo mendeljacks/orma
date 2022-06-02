@@ -20,7 +20,7 @@ import { OrmaSchema } from '../../introspector/introspector'
 export const apply_any_path_macro = (query, orma_schema: OrmaSchema) => {
     let paths_to_any = []
     deep_for_each(query, (clause, path) => {
-        if (clause.$any_path) {
+        if (clause?.$any_path !== undefined) {
             paths_to_any.push([clause, path])
         }
     })

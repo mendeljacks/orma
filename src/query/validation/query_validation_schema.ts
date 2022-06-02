@@ -29,14 +29,27 @@ const expression_schema = {
             const sql_function_definition =
                 sql_function_definitions[function_name]
 
+            const inner_schema = sql_function_definition.multiple_args
+                ? [
+                      {
+                          type: 'array',
+                          items: {
+                              $ref: '#/$defs/expression',
+                          },
+                      },
+                  ]
+                : [
+                      {
+                          $ref: '#/$defs/expression',
+                      },
+                  ]
+
             const distinct_schema = sql_function_definition.allow_distinct
                 ? [
                       {
                           $type: 'object',
                           properties: {
-                              $distinct: {
-                                  $ref: '#/$defs/expression',
-                              },
+                              $distinct: inner_schema,
                           },
                           additionalProperties: false,
                       },
@@ -54,9 +67,7 @@ const expression_schema = {
             const field_schema = {
                 type: 'object',
                 properties: {
-                    [function_name]: {
-                        $ref: '#/$defs/expression',
-                    },
+                    [function_name]: inner_schema,
                 },
                 additionalProperties: false,
             }

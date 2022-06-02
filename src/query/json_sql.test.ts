@@ -51,6 +51,16 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
+        test("handles functions with multiple args", () => {
+            const json = {
+                $coalesce: [1, 2]
+            }
+
+            const sql = format(json_to_sql(json))
+            const goal = format('COALESCE(1, 2)')
+
+            expect(sql).to.equal(goal)
+        })
         test("ignores even number of '$not' commands", () => {
             const json = {
                 $not: {

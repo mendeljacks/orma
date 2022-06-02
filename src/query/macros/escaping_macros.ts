@@ -10,7 +10,7 @@ export const apply_escape_macro = (
     let raw_paths = []
 
     deep_for_each(query, (value, path) => {
-        if (value?.$escape) {
+        if (value?.$escape !== undefined) {
             raw_paths.push([path, value])
         }
     })

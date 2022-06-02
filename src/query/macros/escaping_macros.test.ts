@@ -36,7 +36,7 @@ describe('escaping_macros', () => {
         })
         test('handles nested $escapes', () => {
             const query = {
-                in: [
+                $in: [
                     'column',
                     [
                         {
@@ -53,7 +53,18 @@ describe('escaping_macros', () => {
             apply_escape_macro(query)
 
             expect(query).to.deep.equal({
-                in: ['column', ["'\\'val\\''"]],
+                $in: ['column', ["'\\'val\\''"]],
+            })
+        })
+        test('handles null', () => {
+            const query = {
+                $eq: [1, { $escape: null }]
+            }
+
+            apply_escape_macro(query)
+
+            expect(query).to.deep.equal({
+                $eq: [1, 'NULL']
             })
         })
     })

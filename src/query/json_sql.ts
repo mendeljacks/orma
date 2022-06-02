@@ -111,6 +111,7 @@ export const sql_function_definitions: {
         aggregate?: boolean
         allow_star?: boolean
         allow_distinct?: boolean
+        multiple_args?: boolean
     }
 } = {
     // aggregate functions
@@ -143,6 +144,7 @@ export const sql_function_definitions: {
     // non-aggregate functions
     $coalesce: {
         ast_to_sql: args => `COALESCE(${args.join(', ')})`,
+        multiple_args: true,
     },
 }
 
@@ -220,7 +222,7 @@ const sql_command_parsers = {
             .map(([column, value]) => `${column} = ${value}`)
             .join(', ')}`,
     $delete_from: table_name => `DELETE FROM ${table_name}`,
-    $distinct: column_name => `DISTINCT ${column_name}`
+    $distinct: column_name => `DISTINCT ${column_name}`,
 
     // DDL commands
 }
