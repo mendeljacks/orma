@@ -334,10 +334,13 @@ const validate_operation_nesting = (
     // if either the current operation or the higher operation are undefined, it doesnt make sense to talk about
     // checking the operation nesting. In either case, we are either guaranteed a good operation nesting (e.g.
     // we are dealing with a root level record, which has no higher operation) or we already got an error from the
-    // $operation existence check. In any case, we don't need to generate an error here
+    // $operation existence check. In any case, we don't need to generate an error here.
+    // Additionally, the top layer of records always can be any operation, so we dont need to check those either 
+    // (the higher operation is the root operation, but that is only used as an override)
     if (
         operation !== undefined &&
         higher_operation !== undefined &&
+        record_path.length > 2 && // 0 = root, 1 = inside array, 2 = top layer of objects
         !is_valid_operation_nesting(parent_operation, child_operation)
     ) {
         const parent_entity = higher_entity_is_parent

@@ -227,6 +227,19 @@ describe('mutation_validation', () => {
             const errors = validate_mutation(test_mutation, orma_schema)
             expect(errors).to.have.lengthOf(1)
         })
+        test('allows different nestings on top level', () => {
+            const test_mutation = {
+                $operation: 'update',
+                products: [
+                    {
+                        $operation: 'create',
+                    },
+                ],
+            }
+
+            const errors = validate_mutation(test_mutation, orma_schema)
+            expect(errors).to.have.lengthOf(0)
+        })
         test('required fields must be present in creates', () => {
             const test_mutation = {
                 image_urls: [
