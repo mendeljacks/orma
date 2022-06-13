@@ -7,7 +7,7 @@ import { OrmaQuery } from '../types/query/query_types'
 import { json_to_sql } from './json_sql'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
-import { apply_nesting_macro } from './macros/nesting_macro'
+import { apply_nesting_macro, get_ancestor_rows, should_nesting_short_circuit } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import { get_query_plan } from './query_plan'
 import {
@@ -162,24 +162,32 @@ export const orma_query = async <
 
     // Sequential for query plan
     for (const paths of query_plan) {
-        const sql_strings = paths.map(path => {
-            // this pretty inefficient, but nesting macro gets confused when it sees the where clauses
-            // that it put in the query and thinks that they were there before mutation planning.
-            // The data about tier results should really come from the mutation plan and not from
-            // the (mutated) query. But this works for now.
-            const tier_query = clone(query)
+        const sql_strings = paths
+            .map(path => {
+                // this pretty inefficient, but nesting macro gets confused when it sees the where clauses
+                // that it put in the query and thinks that they were there before mutation planning.
+                // The data about tier results should really come from the mutation plan and not from
+                // the (mutated) query. But this works for now.
+                const tier_query = clone(query)
 
-            // the nesting macro needs previous results, so we cant do it in the beginning
-            apply_nesting_macro(tier_query, path, results, orma_schema)
+                // if this query wont return anything due to there being no higher rows, then skip it
+                if (should_nesting_short_circuit(tier_query, path, results)) {
+                    return undefined
+                }
+                // the nesting macro needs previous results, so we cant do it in the beginning
+                apply_nesting_macro(tier_query, path, results, orma_schema)
 
-            const subquery = deep_get(path, tier_query)
-            apply_escape_macro(subquery)
+                const subquery = deep_get(path, tier_query)
+                apply_escape_macro(subquery)
 
-            return json_to_sql(subquery)
-        })
+                return json_to_sql(subquery)
+            })
+            .filter(el => el !== undefined)
 
-        // Promise.all for each element in query plan
-        const output = await query_function(sql_strings)
+        // Promise.all for each element in query plan.
+        // dont call query is there are no sql strings to run
+        const output =
+            sql_strings.length > 0 ? await query_function(sql_strings) : []
 
         // Combine outputs
         sql_strings.forEach((_, i) => results.push([paths[i], output[i]]))

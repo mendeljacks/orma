@@ -33,17 +33,23 @@ export const apply_nesting_macro = (
     subquery.$where = combined_where
 }
 
-export const get_nesting_where = (
+export const should_nesting_short_circuit = (
     query,
     subquery_path: string[],
-    previous_results: (string[] | Record<string, unknown>[])[][],
-    orma_schema: OrmaSchema
+    previous_results: (string[] | Record<string, unknown>[])[][]
 ) => {
-    const is_root_subquery = subquery_path.length <= 1
-    if (is_root_subquery) {
-        return undefined
-    }
+    const ancestor_rows = get_ancestor_rows(query, subquery_path, previous_results)
 
+    // we dont short circuit if the path length is 1, since there will be results even though there are no ancestor
+    // rows (because there is no ancestor on the first nesting layer)
+    return ancestor_rows.length === 0 && subquery_path.length > 1
+}
+
+export const get_ancestor_rows = (
+    query,
+    subquery_path: string[],
+    previous_results: (string[] | Record<string, unknown>[])[][]
+) => {
     const nesting_ancestor_index = get_nesting_ancestor_index(
         query,
         subquery_path
@@ -59,6 +65,31 @@ export const get_nesting_where = (
         string,
         unknown
     >[]
+
+    return ancestor_rows
+}
+
+export const get_nesting_where = (
+    query,
+    subquery_path: string[],
+    previous_results: (string[] | Record<string, unknown>[])[][],
+    orma_schema: OrmaSchema
+) => {
+    const is_root_subquery = subquery_path.length <= 1
+    if (is_root_subquery) {
+        return undefined
+    }
+
+    const nesting_ancestor_index = get_nesting_ancestor_index(
+        query,
+        subquery_path
+    )
+
+    const ancestor_rows = get_ancestor_rows(
+        query,
+        subquery_path,
+        previous_results
+    )
 
     const ancestor_where_clause = get_ancestor_where_clause(
         ancestor_rows,
