@@ -76,6 +76,7 @@
         "ext": "ts, js, jsx"
     },
     "dependencies": {
+        "hexoid": "^1.0.0",
         "jsonschema": "^1.4.0",
         "sqlstring": "^2.3.3"
     }

@@ -4,10 +4,64 @@ import {
     is_simple_object,
     last,
 } from '../../helpers/helpers'
-import { is_parent_entity } from '../../helpers/schema_helpers'
+import {
+    get_child_edges,
+    get_direct_edges,
+    is_parent_entity,
+} from '../../helpers/schema_helpers'
 import { path_to_string, string_to_path } from '../../helpers/string_to_path'
 import { toposort } from '../../helpers/toposort'
 import { OrmaSchema } from '../../introspector/introspector'
+import { mutation_entity_deep_for_each } from '../helpers/mutate_helpers'
+import hexoid from 'hexoid'
+
+// 1000 ids / sec needs 21 billion years for 1% chance of collision
+// https://alex7kom.github.io/nano-nanoid-cc/?alphabet=0123456789abcdef&size=36&speed=1000&speedUnit=second
+const get_id = hexoid(36)
+
+export const add_guids_to_foreign_keys = (
+    mutation,
+    orma_schema: OrmaSchema
+) => {
+    mutation_entity_deep_for_each(
+        mutation,
+        (higher_record, higher_path, higher_entity) => {
+            Object.keys(higher_record).forEach(lower_entity => {
+                if (Array.isArray(higher_record[lower_entity])) {
+                    const edges_to_lower_entity = get_direct_edges(
+                        higher_entity,
+                        lower_entity,
+                        orma_schema
+                    )
+
+                    // if we can't infer a single foreign key, then we just skip this,
+                    // assuming there will be $guids already supplied by the user or validation would
+                    // reject the mutation
+                    if (edges_to_lower_entity.length === 1) {
+                        const edge_to_lower_entity = edges_to_lower_entity[0]
+                        higher_record[lower_entity].forEach(lower_record => {
+                            // dont overwrite values or guids that the user gave explicitly
+                            if (
+                                lower_record[edge_to_lower_entity.to_field] ===
+                                undefined
+                            ) {
+                                const $guid = get_id()
+                                higher_record[
+                                    edge_to_lower_entity.from_entity
+                                ] = {
+                                    $guid,
+                                }
+                                lower_record[edge_to_lower_entity.to_entity] = {
+                                    $guid,
+                                }
+                            }
+                        })
+                    }
+                }
+            })
+        }
+    )
+}
 
 export const get_mutate_plan = (mutation, orma_schema: OrmaSchema) => {
     /*
@@ -21,7 +75,7 @@ export const get_mutate_plan = (mutation, orma_schema: OrmaSchema) => {
         - for a row to be created, its immediate parent must be created first
         - for a row to be deleted, its immediate children must be deleted first
 
-    Terminology:
+    Terminology: 
         route - in this function, a route is an array of the form [operation, ...template_path] where operation is one of 'create',
             'update' or 'delete' and a template_path is like a path but all the array indices are replaced with 0
         

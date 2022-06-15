@@ -315,55 +315,6 @@ export const get_mutation_statements = (
     return statements
 }
 
-// /**
-//  * Get a list of foreign keys required from a record in the mutation. This is basically the foreign keys of all connected
-//  * parent entities in the mutation
-//  */
-// const get_record_foreign_keys = (
-//     mutation,
-//     record_path: (string | number)[],
-//     orma_schema: orma_schema
-// ) => {
-//     const entity_name = path_to_entity(record_path)
-//     const record = deep_get(record_path, mutation)
-
-//     // get a list of the above path, as well as any below paths.
-//     // Some of these might by parents and some might be children.
-//     const above_path = drop_last(2, record_path)
-//     const below_paths = Object.keys(record)
-//         .filter(key => Array.isArray(record[key]))
-//         .map(key => [...record_path, key, 0])
-//     const all_paths = [above_path, ...below_paths]
-
-//     // now we will get foreign keys for all the paths that are parent paths (ignoring child paths) and
-//     // put the foreign keys in an object of { [foreign_key_name]: foreign_key_value}
-//     // this object is in the right format to spread into the current record
-//     const foreign_keys = all_paths
-//         .map(parent_path => {
-//             const parent_entity_name = parent_path?.[parent_path.length - 2]
-//             // dont do anything for the child paths (foreign keys only come from parents by definition)
-//             if (
-//                 !is_parent_entity(parent_entity_name, entity_name, orma_schema)
-//             ) {
-//                 return undefined
-//             }
-
-//             // assuming the thing is a parent, we need exactly one edge from the current entity to the parent
-//             // (since the syntax has no way to specify which foreign key to use in that case).
-//             // This function throws an error if there is not exactly one edge
-//             const edge = get_direct_edge(
-//                 entity_name,
-//                 parent_entity_name,
-//                 orma_schema
-//             )
-
-//             return edge.from_field
-//         })
-//         .filter(el => el !== undefined)
-
-//     return foreign_keys
-// }
-
 export const generate_record_where_clause = (
     identifying_keys: string[],
     record: Record<string, unknown>
