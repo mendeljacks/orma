@@ -14,6 +14,7 @@ import { toposort } from '../../helpers/toposort'
 import { OrmaSchema } from '../../introspector/introspector'
 import { mutation_entity_deep_for_each } from '../helpers/mutate_helpers'
 import hexoid from 'hexoid'
+import { Path } from '../../types'
 
 // 1000 ids / sec needs 21 billion years for 1% chance of collision
 // https://alex7kom.github.io/nano-nanoid-cc/?alphabet=0123456789abcdef&size=36&speed=1000&speedUnit=second
@@ -63,7 +64,46 @@ export const add_guids_to_foreign_keys = (
     )
 }
 
+export type MutationPiece = { record: any; path: Path }
+
+export type PathsByGuid = { [guid: string]: Path[] }
+
+const flatten_mutation = mutation => {
+    let flat_mutation: MutationPiece[] = []
+    mutation_entity_deep_for_each(mutation, (record, path, entity) => {
+        flat_mutation.push({ record, path })
+    })
+    return flat_mutation
+}
+
+const get_paths_by_guid = (flat_mutation: MutationPiece[]) => {
+    // Keyed by path string and value is a $guid such as 5
+    let paths_by_guid: PathsByGuid = {}
+
+    flat_mutation.forEach(({ record }, record_index) => {
+        Object.keys(record).forEach(key => {
+            const value = record[key]
+            if (value?.$guid !== undefined) {
+                // Remember where the guid was
+                const guid = value.$guid
+                if (!paths_by_guid[guid]) {
+                    paths_by_guid[guid] = []
+                }
+                paths_by_guid[guid].push([record_index, key])
+            }
+        })
+    })
+
+    return paths_by_guid
+}
+
 export const get_mutate_plan = (mutation, orma_schema: OrmaSchema) => {
+    const flat_mutation = flatten_mutation(mutation)
+    const paths_by_guid = get_paths_by_guid(flat_mutation)
+    // const toposort_graph 
+}
+
+export const get_mutate_plan_OLD = (mutation, orma_schema: OrmaSchema) => {
     /*
     This function is an algorithm that wont make sense without an explanation. The idea is to generate a mutate plan
     which splits rows (specified by paths to that row) into tiers. Each tier can be run in parallel (so order within a
