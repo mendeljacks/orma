@@ -64,7 +64,9 @@ export const add_guids_to_foreign_keys = (
     )
 }
 
-export type MutationPiece = { record: any; path: Path }
+export type MutationPiece = { record: Record<string, any>; path: Path }
+
+export type MutationBatch = { start_index: number; end_index: number }
 
 export type PathsByGuid = { [guid: string]: Path[] }
 

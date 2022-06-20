@@ -1,5 +1,5 @@
 import { orma_escape } from '../helpers/escape'
-import { array_equals, clone, deep_get, key_by, last } from '../helpers/helpers'
+import { clone, deep_get, last } from '../helpers/helpers'
 import {
     get_child_edges,
     get_primary_keys,
@@ -9,8 +9,14 @@ import { string_to_path } from '../helpers/string_to_path'
 import { OrmaSchema } from '../introspector/introspector'
 import { json_to_sql } from '../query/json_sql'
 import { combine_wheres } from '../query/query_helpers'
+import { add_foreign_key_indexes } from './helpers/add_foreign_key_indexes'
+import { mutation_entity_deep_for_each } from './helpers/mutate_helpers'
 import { apply_guid_macro, GuidByPath, PathsByGuid } from './macros/guid_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
+import {
+    MutationStatement,
+    mutation_pieces_to_statements,
+} from './macros/operation_macros'
 import {
     get_create_ast,
     get_delete_ast,
@@ -18,10 +24,12 @@ import {
     get_guid_obj,
     get_update_asts,
     throw_identifying_key_errors,
-} from './macros/operation_macros'
-import { mutation_entity_deep_for_each } from './helpers/mutate_helpers'
-import { get_mutate_plan } from './plan/mutate_plan'
-import { add_foreign_key_indexes } from './helpers/add_foreign_key_indexes'
+} from './macros/operation_macros_old'
+import {
+    get_mutate_plan,
+    MutationBatch,
+    MutationPiece,
+} from './plan/mutate_plan'
 
 export type operation = 'create' | 'update' | 'delete' | 'query'
 export type mysql_fn = (statements) => Promise<Record<string, any>[][]>
@@ -32,7 +40,104 @@ export type statements = {
     operation: operation
     paths: (string | number)[][]
 }[]
+
+// export type MutationPiece = { record: Record<string, any>, path: Path }
+// export type MutationBatch = { start_index: number; end_index: number }
+
 export const orma_mutate = async (
+    input_mutation,
+    mysql_function: mysql_fn,
+    orma_schema: OrmaSchema
+) => {
+    // clone to allow macros to mutation the mutation without changing the user input mutation object
+    const mutation = clone(input_mutation)
+
+    const values_by_guid: Record<string | number, any> = {}
+
+    const mutation_plan = {} as any
+    run_mutation_plan(mutation_plan, async ({ mutation_pieces }) => {
+        const mutation_statements = mutation_pieces_to_statements(
+            mutation_pieces,
+            values_by_guid,
+            orma_schema
+        )
+
+        await mysql_function(mutation_statements)
+
+        const query_statements = mutation_statements
+            // we only need to do foreign key propagation for creates
+            .filter(({ operation }) => operation === 'create')
+            .map(({}) => {
+                const sql_ast = generate_foreign_key_query(
+                    mutation,
+                    last(route),
+                    paths,
+                    orma_schema
+                )
+
+                // sql ast can be undefined if there are no foreign keys to search for on this entity
+                if (sql_ast === undefined) {
+                    return undefined
+                } else {
+                    return {
+                        sql_ast,
+                        sql_string: json_to_sql(sql_ast),
+                        route,
+                        operation: 'query' as operation,
+                        paths,
+                    }
+                }
+            })
+            .filter(el => el !== undefined)
+
+        if (query_statements.length > 0) {
+            const query_results = await mysql_function(query_statements)
+
+            const new_db_row_by_path = add_foreign_key_indexes(
+                query_statements,
+                query_results,
+                mutation,
+                orma_schema
+            )
+
+            db_row_by_path = {
+                ...db_row_by_path,
+                ...new_db_row_by_path,
+            }
+        }
+
+        // get query asts
+        // execute query asts
+        // sort query results in the same order as the mutation pieces
+    })
+}
+
+const run_mutation_plan = async (
+    mutation_plan: {
+        mutation_pieces: MutationPiece[]
+        mutation_batches: MutationBatch[]
+    },
+    callback: (context: {
+        index: number
+        mutation_batch: MutationBatch
+        mutation_pieces: MutationPiece[]
+    }) => Promise<any>
+) => {
+    for (
+        let index = 0;
+        index < mutation_plan.mutation_batches.length;
+        index++
+    ) {
+        const mutation_batch = mutation_plan.mutation_batches[index]
+        const batch_pieces = mutation_plan.mutation_pieces.slice(
+            mutation_batch.start_index,
+            mutation_batch.end_index
+        )
+        await callback({ mutation_pieces: batch_pieces, mutation_batch, index })
+    }
+}
+
+export const orma_mutate_old = async (
     input_mutation,
     mysql_function: mysql_fn,
     orma_schema: OrmaSchema
@@ -176,6 +281,63 @@ export const orma_mutate = async (
     return mutation as any
 }
 
+export const get_guid_queries = (
+    all_mutation_statements: MutationStatement[],
+    orma_schema: OrmaSchema
+) => {
+    const mutation_statements = all_mutation_statements.filter(
+        ({ operation }) => operation === 'create'
+    )
+
+    const queries = mutation_statements
+        .map(({ entity, records, paths }) => {
+            const guid_fields = records.reduce<Set<string>>((acc, record) => {
+                Object.keys(record).forEach(key => {
+                    if (record[key]?.$guid !== undefined) {
+                        acc.add(key)
+                    }
+                })
+                return acc
+            }, new Set())
+
+            if (guid_fields.size === 0) {
+                return undefined
+            }
+
+            let all_identifying_keys = new Set<string>()
+            const wheres = records.map((record, i) => {
+                const { where, identifying_keys } =
+                    generate_record_where_clause(
+                        { record, path: paths[i] },
+                        orma_schema,
+                        true
+                    )
+                identifying_keys.forEach(key => all_identifying_keys.add(key))
+
+                return where
+            })
+
+            const $where = combine_wheres(wheres, '$or')
+
+            // guid fields are needed for foreign key propagation while identifying keys are just needed to match up
+            // database rows with mutation rows later on
+            const fields = [...guid_fields, ...all_identifying_keys]
+            const query = {
+                $select: fields,
+                $from: entity,
+                $where,
+            }
+
+            return {
+                query,
+                // TODO: add output props here so we know which records we have to join results from these queries
+            }
+        })
+        .filter(el => el !== undefined)
+
+    return queries
+}
+
 /**
  * Generates a query that selects the foreign keys and identifying fields, with where clauses per record based on the
  * identifying fields in the given records. If there are no foreign keys, returns undefined
@@ -315,10 +477,73 @@ export const get_mutation_statements = (
     return statements
 }
 
+// /**
+//  * Get a list of foreign keys required from a record in the mutation. This is basically the foreign keys of all connected
+//  * parent entities in the mutation
+//  */
+// const get_record_foreign_keys = (
+//     mutation,
+//     record_path: (string | number)[],
+//     orma_schema: orma_schema
+// ) => {
+//     const entity_name = path_to_entity(record_path)
+//     const record = deep_get(record_path, mutation)
+
+//     // get a list of the above path, as well as any below paths.
+//     // Some of these might by parents and some might be children.
+//     const above_path = drop_last(2, record_path)
+//     const below_paths = Object.keys(record)
+//         .filter(key => Array.isArray(record[key]))
+//         .map(key => [...record_path, key, 0])
+//     const all_paths = [above_path, ...below_paths]
+
+//     // now we will get foreign keys for all the paths that are parent paths (ignoring child paths) and
+//     // put the foreign keys in an object of { [foreign_key_name]: foreign_key_value}
+//     // this object is in the right format to spread into the current record
+//     const foreign_keys = all_paths
+//         .map(parent_path => {
+//             const parent_entity_name = parent_path?.[parent_path.length - 2]
+//             // dont do anything for the child paths (foreign keys only come from parents by definition)
+//             if (
+//                 !is_parent_entity(parent_entity_name, entity_name, orma_schema)
+//             ) {
+//                 return undefined
+//             }
+
+//             // assuming the thing is a parent, we need exactly one edge from the current entity to the parent
+//             // (since the syntax has no way to specify which foreign key to use in that case).
+//             // This function throws an error if there is not exactly one edge
+//             const edge = get_direct_edge(
+//                 entity_name,
+//                 parent_entity_name,
+//                 orma_schema
+//             )
+
+//             return edge.from_field
+//         })
+//         .filter(el => el !== undefined)
+
+//     return foreign_keys
+// }
+
 export const generate_record_where_clause = (
-    identifying_keys: string[],
-    record: Record<string, unknown>
+    mutation_piece: MutationPiece,
+    orma_schema: OrmaSchema,
+    allow_ambiguous_unique_keys: boolean = false
 ) => {
+    const { record, path } = mutation_piece
+    const entity_name = path_to_entity(path)
+
+    const identifying_keys = get_identifying_keys(
+        entity_name,
+        record,
+        orma_schema,
+        allow_ambiguous_unique_keys
+    )
+
+    // throw if we cant find a unique key
+    throw_identifying_key_errors(record.$operation, identifying_keys, path)
+
     const where_clauses = identifying_keys.map(key => ({
         $eq: [key, orma_escape(record[key])],
     }))
@@ -330,7 +555,7 @@ export const generate_record_where_clause = (
               }
             : where_clauses?.[0]
 
-    return where
+    return { where, identifying_keys }
 }
 
 export const path_to_entity = (path: (number | string)[]) => {
@@ -361,7 +586,11 @@ export const get_identifying_keys = (
         orma_schema
     )
     const included_unique_keys = unique_field_groups.filter(unique_fields =>
-        unique_fields.every(field => record[field] !== undefined)
+        unique_fields.every(
+            field =>
+                record[field] !== undefined && // has to have a value
+                record[field]?.$guid === undefined // but not a guid, since the the guid is a reference, not the true value of the field
+        )
     )
 
     if (choose_first_unique_key) {
@@ -371,7 +600,7 @@ export const get_identifying_keys = (
             // if there are 2 or more unique keys, we cant use them since it would be ambiguous which we choose
             return included_unique_keys[0] as string[]
         }
-    
+
         return []
     }
 }

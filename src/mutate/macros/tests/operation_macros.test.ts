@@ -5,7 +5,7 @@ import {
     get_create_ast,
     get_delete_ast,
     get_update_asts,
-} from '../operation_macros'
+} from '../operation_macros_old'
 
 describe('operation_macros.ts', () => {
     const orma_schema: OrmaSchema = {
