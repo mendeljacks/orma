@@ -1,11 +1,18 @@
+type ToposortGenericType<T extends string | number> = (
+    dag: Record<T, T[]>
+) => T[][]
+
 /**
  * Topological sorting is a graph algorithm to sort by dependencies
  * Operational complexity O(n)
  * Spacial complexity O(n)
- * Based on Kahn's algorithm with batching support
+ * Based on Kahn's algorithm with batching support.
+ * Dont mix string and numbers together in the dag, to prevent bugs due to javascript objects auto-converting the \
+ * number 1 to '1'
  * @param dag A directed acyclic graph
  */
-export const toposort = (dag: Record<string, string[]>): string[][] => {
+export const toposort: ToposortGenericType<string> &
+    ToposortGenericType<number> = dag => {
     const indegrees = countInDegrees(dag)
     const sorted = []
 
@@ -34,7 +41,6 @@ export const toposort = (dag: Record<string, string[]>): string[][] => {
     return sorted
 }
 
-
 export const countInDegrees = dag => {
     const counts = {}
     Object.entries(dag).forEach(([vx, dependents]: any) => {
@@ -54,4 +60,3 @@ const filterByDegree = predicate => counts =>
 const getRoots = filterByDegree(deg => deg === 0)
 
 const getNonRoots = filterByDegree(deg => deg !== 0)
-

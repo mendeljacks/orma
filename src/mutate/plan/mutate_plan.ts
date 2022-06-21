@@ -5,8 +5,10 @@ import {
     last,
 } from '../../helpers/helpers'
 import {
+    get_all_edges,
     get_child_edges,
     get_direct_edges,
+    get_parent_edges,
     is_parent_entity,
 } from '../../helpers/schema_helpers'
 import { path_to_string, string_to_path } from '../../helpers/string_to_path'
@@ -15,6 +17,7 @@ import { OrmaSchema } from '../../introspector/introspector'
 import { mutation_entity_deep_for_each } from '../helpers/mutate_helpers'
 import hexoid from 'hexoid'
 import { Path } from '../../types'
+import { path_to_entity } from '../mutate'
 
 // 1000 ids / sec needs 21 billion years for 1% chance of collision
 // https://alex7kom.github.io/nano-nanoid-cc/?alphabet=0123456789abcdef&size=36&speed=1000&speedUnit=second
@@ -41,20 +44,24 @@ export const add_guids_to_foreign_keys = (
                     if (edges_to_lower_entity.length === 1) {
                         const edge_to_lower_entity = edges_to_lower_entity[0]
                         higher_record[lower_entity].forEach(lower_record => {
-                            // dont overwrite values or guids that the user gave explicitly
+                            // inference only happens for nested creates
                             if (
-                                lower_record[edge_to_lower_entity.to_field] ===
-                                undefined
+                                lower_record.$operation !== 'create' ||
+                                higher_record.$operation !== 'create'
                             ) {
-                                const $guid = get_id()
-                                higher_record[
-                                    edge_to_lower_entity.from_entity
-                                ] = {
-                                    $guid,
+                                return
+                            }
+
+                            // dont overwrite values or guids that the user gave explicitly
+                            const { from_field, to_field } =
+                                edge_to_lower_entity
+
+                            if (lower_record[to_field] === undefined) {
+                                if (higher_record[from_field] === undefined) {
+                                    higher_record[from_field] = get_id()
                                 }
-                                lower_record[edge_to_lower_entity.to_entity] = {
-                                    $guid,
-                                }
+                                lower_record[to_field] =
+                                    higher_record[from_field]
                             }
                         })
                     }
@@ -68,7 +75,7 @@ export type MutationPiece = { record: Record<string, any>; path: Path }
 
 export type MutationBatch = { start_index: number; end_index: number }
 
-export type PathsByGuid = { [guid: string]: Path[] }
+export type PathsByGuid = { [stringified_value: string]: [number, string][] }
 
 const flatten_mutation = mutation => {
     let flat_mutation: MutationPiece[] = []
@@ -78,31 +85,150 @@ const flatten_mutation = mutation => {
     return flat_mutation
 }
 
-const get_paths_by_guid = (flat_mutation: MutationPiece[]) => {
-    // Keyed by path string and value is a $guid such as 5
-    let paths_by_guid: PathsByGuid = {}
+const get_fk_paths_by_value = (
+    flat_mutation: MutationPiece[],
+    orma_schema: OrmaSchema
+) => {
+    let fk_paths_by_value: PathsByGuid = {}
 
-    flat_mutation.forEach(({ record }, record_index) => {
-        Object.keys(record).forEach(key => {
-            const value = record[key]
-            if (value?.$guid !== undefined) {
-                // Remember where the guid was
-                const guid = value.$guid
-                if (!paths_by_guid[guid]) {
-                    paths_by_guid[guid] = []
+    flat_mutation.forEach(({ record, path }, record_index) => {
+        const entity = path_to_entity(path)
+        const from_fields = new Set(
+            get_all_edges(entity, orma_schema).map(edge => edge.from_field)
+        )
+        from_fields.forEach(from_field => {
+            const value = record[from_field]
+            if (value !== undefined) {
+                const value_string = JSON.stringify(value)
+                if (!fk_paths_by_value[value_string]) {
+                    fk_paths_by_value[value_string] = []
                 }
-                paths_by_guid[guid].push([record_index, key])
+                fk_paths_by_value[value_string].push([record_index, from_field])
             }
         })
     })
 
-    return paths_by_guid
+    return fk_paths_by_value
+}
+
+const fk_values = (mutation, orma_schema: OrmaSchema) => {
+    //
 }
 
 export const get_mutate_plan = (mutation, orma_schema: OrmaSchema) => {
-    const flat_mutation = flatten_mutation(mutation)
-    const paths_by_guid = get_paths_by_guid(flat_mutation)
-    // const toposort_graph 
+    add_guids_to_foreign_keys(mutation, orma_schema)
+    const mutation_pieces = flatten_mutation(mutation)
+    const fk_paths_by_value = get_fk_paths_by_value(
+        mutation_pieces,
+        orma_schema
+    )
+    type ToposortGraph = { [parent_index: number]: number[] }
+
+    const toposort_graph = mutation_pieces.reduce(
+        (acc, mutation_piece, toposort_parent_index) => {
+            const parent_record = mutation_piece.record
+            const entity = path_to_entity(mutation_piece.path)
+
+            const operation = parent_record.$operation
+            const child_edges =
+                operation === 'create' || operation === 'update'
+                    ? get_child_edges(entity, orma_schema)
+                    : operation === 'delete'
+                    ? get_parent_edges(entity, orma_schema)
+                    : []
+
+            const child_indices = child_edges.flatMap(child_edge => {
+                const parent_value = parent_record[child_edge.from_field]
+                // there may be no paths if there are no children in the mutation
+                const all_child_paths =
+                    fk_paths_by_value[JSON.stringify(parent_value)] ?? []
+
+                const child_paths = all_child_paths.filter(child_path => {
+                    const child_entity = path_to_entity(
+                        mutation_pieces[child_path[0]].path
+                    )
+                    const child_field = child_path[1]
+                    return (
+                        child_entity === child_edge.to_entity &&
+                        child_field === child_edge.to_field
+                    )
+                })
+
+                return child_paths.map(el => el[0])
+            })
+
+            // const guid_keys = Object.keys(parent_record).filter(
+            //     key => parent_record[key]?.$guid !== undefined
+            // )
+
+            // const toposort_child_indices = guid_keys.flatMap(guid_key => {
+            //     const guid = parent_record[guid_key]?.$guid
+            //     const connected_paths = fk_paths_by_value[guid]
+            //     const child_paths = connected_paths.filter(connected_path => {
+            //         const connected_index = connected_path[0]
+            //         const connected_entity = path_to_entity(
+            //             mutation_pieces[connected_index].path
+            //         )
+            //         const connected_record =
+            //             mutation_pieces[connected_index].record
+            //         const connected_entity_is_child = is_parent_entity(
+            //             entity,
+            //             connected_entity,
+            //             orma_schema
+            //         )
+
+            //         const operation = parent_record.$operation
+            //         const connected_operation = connected_record.$operation
+
+            //         if (
+            //             operation === 'create' &&
+            //             connected_operation === 'create' &&
+            //             connected_entity_is_child
+            //         ) {
+            //             // created get regular nesting
+            //             return true
+            //         } else if (
+            //             operation === 'delete' &&
+            //             connected_operation === 'delete' &&
+            //             !connected_entity_is_child
+            //         ) {
+            //             // reverse the parent/child relationship for deletes, since deletes must be done child-first while other operations are parent-first
+            //             return true
+            //         }
+
+            //         // update doesnt get edges in route_graph since updates can be processed in any order
+            //         return false
+            //     })
+            //     return child_paths.map(el => el[0])
+            // })
+
+            // if there are no toposort child indices, this will be an empty array but we still need to set it
+            // so that all records end up in the toposort results
+            acc[toposort_parent_index] = child_indices
+
+            return acc
+        },
+        {} as ToposortGraph
+    )
+
+    const toposort_results = toposort(toposort_graph)
+
+    let mutation_batches: { start_index: number; end_index }[] = []
+    let sorted_mutation_pieces: MutationPiece[] = []
+    toposort_results.forEach(toposort_tier => {
+        toposort_tier.forEach(index => {
+            const mutation_piece = mutation_pieces[index]
+            sorted_mutation_pieces.push(mutation_piece)
+        })
+        const last_end_index = last(mutation_batches)?.end_index
+        const start_index = last_end_index ?? 0
+        mutation_batches.push({
+            start_index,
+            end_index: start_index + toposort_tier.length,
+        })
+    })
+
+    return { mutation_pieces: sorted_mutation_pieces, mutation_batches }
 }
 
 export const get_mutate_plan_OLD = (mutation, orma_schema: OrmaSchema) => {
