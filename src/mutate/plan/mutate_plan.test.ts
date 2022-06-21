@@ -72,7 +72,7 @@ describe('mutation_plan.ts', () => {
         },
     }
 
-    describe(get_mutate_plan.name, () => {
+    describe.only(get_mutate_plan.name, () => {
         test('handles simple mutation', () => {
             const mutation = {
                 parents: [
@@ -319,11 +319,11 @@ describe('mutation_plan.ts', () => {
 
             const goal = {
                 mutation_pieces: [
-                    { record: mutation.parents[0], path: ['parents', 0] },
                     {
                         record: mutation.parents[0].children[0],
                         path: ['parents', 0, 'children', 0],
                     },
+                    { record: mutation.parents[0], path: ['parents', 0] },
                 ],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
@@ -333,13 +333,15 @@ describe('mutation_plan.ts', () => {
 
             expect(mutate_plan).to.deep.equal(goal)
         })
-        test.skip('only adds guids to creates', () => {
+        test('only adds guids to creates', () => {
             const mutation = {
                 parents: [
                     {
                         $operation: 'update',
+                        id: 1,
                         children: [
                             {
+                                id: 2,
                                 $operation: 'update',
                             },
                         ],
@@ -357,13 +359,11 @@ describe('mutation_plan.ts', () => {
                         path: ['parents', 0, 'children', 0],
                     },
                 ],
-                mutation_batches: [
-                    { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                mutation_batches: [{ start_index: 0, end_index: 2 }],
             }
 
             expect(mutate_plan).to.deep.equal(goal)
+            expect(mutate_plan.mutation_pieces[1].record.parent_id).to.equal(undefined)
         })
         test('handles mixed operation requests', () => {
             const mutation = {
@@ -426,40 +426,6 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            // const goal = [
-            //     [
-            //         {
-            //             operation: 'update',
-            //             paths: [['grandparents', 0]],
-            //             route: ['grandparents'],
-            //         },
-            //         {
-            //             operation: 'delete',
-            //             paths: [
-            //                 ['grandparents', 0, 'parents', 0, 'children', 0],
-            //             ],
-            //             route: ['grandparents', 'parents', 'children'],
-            //         },
-            //         {
-            //             operation: 'create',
-            //             paths: [['grandparents', 1]],
-            //             route: ['grandparents'],
-            //         },
-            //     ],
-            //     [
-            //         {
-            //             operation: 'delete',
-            //             paths: [['grandparents', 0, 'parents', 0]],
-            //             route: ['grandparents', 'parents'],
-            //         },
-            //         {
-            //             operation: 'create',
-            //             paths: [['grandparents', 1, 'parents', 0]],
-            //             route: ['grandparents', 'parents'],
-            //         },
-            //     ],
-            // ]
-
             expect(mutate_plan).to.deep.equal(goal)
         })
         test('handles entity with no children', () => {
@@ -473,15 +439,15 @@ describe('mutation_plan.ts', () => {
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
 
-            const goal = [
-                [
+            const goal = {
+                mutation_pieces: [
                     {
-                        operation: 'update',
-                        paths: [['parents', 0]],
-                        route: ['parents'],
+                        record: mutation.parents[0],
+                        path: ['parents', 0],
                     },
                 ],
-            ]
+                mutation_batches: [{ start_index: 0, end_index: 1 }],
+            }
 
             expect(mutate_plan).to.deep.equal(goal)
         })
@@ -501,22 +467,22 @@ describe('mutation_plan.ts', () => {
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
 
-            const goal = [
-                [
+            const goal = {
+                mutation_pieces: [
                     {
-                        operation: 'create',
-                        paths: [['children', 0, 'parents', 0]],
-                        route: ['children', 'parents'],
+                        record: mutation.children[0].parents[0],
+                        path: ['children', 0, 'parents', 0],
+                    },
+                    {
+                        record: mutation.children[0],
+                        path: ['children', 0],
                     },
                 ],
-                [
-                    {
-                        operation: 'create',
-                        paths: [['children', 0]],
-                        route: ['children'],
-                    },
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 },
                 ],
-            ]
+            }
 
             expect(mutate_plan).to.deep.equal(goal)
         })
@@ -541,27 +507,26 @@ describe('mutation_plan.ts', () => {
 
             const mutate_plan = get_mutate_plan(mutation, orma_schema)
 
-            const goal = [
-                [
+            const goal = {
+                mutation_pieces: [
                     {
-                        operation: 'create',
-                        paths: [['parents', 0]],
-                        route: ['parents'],
+                        record: mutation.parents[0],
+                        path: ['parents', 0],
                     },
                     {
-                        operation: 'create',
-                        paths: [['parents', 0, 'children', 0, 'parents', 0]],
-                        route: ['parents', 'children', 'parents'],
+                        record: mutation.parents[0].children[0].parents[0],
+                        path: ['parents', 0, 'children', 0, 'parents', 0],
                     },
-                ],
-                [
                     {
-                        operation: 'create',
-                        paths: [['parents', 0, 'children', 0]],
-                        route: ['parents', 'children'],
+                        record: mutation.parents[0].children[0],
+                        path: ['parents', 0, 'children', 0],
                     },
                 ],
-            ]
+                mutation_batches: [
+                    { start_index: 0, end_index: 2 },
+                    { start_index: 2, end_index: 3 },
+                ],
+            }
 
             expect(mutate_plan).to.deep.equal(goal)
         })

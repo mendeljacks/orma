@@ -81,7 +81,7 @@ describe('operation_macros.ts', () => {
         },
     }
 
-    describe.only(get_mutation_statements.name, () => {
+    describe(get_mutation_statements.name, () => {
         test('update by id', () => {
             const mutation = {
                 grandparents: [

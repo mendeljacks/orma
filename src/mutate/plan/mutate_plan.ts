@@ -43,26 +43,66 @@ export const add_guids_to_foreign_keys = (
                     // reject the mutation
                     if (edges_to_lower_entity.length === 1) {
                         const edge_to_lower_entity = edges_to_lower_entity[0]
+                        const { from_field, to_field } = edge_to_lower_entity
+
+                        // // cancel if user provided a higher value, Inference only happens if not overriden
+                        // if (higher_record[from_field] !== undefined) {
+                        //     return
+                        // }
+                        const guid_obj = { $guid: get_id() }
+
                         higher_record[lower_entity].forEach(lower_record => {
-                            // inference only happens for nested creates
+                            const operations_are_same =
+                                lower_record.$operation ===
+                                higher_record.$operation
+
+                            const is_create_or_delete =
+                                higher_record.$operation === 'create' ||
+                                higher_record.$operation === 'delete'
+
+                            
+                            // we dont do foreign key inference if the foreign key (e.g. parent_id) has something
+                            // provided by the user, even if the parent (e.g. id) is empty. We could propagate to the
+                            // parent column in this case, but this will probably lead to bugs such as the id column
+                            // being changed accidentally which we definitely dont want (if not intended). So as a 
+                            // precaution we dont propagate. We still propagate if the parent column is given by the
+                            // user but not the child column, for example nested deletes where only the id is given.
+                            const child_value = is_parent_entity(
+                                higher_entity,
+                                lower_entity,
+                                orma_schema
+                            )
+                                ? lower_record[to_field]
+                                : higher_record[to_field]
+
                             if (
-                                lower_record.$operation !== 'create' ||
-                                higher_record.$operation !== 'create'
+                                operations_are_same &&
+                                is_create_or_delete &&
+                                child_value === undefined
                             ) {
-                                return
+                                // use same reference since there is only one higher record
+                                higher_record[from_field] = guid_obj
+                                // copy so we dont share references. Each lower record gets its own copy
+                                lower_record[to_field] = { ...guid_obj }
                             }
+                            // if (
+                            //     lower_record.$operation !== 'create' ||
+                            //     higher_record.$operation !== 'create'
+                            // ) {
+                            //     return
+                            // }
 
-                            // dont overwrite values or guids that the user gave explicitly
-                            const { from_field, to_field } =
-                                edge_to_lower_entity
+                            // // dont overwrite values or guids that the user gave explicitly
+                            // const { from_field, to_field } =
+                            //     edge_to_lower_entity
 
-                            if (lower_record[to_field] === undefined) {
-                                if (higher_record[from_field] === undefined) {
-                                    higher_record[from_field] = get_id()
-                                }
-                                lower_record[to_field] =
-                                    higher_record[from_field]
-                            }
+                            // if (lower_record[to_field] === undefined) {
+                            //     if (higher_record[from_field] === undefined) {
+                            //         higher_record[from_field] = get_id()
+                            //     }
+                            //     lower_record[to_field] =
+                            //         higher_record[from_field]
+                            // }
                         })
                     }
                 }
