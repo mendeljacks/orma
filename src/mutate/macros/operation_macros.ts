@@ -25,9 +25,7 @@ export const get_mutation_statements = (
                     asts = [
                         get_create_ast(group_pieces, entity, values_by_guid),
                     ]
-                }
-
-                if (operation === 'update') {
+                } else if (operation === 'update') {
                     asts = group_pieces.map(mutation_piece =>
                         get_update_ast(
                             mutation_piece,
@@ -35,19 +33,21 @@ export const get_mutation_statements = (
                             orma_schema
                         )
                     )
-                }
-
-                if (operation === 'delete') {
+                } else if (operation === 'delete') {
                     asts = [get_delete_ast(group_pieces, entity, orma_schema)]
+                } else {
+                    throw new Error(`Unrecognized $operation ${operation}`)
                 }
 
-                return asts.map(ast => ({
-                    ast,
-                    operation,
-                    entity,
-                    records: mutation_pieces.map(el => el.record),
-                    paths: mutation_pieces.map(el => el.path),
-                }))
+                return asts
+                    .filter(ast => ast !== undefined) // can be undefined if there is nothing to do, e.g. a stub update
+                    .map(ast => ({
+                        ast,
+                        operation,
+                        entity,
+                        records: mutation_pieces.map(el => el.record),
+                        paths: mutation_pieces.map(el => el.path),
+                    }))
             })
         }
     )
@@ -72,24 +72,6 @@ const group_mutation_pieces = (mutation_pieces: MutationPiece[]) => {
     return grouped_mutation
 }
 
-export const get_resolved_mutation_value = (
-    record: Record<string, any>,
-    field: string,
-    values_by_guid: Record<any, any>
-) => {
-    const value = record[field]
-
-    // dont process submutations or keywords such as $operation
-    if (Array.isArray(value) || is_reserved_keyword(field)) {
-        return undefined
-    }
-
-    const resolved_value =
-        value?.$guid === undefined ? value : values_by_guid[value.$guid]
-
-    return resolved_value
-}
-
 const get_create_ast = (
     mutation_pieces: MutationPiece[],
     entity: string,
@@ -112,19 +94,20 @@ const get_create_ast = (
         return acc
     }, new Set() as Set<string>)
 
-    const values = mutation_pieces.map((mutation_piece, i) => {
-        const record_values = [...fields].flatMap(field => {
-            const resolved_value = get_resolved_mutation_value(
-                mutation_piece.record,
-                field,
-                values_by_guid
-            )
-            const escaped_value = orma_escape(resolved_value ?? null)
-            return escaped_value
-        })
+    const values = mutation_pieces
+        .map((mutation_piece, i) => {
+            const record_values = [...fields].flatMap(field => {
+                const resolved_value = get_resolved_mutation_value(
+                    mutation_piece.record,
+                    field,
+                    values_by_guid
+                )
+                const escaped_value = orma_escape(resolved_value ?? null)
+                return escaped_value
+            })
 
-        return record_values
-    })
+            return record_values
+        })
 
     const ast = {
         $insert_into: [entity, [...fields]],
@@ -132,6 +115,24 @@ const get_create_ast = (
     }
 
     return ast
+}
+
+export const get_resolved_mutation_value = (
+    record: Record<string, any>,
+    field: string,
+    values_by_guid: Record<any, any>
+) => {
+    const value = record[field]
+
+    // dont process submutations or keywords such as $operation
+    if (Array.isArray(value) || is_reserved_keyword(field)) {
+        return undefined
+    }
+
+    const resolved_value =
+        value?.$guid === undefined ? value : values_by_guid[value.$guid]
+
+    return resolved_value
 }
 
 const get_update_ast = (
@@ -167,11 +168,13 @@ const get_update_ast = (
 
     const entity = path_to_entity(mutation_piece.path)
 
-    return {
-        $update: entity,
-        $set,
-        $where: where,
-    }
+    return $set.length === 0
+        ? undefined
+        : {
+              $update: entity,
+              $set,
+              $where: where,
+          }
 }
 
 const get_delete_ast = (

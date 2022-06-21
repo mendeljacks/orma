@@ -365,7 +365,7 @@ describe('mutation_plan.ts', () => {
 
             expect(mutate_plan).to.deep.equal(goal)
         })
-        test.only('handles mixed operation requests', () => {
+        test('handles mixed operation requests', () => {
             const mutation = {
                 grandparents: [
                     {

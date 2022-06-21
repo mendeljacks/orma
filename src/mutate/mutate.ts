@@ -565,6 +565,14 @@ export const path_to_entity = (path: (number | string)[]) => {
         : (last(path) as string)
 }
 
+const check_values_for_guids = (record, keys) => {
+    if (keys.some(key => record[key]?.$guid !== undefined)) {
+        throw new Error(
+            `Tried to use keys ${keys} but some value is a $guid. This has been disabled because it can cause confusing behaviour. Please set the value to a constant to fix this.`
+        )
+    }
+}
+
 export const get_identifying_keys = (
     entity_name: string,
     record: Record<string, any>,
@@ -573,9 +581,10 @@ export const get_identifying_keys = (
 ): string[] => {
     const primary_keys = get_primary_keys(entity_name, orma_schema)
     const has_primary_keys = primary_keys.every(
-        primary_key => record[primary_key] !== undefined
+        key => record[key] !== undefined
     )
     if (has_primary_keys && primary_keys.length > 0) {
+        check_values_for_guids(record, primary_keys)
         return primary_keys
     }
 
@@ -587,17 +596,14 @@ export const get_identifying_keys = (
         orma_schema
     )
     const included_unique_keys = unique_field_groups.filter(unique_fields =>
-        unique_fields.every(
-            field =>
-                record[field] !== undefined && // has to have a value
-                record[field]?.$guid === undefined // but not a guid, since the the guid is a reference, not the true value of the field
-        )
+        unique_fields.every(key => record[key] !== undefined)
     )
 
     if (choose_first_unique_key) {
         return included_unique_keys[0] as string[]
     } else {
         if (included_unique_keys.length === 1) {
+            check_values_for_guids(record, included_unique_keys[0])
             // if there are 2 or more unique keys, we cant use them since it would be ambiguous which we choose
             return included_unique_keys[0] as string[]
         }
