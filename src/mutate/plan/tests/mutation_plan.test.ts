@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../introspector/introspector'
-import { get_mutate_plan } from './mutate_plan'
+import { OrmaSchema } from '../../../introspector/introspector'
+import { get_mutation_plan } from '../mutation_plan'
 
 describe('mutation_plan.ts', () => {
     const orma_schema: OrmaSchema = {
@@ -72,7 +72,7 @@ describe('mutation_plan.ts', () => {
         },
     }
 
-    describe.only(get_mutate_plan.name, () => {
+    describe.only(get_mutation_plan.name, () => {
         test('handles simple mutation', () => {
             const mutation = {
                 parents: [
@@ -90,7 +90,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -134,7 +134,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -212,7 +212,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -250,7 +250,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             // update order is not guaranteed
             const goal = {
@@ -283,7 +283,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -315,7 +315,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -349,7 +349,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -395,7 +395,7 @@ describe('mutation_plan.ts', () => {
                 ],
             } as const
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -437,7 +437,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -465,7 +465,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [
@@ -505,7 +505,7 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutate_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
             const goal = {
                 mutation_pieces: [

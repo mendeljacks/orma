@@ -26,10 +26,10 @@ import {
     throw_identifying_key_errors,
 } from './macros/operation_macros_old'
 import {
-    get_mutate_plan,
+    get_mutation_plan,
     MutationBatch,
     MutationPiece,
-} from './plan/mutate_plan'
+} from './plan/mutation_plan'
 
 export type MutationOperation = 'create' | 'update' | 'delete'
 export type operation = MutationOperation | 'query'
@@ -149,7 +149,7 @@ export const orma_mutate_old = async (
     apply_inherit_operations_macro(mutation)
     const { guid_by_path, paths_by_guid } = apply_guid_macro(mutation)
     // [[{"operation":"create","paths":[...]]}],[{"operation":"create","paths":[...]}]]
-    const mutate_plan = get_mutate_plan(mutation, orma_schema)
+    const mutate_plan = get_mutation_plan(mutation, orma_schema)
 
     let db_row_by_path = {
         // Will be built up as each phase of the mutate_plan is executed

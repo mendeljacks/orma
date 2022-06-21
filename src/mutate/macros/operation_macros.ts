@@ -8,7 +8,7 @@ import {
     MutationOperation,
     path_to_entity,
 } from '../mutate'
-import { MutationPiece } from '../plan/mutate_plan'
+import { MutationPiece } from '../plan/mutation_plan'
 
 export const get_mutation_statements = (
     mutation_pieces: MutationPiece[],
