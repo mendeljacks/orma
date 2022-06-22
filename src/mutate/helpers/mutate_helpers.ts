@@ -20,7 +20,7 @@ export const split_mutation_by_entity = mutation => {
 export const mutation_entity_deep_for_each = (
     mutation,
     processor: (
-        value: any,
+        value: Record<string, any>,
         path: (string | number)[],
         entity_name: string
     ) => void

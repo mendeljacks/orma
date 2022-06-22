@@ -1,11 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { OrmaSchema } from '../../../introspector/introspector'
-import {
-    get_create_ast,
-    get_delete_ast,
-    get_update_asts,
-} from '../operation_macros'
+import { get_mutation_statements } from '../operation_macros'
 
 describe('operation_macros.ts', () => {
     const orma_schema: OrmaSchema = {
@@ -85,9 +81,7 @@ describe('operation_macros.ts', () => {
         },
     }
 
-    describe(get_create_ast.name, () => {})
-
-    describe(get_update_asts.name, () => {
+    describe(get_mutation_statements.name, () => {
         test('update by id', () => {
             const mutation = {
                 grandparents: [
@@ -99,12 +93,17 @@ describe('operation_macros.ts', () => {
                 ],
             }
 
-            const result = get_update_asts(
-                'grandparents',
-                [['grandparents', 0]],
-                mutation,
+            const result = get_mutation_statements(
+                [
+                    {
+                        record: mutation.grandparents[0],
+                        path: ['grandparents', 0],
+                    },
+                ],
+                {},
                 orma_schema
-            )
+            ).map(el => el.ast)
+
             const goal = [
                 {
                     $update: 'grandparents',
@@ -115,22 +114,28 @@ describe('operation_macros.ts', () => {
 
             expect(result).to.deep.equal(goal)
         })
-        test('foreign key has precedence over unique', () => {
+        test('primary key has precedence over unique', () => {
             const mutation = {
                 parents: [
                     {
+                        $operation: 'update',
                         id: 1,
                         unique1: 'john',
                     },
                 ],
             }
 
-            const result = get_update_asts(
-                'parents',
-                [['parents', 0]],
-                mutation,
+            const result = get_mutation_statements(
+                [
+                    {
+                        record: mutation.parents[0],
+                        path: ['parents', 0],
+                    },
+                ],
+                {},
                 orma_schema
-            )
+            ).map(el => el.ast)
+
             const goal = [
                 {
                     $update: 'parents',
@@ -145,18 +150,24 @@ describe('operation_macros.ts', () => {
             const mutation = {
                 parents: [
                     {
+                        $operation: 'update',
                         unique1: 'john',
                         quantity: 5,
                     },
                 ],
             }
 
-            const result = get_update_asts(
-                'parents',
-                [['parents', 0]],
-                mutation,
+            const result = get_mutation_statements(
+                [
+                    {
+                        record: mutation.parents[0],
+                        path: ['parents', 0],
+                    },
+                ],
+                {},
                 orma_schema
-            )
+            ).map(el => el.ast)
+
             const goal = [
                 {
                     $update: 'parents',
@@ -171,18 +182,23 @@ describe('operation_macros.ts', () => {
             const mutation = {
                 parents: [
                     {
+                        $operation: 'update',
                         quantity: 5, // quantity is not unique, so it can't be used to update with
                     },
                 ],
             }
 
             try {
-                const result = get_update_asts(
-                    'parents',
-                    [['parents', 0]],
-                    mutation,
+                const result = get_mutation_statements(
+                    [
+                        {
+                            record: mutation.parents[0],
+                            path: ['parents', 0],
+                        },
+                    ],
+                    {},
                     orma_schema
-                )
+                ).map(el => el.ast)
                 expect('should have thrown an error').to.equal(true)
             } catch (error) {
                 // error was thrown as it should be
@@ -192,6 +208,7 @@ describe('operation_macros.ts', () => {
             const mutation = {
                 parents: [
                     {
+                        $operation: 'update',
                         unique1: 'test',
                         unique2: 'testing',
                         quantity: 5,
@@ -200,12 +217,16 @@ describe('operation_macros.ts', () => {
             }
 
             try {
-                const result = get_update_asts(
-                    'parents',
-                    [['parents', 0]],
-                    mutation,
+                const result = get_mutation_statements(
+                    [
+                        {
+                            record: mutation.parents[0],
+                            path: ['parents', 0],
+                        },
+                    ],
+                    {},
                     orma_schema
-                )
+                ).map(el => el.ast)
                 expect('should have thrown an error').to.equal(true)
             } catch (error) {}
         })
@@ -213,6 +234,7 @@ describe('operation_macros.ts', () => {
             const mutation = {
                 children: [
                     {
+                        $operation: 'update',
                         id1: 4,
                         id2: 5,
                         parent_id: 6,
@@ -220,12 +242,17 @@ describe('operation_macros.ts', () => {
                 ],
             }
 
-            const result = get_update_asts(
-                'children',
-                [['children', 0]],
-                mutation,
+            const result = get_mutation_statements(
+                [
+                    {
+                        record: mutation.children[0],
+                        path: ['children', 0],
+                    },
+                ],
+                {},
                 orma_schema
-            )
+            ).map(el => el.ast)
+
             const goal = [
                 {
                     $update: 'children',
@@ -245,34 +272,169 @@ describe('operation_macros.ts', () => {
 
             expect(result).to.deep.equal(goal)
         })
-    })
-
-    describe(get_delete_ast.name, () => {
         // alot of the logic is shared between update and delete functions, so we dont need to repeat all
         // the tests that we already did with the update function
         test('handles deletes', () => {
             const mutation = {
                 parents: [
                     {
+                        $operation: 'delete',
                         id: 4,
                     },
                 ],
             }
 
-            const result = get_delete_ast(
-                'parents',
-                [['parents', 0]],
-                mutation,
+            const result = get_mutation_statements(
+                [
+                    {
+                        record: mutation.parents[0],
+                        path: ['parents', 0],
+                    },
+                ],
+                {},
                 orma_schema
-            )
-            const goal = {
-                $delete_from: 'parents',
-                $where: { $eq: ['id', 4] },
+            ).map(el => el.ast)
+
+            const goal = [
+                {
+                    $delete_from: 'parents',
+                    $where: { $eq: ['id', 4] },
+                },
+            ]
+
+            expect(result).to.deep.equal(goal)
+        })
+        test('handles guid resolving', () => {
+            const mutation = {
+                parents: [
+                    {
+                        $operation: 'create',
+                        id: { $guid: 'a' },
+                    },
+                    {
+                        $operation: 'update',
+                        id: 1,
+                        grandparent_id: { $guid: 'a' },
+                    },
+                ],
             }
+
+            const values_by_guid = {
+                a: 12,
+            }
+
+            const result = get_mutation_statements(
+                [
+                    {
+                        record: mutation.parents[0],
+                        path: ['parents', 0],
+                    },
+                    {
+                        record: mutation.parents[1],
+                        path: ['parents', 1],
+                    },
+                ],
+                values_by_guid,
+                orma_schema
+            ).map(el => el.ast)
+
+            const goal = [
+                {
+                    $insert_into: ['parents', ['id']],
+                    $values: [[12]],
+                },
+                {
+                    $update: 'parents',
+                    $set: [['grandparent_id', 12]],
+                    $where: { $eq: ['id', 1] },
+                },
+            ]
+
+            expect(result).to.deep.equal(goal)
+        })
+        test('doesnt allow $guid on a chosen identifying key', () => {
+            const mutation = {
+                parents: [
+                    {
+                        $operation: 'update',
+                        // id would usually be chose to identify this row to update, but instead unique1 is chosen
+                        // since id is a $guid
+                        id: { $guid: 'a' },
+                        unique1: 1,
+                        quantity: 2,
+                    },
+                ],
+            }
+
+            const values_by_guid = {
+                a: 12,
+            }
+
+            try {
+                const result = get_mutation_statements(
+                    [
+                        {
+                            record: mutation.parents[0],
+                            path: ['parents', 0],
+                        },
+                    ],
+                    values_by_guid,
+                    orma_schema
+                ).map(el => el.ast)
+                expect('should have been an error').to.equal(true)
+            } catch (error) {}
+        })
+        test('handles stub updates', () => {
+            const mutation = {
+                parents: [
+                    {
+                        // ignored
+                        $operation: 'update',
+                        id: 1,
+                    },
+                    {
+                        // included
+                        $operation: 'delete',
+                        id: 1,
+                    },
+                    {
+                        // included
+                        $operation: 'create',
+                    },
+                ],
+            }
+
+            const result = get_mutation_statements(
+                [
+                    {
+                        record: mutation.parents[0],
+                        path: ['parents', 0],
+                    },
+                    {
+                        record: mutation.parents[1],
+                        path: ['parents', 1],
+                    },
+                    {
+                        record: mutation.parents[2],
+                        path: ['parents', 2],
+                    },
+                ],
+                {},
+                orma_schema
+            ).map(el => el.ast)
+
+            const goal = [
+                {
+                    $delete_from: 'parents',
+                    $where: { $eq: ['id', 1] },
+                },
+                {
+                    $insert_into: ['parents', []],
+                    $values: [[]],
+                },
+            ]
 
             expect(result).to.deep.equal(goal)
         })
     })
 })
-
-// TODO: write tests for create ast function

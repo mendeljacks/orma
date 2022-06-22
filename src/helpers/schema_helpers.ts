@@ -326,3 +326,9 @@ export const is_required_field = (
         !field_schema.auto_increment
     return is_required
 }
+
+export const get_parent_edges_for_field = (entity: string, field: string, orma_schema: OrmaSchema) => {
+    const parent_edges = get_parent_edges(entity, orma_schema)
+    const matching_edges = parent_edges.filter(el => el.from_field === field)
+    return matching_edges
+}
