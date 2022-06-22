@@ -102,53 +102,68 @@ export interface orma_index_schema {
  * @returns [tables_sql, columns_sql, foreign_keys_sql]
  */
 export const get_introspect_sqls = (database_name: string): string[] => {
+    /*
+    selects:
+        table_name, 
+        table_comment 
+        FROM INFORMATION_SCHEMA.TABLES 
+
+        column_name, 
+        table_name,
+        data_type,
+        column_type,
+        column_key,
+        is_nullable,
+        numeric_precision,
+        numeric_scale,
+        character_maximum_length,
+        column_default,
+        extra,
+        column_comment
+        FROM information_schema.COLUMNS  
+
+        table_name, 
+        column_name,
+        referenced_table_name,
+        referenced_column_name,
+        constraint_name
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+
+        table_name, 
+        non_unique, 
+        index_name, 
+        seq_in_index, 
+        column_name, 
+        collation, 
+        sub_part, 
+        packed, 
+        nullable, 
+        index_type, 
+        comment,
+        index_comment, 
+        is_visible, 
+        expression
+        FROM INFORMATION_SCHEMA.STATISTICS
+    */
+
     const query_strings = [
         `SELECT 
-            table_name, 
-            table_comment 
+            *
         FROM INFORMATION_SCHEMA.TABLES 
         WHERE table_schema='${database_name}'`,
 
         `SELECT 
-            column_name, 
-            table_name,
-            data_type,
-            column_type,
-            column_key,
-            is_nullable,
-            numeric_precision,
-            numeric_scale,
-            character_maximum_length,
-            column_default,
-            extra,
-            column_comment
+            *
         FROM information_schema.COLUMNS  
         WHERE table_schema = '${database_name}'`,
 
         `SELECT 
-            table_name, 
-            column_name,
-            referenced_table_name,
-            referenced_column_name,
-            constraint_name
+            *
         FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
         WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`,
 
         `SELECT 
-            table_name, 
-            non_unique, 
-            index_name, 
-            seq_in_index, 
-            column_name, 
-            collation, 
-            sub_part, 
-            packed, 
-            nullable, 
-            index_type, 
-            comment,
-            index_comment, 
-            is_visible, 
-            expression
+            *
         FROM INFORMATION_SCHEMA.STATISTICS
         WHERE TABLE_SCHEMA = '${database_name}'`,
     ]
