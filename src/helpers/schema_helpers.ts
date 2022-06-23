@@ -180,9 +180,7 @@ export const get_direct_edge = (
         : parent_edges
 
     const filtered_child_edges = foreign_key_override
-        ? child_edges.filter(
-              edge => edge.to_field === foreign_key_override[0]
-          )
+        ? child_edges.filter(edge => edge.to_field === foreign_key_override[0])
         : child_edges
 
     const edges = [...filtered_parent_edges, ...filtered_child_edges]
@@ -280,7 +278,7 @@ export const get_unique_field_groups = (
     entity_name: string,
     exclude_nullable: boolean,
     orma_schema: OrmaSchema
-) => {
+): string[][] => {
     const indexes = orma_schema[entity_name]?.$indexes ?? []
     const unique_field_groups = indexes
         .filter(index => index.is_unique)
@@ -299,7 +297,8 @@ export const get_unique_field_groups = (
             }
         })
         .map(index => index.fields)
-    return unique_field_groups
+
+    return unique_field_groups as string[][]
 }
 
 export const field_exists = (
@@ -327,7 +326,11 @@ export const is_required_field = (
     return is_required
 }
 
-export const get_parent_edges_for_field = (entity: string, field: string, orma_schema: OrmaSchema) => {
+export const get_parent_edges_for_field = (
+    entity: string,
+    field: string,
+    orma_schema: OrmaSchema
+) => {
     const parent_edges = get_parent_edges(entity, orma_schema)
     const matching_edges = parent_edges.filter(el => el.from_field === field)
     return matching_edges

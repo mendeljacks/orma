@@ -255,6 +255,9 @@ export const group_by = <T>(
         return acc
     }, {})
 
+/**
+ * Overwrites items that give the same value for key_function
+ */
 export const key_by = <T>(
     array: T[],
     key_function: (item: T, i?: number) => string
