@@ -3,7 +3,6 @@ import { describe, test } from 'mocha'
 import { OrmaSchema } from '../introspector/introspector'
 import { add_foreign_key_indexes } from './helpers/add_foreign_key_indexes'
 import {
-    generate_foreign_key_query,
     mysql_fn,
     orma_mutate,
     statements,
@@ -293,10 +292,6 @@ describe('mutate', () => {
                 },
             })
         })
-    })
-
-    describe(generate_foreign_key_query.name, () => {
-        test.skip('basic test')
     })
 
     describe(orma_mutate.name, () => {

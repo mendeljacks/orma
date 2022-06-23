@@ -1,18 +1,10 @@
 import { orma_escape } from '../helpers/escape'
-import { clone, deep_get, last } from '../helpers/helpers'
+import { clone, last } from '../helpers/helpers'
 import { push_path } from '../helpers/push_path'
-import {
-    get_child_edges,
-    get_primary_keys,
-    get_unique_field_groups,
-} from '../helpers/schema_helpers'
-import { string_to_path } from '../helpers/string_to_path'
 import { OrmaSchema } from '../introspector/introspector'
-import { json_to_sql } from '../query/json_sql'
 import { combine_wheres } from '../query/query_helpers'
 import { Path } from '../types'
 import {
-    add_foreign_key_indexes,
     save_guids,
     sort_database_rows,
 } from './helpers/add_foreign_key_indexes'
@@ -25,10 +17,9 @@ import {
     get_update_ast,
     throw_identifying_key_errors,
 } from './macros/operation_macros'
-import { apply_guid_inference } from './plan/guid_inference'
+import { apply_guid_inference_macro } from './macros/guid_inference_macro'
 import {
     get_mutation_plan,
-    MutationBatch,
     MutationPiece,
     run_mutation_plan,
 } from './plan/mutation_plan'
@@ -56,7 +47,7 @@ export const orma_mutate = async (
     const values_by_guid: ValuesByGuid = {}
 
     apply_inherit_operations_macro(mutation)
-    apply_guid_inference(mutation, orma_schema)
+    apply_guid_inference_macro(mutation, orma_schema)
 
     const mutation_plan = get_mutation_plan(mutation, orma_schema)
 

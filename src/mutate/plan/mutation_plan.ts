@@ -12,7 +12,7 @@ import { mutation_entity_deep_for_each } from '../helpers/mutate_helpers'
 import { Path } from '../../types'
 import { apply_inherit_operations_macro } from '../macros/inherit_operations_macro'
 import { path_to_entity } from '../mutate'
-import { apply_guid_inference } from './guid_inference'
+import { apply_guid_inference_macro } from '../macros/guid_inference_macro'
 
 export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
     /*
