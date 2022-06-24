@@ -72,7 +72,7 @@ describe('mutation_plan.ts', () => {
         },
     }
 
-    describe.only(get_mutation_plan.name, () => {
+    describe(get_mutation_plan.name, () => {
         test('handles simple mutation', () => {
             const mutation = {
                 parents: [

@@ -75,3 +75,9 @@ export const get_connected_mutation_pieces = (
     const lower_mutation_pieces = get_lower_mutation_pieces(mutation_piece)
     return [higher_mutation_piece, ...lower_mutation_pieces]
 }
+
+export const path_to_entity = (path: (number | string)[]) => {
+    return typeof last(path) === 'number'
+        ? (path[path.length - 2] as string)
+        : (last(path) as string)
+}

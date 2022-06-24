@@ -8,9 +8,9 @@ import {
 import { OrmaSchema } from '../../introspector/introspector'
 import {
     get_connected_mutation_pieces,
-    mutation_entity_deep_for_each
+    mutation_entity_deep_for_each,
+    path_to_entity
 } from '../helpers/mutate_helpers'
-import { path_to_entity } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 
 // 1000 ids / sec needs 21 billion years for 1% chance of collision

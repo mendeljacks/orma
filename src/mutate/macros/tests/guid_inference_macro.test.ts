@@ -43,7 +43,7 @@ describe('guid_inference_macro.ts', () => {
         },
     })
 
-    describe.only(apply_guid_inference_macro.name, () => {
+    describe(apply_guid_inference_macro.name, () => {
         test('adds guids to creates', () => {
             const mutation = {
                 products: [
@@ -125,7 +125,7 @@ describe('guid_inference_macro.ts', () => {
             // no changes
             expect(cloned_mutation).to.deep.equal(mutation)
         })
-        test('parent -> child -> parent ambiguous nesting', () => {
+        test('ignores parent -> child -> parent ambiguous nesting', () => {
             const mutation = {
                 products: [
                     {

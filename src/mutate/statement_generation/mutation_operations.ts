@@ -3,7 +3,8 @@ import { orma_escape } from '../../helpers/escape'
 import { is_reserved_keyword } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { combine_wheres } from '../../query/query_helpers'
-import { generate_record_where_clause, path_to_entity } from '../mutate'
+import { path_to_entity } from '../helpers/mutate_helpers'
+import { generate_record_where_clause } from '../helpers/record_searching'
 import { MutationPiece } from '../plan/mutation_plan'
 
 export const get_create_ast = (
