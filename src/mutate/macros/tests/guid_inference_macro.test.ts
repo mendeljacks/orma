@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
+import { clone } from '../../../helpers/helpers'
 import { OrmaSchema } from '../../../introspector/introspector'
 import { as_orma_schema } from '../../../query/query'
 import { apply_guid_inference_macro } from '../guid_inference_macro'
@@ -21,6 +22,20 @@ describe('guid_inference_macro.ts', () => {
                 not_null: true,
                 references: {
                     products: {
+                        id: {},
+                    },
+                },
+            },
+        },
+        image_urls: {
+            id: {
+                primary_key: true,
+                not_null: true,
+            },
+            image_id: {
+                not_null: true,
+                references: {
+                    images: {
                         id: {},
                     },
                 },
@@ -55,6 +70,8 @@ describe('guid_inference_macro.ts', () => {
                 // @ts-ignore
                 mutation.products[0].images[0].product_id.$guid
             )
+
+            // @ts-ignore
             expect(mutation.products[0].id.$guid).to.equal(
                 // @ts-ignore
                 mutation.products[0].images[1].product_id.$guid
@@ -90,20 +107,23 @@ describe('guid_inference_macro.ts', () => {
                         images: [
                             {
                                 $operation: 'update',
+                                image_urls: [
+                                    {
+                                        $operation: 'create',
+                                    },
+                                ],
                             },
                         ],
                     },
                 ],
             }
 
+            const cloned_mutation = clone(mutation)
+
             apply_guid_inference_macro(mutation, schema)
 
-            // @ts-ignore
-            expect(mutation.products[0].id).to.equal(undefined)
-            // @ts-ignore
-            expect(mutation.products[0].images[0].product_id).to.equal(
-                undefined
-            )
+            // no changes
+            expect(cloned_mutation).to.deep.equal(mutation)
         })
         test('parent -> child -> parent ambiguous nesting', () => {
             const mutation = {
@@ -112,25 +132,26 @@ describe('guid_inference_macro.ts', () => {
                         $operation: 'create',
                         images: [
                             {
+                                // this is an ambiguous nesting, since we dont know which product
+                                // (the higher or the lower one) should be the parent. So we do nothing.
                                 $operation: 'create',
-                                products: [{
-                                    $operation: 'create'
-                                }]
+                                products: [
+                                    {
+                                        $operation: 'create',
+                                    },
+                                ],
                             },
                         ],
                     },
                 ],
             }
 
+            const cloned_mutation = clone(mutation)
+
             apply_guid_inference_macro(mutation, schema)
 
-            // @ts-ignore
-            expect(mutation.products[0].id.$guid).to.not.equal(undefined)
-            // @ts-ignore
-            expect(mutation.products[0].id.$guid).to.equal(
-                // @ts-ignore
-                mutation.products[0].images[0].product_id.$guid
-            )
+            // no changes
+            expect(cloned_mutation).to.deep.equal(mutation)
         })
     })
 })

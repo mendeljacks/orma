@@ -1,3 +1,5 @@
+import { Path } from '../types'
+
 type type_string =
     | 'Object'
     | 'Number'
@@ -178,17 +180,6 @@ export const deep_for_each = (
     if (is_primitive) {
         processor(item, current_path)
     }
-}
-
-export const get_lower_paths = (
-    item: Record<any, any> | any[],
-    path: (string | number)[]
-) => {
-    const keys = Array.isArray(item)
-        ? item.map((_, i) => [...path, i])
-        : Object.keys(item)
-
-    return keys.map(key => [...path, key])
 }
 
 /*

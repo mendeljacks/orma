@@ -1,5 +1,6 @@
-import { deep_for_each, last } from '../../helpers/helpers'
+import { deep_for_each, deep_get, last } from '../../helpers/helpers'
 import { Path, PathedRecord } from '../../types'
+import { MutationPiece } from '../plan/mutation_plan'
 
 export const split_mutation_by_entity = mutation => {
     const paths_by_entity: Record<string, PathedRecord[]> = {}
@@ -37,4 +38,40 @@ export const mutation_entity_deep_for_each = (
             processor(value, path, entity_name)
         }
     })
+}
+
+export const get_lower_mutation_pieces = (mutation_piece: MutationPiece) => {
+    const { record, path } = mutation_piece
+    const lower_pieces = Object.keys(record).flatMap(field => {
+        if (Array.isArray(record[field])) {
+            return record[field].map((lower_record, i) => ({
+                record: lower_record,
+                path: [...path, field, i],
+            }))
+        } else {
+            return []
+        }
+    })
+
+    return lower_pieces
+}
+
+export const get_higher_path = (path: Path) => {
+    const higher_path =
+        typeof last(path) === 'number'
+            ? path.slice(0, path.length - 2)
+            : path.slice(0, path.length - 1)
+
+    return higher_path
+}
+
+export const get_connected_mutation_pieces = (
+    mutation: any,
+    mutation_piece: MutationPiece
+) => {
+    const higher_path = get_higher_path(mutation_piece.path)
+    const higher_record = deep_get(higher_path, mutation, undefined)
+    const higher_mutation_piece = { record: higher_record, path: higher_path }
+    const lower_mutation_pieces = get_lower_mutation_pieces(mutation_piece)
+    return [higher_mutation_piece, ...lower_mutation_pieces]
 }
