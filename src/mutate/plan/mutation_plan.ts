@@ -7,12 +7,11 @@ import {
 } from '../../helpers/schema_helpers'
 import { toposort } from '../../helpers/toposort'
 import { OrmaSchema } from '../../introspector/introspector'
-import { mutation_entity_deep_for_each } from '../helpers/mutate_helpers'
-
 import { Path } from '../../types'
-import { apply_inherit_operations_macro } from '../macros/inherit_operations_macro'
-import { path_to_entity } from '../mutate'
-import { apply_guid_inference } from './guid_inference'
+import {
+    mutation_entity_deep_for_each,
+    path_to_entity,
+} from '../helpers/mutate_helpers'
 
 export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
     /*
@@ -41,10 +40,6 @@ export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
     frees up a value for a unique column which is created in the same request (now we would have to reject the request 
     since we cant guarantee the delete will be run first).
 */
-
-    apply_inherit_operations_macro(mutation)
-    apply_guid_inference(mutation, orma_schema)
-
     const mutation_pieces = flatten_mutation(mutation)
     const fk_paths_by_value = get_fk_paths_by_value(
         mutation_pieces,
@@ -129,7 +124,7 @@ const generate_mutation_toposort_graph = (
             // for each possible child edge based on the foreign keys, we only take ones that are in the mutation
             // (we check the fk_paths_by_value map for this)
             const child_indices = child_edges.flatMap(child_edge => {
-                return get_mutation_child_indices(
+                return get_toposort_child_indices(
                     mutation_pieces,
                     parent_record,
                     child_edge,
@@ -149,7 +144,7 @@ const generate_mutation_toposort_graph = (
     return toposort_graph
 }
 
-const get_mutation_child_indices = (
+const get_toposort_child_indices = (
     mutation_pieces: MutationPiece[],
     parent_record: Record<string, any>,
     edge_to_child: Edge,
@@ -205,3 +200,37 @@ export type MutationPiece = { record: Record<string, any>; path: Path }
 export type MutationBatch = { start_index: number; end_index: number }
 
 export type PathsByGuid = { [stringified_value: string]: [number, string][] }
+
+export type MutationPlan = {
+    mutation_pieces: MutationPiece[]
+    mutation_batches: MutationBatch[]
+}
+
+export const run_mutation_plan = async (
+    mutation_plan: {
+        mutation_pieces: MutationPiece[]
+        mutation_batches: MutationBatch[]
+    },
+    callback: (context: {
+        index: number
+        mutation_pieces: MutationPiece[]
+        mutation_batch: MutationBatch
+    }) => Promise<any>
+) => {
+    for (
+        let batch_index = 0;
+        batch_index < mutation_plan.mutation_batches.length;
+        batch_index++
+    ) {
+        const mutation_batch = mutation_plan.mutation_batches[batch_index]
+        const batch_pieces = mutation_plan.mutation_pieces.slice(
+            mutation_batch.start_index,
+            mutation_batch.end_index
+        )
+        await callback({
+            index: batch_index,
+            mutation_pieces: batch_pieces,
+            mutation_batch,
+        })
+    }
+}

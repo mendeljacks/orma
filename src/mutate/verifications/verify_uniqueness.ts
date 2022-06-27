@@ -7,8 +7,9 @@ import {
 import { OrmaSchema } from '../../introspector/introspector'
 import { get_search_records_where } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'
+import { get_identifying_keys } from '../helpers/identifying_keys'
 import { split_mutation_by_entity } from '../helpers/mutate_helpers'
-import { get_identifying_keys } from '../mutate'
+
 
 /**
  * Generates errors when unique fields are duplicates in two cases:

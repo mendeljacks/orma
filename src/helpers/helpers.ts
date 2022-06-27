@@ -1,3 +1,5 @@
+import { Path } from '../types'
+
 type type_string =
     | 'Object'
     | 'Number'
@@ -180,17 +182,6 @@ export const deep_for_each = (
     }
 }
 
-export const get_lower_paths = (
-    item: Record<any, any> | any[],
-    path: (string | number)[]
-) => {
-    const keys = Array.isArray(item)
-        ? item.map((_, i) => [...path, i])
-        : Object.keys(item)
-
-    return keys.map(key => [...path, key])
-}
-
 /*
   From https://github.com/angus-c/just/blob/master/packages/collection-clone/index.js
 
@@ -255,6 +246,9 @@ export const group_by = <T>(
         return acc
     }, {})
 
+/**
+ * Overwrites items that give the same value for key_function
+ */
 export const key_by = <T>(
     array: T[],
     key_function: (item: T, i?: number) => string
