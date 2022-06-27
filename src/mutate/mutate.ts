@@ -37,7 +37,7 @@ export const orma_mutate = async (
 
     const mutation_plan = get_mutation_plan(mutation, orma_schema)
 
-    run_mutation_plan(mutation_plan, async ({ mutation_pieces }) => {
+    await run_mutation_plan(mutation_plan, async ({ mutation_pieces }) => {
         const { mutation_infos, query_infos } = get_mutation_statements(
             mutation_pieces,
             values_by_guid,
