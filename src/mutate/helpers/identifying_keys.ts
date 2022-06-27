@@ -1,3 +1,4 @@
+import { array_equals } from '../../helpers/helpers'
 import {
     get_primary_keys,
     get_unique_field_groups,
@@ -47,7 +48,9 @@ export const get_identifying_keys = (
         entity_name,
         true,
         orma_schema
-    )
+        // we dont want to use primary key even though they are unique,
+        // since we already checked the primary key earlier
+    ).filter(unique_fields => !array_equals(primary_keys, unique_fields))
     const included_unique_keys = unique_field_groups.filter(unique_fields =>
         unique_fields.every(key => record[key] !== undefined)
     )
