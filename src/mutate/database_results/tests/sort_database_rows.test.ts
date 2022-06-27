@@ -4,7 +4,7 @@ import { as_orma_schema } from '../../../query/query'
 import { replace_guids_with_values, save_guids } from '../guid_processing'
 import { sort_database_rows } from '../sort_database_rows'
 
-describe.only('guid_processing.ts', () => {
+describe('guid_processing.ts', () => {
     const schema = as_orma_schema({
         products: {
             id: {
@@ -26,7 +26,7 @@ describe.only('guid_processing.ts', () => {
             ],
             resource_id: {
                 not_null: true,
-            }
+            },
         },
         images: {
             id: {
@@ -64,6 +64,12 @@ describe.only('guid_processing.ts', () => {
     })
 
     describe(sort_database_rows.name, () => {
+        test('throws if not enough mysql results', () => {
+            try {
+                sort_database_rows([], [{}], [], schema)
+                expect('should throw an error').to.equal(true)
+            } catch (error) {}
+        })
         test('sorts mutation pieces', () => {
             const mutation_pieces = [
                 {
@@ -233,7 +239,7 @@ describe.only('guid_processing.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        title: 'test 1'
+                        title: 'test 1',
                     },
                     path: ['products', 0],
                 },
@@ -241,7 +247,7 @@ describe.only('guid_processing.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        title: 'test 2'
+                        title: 'test 2',
                     },
                     path: ['products', 1],
                 },
@@ -250,7 +256,7 @@ describe.only('guid_processing.ts', () => {
                 [
                     {
                         id: 1,
-                        created_at: 'now'
+                        created_at: 'now',
                     },
                 ],
             ]
@@ -269,11 +275,52 @@ describe.only('guid_processing.ts', () => {
             expect(sorted_database_rows).to.deep.equal([
                 {
                     id: 1,
-                    created_at: 'now'
+                    created_at: 'now',
                 },
                 {
                     id: 1,
-                    created_at: 'now'
+                    created_at: 'now',
+                },
+            ])
+        })
+        test('allows ambiguous identifying keys', () => {
+            // this situation could happen e.g. if there are rows in different locations in the mutation
+            const mutation_pieces = [
+                {
+                    record: {
+                        $operation: 'create',
+                        title: 'test',
+                        resource_id: 1,
+                    },
+                    path: ['products', 0],
+                },
+            ]
+            const query_results = [
+                [
+                    {
+                        title: 'test',
+                        resource_id: 1,
+                        created_at: 'now',
+                    },
+                ],
+            ]
+
+            const queries = [{ $from: 'products' }]
+
+            const sorted_database_rows = sort_database_rows(
+                mutation_pieces,
+                queries,
+                query_results,
+                schema
+            )
+
+            // the single database row is matched to both mutation pieces, since the two mutation pieces
+            // have the same id
+            expect(sorted_database_rows).to.deep.equal([
+                {
+                    title: 'test',
+                    resource_id: 1,
+                    created_at: 'now',
                 },
             ])
         })

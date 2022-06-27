@@ -201,6 +201,11 @@ export type MutationBatch = { start_index: number; end_index: number }
 
 export type PathsByGuid = { [stringified_value: string]: [number, string][] }
 
+export type MutationPlan = {
+    mutation_pieces: MutationPiece[]
+    mutation_batches: MutationBatch[]
+}
+
 export const run_mutation_plan = async (
     mutation_plan: {
         mutation_pieces: MutationPiece[]
@@ -208,8 +213,8 @@ export const run_mutation_plan = async (
     },
     callback: (context: {
         index: number
-        mutation_batch: MutationBatch
         mutation_pieces: MutationPiece[]
+        mutation_batch: MutationBatch
     }) => Promise<any>
 ) => {
     for (
@@ -223,9 +228,9 @@ export const run_mutation_plan = async (
             mutation_batch.end_index
         )
         await callback({
+            index: batch_index,
             mutation_pieces: batch_pieces,
             mutation_batch,
-            index: batch_index,
         })
     }
 }

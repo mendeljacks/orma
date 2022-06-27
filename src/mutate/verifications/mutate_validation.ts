@@ -10,8 +10,8 @@ import {
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
+import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
 import { get_identifying_keys } from '../helpers/identifying_keys'
-import { get_foreign_keys_in_mutation } from '../macros/operation_macros_old'
 
 export const mutate_validation_schema = {
     type: 'object',

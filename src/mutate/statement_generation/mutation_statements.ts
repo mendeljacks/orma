@@ -1,32 +1,42 @@
 import { push_path } from '../../helpers/push_path'
 import { OrmaSchema } from '../../introspector/introspector'
+import { json_to_sql } from '../../query/json_sql'
 import { Path } from '../../types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { MutationOperation, operation, ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import { get_guid_query } from './mutation_guid_query'
-import { get_create_ast, get_delete_ast, get_update_ast } from './mutation_operations'
+import {
+    get_create_ast,
+    get_delete_ast,
+    get_update_ast,
+} from './mutation_operations'
 
-export type AstInfo = {
+export type MutationStatement = {
     ast: Record<string, any>
     operation: operation
     entity: string
     records: Record<string, any>[]
     paths: Path[]
+    sql_string: string
 }
 
-export const get_ast_infos = (
+/**
+ * Groups the input mutation pieces by entity and operation, generates asts for them, then generates sql strings
+ * from the asts
+ */
+export const get_mutation_statements = (
     input_mutation_pieces: MutationPiece[],
     values_by_guid: Record<any, any>,
     orma_schema: OrmaSchema
 ) => {
     const grouped_mutation = get_grouped_mutation(input_mutation_pieces)
 
-    const mutation_ast_infos = Object.keys(grouped_mutation).flatMap(entity =>
+    const mutation_infos = Object.keys(grouped_mutation).flatMap(entity =>
         Object.keys(grouped_mutation[entity]).flatMap(
             (operation: MutationOperation) => {
                 const group_pieces = grouped_mutation[entity][operation]
-                return get_ast_infos_for_group(
+                return get_mutation_infos_for_group(
                     group_pieces,
                     operation,
                     entity,
@@ -37,7 +47,7 @@ export const get_ast_infos = (
         )
     )
 
-    const query_asts = Object.keys(grouped_mutation).flatMap(entity => {
+    const query_infos = Object.keys(grouped_mutation).flatMap(entity => {
         const create_pieces = grouped_mutation[entity].create ?? []
         const update_pieces = grouped_mutation[entity].update ?? []
         const group_pieces = [...create_pieces, ...update_pieces]
@@ -45,7 +55,7 @@ export const get_ast_infos = (
         return guid_query ? [guid_query] : []
     })
 
-    return { mutation_ast_infos, query_asts }
+    return { mutation_infos, query_infos }
 }
 
 const get_grouped_mutation = (mutation_pieces: MutationPiece[]) => {
@@ -59,7 +69,7 @@ const get_grouped_mutation = (mutation_pieces: MutationPiece[]) => {
     return grouped_mutation
 }
 
-const get_ast_infos_for_group = (
+const get_mutation_infos_for_group = (
     mutation_pieces: MutationPiece[],
     operation: MutationOperation,
     entity: string,
@@ -86,6 +96,7 @@ const get_ast_infos_for_group = (
             operation,
             entity,
             mutation_pieces,
+            sql_string: json_to_sql(ast),
         }))
 }
 

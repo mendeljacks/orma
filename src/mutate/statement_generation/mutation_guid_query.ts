@@ -1,8 +1,14 @@
 import { OrmaSchema } from '../../introspector/introspector'
 import { combine_wheres } from '../../query/query_helpers'
-import { generate_record_where_clause } from '../mutate'
+import { generate_record_where_clause } from '../helpers/record_searching'
 import { MutationPiece } from '../plan/mutation_plan'
 
+/**
+ * Generates a query which, when run, will return all the data needed to
+ *  1. match database record with mutation record (the identifying keys)
+ *  2. replace guids with their resolved value (any field with a $guid)
+ * Data is returned for all creates and updated in the input mutation pieces
+ */
 export const get_guid_query = (
     input_mutation_pieces: MutationPiece[],
     entity: string,

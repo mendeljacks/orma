@@ -1,7 +1,13 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { OrmaSchema } from '../../../introspector/introspector'
-import { get_mutation_plan } from '../mutation_plan'
+import {
+    get_mutation_plan,
+    MutationBatch,
+    MutationPiece,
+    MutationPlan,
+    run_mutation_plan,
+} from '../mutation_plan'
 
 describe('mutation_plan.ts', () => {
     const orma_schema: OrmaSchema = {
@@ -510,6 +516,60 @@ describe('mutation_plan.ts', () => {
             }
 
             expect(mutate_plan).to.deep.equal(goal)
+        })
+    })
+    describe(run_mutation_plan.name, () => {
+        test('runs mutation plan', async () => {
+            const mutation_plan: MutationPlan = {
+                mutation_pieces: [
+                    {
+                        record: {
+                            $operation: 'create',
+                            id: 1,
+                        },
+                        path: ['parents', 0],
+                    },
+                    {
+                        record: {
+                            $operation: 'create',
+                            id: 2,
+                        },
+                        path: ['parents', 1],
+                    },
+                    {
+                        record: {
+                            $operation: 'create',
+                            id: 3,
+                        },
+                        path: ['parents', 2],
+                    },
+                ],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 3 },
+                ],
+            }
+
+            let i = 0
+            await run_mutation_plan(mutation_plan, async context => {
+                if (i === 0) {
+                    expect(context).to.deep.equal({
+                        index: 0,
+                        mutation_pieces: [mutation_plan.mutation_pieces[0]],
+                        mutation_batch: mutation_plan.mutation_batches[0],
+                    })
+                } else {
+                    expect(context).to.deep.equal({
+                        index: 1,
+                        mutation_pieces: [
+                            mutation_plan.mutation_pieces[1],
+                            mutation_plan.mutation_pieces[2],
+                        ],
+                        mutation_batch: mutation_plan.mutation_batches[1],
+                    })
+                }
+                i += 1
+            })
         })
     })
 })

@@ -146,7 +146,7 @@ export const throw_identifying_key_errors = (
             message: `Could not find primary keys or unique keys in record to ${operation}`,
             path: path,
             additional_info: {
-                identifying_columns: identifying_keys ?? 'none',
+                identifying_columns: identifying_keys,
             },
         } as OrmaError
     }

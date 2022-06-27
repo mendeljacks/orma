@@ -1,13 +1,14 @@
 import { clone } from '../helpers/helpers'
 import { OrmaSchema } from '../introspector/introspector'
-import { replace_guids_with_values, save_guids } from './database_results/guid_processing'
 import {
-    sort_database_rows
-} from './database_results/sort_database_rows'
+    replace_guids_with_values,
+    save_guids,
+} from './database_results/guid_processing'
+import { sort_database_rows } from './database_results/sort_database_rows'
 import { apply_guid_inference_macro } from './macros/guid_inference_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
 import { get_mutation_plan, run_mutation_plan } from './plan/mutation_plan'
-import { get_ast_infos } from './statement_generation/mutation_statements'
+import { get_mutation_statements } from './statement_generation/mutation_statements'
 
 export type MutationOperation = 'create' | 'update' | 'delete'
 export type operation = MutationOperation | 'query'
@@ -37,21 +38,21 @@ export const orma_mutate = async (
     const mutation_plan = get_mutation_plan(mutation, orma_schema)
 
     run_mutation_plan(mutation_plan, async ({ mutation_pieces }) => {
-        const { mutation_ast_infos, query_asts } = get_ast_infos(
+        const { mutation_infos, query_infos } = get_mutation_statements(
             mutation_pieces,
             values_by_guid,
             orma_schema
         )
 
-        if (mutation_ast_infos.length > 0) {
-            await mysql_function(mutation_ast_infos)
+        if (mutation_infos.length > 0) {
+            await mysql_function(mutation_infos)
         }
 
-        if (query_asts.length > 0) {
-            const query_results = await mysql_function(query_asts)
+        if (query_infos.length > 0) {
+            const query_results = await mysql_function(query_infos)
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                query_asts,
+                query_infos,
                 query_results,
                 orma_schema
             )
