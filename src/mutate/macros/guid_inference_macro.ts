@@ -1,5 +1,5 @@
-import * as hexoid from 'hexoid'
 import { group_by } from '../../helpers/helpers'
+import { hexoid } from '../../helpers/hexoid'
 import {
     Edge,
     get_direct_edges,
@@ -15,7 +15,6 @@ import { MutationPiece } from '../plan/mutation_plan'
 
 // 1000 ids / sec needs 21 billion years for 1% chance of collision
 // https://alex7kom.github.io/nano-nanoid-cc/?alphabet=0123456789abcdef&size=36&speed=1000&speedUnit=second
-// @ts-ignore
 const get_id = hexoid(36)
 
 /**

@@ -1,6 +1,6 @@
 {
     "name": "orma",
-    "version": "1.0.92",
+    "version": "1.0.93",
     "description": "A declarative relational syncronous orm",
     "main": "build/index.js",
     "scripts": {
@@ -76,7 +76,6 @@
         "ext": "ts, js, jsx"
     },
     "dependencies": {
-        "hexoid": "^1.0.0",
         "jsonschema": "^1.4.0",
         "sqlstring": "^2.3.3"
     }

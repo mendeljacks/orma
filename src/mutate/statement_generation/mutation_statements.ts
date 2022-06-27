@@ -29,7 +29,10 @@ export const get_mutation_statements = (
     input_mutation_pieces: MutationPiece[],
     values_by_guid: Record<any, any>,
     orma_schema: OrmaSchema
-) => {
+): {
+    mutation_infos: MutationStatement[]
+    query_infos: MutationStatement[]
+} => {
     const grouped_mutation = get_grouped_mutation(input_mutation_pieces)
 
     const mutation_infos = Object.keys(grouped_mutation).flatMap(entity =>
@@ -47,12 +50,25 @@ export const get_mutation_statements = (
         )
     )
 
-    const query_infos = Object.keys(grouped_mutation).flatMap(entity => {
+    const query_infos: MutationStatement[] = Object.keys(
+        grouped_mutation
+    ).flatMap(entity => {
         const create_pieces = grouped_mutation[entity].create ?? []
         const update_pieces = grouped_mutation[entity].update ?? []
         const group_pieces = [...create_pieces, ...update_pieces]
         const guid_query = get_guid_query(group_pieces, entity, orma_schema)
-        return guid_query ? [guid_query] : []
+        return guid_query
+            ? [
+                  {
+                      ast: guid_query,
+                      operation: 'query',
+                      entity,
+                      records: group_pieces.map(el => el.record),
+                      paths: group_pieces.map(el => el.path),
+                      sql_string: json_to_sql(guid_query),
+                  },
+              ]
+            : []
     })
 
     return { mutation_infos, query_infos }
@@ -95,7 +111,8 @@ const get_mutation_infos_for_group = (
             ast,
             operation,
             entity,
-            mutation_pieces,
+            records: mutation_pieces.map(el => el.record),
+            paths: mutation_pieces.map(el => el.path),
             sql_string: json_to_sql(ast),
         }))
 }

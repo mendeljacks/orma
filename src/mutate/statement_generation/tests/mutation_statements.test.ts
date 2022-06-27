@@ -64,7 +64,7 @@ describe('mutation_statements.ts', () => {
                         id: 1,
                         first_name: 'john',
                     },
-                    path: ['users', 0],
+                    path: ['users', 1],
                 },
                 {
                     record: {
@@ -78,7 +78,7 @@ describe('mutation_statements.ts', () => {
                         $operation: 'create',
                         id: 1,
                     },
-                    path: ['users', 0],
+                    path: ['users', 2],
                 },
             ]
 
@@ -95,7 +95,7 @@ describe('mutation_statements.ts', () => {
             // to the user by duplicating data, since it provides the mutation pieces, the ast (which is computed
             // solely by the mutation peices) and the sql string (which is computed solely by the ast). Well
             // designed functions would just take mutation pieces and return asts, or take asts and return sql
-            // strings, but well designed functions are harderto use and require more knowledge on what to do for
+            // strings, but such functions are harder to use and require more knowledge on what to do by
             // the user. So its like this to be as easy as possible to get orma working
             expect(result).to.deep.equal({
                 mutation_infos: [
@@ -109,9 +109,13 @@ describe('mutation_statements.ts', () => {
                         },
                         operation: 'create',
                         entity: 'users',
-                        mutation_pieces: [
-                            mutation_pieces[0],
-                            mutation_pieces[3],
+                        records: [
+                            mutation_pieces[0].record,
+                            mutation_pieces[3].record,
+                        ],
+                        paths: [
+                            mutation_pieces[0].path,
+                            mutation_pieces[3].path,
                         ],
                         sql_string:
                             'INSERT INTO users (id, country_id) VALUES (1, 11), (1, NULL)',
@@ -126,7 +130,8 @@ describe('mutation_statements.ts', () => {
                         },
                         operation: 'update',
                         entity: 'users',
-                        mutation_pieces: [mutation_pieces[1]],
+                        records: [mutation_pieces[1].record],
+                        paths: [mutation_pieces[1].path],
                         sql_string:
                             "UPDATE users SET first_name = 'john' WHERE id = 1",
                     },
@@ -139,27 +144,47 @@ describe('mutation_statements.ts', () => {
                         },
                         operation: 'delete',
                         entity: 'products',
-                        mutation_pieces: [mutation_pieces[2]],
+                        records: [
+                            mutation_pieces[2].record
+                        ],
+                        paths: [mutation_pieces[2].path],
                         sql_string: 'DELETE FROM products WHERE id = 1',
                     },
                 ],
                 query_infos: [
                     {
-                        $select: ['country_id', 'id'],
-                        $from: 'users',
-                        $where: {
-                            $or: [
-                                {
-                                    $eq: ['id', 1],
-                                },
-                                {
-                                    $eq: ['id', 1],
-                                },
-                                {
-                                    $eq: ['id', 1],
-                                },
-                            ],
+                        ast: {
+                            $select: ['country_id', 'id'],
+                            $from: 'users',
+                            $where: {
+                                $or: [
+                                    {
+                                        $eq: ['id', 1],
+                                    },
+                                    {
+                                        $eq: ['id', 1],
+                                    },
+                                    {
+                                        $eq: ['id', 1],
+                                    },
+                                ],
+                            },
                         },
+                        operation: 'query',
+                        entity: 'users',
+                        records: [
+                            mutation_pieces[0].record,
+                            mutation_pieces[3].record,
+                            mutation_pieces[1].record,
+                        ],
+                        paths: [
+                            mutation_pieces[0].path,
+                            mutation_pieces[3].path,
+                            mutation_pieces[1].path,
+                        ],
+                        sql_string:
+
+                            'SELECT country_id, id FROM users WHERE (id = 1) OR (id = 1) OR (id = 1)',
                     },
                 ],
             })
