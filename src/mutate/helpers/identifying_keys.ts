@@ -18,7 +18,11 @@ export const get_possible_identifying_keys = (
         orma_schema
     )
 
-    return [primary_keys, ...unique_field_groups]
+    return [
+        primary_keys,
+        // filter out primary keys so we dont get duplicate fields (since primary keys are also unique)
+        ...unique_field_groups.filter(el => !array_equals(primary_keys, el)),
+    ]
 }
 
 export const get_identifying_keys = (
