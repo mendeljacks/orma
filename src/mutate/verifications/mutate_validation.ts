@@ -350,17 +350,19 @@ const validate_operation_nesting = (
             ? entity_name
             : higher_entity
 
-        operation_nesting_errors.push({
-            message: `Invalid operation nesting. Parent ${parent_entity} has operation ${parent_operation} while child ${child_entity} has operation ${child_operation}`,
-            path: [...record_path, '$operation'],
-            original_data: mutation,
-            additional_info: {
-                parent_entity,
-                child_entity,
-                parent_operation,
-                child_operation,
-            },
-        })
+        // TODO: rethink how operation nesting is checked. This is disallowing valid mutations
+
+        // operation_nesting_errors.push({
+        //     message: `Invalid operation nesting. Parent ${parent_entity} has operation ${parent_operation} while child ${child_entity} has operation ${child_operation}`,
+        //     path: [...record_path, '$operation'],
+        //     original_data: mutation,
+        //     additional_info: {
+        //         parent_entity,
+        //         child_entity,
+        //         parent_operation,
+        //         child_operation,
+        //     },
+        // })
     }
 
     return operation_nesting_errors
