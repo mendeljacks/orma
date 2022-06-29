@@ -7,7 +7,7 @@ const is_object = el =>
 const is_primitive = el => !is_array(el) && !is_object(el)
 
 export const diff_mutation = (original, modified) => {
-    if (is_primitive(modified)) {
+    if (is_primitive(modified) || modified?.$guid !== undefined) {
         return modified
     }
     if (!is_object(original) && is_object(modified)) {
@@ -79,11 +79,10 @@ export const diff_mutation = (original, modified) => {
 
             if (!deep_equal(original_value, modified_value)) {
                 update_obj['$operation'] = 'update'
-                update_obj['id'] = modified.id
-                update_obj[key] = diff_mutation(
-                    original_value,
-                    modified_value
-                )
+                if (modified.id !== undefined) {
+                    update_obj['id'] = modified.id
+                }
+                update_obj[key] = diff_mutation(original_value, modified_value)
             }
         }
         for (let i = 0; i < original_columns.length; i++) {

@@ -134,6 +134,23 @@ describe('diff_mutation.ts', () => {
             note: 'some data',
         })
     })
+    test('Ignores $guids for operation', () => {
+        const original = { images: [{ product_id: 1 }] }
+        const modified = { images: [{ product_id: { $guid: 1 } }] }
+        const update_obj = diff_mutation(original, modified)
+
+        expect(update_obj).to.deep.equal({
+            $operation: 'update',
+            images: [
+                {
+                    $operation: 'update',
+                    product_id: {
+                        $guid: 1, // no operation create here, since it is a guid
+                    },
+                },
+            ],
+        })
+    })
     test.skip('Top level create with nesting', () => {
         const original = null
         const modified = {

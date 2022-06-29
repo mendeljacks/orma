@@ -189,7 +189,7 @@ describe('mutation_validation', () => {
             const errors = validate_mutation(test_mutation, orma_schema)
             expect(errors).to.have.lengthOf(1)
         })
-        test('requires valid nested operations', () => {
+        test.skip('requires valid nested operations', () => {
             const test_mutation = {
                 $operation: 'create',
                 vendors: [
@@ -208,7 +208,7 @@ describe('mutation_validation', () => {
             const errors = validate_mutation(test_mutation, orma_schema)
             expect(errors).to.have.lengthOf(1)
         })
-        test('requires valid nested operations in reverse nesting', () => {
+        test.skip('requires valid nested operations in reverse nesting', () => {
             const test_mutation = {
                 products: [
                     {
