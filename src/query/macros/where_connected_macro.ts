@@ -46,7 +46,7 @@ export const get_upwards_connection_edges = (orma_schema: OrmaSchema) => {
     return connection_edges
 }
 
-const get_edge_paths_by_destination = (
+export const get_edge_paths_by_destination = (
     connection_edges: ConnectionEdges,
     source_entity: string
 ) => {

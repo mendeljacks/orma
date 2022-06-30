@@ -12,6 +12,7 @@ import {
     mutation_entity_deep_for_each,
     path_to_entity,
 } from '../helpers/mutate_helpers'
+import { MutationOperation } from '../mutate'
 
 export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
     /*
@@ -63,7 +64,7 @@ export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
 
 const flatten_mutation = mutation => {
     let flat_mutation: MutationPiece[] = []
-    mutation_entity_deep_for_each(mutation, (record, path, entity) => {
+    mutation_entity_deep_for_each(mutation, (record: MutationPiece['record'], path, entity) => {
         flat_mutation.push({ record, path })
     })
     return flat_mutation
@@ -195,7 +196,7 @@ const sort_mutation_pieces = (
     return { mutation_pieces, mutation_batches }
 }
 
-export type MutationPiece = { record: Record<string, any>; path: Path }
+export type MutationPiece = { record: Record<string, any> & { $operation: MutationOperation }; path: Path }
 
 export type MutationBatch = { start_index: number; end_index: number }
 

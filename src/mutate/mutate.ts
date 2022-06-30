@@ -7,7 +7,11 @@ import {
 import { sort_database_rows } from './database_results/sort_database_rows'
 import { apply_guid_inference_macro } from './macros/guid_inference_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
-import { get_mutation_plan, run_mutation_plan } from './plan/mutation_plan'
+import {
+    get_mutation_plan,
+    MutationPlan,
+    run_mutation_plan,
+} from './plan/mutation_plan'
 import { get_mutation_statements } from './statement_generation/mutation_statements'
 
 export type MutationOperation = 'create' | 'update' | 'delete'
@@ -22,20 +26,29 @@ export type statements = {
 }[]
 
 export type ValuesByGuid = Record<string | number, any>
-export const orma_mutate = async (
+type MiddlewareHookArgs = { mutation_plan: MutationPlan; mutation }
+
+export const orma_mutate_prepare = (
+    orma_schema: OrmaSchema,
     input_mutation,
-    mysql_function: mysql_fn,
-    orma_schema: OrmaSchema
 ) => {
     // clone to allow macros to mutate the mutation without changing the user input mutation object
-    const mutation = clone(input_mutation)
-
-    const values_by_guid: ValuesByGuid = {}
+    let mutation = clone(input_mutation)
 
     apply_inherit_operations_macro(mutation)
     apply_guid_inference_macro(mutation, orma_schema)
 
     const mutation_plan = get_mutation_plan(mutation, orma_schema)
+    return mutation_plan
+}
+
+export const orma_mutate_run = async (
+    orma_schema: OrmaSchema,
+    mysql_function: mysql_fn,
+    mutation_plan: MutationPlan,
+    input_mutation: any,
+) => {
+    const values_by_guid: ValuesByGuid = {}
 
     await run_mutation_plan(mutation_plan, async ({ mutation_pieces }) => {
         const { mutation_infos, query_infos } = get_mutation_statements(
@@ -60,6 +73,17 @@ export const orma_mutate = async (
         }
     })
 
+    const mutation = clone(input_mutation)
     replace_guids_with_values(mutation, values_by_guid)
     return mutation
+}
+
+export const orma_mutate = async (
+    input_mutation,
+    mysql_function: mysql_fn,
+    orma_schema: OrmaSchema
+) => {
+    const mutation_plan = orma_mutate_prepare(orma_schema, input_mutation)
+    const results = await orma_mutate_run(orma_schema, mysql_function, mutation_plan, input_mutation)
+    return results
 }
