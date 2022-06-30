@@ -238,5 +238,6 @@ describe('mutation_ownership_check', () => {
                 }
             })
         })
+        test.skip('add tests for $guid in the identifying key and in the foreign key')
     })
 })
