@@ -23,8 +23,7 @@
  * @module json_sql
  */
 
-import { SomeJSONSchema } from 'ajv/dist/types/json-schema'
-import { is_simple_object, last } from '../helpers/helpers'
+import { is_simple_object } from '../helpers/helpers'
 
 type expression =
     | {

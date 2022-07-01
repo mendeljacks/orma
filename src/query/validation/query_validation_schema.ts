@@ -1,4 +1,3 @@
-import { SomeJSONSchema } from 'ajv/dist/types/json-schema'
 import { sql_function_definitions } from '../json_sql'
 
 const primitive_schema = {
