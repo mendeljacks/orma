@@ -97,75 +97,39 @@ export interface orma_index_schema {
     expression?: string
 }
 
+type SupportedDbs = 'mysql' | 'postgres'
 /**
  * Gets a list of sql strings to collect introspector data for the given database
  * @returns [tables_sql, columns_sql, foreign_keys_sql]
  */
-export const get_introspect_sqls = (database_name: string): string[] => {
-    /*
-    selects:
-        table_name, 
-        table_comment 
-        FROM INFORMATION_SCHEMA.TABLES 
-
-        column_name, 
-        table_name,
-        data_type,
-        column_type,
-        column_key,
-        is_nullable,
-        numeric_precision,
-        numeric_scale,
-        character_maximum_length,
-        column_default,
-        extra,
-        column_comment
-        FROM information_schema.COLUMNS  
-
-        table_name, 
-        column_name,
-        referenced_table_name,
-        referenced_column_name,
-        constraint_name
-        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-
-        table_name, 
-        non_unique, 
-        index_name, 
-        seq_in_index, 
-        column_name, 
-        collation, 
-        sub_part, 
-        packed, 
-        nullable, 
-        index_type, 
-        comment,
-        index_comment, 
-        is_visible, 
-        expression
-        FROM INFORMATION_SCHEMA.STATISTICS
-    */
-
+export const get_introspect_sqls = (
+    database_name: string,
+    db_type: SupportedDbs
+): string[] => {
+    /* selects: table_name, table_comment FROM INFORMATION_SCHEMA.TABLES column_name, table_name, data_type, column_type, column_key, is_nullable, numeric_precision, numeric_scale, character_maximum_length, column_default, extra, column_comment FROM information_schema.COLUMNS  table_name, column_name, referenced_table_name, referenced_column_name, constraint_name FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE table_name, non_unique, index_name, seq_in_index, column_name, collation, sub_part, packed, nullable, index_type, comment, index_comment, is_visible, expression FROM INFORMATION_SCHEMA.STATISTICS */
     const query_strings = [
-        `SELECT 
-            *
-        FROM INFORMATION_SCHEMA.TABLES 
-        WHERE table_schema='${database_name}'`,
-
-        `SELECT 
-            *
-        FROM information_schema.COLUMNS  
-        WHERE table_schema = '${database_name}'`,
-
-        `SELECT 
-            *
-        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
-        WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`,
-
-        `SELECT 
-            *
-        FROM INFORMATION_SCHEMA.STATISTICS
-        WHERE TABLE_SCHEMA = '${database_name}'`,
+        `SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='${database_name}'`,
+        `SELECT * FROM INFORMATION_SCHEMA.COLUMNS  WHERE table_schema = '${database_name}'`,
+        db_type === 'postgres'
+            ? `SELECT
+                    tc.table_schema, 
+                    tc.constraint_name, 
+                    tc.table_name, 
+                    kcu.column_name, 
+                    ccu.table_schema AS foreign_table_schema,
+                    ccu.table_name AS referenced_table_name,
+                    ccu.column_name AS referenced_column_name 
+                FROM 
+                    information_schema.table_constraints AS tc 
+                    JOIN information_schema.key_column_usage AS kcu
+                    ON tc.constraint_name = kcu.constraint_name
+                    AND tc.table_schema = kcu.table_schema
+                    JOIN information_schema.constraint_column_usage AS ccu
+                    ON ccu.constraint_name = tc.constraint_name
+                    AND ccu.table_schema = tc.table_schema
+                WHERE tc.constraint_type = 'FOREIGN KEY' and tc.table_schema = '${database_name}'`
+            : `SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`,
+        `SELECT * FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = '${database_name}'`,
     ]
 
     return query_strings
@@ -232,6 +196,9 @@ export const generate_database_schema = (
             referenced_table_name,
             referenced_column_name,
         ]
+        if (!referenced_table_name || !referenced_column_name) {
+            continue
+        }
         deep_set(reference_path, {}, database_schema)
     }
 
@@ -273,7 +240,7 @@ export const mysql_to_typescript_types = {
     tinytext: 'string',
     varbinary: 'string',
     varchar: 'string',
-    json: 'string'
+    json: 'string',
 } as const
 
 export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) =>
@@ -418,16 +385,17 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
 
 export const orma_introspect = async (
     db: string,
-    fn: (s: string[]) => Promise<Record<string, unknown>[][]>
+    fn: (s: { sql_string }[]) => Promise<Record<string, unknown>[][]>,
+    options: { db_type: 'mysql' | 'postgres' }
 ): Promise<OrmaSchema> => {
-    const sql_strings = get_introspect_sqls(db)
+    const sql_strings = get_introspect_sqls(db, options.db_type)
     // @ts-ignore
     const [mysql_tables, mysql_columns, mysql_foreign_keys, mysql_indexes]: [
         mysql_table[],
         mysql_column[],
         mysql_foreign_key[],
         mysql_index[]
-    ] = await fn(sql_strings)
+    ] = await fn(sql_strings.map(el => ({ sql_string: el })))
 
     // TODO: to be removed when orma lowercase bug fixed
     const transform_keys_to_lower = obj =>
