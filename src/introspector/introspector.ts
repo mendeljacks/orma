@@ -30,7 +30,7 @@ export interface mysql_column {
 
 export interface mysql_index {
     table_name: string
-    non_unique: number
+    non_unique: number | 'NO' | 'YES'
     index_name: string
     seq_in_index: number
     column_name: string
@@ -67,7 +67,7 @@ export interface orma_entity_schema {
 
 export interface orma_field_schema {
     data_type?: keyof typeof mysql_to_typescript_types
-    character_count?: number
+    character_count?: number | string
     ordinal_position?: number
     decimal_places?: number
     not_null?: boolean
@@ -368,7 +368,8 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
 
     const orma_index_schema: orma_index_schema = {
         index_name,
-        is_unique: Number(non_unique) === 0 ? true : false,
+        is_unique:
+            Number(non_unique) === 0 || non_unique === 'NO' ? true : false,
         fields,
         index_type,
         invisible: is_visible === 'NO',
