@@ -3,9 +3,7 @@ const spawn = require('cross-spawn')
 
 module.exports.deploy = async () => {
     try {
-        await run_process([
-            'node --max-old-space-size=4096 node_modules/typescript/bin/tsc',
-        ])
+        await run_process(['tsc'])
         await npmPublish({
             package: './package.json',
             token: process.env.NPM_TOKEN,

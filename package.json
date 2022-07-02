@@ -4,7 +4,7 @@
     "description": "A declarative relational syncronous orm",
     "main": "build/index.js",
     "scripts": {
-        "deploy": "node -e \"require('./.github/deploy.js').deploy()\"",
+        "deploy": "node --max_old_space_size=4096 -e \"require('./.github/deploy.js').deploy()\"",
         "test": "mocha --package package.json",
         "nt": "nodemon --exec nyc --reporter html npm run test",
         "ntt": "nodemon --exec npm run test",
