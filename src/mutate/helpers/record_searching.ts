@@ -1,12 +1,17 @@
 import { orma_escape } from '../../helpers/escape'
 import { OrmaSchema } from '../../introspector/introspector'
+import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
-import { throw_identifying_key_errors } from '../statement_generation/mutation_operations'
+import {
+    get_resolved_mutation_value,
+    throw_identifying_key_errors,
+} from '../statement_generation/mutation_operations'
 import { get_identifying_keys } from './identifying_keys'
 import { path_to_entity } from './mutate_helpers'
 
 export const generate_record_where_clause = (
     mutation_piece: MutationPiece,
+    values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema,
     allow_ambiguous_unique_keys: boolean = false
 ) => {
@@ -16,6 +21,7 @@ export const generate_record_where_clause = (
     const identifying_keys = get_identifying_keys(
         entity_name,
         record,
+        values_by_guid,
         orma_schema,
         allow_ambiguous_unique_keys
     )
@@ -24,7 +30,12 @@ export const generate_record_where_clause = (
     throw_identifying_key_errors(record.$operation, identifying_keys, path)
 
     const where_clauses = identifying_keys.map(key => ({
-        $eq: [key, orma_escape(record[key])],
+        $eq: [
+            key,
+            orma_escape(
+                get_resolved_mutation_value(record, key, values_by_guid)
+            ),
+        ],
     }))
 
     const where =
