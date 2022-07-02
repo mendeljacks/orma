@@ -4,7 +4,6 @@
     "description": "A declarative relational syncronous orm",
     "main": "build/index.js",
     "scripts": {
-        "build": "tsc",
         "deploy": "node -e \"require('./.github/deploy.js').deploy()\"",
         "test": "mocha --package package.json",
         "nt": "nodemon --exec nyc --reporter html npm run test",

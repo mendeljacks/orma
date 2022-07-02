@@ -13,9 +13,6 @@ jobs:
     - name: npm install
       run: npm install @jsdevtools/npm-publish
 
-    - name: build
-      run: yarn build
-
     - name: npm run deploy
       run: NPM_TOKEN=${{secrets.NPM_TOKEN}} npm run deploy
 
