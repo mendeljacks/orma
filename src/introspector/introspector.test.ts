@@ -14,7 +14,7 @@ import {
 
 describe('introspector', () => {
     test('introspect sqls are string', () => {
-        const introspect_sqls = get_introspect_sqls('international')
+        const introspect_sqls = get_introspect_sqls('international', 'mysql')
 
         expect(introspect_sqls.length).to.equal(4)
         expect(type(introspect_sqls[0])).to.equal('String')
@@ -164,16 +164,18 @@ describe('introspector', () => {
                     data_type: 'int',
                     ordinal_position: 1,
                 },
-                $indexes: [{
-                    index_name: 'simple_index',
-                    is_unique: false,
-                    fields: ['id'],
-                    index_type: 'BTREE',
-                    invisible: false,
-                    collation: 'A',
-                    sub_part: 1,
-                    index_comment: 'my index',
-                },]
+                $indexes: [
+                    {
+                        index_name: 'simple_index',
+                        is_unique: false,
+                        fields: ['id'],
+                        index_type: 'BTREE',
+                        invisible: false,
+                        collation: 'A',
+                        sub_part: 1,
+                        index_comment: 'my index',
+                    },
+                ],
             },
         })
     })

@@ -1,16 +1,15 @@
 {
     "name": "orma",
-    "version": "1.0.98",
+    "version": "1.0.101",
     "description": "A declarative relational syncronous orm",
     "main": "build/index.js",
     "scripts": {
-        "build": "tsc",
+        "build": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc",
         "deploy": "node -e \"require('./.github/deploy.js').deploy()\"",
         "test": "mocha --package package.json",
         "nt": "nodemon --exec nyc --reporter html npm run test",
         "ntt": "nodemon --exec npm run test",
-        "coverage-watch": "live-server coverage",
-        "compile-validation": "node -e \"require('./src/scripts/compile_validation').compile_validation()\""
+        "coverage-watch": "live-server coverage"
     },
     "repository": {
         "type": "git",

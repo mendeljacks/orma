@@ -3,10 +3,9 @@ const spawn = require('cross-spawn')
 
 module.exports.deploy = async () => {
     try {
-        await run_process(['tsc'])
         await npmPublish({
             package: './package.json',
-            token: process.env.NPM_TOKEN
+            token: process.env.NPM_TOKEN,
         })
     } catch (error) {
         process.exit(1)
@@ -16,7 +15,9 @@ module.exports.deploy = async () => {
 const run_process = async arg_list => {
     return new Promise((resolve, reject) => {
         console.log(`Executing: ${arg_list.join(' ')}`)
-        const child_process = spawn(arg_list[0], arg_list.slice(0, -1), { stdio: 'pipe' })
+        const child_process = spawn(arg_list[0], arg_list.slice(0, -1), {
+            stdio: 'pipe',
+        })
 
         let output = []
         let err = []
