@@ -37,6 +37,7 @@ export const mutate_validation_schema = {
                     { type: 'number' },
                     { type: 'boolean' },
                     { type: 'null' },
+                    { type: 'date' },
                     {
                         type: 'object',
                         properties: {
@@ -381,6 +382,7 @@ const validate_identifying_keys = (
         const identifying_keys = get_identifying_keys(
             entity_name,
             record,
+            {},
             orma_schema
         )
 

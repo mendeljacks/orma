@@ -66,7 +66,7 @@ describe('guid_processing.ts', () => {
     describe(sort_database_rows.name, () => {
         test('throws if not enough mysql results', () => {
             try {
-                sort_database_rows([], [{}], [], schema)
+                sort_database_rows([], [{}], [], {}, schema)
                 expect('should throw an error').to.equal(true)
             } catch (error) {}
         })
@@ -108,6 +108,7 @@ describe('guid_processing.ts', () => {
                 mutation_pieces,
                 queries,
                 query_results,
+                {},
                 schema
             )
 
@@ -162,6 +163,7 @@ describe('guid_processing.ts', () => {
                 mutation_pieces,
                 queries,
                 query_results,
+                {},
                 schema
             )
 
@@ -216,6 +218,7 @@ describe('guid_processing.ts', () => {
                 mutation_pieces,
                 queries,
                 query_results,
+                {},
                 schema
             )
 
@@ -267,6 +270,7 @@ describe('guid_processing.ts', () => {
                 mutation_pieces,
                 queries,
                 query_results,
+                {},
                 schema
             )
 
@@ -311,6 +315,7 @@ describe('guid_processing.ts', () => {
                 mutation_pieces,
                 queries,
                 query_results,
+                {},
                 schema
             )
 
@@ -324,5 +329,6 @@ describe('guid_processing.ts', () => {
                 },
             ])
         })
+        test.skip('works with guids as the identifying keys')
     })
 })

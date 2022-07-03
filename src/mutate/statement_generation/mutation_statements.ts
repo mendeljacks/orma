@@ -55,7 +55,7 @@ export const get_mutation_statements = (
             const create_pieces = grouped_mutation[entity].create ?? []
             const update_pieces = grouped_mutation[entity].update ?? []
             const group_pieces = [...create_pieces, ...update_pieces]
-            const guid_query = get_guid_query(group_pieces, entity, orma_schema)
+            const guid_query = get_guid_query(group_pieces, entity, values_by_guid, orma_schema)
             return guid_query
                 ? [generate_statement(guid_query, group_pieces)]
                 : []
@@ -91,7 +91,7 @@ const get_mutation_infos_for_group = (
             get_update_ast(mutation_piece, values_by_guid, orma_schema)
         )
     } else if (operation === 'delete') {
-        asts = [get_delete_ast(mutation_pieces, entity, orma_schema)]
+        asts = [get_delete_ast(mutation_pieces, entity, values_by_guid, orma_schema)]
     } else {
         throw new Error(`Unrecognized $operation ${operation}`)
     }

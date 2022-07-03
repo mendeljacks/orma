@@ -5,7 +5,9 @@ import {
     get_possible_identifying_keys,
 } from '../helpers/identifying_keys'
 import { path_to_entity } from '../helpers/mutate_helpers'
+import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
+import { get_resolved_mutation_value } from '../statement_generation/mutation_operations'
 
 type DatabaseIndexesByEntity = {
     [Entity: string]: {
@@ -17,6 +19,7 @@ export const sort_database_rows = (
     mutation_pieces: MutationPiece[],
     queries: Record<string, any>[],
     query_results: Record<string, any>[][],
+    values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema
 ) => {
     if (query_results.length !== queries.length) {
@@ -34,6 +37,7 @@ export const sort_database_rows = (
     const sorted_database_rows = sort_database_rows_given_indexes(
         mutation_pieces,
         database_indexes_by_entity,
+        values_by_guid,
         orma_schema
     )
 
@@ -82,6 +86,7 @@ const get_database_indexes_by_entity = (
 const sort_database_rows_given_indexes = (
     mutation_pieces: MutationPiece[],
     database_indexes_by_entity: DatabaseIndexesByEntity,
+    values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema
 ) => {
     const ordered_database_rows = mutation_pieces.map(({ record, path }) => {
@@ -90,6 +95,7 @@ const sort_database_rows_given_indexes = (
         const identifying_keys = get_identifying_keys(
             entity,
             record,
+            values_by_guid,
             orma_schema,
             true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
             // (unlike in an actual update, where it determines which fields are modified). We just select any key in
@@ -107,7 +113,15 @@ const sort_database_rows_given_indexes = (
             database_indexes_by_entity[entity][identifying_key_index]
         const database_row =
             database_index[
-                JSON.stringify(identifying_keys.map(field => record[field]))
+                JSON.stringify(
+                    identifying_keys.map(field =>
+                        get_resolved_mutation_value(
+                            record,
+                            field,
+                            values_by_guid
+                        )
+                    )
+                )
             ] ?? {}
 
         // if (!database_row) {

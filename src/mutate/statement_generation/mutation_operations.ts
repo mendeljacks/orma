@@ -5,6 +5,7 @@ import { OrmaSchema } from '../../introspector/introspector'
 import { combine_wheres } from '../../query/query_helpers'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { generate_record_where_clause } from '../helpers/record_searching'
+import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 
 export const get_create_ast = (
@@ -16,7 +17,7 @@ export const get_create_ast = (
     const fields = mutation_pieces.reduce((acc, mutation_piece, i) => {
         Object.keys(mutation_piece.record).forEach(field => {
             // filter lower tables and keywords such as $operation from the sql
-            const resolved_value = get_resolved_mutation_value(
+            const resolved_value = get_resolved_mutation_value_if_field(
                 mutation_piece.record,
                 field,
                 values_by_guid
@@ -31,7 +32,7 @@ export const get_create_ast = (
 
     const values = mutation_pieces.map((mutation_piece, i) => {
         const record_values = [...fields].flatMap(field => {
-            const resolved_value = get_resolved_mutation_value(
+            const resolved_value = get_resolved_mutation_value_if_field(
                 mutation_piece.record,
                 field,
                 values_by_guid
@@ -51,6 +52,20 @@ export const get_create_ast = (
     return ast
 }
 
+const get_resolved_mutation_value_if_field = (
+    record: Record<string, any>,
+    field: string,
+    values_by_guid: Record<any, any>
+) => {
+    // dont process submutations or keywords such as $operation
+    if (Array.isArray(record[field]) || is_reserved_keyword(field)) {
+        return undefined
+    }
+
+    const resolved_value = get_resolved_mutation_value(record, field, values_by_guid)
+    return resolved_value?.$guid === undefined ? resolved_value : undefined
+}
+
 export const get_resolved_mutation_value = (
     record: Record<string, any>,
     field: string,
@@ -58,15 +73,15 @@ export const get_resolved_mutation_value = (
 ) => {
     const value = record[field]
 
-    // dont process submutations or keywords such as $operation
-    if (Array.isArray(value) || is_reserved_keyword(field)) {
-        return undefined
+    const has_guid = value?.$guid !== undefined
+    if (has_guid) {
+        const guid_value = values_by_guid[value.$guid]
+        // return the { $guid } object if there is nothing in the values_by_guid
+        const resolved_value = guid_value === undefined ? value : guid_value
+        return resolved_value
+    } else {
+        return value
     }
-
-    const resolved_value =
-        value?.$guid === undefined ? value : values_by_guid[value.$guid]
-
-    return resolved_value
 }
 
 export const get_update_ast = (
@@ -76,6 +91,7 @@ export const get_update_ast = (
 ) => {
     const { identifying_keys, where } = generate_record_where_clause(
         mutation_piece,
+        values_by_guid,
         orma_schema,
         false
     )
@@ -86,7 +102,7 @@ export const get_update_ast = (
                 return undefined
             }
 
-            const resolved_value = get_resolved_mutation_value(
+            const resolved_value = get_resolved_mutation_value_if_field(
                 mutation_piece.record,
                 field,
                 values_by_guid
@@ -114,11 +130,13 @@ export const get_update_ast = (
 export const get_delete_ast = (
     mutation_pieces: MutationPiece[],
     entity: string,
+    values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema
 ) => {
     const wheres = mutation_pieces.map(mutation_piece => {
         const { where } = generate_record_where_clause(
             mutation_piece,
+            values_by_guid,
             orma_schema,
             false
         )

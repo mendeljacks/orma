@@ -55,7 +55,7 @@ describe('mutation_guid_query.ts', () => {
                 },
             ]
 
-            const result = get_guid_query(mutation_pieces, 'users', orma_schema)
+            const result = get_guid_query(mutation_pieces, 'users', {}, orma_schema)
 
             expect(result).to.deep.equal({
                 $select: ['id', 'resource_id', 'first_name', 'last_name'],
@@ -90,7 +90,7 @@ describe('mutation_guid_query.ts', () => {
                 }
             ]
 
-            const result = get_guid_query(mutation_pieces, 'users', orma_schema)
+            const result = get_guid_query(mutation_pieces, 'users', {}, orma_schema)
 
             expect(result).to.deep.equal(undefined)
         })

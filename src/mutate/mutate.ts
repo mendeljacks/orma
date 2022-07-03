@@ -67,6 +67,7 @@ export const orma_mutate_run = async (
                 mutation_pieces,
                 query_infos.map(el => el.ast),
                 query_results,
+                values_by_guid,
                 orma_schema
             )
             save_guids(values_by_guid, mutation_pieces, sorted_database_rows)

@@ -261,6 +261,7 @@ export const key_by = <T>(
     }, {})
 
 export const array_equals = (array1: any[], array2: any[]) =>
+    array1.length === array2.length &&
     array1.every((el1, i) => el1 === array2[i])
 
 // from: https://stackoverflow.com/a/69424269

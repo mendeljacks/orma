@@ -285,7 +285,7 @@ describe('mutation_operations.ts', () => {
                 parents: [
                     {
                         $operation: 'update',
-                        id: 1
+                        id: 1,
                     },
                 ],
             }
@@ -365,6 +365,7 @@ describe('mutation_operations.ts', () => {
                     },
                 ],
                 'parents',
+                {},
                 orma_schema
             )
 

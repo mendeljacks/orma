@@ -1,6 +1,7 @@
 import { OrmaSchema } from '../../introspector/introspector'
 import { combine_wheres } from '../../query/query_helpers'
 import { generate_record_where_clause } from '../helpers/record_searching'
+import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 
 /**
@@ -12,6 +13,7 @@ import { MutationPiece } from '../plan/mutation_plan'
 export const get_guid_query = (
     input_mutation_pieces: MutationPiece[],
     entity: string,
+    values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema
 ) => {
     // $guids are not saved for deletes
@@ -42,6 +44,7 @@ export const get_guid_query = (
     const wheres = mutation_pieces.map((mutation_piece, i) => {
         const { where, identifying_keys } = generate_record_where_clause(
             mutation_piece,
+            values_by_guid,
             orma_schema,
             true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
             // (unlike in an update, where it determines which fields are modified). We just select any key in
