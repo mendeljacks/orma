@@ -49,14 +49,8 @@ import { OrmaQuery } from './query_types'
         },
     })
 
-    orma_query(
-        query,
-        schema,
-        async () => ({} as any)
-    ).then(result => {
-        if (result.$success) {
-            result.my_products[0].id
-            result.my_products[0].images[0].my_url
-        }
+    orma_query(query, schema, async () => ({} as any)).then(result => {
+        result.my_products[0].id
+        result.my_products[0].images[0].my_url
     })
 }

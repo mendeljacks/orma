@@ -7,7 +7,11 @@ import { OrmaQuery } from '../types/query/query_types'
 import { json_to_sql } from './json_sql'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
-import { apply_nesting_macro, get_ancestor_rows, should_nesting_short_circuit } from './macros/nesting_macro'
+import {
+    apply_nesting_macro,
+    get_ancestor_rows,
+    should_nesting_short_circuit,
+} from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import { get_query_plan } from './query_plan'
 import {
@@ -146,10 +150,7 @@ export const orma_query = async <
     query_function: (
         sql_string: string[]
     ) => Promise<Record<string, unknown>[][]>
-): Promise<
-    | (QueryResult<Schema, Query> & { $success: true })
-    | { $success: false; errors: OrmaError[] }
-> => {
+): Promise<QueryResult<Schema, Query>> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
 
