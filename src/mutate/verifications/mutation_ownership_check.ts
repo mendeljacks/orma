@@ -1,13 +1,19 @@
-import { MutationPiece } from '../plan/mutation_plan'
-import { WhereConnected } from '../../types/query/query_types'
-import { OrmaSchema } from '../../introspector/introspector'
-import { mysql_fn } from '../mutate'
+import { OrmaError } from '../../helpers/error_handling'
 import { group_by } from '../../helpers/helpers'
+import { reverse_edge } from '../../helpers/schema_helpers'
+import { OrmaSchema } from '../../introspector/introspector'
+import { edge_path_to_where_ins } from '../../query/macros/any_path_macro'
+import {
+    ConnectionEdges,
+    get_edge_paths_by_destination,
+} from '../../query/macros/where_connected_macro'
+import { combine_wheres } from '../../query/query_helpers'
+import { WhereConnected } from '../../types/query/query_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_statement } from '../statement_generation/mutation_statements'
-import { get_primary_keys } from '../../helpers/schema_helpers'
 import { generate_record_where_clause } from '../helpers/record_searching'
-import { ConnectionEdges, get_upwards_connection_edges } from '../../query/macros/where_connected_macro'
+import { mysql_fn } from '../mutate'
+import { MutationPiece } from '../plan/mutation_plan'
+import { generate_statement } from '../statement_generation/mutation_statements'
 
 /**
  * @param mutation
@@ -24,54 +30,35 @@ export const mutation_ownership_check = async (
     connection_edges: ConnectionEdges,
     mysql_function: mysql_fn,
     mutation_pieces: MutationPiece[],
-    where_connected: WhereConnected<OrmaSchema>
+    where_connecteds: WhereConnected<OrmaSchema>
 ) => {
     const ownership_query: any = get_ownership_query(
-        mutation,
-        ownership_entity,
-        ownership_ignores
+        orma_schema,
+        connection_edges,
+        mutation_pieces,
+        where_connecteds
     )
 
     if (ownership_query === undefined) {
         return
     }
 
-    ownership_query[ownership_entity].select = [ownership_field]
+    const ownership_results = await mysql_function([
+        generate_statement(ownership_query, []),
+    ])
 
-    const results = await mysql_function(
-        generate_statement(ownership_query, [])
+    const errors = generate_ownership_errors(
+        ownership_results,
+        where_connecteds
     )
-    const owners = results?.[ownership_entity] ?? []
-    const owner_values = owners.map(owner => owner[ownership_field])
-    const invalid_owners = differenceWith(
-        (owner, ownership_value) => owner[ownership_field] === ownership_value,
-        owners,
-        ownership_values
-    )
-
-    if (invalid_owners.length > 0) {
-        const error = {
-            error_code: 'missing_access_rights',
-            errors: [
-                {
-                    message: `Tried to mutate data from ${ownership_entity} ${owner_values} but only has permission to modify data from ${ownership_entity} ${ownership_values}.`,
-                    additional_info: {
-                        ownership_entity,
-                        owners,
-                        invalid_owners,
-                        permitted_ownership_values: ownership_values,
-                    },
-                },
-            ],
-        }
-        return error
-    }
+    return errors
 }
 
 export const get_ownership_query = (
-    mutation_pieces: MutationPiece[],
-    where_connected: WhereConnected<OrmaSchema>[number],
-    ownership_ignores: Record<string, string[]>
+    orma_schema: OrmaSchema,
+    connection_edges: ConnectionEdges,
+    where_connecteds: WhereConnected<OrmaSchema>,
+    all_mutation_pieces: MutationPiece[]
 ) => {
     /* 
     algorithm:
@@ -101,62 +88,63 @@ export const get_ownership_query = (
     */
 
     const mutation_pieces_by_entity = group_by(
-        mutation_pieces,
+        all_mutation_pieces,
         mutation_piece => path_to_entity(mutation_piece.path)
     )
     const entities = Object.keys(mutation_pieces_by_entity)
 
-    const wheres = entities.flatMap(entity => {
-        const mutation_pieces = mutation_pieces_by_entity[entity]
-        const records = mutation_pieces.map(mutation_piece => {
-            const record = mutation_piece.record
-            const operation = record.$operation
-            if (!operation) {
-                throw new Error('No operation provided for record.')
-            }
+    const query = where_connecteds.reduce((acc, where_connected) => {
+        const wheres = entities.flatMap(entity => {
+            const mutation_pieces = mutation_pieces_by_entity[entity]
 
-            return record
+            const primary_key_wheres = get_primary_key_wheres(
+                orma_schema,
+                connection_edges,
+                where_connected,
+                mutation_pieces,
+                entity
+            )
+
+            const foreign_key_wheres = get_foreign_key_wheres(
+                connection_edges,
+                where_connected,
+                mutation_pieces,
+                entity
+            )
+
+            return [...foreign_key_wheres, ...primary_key_wheres]
         })
 
-        const primary_key_wheres = get_primary_key_wheres(
-            entity,
-            records,
-            ownership_entity,
-            ownership_ignores
-        )
-        const foreign_key_wheres = get_foreign_key_wheres(
-            entity,
-            records,
-            ownership_entity,
-            ownership_ignores
-        )
+        const $where = combine_wheres(wheres, '$or')
 
-        return [...foreign_key_wheres, ...primary_key_wheres]
-    })
+        if (!$where) {
+            return undefined
+        }
 
-    const $where = combine_wheres(wheres, 'or')
+        if (acc[where_connected.$entity] !== undefined) {
+            throw new Error(
+                'Duplicate entity in the where_connected for mutation ownership.'
+            )
+        }
 
-    if (!$where) {
-        return undefined
-    }
-
-    const query: Record<any, any> = {
-        [where_connected.$entity]: {
+        acc[where_connected.$entity] = {
             [where_connected.$field]: true,
             $where,
-        },
-    }
+        }
+
+        return acc
+    }, {} as Record<string, any>)
 
     return query
 }
 
-function get_primary_key_wheres(
+export const get_primary_key_wheres = (
     orma_schema: OrmaSchema,
-    ownership_ignores: Record<string, string[]>,
+    connection_edges: ConnectionEdges,
     where_connected: WhereConnected<OrmaSchema>[number],
     mutation_pieces: MutationPiece[],
     entity: string
-) {
+) => {
     // const primary_keys = get_primary_keys(entity, orma_schema)
     // const primary_key_values = records
     //     .map(record => {
@@ -178,47 +166,72 @@ function get_primary_key_wheres(
     //     in: [primary_key, primary_key_values],
     // }
 
-    const identifying_wheres = mutation_pieces.map(mutation_pieces =>
-        generate_record_where_clause(mutation_pieces, orma_schema, false)
-    )
+    const identifying_wheres = mutation_pieces
+        // creates dont get identifying wheres since they are not in the database yet
+        .filter(
+            ({ record }) =>
+                record.$operation === 'update' || record.$operation === 'delete'
+        )
+        .map(
+            mutation_pieces =>
+                generate_record_where_clause(
+                    mutation_pieces,
+                    {}, // no values_by_guid since this is a pre middleware
+                    orma_schema,
+                    // force a value for now - no guid allowed (maybe change this in future when I figure out
+                    // what to do in this case)
+                    false,
+                    true
+                )?.where
+        )
+        .filter(el => el !== undefined)
 
     if (entity === where_connected.$entity) {
         // there might be a more elegant way to not handle this case separately, but im not sure how
         return identifying_wheres
     }
 
-    const ownership_edge_paths = filter_ignored_edge_paths(
-        get_upwards_connection_edges(entity, where_connected.$entity),
-        ownership_ignores
-    )
+    const edge_paths = get_edge_paths_by_destination(connection_edges, entity)
 
-    const primary_key_wheres = ownership_edge_paths.map(ownership_edge_path => {
-        const any_path = ownership_path_to_any_path(ownership_edge_path, entity)
+    const primary_key_wheres = edge_paths[where_connected.$entity].map(
+        edge_path => {
+            // reverse since we are queryng the where connected root entity and these paths are going from the
+            // current entity to the root, not the root to the current entity
+            const reversed_edge_path = edge_path
+                .slice()
+                .reverse()
+                .map(edge => reverse_edge(edge))
 
-        return {
-            any: [any_path, entity_where],
+            const where = edge_path_to_where_ins(
+                reversed_edge_path,
+                '$where',
+                combine_wheres(identifying_wheres, '$or')
+            )
+            return where
         }
-    })
+    )
 
     return primary_key_wheres
 }
 
-const get_foreign_key_wheres = (
-    entity: string,
-    records: Record<any, any>[],
-    ownership_entity: string,
-    ownership_ignores: Record<string, string[]>
+export const get_foreign_key_wheres = (
+    connection_edges: ConnectionEdges,
+    where_connected: WhereConnected<OrmaSchema>[number],
+    mutation_pieces: MutationPiece[],
+    entity: string
 ) => {
-    const ownership_edge_paths = filter_ignored_edge_paths(
-        get_upwards_nest_paths(entity, ownership_entity, generated_paths),
-        ownership_ignores
-    )
+    // TODO: optimize by combining this with the one in the other function
+    const edge_paths = get_edge_paths_by_destination(connection_edges, entity)
 
-    const foreign_key_wheres = ownership_edge_paths
-        .map(ownership_path => {
-            const values = records
-                .map(record => {
-                    return record[ownership_path[0].from_key]
+    const foreign_key_wheres = edge_paths[where_connected.$entity]
+        .map(edge_path => {
+            const values = mutation_pieces
+                .map(({ record }) => {
+                    const field = edge_path[0].from_field
+                    const value = record[field]
+                    // ignore any values with a guid since they must refer to something in this mutation,
+                    // but that row must belong to us if it passes ownership
+                    return value?.$guid === undefined ? value : undefined
                 })
                 .filter(el => el !== undefined)
 
@@ -228,9 +241,11 @@ const get_foreign_key_wheres = (
 
             // since this is a foreign key search, we actually want to search on the direct parent instead of the entity itself,
             // for example in a create the entity itself doesnt exist yet but the parent does
-            const search_ownership_path = ownership_path.slice(1, Infinity)
-            const parent_entity = ownership_path[0].to_table
-            const parent_field = ownership_path[0].to_key
+            const search_ownership_path = edge_path
+                .slice(1, Infinity)
+                .reverse()
+                .map(edge => reverse_edge(edge))
+            const parent_field = edge_path[0].to_field
             const parent_where = {
                 in: [parent_field, values],
             }
@@ -241,13 +256,12 @@ const get_foreign_key_wheres = (
                 // but there might be a way to do this more elegantly
                 return parent_where
             } else {
-                const any_path = ownership_path_to_any_path(
+                const where = edge_path_to_where_ins(
                     search_ownership_path,
-                    parent_entity
+                    '$where',
+                    parent_where
                 )
-                return {
-                    any: [any_path, parent_where],
-                }
+                return where
             }
         })
         .filter(el => el !== undefined)
@@ -255,27 +269,63 @@ const get_foreign_key_wheres = (
     return foreign_key_wheres
 }
 
-const filter_ignored_edge_paths = (
-    nest_paths,
-    ownership_ignores: Record<string, string[]>
-) => {
-    return nest_paths.filter(nest_path => {
-        // filter out the paths that start with a diffed key
-        const first_entity = nest_path[0].from_table
-        const first_field = nest_path[0].from_key
-        const initial_table_fields = ownership_ignores[first_entity] ?? []
-        return !initial_table_fields.includes(first_field)
-    })
-}
+// const filter_ignored_edge_paths = (
+//     nest_paths,
+//     ownership_ignores: Record<string, string[]>
+// ) => {
+//     return nest_paths.filter(nest_path => {
+//         // filter out the paths that start with a diffed key
+//         const first_entity = nest_path[0].from_table
+//         const first_field = nest_path[0].from_key
+//         const initial_table_fields = ownership_ignores[first_entity] ?? []
+//         return !initial_table_fields.includes(first_field)
+//     })
+// }
 
-const ownership_path_to_any_path = (ownership_edge_path, descendant_entity) =>
-    // reversed because the ownership path is descendant table -> ownership table but we
-    // need the other way around to query on the ownership table
-    reverse(ownership_edge_path)
-        // @ts-ignore
-        .map(edge => edge.to_table)
-        // after reversing, we need to cut the first element (the ownership table) and add a last element (the descendant table)
-        // this is just to match the formatting of the any clause, since the ownership path doesnt include the first table
-        .filter((_, i) => i !== 0)
-        .concat([descendant_entity])
-        .join('.')
+// const ownership_path_to_any_path = (ownership_edge_path, descendant_entity) =>
+//     // reversed because the ownership path is descendant table -> ownership table but we
+//     // need the other way around to query on the ownership table
+//     reverse(ownership_edge_path)
+//         // @ts-ignore
+//         .map(edge => edge.to_table)
+//         // after reversing, we need to cut the first element (the ownership table) and add a last element (the descendant table)
+//         // this is just to match the formatting of the any clause, since the ownership path doesnt include the first table
+//         .filter((_, i) => i !== 0)
+//         .concat([descendant_entity])
+//         .join('.')
+
+const generate_ownership_errors = (
+    ownership_results: Record<string, any>,
+    where_connecteds: WhereConnected<OrmaSchema>
+) => {
+    const errors = where_connecteds.flatMap(where_connected => {
+        const owner_objects = ownership_results?.[where_connected.$entity] ?? []
+        const owners = owner_objects.map(owner => owner[where_connected.$field])
+        const valid_owners = new Set(where_connected.$values)
+        const invalid_owners = owners.filter(
+            owner_value => !valid_owners.has(owner_value)
+        )
+
+        if (invalid_owners.length > 0) {
+            const error: OrmaError = {
+                error_code: 'missing_access_rights',
+                message: `Tried to mutate data from ${
+                    where_connected.$entity
+                } ${owners} but only has permission to modify data from ${
+                    where_connected.$entity
+                } ${where_connected.$values.join(', ')}.`,
+                additional_info: {
+                    where_connected,
+                    owners,
+                    valid_owners,
+                    invalid_owners,
+                },
+            }
+            return [error]
+        } else {
+            return []
+        }
+    })
+
+    return errors
+}

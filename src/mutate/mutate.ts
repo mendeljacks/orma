@@ -12,11 +12,11 @@ import {
     MutationPlan,
     run_mutation_plan,
 } from './plan/mutation_plan'
-import { get_mutation_statements } from './statement_generation/mutation_statements'
+import { get_mutation_statements, OrmaStatement } from './statement_generation/mutation_statements'
 
 export type MutationOperation = 'create' | 'update' | 'delete'
 export type operation = MutationOperation | 'query'
-export type mysql_fn = (statements) => Promise<Record<string, any>[][]>
+export type mysql_fn = (statements: OrmaStatement[]) => Promise<Record<string, any>[][]>
 export type statements = {
     sql_ast: Record<any, any>
     sql_string: string

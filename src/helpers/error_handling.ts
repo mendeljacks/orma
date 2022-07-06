@@ -1,5 +1,6 @@
-export interface OrmaError {
+export type OrmaError = {
     message: string
+    error_code?: string
     path?: (string | number)[]
     original_data?: any
     recommendation?: string
