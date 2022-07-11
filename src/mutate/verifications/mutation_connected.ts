@@ -25,27 +25,29 @@ import { generate_statement } from '../statement_generation/mutation_statements'
  * @param connection
  * @returns
  */
-export const mutation_ownership_check = async (
+export const get_mutation_connected_errors = async (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
     mysql_function: mysql_fn,
-    mutation_pieces: MutationPiece[],
-    where_connecteds: WhereConnected<OrmaSchema>
+    where_connecteds: WhereConnected<OrmaSchema>,
+    mutation_pieces: MutationPiece[]
 ) => {
-    const ownership_query: any = get_ownership_query(
+    const ownership_queries = get_ownership_queries(
         orma_schema,
         connection_edges,
-        mutation_pieces,
-        where_connecteds
+        where_connecteds,
+        mutation_pieces
     )
 
-    if (ownership_query === undefined) {
-        return
+    if (ownership_queries.length === 0) {
+        return []
     }
 
-    const ownership_results = await mysql_function([
-        generate_statement(ownership_query, []),
-    ])
+    const ownership_results = await mysql_function(
+        ownership_queries.map(ownership_query =>
+            generate_statement(ownership_query, [])
+        )
+    )
 
     const errors = generate_ownership_errors(
         ownership_results,
@@ -54,7 +56,7 @@ export const mutation_ownership_check = async (
     return errors
 }
 
-export const get_ownership_query = (
+export const get_ownership_queries = (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
     where_connecteds: WhereConnected<OrmaSchema>,
@@ -93,7 +95,7 @@ export const get_ownership_query = (
     )
     const entities = Object.keys(mutation_pieces_by_entity)
 
-    const query = where_connecteds.reduce((acc, where_connected) => {
+    const queries = where_connecteds.flatMap(where_connected => {
         const wheres = entities.flatMap(entity => {
             const mutation_pieces = mutation_pieces_by_entity[entity]
 
@@ -118,24 +120,19 @@ export const get_ownership_query = (
         const $where = combine_wheres(wheres, '$or')
 
         if (!$where) {
-            return undefined
+            return []
         }
 
-        if (acc[where_connected.$entity] !== undefined) {
-            throw new Error(
-                'Duplicate entity in the where_connected for mutation ownership.'
-            )
-        }
-
-        acc[where_connected.$entity] = {
-            [where_connected.$field]: true,
+        const query = {
+            $select: [where_connected.$field],
+            $from: [where_connected.$entity],
             $where,
         }
 
-        return acc
-    }, {} as Record<string, any>)
+        return [query]
+    })
 
-    return query
+    return queries
 }
 
 export const get_primary_key_wheres = (
@@ -186,7 +183,9 @@ export const get_primary_key_wheres = (
         )
         .filter(el => el !== undefined)
 
-    if (entity === where_connected.$entity) {
+    // the first case is because if this entity is the ownership entity, then we dont need to wrap in $where $ins.
+    // the second case is if there are no identifying keys (e.g. all creates or only $guids)
+    if (entity === where_connected.$entity || identifying_wheres.length === 0) {
         // there might be a more elegant way to not handle this case separately, but im not sure how
         return identifying_wheres
     }
@@ -247,7 +246,7 @@ export const get_foreign_key_wheres = (
                 .map(edge => reverse_edge(edge))
             const parent_field = edge_path[0].to_field
             const parent_where = {
-                in: [parent_field, values],
+                $in: [parent_field, values],
             }
 
             if (search_ownership_path.length === 0) {
@@ -295,11 +294,11 @@ export const get_foreign_key_wheres = (
 //         .join('.')
 
 const generate_ownership_errors = (
-    ownership_results: Record<string, any>,
+    ownership_results: Record<string, any>[][],
     where_connecteds: WhereConnected<OrmaSchema>
 ) => {
-    const errors = where_connecteds.flatMap(where_connected => {
-        const owner_objects = ownership_results?.[where_connected.$entity] ?? []
+    const errors = where_connecteds.flatMap((where_connected, i) => {
+        const owner_objects = ownership_results[i]
         const owners = owner_objects.map(owner => owner[where_connected.$field])
         const valid_owners = new Set(where_connected.$values)
         const invalid_owners = owners.filter(
@@ -311,7 +310,7 @@ const generate_ownership_errors = (
                 error_code: 'missing_access_rights',
                 message: `Tried to mutate data from ${
                     where_connected.$entity
-                } ${owners} but only has permission to modify data from ${
+                } ${owners.join(', ')} but only has permission to modify data from ${
                     where_connected.$entity
                 } ${where_connected.$values.join(', ')}.`,
                 additional_info: {

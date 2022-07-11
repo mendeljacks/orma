@@ -114,9 +114,9 @@ export const generate_statement = (
     const statement: OrmaStatement = {
         ast,
         entity: path_to_entity(mutation_pieces?.[0]?.path ?? []),
-        operation: mutation_pieces?.[0].record.$operation ?? 'query',
-        paths: mutation_pieces.map(el => el.path),
-        records: mutation_pieces.map(el => el.record),
+        operation: mutation_pieces?.[0]?.record?.$operation ?? 'query',
+        paths: mutation_pieces?.map(el => el.path) ?? [],
+        records: mutation_pieces?.map(el => el.record) ?? [],
         sql_string: json_to_sql(ast),
     }
 

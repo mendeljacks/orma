@@ -4,6 +4,7 @@ import { OrmaSchema } from '../../introspector/introspector'
 import { as_orma_schema } from '../query'
 import {
     apply_where_connected_macro,
+    get_edge_paths_by_destination,
     get_upwards_connection_edges,
 } from './where_connected_macro'
 
@@ -501,4 +502,6 @@ describe('where_connected_macro.ts', () => {
             expect(query).to.deep.equal({})
         })
     })
+    test.skip('handles nullalbe foreign keys')
+    test.skip('considered yours if it belongs to multiple vendors including you (e.g. you can view an order even though other vendors oreder itesm are inside)')
 })
