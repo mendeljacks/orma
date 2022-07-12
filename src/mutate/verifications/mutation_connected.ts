@@ -15,16 +15,6 @@ import { mysql_fn } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import { generate_statement } from '../statement_generation/mutation_statements'
 
-/**
- * @param mutation
- * @param ownership_entity
- * @param ownership_field
- * @param ownership_values allowed values of the ownership_field
- * @param ownership_ignores Objec where keys are entity names and values are arrays of fields.
- * @param query_function function which takes a query and connection and executes the query
- * @param connection
- * @returns
- */
 export const get_mutation_connected_errors = async (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
