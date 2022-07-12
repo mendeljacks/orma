@@ -206,8 +206,8 @@ describe('query', () => {
                 // @ts-ignore
                 query,
                 orma_schema,
-                sql_strings => {
-                    actual_query = sql_strings[0]
+                statements => {
+                    actual_query = statements[0].sql_string
                     return Promise.resolve([])
                 }
             )

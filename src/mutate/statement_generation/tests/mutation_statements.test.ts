@@ -38,6 +38,7 @@ describe('mutation_statements.ts', () => {
                 get_mutation_statements(
                     [
                         {
+                            //@ts-ignore because this should throw a runtime error
                             record: { $operation: 'asdasdas' },
                             path: ['parents', 0],
                         },
@@ -144,9 +145,7 @@ describe('mutation_statements.ts', () => {
                         },
                         operation: 'delete',
                         entity: 'products',
-                        records: [
-                            mutation_pieces[2].record
-                        ],
+                        records: [mutation_pieces[2].record],
                         paths: [mutation_pieces[2].path],
                         sql_string: 'DELETE FROM products WHERE id = 1',
                     },
@@ -183,7 +182,6 @@ describe('mutation_statements.ts', () => {
                             mutation_pieces[1].path,
                         ],
                         sql_string:
-
                             'SELECT country_id, id FROM users WHERE (id = 1) OR (id = 1) OR (id = 1)',
                     },
                 ],

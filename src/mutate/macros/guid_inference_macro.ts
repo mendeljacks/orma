@@ -3,13 +3,13 @@ import { hexoid } from '../../helpers/hexoid'
 import {
     Edge,
     get_direct_edges,
-    is_parent_entity
+    is_parent_entity,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import {
     get_connected_mutation_pieces,
     mutation_entity_deep_for_each,
-    path_to_entity
+    path_to_entity,
 } from '../helpers/mutate_helpers'
 import { MutationPiece } from '../plan/mutation_plan'
 
@@ -37,7 +37,11 @@ export const apply_guid_inference_macro = (
     mutation_entity_deep_for_each(
         mutation,
         (child_record, child_path, child_entity) => {
-            const child_mutation_piece: MutationPiece = {record: child_record, path: child_path}
+            const child_mutation_piece: MutationPiece = {
+                // @ts-ignore
+                record: child_record,
+                path: child_path,
+            }
             const all_parent_mutation_pieces = get_connected_mutation_pieces(
                 mutation,
                 child_mutation_piece
