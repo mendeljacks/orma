@@ -83,6 +83,26 @@ describe.only('mutation_connected.ts', () => {
                 },
             ],
         },
+        accounts: {
+            id: {
+                primary_key: true,
+                not_null: true,
+            },
+            vendor_id1: {
+                references: {
+                    vendors: {
+                        id: {},
+                    },
+                },
+            },
+            vendor_id2: {
+                references: {
+                    vendors: {
+                        id: {},
+                    },
+                },
+            },
+        },
         variants: {
             id: {
                 primary_key: true,
@@ -200,14 +220,14 @@ describe.only('mutation_connected.ts', () => {
                     $from: 'vendors',
                     $where: {
                         $or: [
+                            { $in: ['id', [12]] },
                             {
-                                $in: ['id', [12]],
-                            },
-                            {
-                                $any: [
-                                    'warehouses',
+                                $in: [
+                                    'id',
                                     {
-                                        $in: ['id', [1]],
+                                        $select: ['vendor_id'],
+                                        $from: 'warehouses',
+                                        $where: { $eq: ['id', 1] },
                                     },
                                 ],
                             },
@@ -260,7 +280,7 @@ describe.only('mutation_connected.ts', () => {
             expect(ownership_queries).to.deep.equal([
                 {
                     $select: ['id'],
-                    $from: ['vendors'],
+                    $from: 'vendors',
                     $where: {
                         // there are two almost identical clauses because the foreign key column (id in this case since
                         // it is a reverse nest) is also the identifying key. We could dedupe this in future, but I'm
@@ -337,7 +357,7 @@ describe.only('mutation_connected.ts', () => {
             expect(ownership_queries).to.deep.equal([
                 {
                     $select: ['id'],
-                    $from: ['vendors'],
+                    $from: 'vendors',
                     $where: {
                         $in: [
                             'id',
@@ -362,57 +382,28 @@ describe.only('mutation_connected.ts', () => {
                 },
             ])
         })
-        test('ignores diffed fields', () => {
-            const mutation = {
-                products: [
-                    {
-                        meta: { operation: 'create' },
-                        vendor_id: 12,
-                        title: 'hi',
+        test('ignores $guids', () => {
+            const mutation_pieces: MutationPiece[] = [
+                // in this case we expect that any vendors connected to an already existing product connected to
+                // listing 1 will show up in the connected query
+                {
+                    record: {
+                        $operation: 'create',
+                        vendor_id: { $guid: 2 },
                     },
-                    {
-                        meta: { operation: 'update' },
-                        id: 2,
-                        title: 'hi',
-                    },
-                ],
-                inventory_adjustments: [
-                    {
-                        meta: { operation: 'create' },
-                        variant_id: 1,
-                        shelf_id: 2,
-                    },
-                ],
-            }
+                    path: ['products', 0],
+                },
+            ]
 
-            const ownership_ignores = {
-                products: ['vendor_id'],
-                inventory_adjustments: ['shelf_id'],
-            }
-
-            const ownership_query = get_ownership_queries(
-                mutation,
-                'vendors',
-                ownership_ignores
+            const ownership_queries = get_ownership_queries(
+                schema,
+                default_connection_edges,
+                [vendor_where_connected],
+                mutation_pieces
             )
 
-            expect(ownership_query).to.deep.equal({
-                vendors: {
-                    where: {
-                        any: [
-                            'products.variants',
-                            {
-                                in: ['id', [1]],
-                            },
-                        ],
-                    },
-                },
-            })
+            expect(ownership_queries).to.deep.equal([])
         })
-        test.skip(
-            'add tests for $guid in the identifying key and in the foreign key'
-        )
-        test.skip('backwards connection edges / ignores')
     })
     describe(get_primary_key_wheres.name, () => {
         test('tracks primary keys', () => {
@@ -443,6 +434,48 @@ describe.only('mutation_connected.ts', () => {
                             $select: ['vendor_id'],
                             $from: 'products',
                             $where: { $eq: ['id', 12] },
+                        },
+                    ],
+                },
+            ])
+        })
+        test('handles multiple ownership paths', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 1,
+                    },
+                    path: ['accounts', 0],
+                },
+            ]
+
+            const wheres = get_primary_key_wheres(
+                schema,
+                default_connection_edges,
+                vendor_where_connected,
+                mutation_pieces,
+                'accounts'
+            )
+
+            expect(wheres).to.deep.equal([
+                {
+                    $in: [
+                        'id',
+                        {
+                            $select: ['vendor_id1'],
+                            $from: 'accounts',
+                            $where: { $eq: ['id', 1] },
+                        },
+                    ],
+                },
+                {
+                    $in: [
+                        'id',
+                        {
+                            $select: ['vendor_id2'],
+                            $from: 'accounts',
+                            $where: { $eq: ['id', 1] },
                         },
                     ],
                 },
@@ -541,7 +574,7 @@ describe.only('mutation_connected.ts', () => {
                             $select: ['vendor_id'],
                             $from: 'products',
                             $where: {
-                                in: ['id', [11, 12]],
+                                $in: ['id', [11, 12]],
                             },
                         },
                     ],
@@ -569,8 +602,6 @@ describe.only('mutation_connected.ts', () => {
             expect(wheres).to.deep.equal([])
         })
     })
-    test.skip('handles guids')
-    test.skip('handles cases with multiple ownership paths (all must be owned)')
 })
 
 /*

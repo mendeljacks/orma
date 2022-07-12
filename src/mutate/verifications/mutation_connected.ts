@@ -125,7 +125,7 @@ export const get_ownership_queries = (
 
         const query = {
             $select: [where_connected.$field],
-            $from: [where_connected.$entity],
+            $from: where_connected.$entity,
             $where,
         }
 
