@@ -98,7 +98,7 @@ describe('mutation_statements.ts', () => {
             // designed functions would just take mutation pieces and return asts, or take asts and return sql
             // strings, but such functions are harder to use and require more knowledge on what to do by
             // the user. So its like this to be as easy as possible to get orma working
-            expect(result).to.deep.equal({
+            const goal = {
                 mutation_infos: [
                     {
                         ast: {
@@ -185,7 +185,9 @@ describe('mutation_statements.ts', () => {
                             'SELECT country_id, id FROM users WHERE (id = 1) OR (id = 1) OR (id = 1)',
                     },
                 ],
-            })
+            }
+
+            expect(result).to.deep.equal(goal)
         })
     })
 })

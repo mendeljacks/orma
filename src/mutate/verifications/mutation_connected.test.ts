@@ -15,7 +15,7 @@ import {
     get_mutation_connected_errors,
 } from './mutation_connected'
 
-describe.only('mutation_connected.ts', () => {
+describe('mutation_connected.ts', () => {
     const schema: OrmaSchema = {
         vendors: {
             id: {
