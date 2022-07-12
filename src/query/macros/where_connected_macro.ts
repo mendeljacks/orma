@@ -264,7 +264,7 @@ const get_connected_where_clause = (
 /**
  * Add the given edge and removes the reverse edge if it exists, to prevent infinite loops
  */
-export const add_edges_to_connection_edges = (
+export const add_connection_edges = (
     connection_edges: ConnectionEdges,
     new_edges: Edge[]
 ): ConnectionEdges => {
@@ -289,7 +289,7 @@ export const add_edges_to_connection_edges = (
     return new_connection_edges
 }
 
-export const remove_edges_from_connection_edges = (
+export const remove_connection_edges = (
     connection_edges: ConnectionEdges,
     edges_to_remove: Edge[]
 ): ConnectionEdges => {

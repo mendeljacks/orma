@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { OrmaSchema } from '../../introspector/introspector'
 import {
-    add_edges_to_connection_edges,
+    add_connection_edges,
     get_upwards_connection_edges,
 } from '../../query/macros/where_connected_macro'
 import { WhereConnected } from '../../types/query/query_types'
@@ -258,7 +258,7 @@ describe.only('mutation_connected.ts', () => {
 
             // in this examle, we set up the connection edges so that a listing is considered connected
             // to a vendor if one of the products connected to that listing are connected to the vendor
-            const connection_edges = add_edges_to_connection_edges(
+            const connection_edges = add_connection_edges(
                 default_connection_edges,
                 [
                     {
@@ -335,7 +335,7 @@ describe.only('mutation_connected.ts', () => {
 
             // in this examle, we set up the connection edges so that a listing is considered connected
             // to a vendor if one of the products connected to that listing are connected to the vendor
-            const connection_edges = add_edges_to_connection_edges(
+            const connection_edges = add_connection_edges(
                 default_connection_edges,
                 [
                     {
