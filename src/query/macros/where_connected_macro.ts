@@ -1,10 +1,16 @@
 import { orma_escape } from '../../helpers/escape'
-import { deep_for_each, deep_set, last } from '../../helpers/helpers'
+import {
+    deep_equal,
+    deep_for_each,
+    deep_set,
+    last,
+} from '../../helpers/helpers'
 import { push_path } from '../../helpers/push_path'
 import {
     Edge,
     get_entity_names,
     get_parent_edges,
+    reverse_edge,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { WhereConnected } from '../../types/query/query_types'
@@ -46,12 +52,12 @@ export const get_upwards_connection_edges = (orma_schema: OrmaSchema) => {
     return connection_edges
 }
 
-const get_edge_paths_by_destination = (
+export const get_edge_paths_by_destination = (
     connection_edges: ConnectionEdges,
     source_entity: string
 ) => {
     // start off with a path to every connected edge
-    const edge_paths =
+    let edge_paths =
         connection_edges?.[source_entity]?.map(edge => [
             { ...edge, from_entity: source_entity },
         ]) ?? []
@@ -60,17 +66,33 @@ const get_edge_paths_by_destination = (
     // by appending some connected edge onto that path
     let next_index = 0
 
+    // TODO: remove this commented code after I make sure mutation check tests work
+    // TODO: explain how this for loop works in a comment (expands as it goes), maybe convert to while
+    //       loop so it is clearer
+
     // keep looping while there are still paths to process
-    while (next_index < edge_paths.length) {
-        const current_index = next_index
-        next_index = edge_paths.length
-        for (let i = current_index; i < edge_paths.length; i++) {
-            // for each unprocessed path, generate new paths by appending all possible
-            // connected edges onto its end
-            const edge_path = edge_paths[i]
-            const parent_entity = last(edge_path).to_entity
-            const new_paths =
-                connection_edges?.[parent_entity]?.map(connection_edge => {
+    // while (next_index < edge_paths.length) {
+    //     const current_index = next_index
+    //     next_index = edge_paths.length
+    for (let i = 0; i < edge_paths.length; i++) {
+        // for each unprocessed path, generate new paths by appending all possible
+        // connected edges onto its end
+        const edge_path = edge_paths[i]
+        const parent_entity = last(edge_path).to_entity
+        const new_paths =
+            connection_edges?.[parent_entity]
+                // filter edges to exclude edges already in this path. Only allowing each edge once per path
+                // prevents infinite loops in the connection paths
+                ?.filter(connection_edge =>
+                    edge_path.every(
+                        edge =>
+                            edge.from_field !== connection_edge.from_field ||
+                            edge.to_entity !== connection_edge.to_entity ||
+                            edge.to_field !== connection_edge.to_field
+                    )
+                )
+                // generate a new path by appending the connection edge
+                .map(connection_edge => {
                     const new_edge = {
                         ...connection_edge,
                         from_entity: parent_entity,
@@ -78,9 +100,9 @@ const get_edge_paths_by_destination = (
                     return [...edge_path, new_edge]
                 }) ?? []
 
-            edge_paths.push(...new_paths)
-        }
+        edge_paths.push(...new_paths)
     }
+    // }
 
     // split edge paths by entity since we only want paths to entities that are in the $where_connected clause
     const connection_paths = edge_paths.reduce(
@@ -114,11 +136,17 @@ export const apply_where_connected_macro = (
     let where_clause_locations: { where_clause; where_clause_path }[] = []
     query_for_each(query, (subquery, subquery_path) => {
         if (subquery.$where) {
-            deep_for_each(subquery.$where, (where_clause, where_clause_path) => {
-                if (where_clause?.$from) {
-                    where_clause_locations.push({ where_clause, where_clause_path })
+            deep_for_each(
+                subquery.$where,
+                (where_clause, where_clause_path) => {
+                    if (where_clause?.$from) {
+                        where_clause_locations.push({
+                            where_clause,
+                            where_clause_path,
+                        })
+                    }
                 }
-            })
+            )
         }
 
         subquery_locations.push({ subquery, subquery_path })
@@ -138,7 +166,10 @@ export const apply_where_connected_macro = (
 
     subquery_locations.forEach(({ subquery, subquery_path }) => {
         const entity_name = get_real_entity_name(last(subquery_path), subquery)
-        const higher_entity = get_real_higher_entity_name(subquery_path, subquery)
+        const higher_entity = get_real_higher_entity_name(
+            subquery_path,
+            subquery
+        )
         apply_where_connected_to_subquery(
             connection_edges,
             query.$where_connected,
@@ -229,3 +260,53 @@ const get_connected_where_clause = (
 }
 
 // TODO: make validation that ensures an entity / field combination cannot appear more than once in a $where_connected
+
+/**
+ * Add the given edge and removes the reverse edge if it exists, to prevent infinite loops
+ */
+export const add_connection_edges = (
+    connection_edges: ConnectionEdges,
+    new_edges: Edge[]
+): ConnectionEdges => {
+    // shallow clone to not mutate input
+    const new_connection_edges = {
+        ...connection_edges,
+    }
+
+    new_edges.forEach(new_edge => {
+        const existing_edges = new_connection_edges[new_edge.from_entity] ?? []
+
+        new_connection_edges[new_edge.from_entity] = [
+            ...existing_edges,
+            {
+                from_field: new_edge.from_field,
+                to_entity: new_edge.to_entity,
+                to_field: new_edge.to_field,
+            },
+        ]
+    })
+
+    return new_connection_edges
+}
+
+export const remove_connection_edges = (
+    connection_edges: ConnectionEdges,
+    edges_to_remove: Edge[]
+): ConnectionEdges => {
+    // shallow clone to not mutate input
+    const new_connection_edges = {
+        ...connection_edges,
+    }
+
+    edges_to_remove.forEach(edge_to_remove => {
+        if (new_connection_edges[edge_to_remove.from_entity]) {
+            // find the edge and exclude it from result
+            new_connection_edges[edge_to_remove.from_entity] =
+                new_connection_edges[edge_to_remove.from_entity].filter(
+                    edge => !deep_equal(edge, edge_to_remove)
+                )
+        }
+    })
+
+    return new_connection_edges
+}

@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { OrmaSchema } from '../../../introspector/introspector'
+import { MutationPiece } from '../../plan/mutation_plan'
 import {
     get_create_ast,
     get_delete_ast,
@@ -87,7 +88,7 @@ describe('mutation_operations.ts', () => {
 
     describe(get_update_ast.name, () => {
         test('update by id', () => {
-            const mutation_piece = {
+            const mutation_piece: MutationPiece = {
                 record: {
                     $operation: 'update',
                     id: 1,
@@ -115,7 +116,7 @@ describe('mutation_operations.ts', () => {
                         unique1: 'john',
                     },
                 ],
-            }
+            } as const
 
             const result = get_update_ast(
                 {
@@ -143,7 +144,7 @@ describe('mutation_operations.ts', () => {
                         quantity: 5,
                     },
                 ],
-            }
+            } as const
 
             const result = get_update_ast(
                 {
@@ -170,7 +171,7 @@ describe('mutation_operations.ts', () => {
                         quantity: 5, // quantity is not unique, so it can't be used to update with
                     },
                 ],
-            }
+            } as const
 
             try {
                 const result = get_update_ast(
@@ -196,7 +197,7 @@ describe('mutation_operations.ts', () => {
                         quantity: 5,
                     },
                 ],
-            }
+            } as const
 
             try {
                 const result = get_update_ast(
@@ -220,7 +221,7 @@ describe('mutation_operations.ts', () => {
                         parent_id: 6,
                     },
                 ],
-            }
+            } as const
 
             const result = get_update_ast(
                 {
@@ -257,7 +258,7 @@ describe('mutation_operations.ts', () => {
                         grandparent_id: { $guid: 'a' },
                     },
                 ],
-            }
+            } as const
 
             const values_by_guid = {
                 a: 12,
@@ -288,7 +289,7 @@ describe('mutation_operations.ts', () => {
                         id: 1,
                     },
                 ],
-            }
+            } as const
 
             const values_by_guid = {}
 
@@ -317,7 +318,7 @@ describe('mutation_operations.ts', () => {
                         quantity: 2,
                     },
                 ],
-            }
+            } as const
 
             const values_by_guid = {
                 a: 12,
@@ -351,7 +352,7 @@ describe('mutation_operations.ts', () => {
                         id: 5,
                     },
                 ],
-            }
+            } as const
 
             const result = get_delete_ast(
                 [
@@ -392,7 +393,7 @@ describe('mutation_operations.ts', () => {
                         id: 2,
                     },
                 ],
-            }
+            } as const
 
             const values_by_guid = {
                 a: 12,
@@ -430,7 +431,7 @@ describe('mutation_operations.ts', () => {
                         $operation: 'create',
                     },
                 ],
-            }
+            } as const
 
             const values_by_guid = {
                 a: 12,
@@ -462,7 +463,7 @@ describe('mutation_operations.ts', () => {
                         id: { $guid: 'a' },
                     },
                 ],
-            }
+            } as const
 
             const values_by_guid = {
                 a: 12,

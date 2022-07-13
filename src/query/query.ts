@@ -21,6 +21,8 @@ import {
 } from './query_validation_OLD'
 import { DeepReadonly } from '../types/schema_types'
 import { OrmaSchema } from '../introspector/introspector'
+import { mysql_fn } from '../mutate/mutate'
+import { generate_statement } from '../mutate/statement_generation/mutation_statements'
 
 // This function will default to the from clause
 export const get_real_higher_entity_name = (
@@ -147,9 +149,7 @@ export const orma_query = async <
 >(
     raw_query: Query,
     orma_schema_input: Schema,
-    query_function: (
-        sql_string: string[]
-    ) => Promise<Record<string, unknown>[][]>
+    query_function: mysql_fn
 ): Promise<QueryResult<Schema, Query>> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
@@ -163,7 +163,7 @@ export const orma_query = async <
 
     // Sequential for query plan
     for (const paths of query_plan) {
-        const sql_strings = paths
+        const subqueries = paths
             .map(path => {
                 // this pretty inefficient, but nesting macro gets confused when it sees the where clauses
                 // that it put in the query and thinks that they were there before mutation planning.
@@ -181,22 +181,26 @@ export const orma_query = async <
                 const subquery = deep_get(path, tier_query)
                 apply_escape_macro(subquery)
 
-                return json_to_sql(subquery)
+                return subquery
             })
             .filter(el => el !== undefined)
 
         // Promise.all for each element in query plan.
         // dont call query is there are no sql strings to run
         const output =
-            sql_strings.length > 0 ? await query_function(sql_strings) : []
+            subqueries.length > 0
+                ? await query_function(
+                      subqueries.map(subquery =>
+                          generate_statement(subquery, [])
+                      )
+                  )
+                : []
 
         // Combine outputs
-        sql_strings.forEach((_, i) => results.push([paths[i], output[i]]))
+        subqueries.forEach((_, i) => results.push([paths[i], output[i]]))
     }
 
     const output = orma_nester(results, query, orma_schema)
-    // @ts-ignore
-    output.$success = true
 
     return output as any
 }

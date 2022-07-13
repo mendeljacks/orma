@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { as_orma_schema } from '../../../query/query'
+import { MutationPiece } from '../../plan/mutation_plan'
 import { replace_guids_with_values, save_guids } from '../guid_processing'
 
 describe('guid_processing.ts', () => {
@@ -37,7 +38,7 @@ describe('guid_processing.ts', () => {
     describe(save_guids.name, () => {
         test('saves guids', () => {
             const values_by_guids = {}
-            const mutation_pieces = [
+            const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
                         $operation: 'create',
@@ -71,7 +72,7 @@ describe('guid_processing.ts', () => {
         })
         test('ignores non-guid fields', () => {
             const values_by_guids = {}
-            const mutation_pieces = [
+            const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
                         $operation: 'create',

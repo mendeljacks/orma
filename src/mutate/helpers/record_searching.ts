@@ -13,7 +13,8 @@ export const generate_record_where_clause = (
     mutation_piece: MutationPiece,
     values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema,
-    allow_ambiguous_unique_keys: boolean = false
+    allow_ambiguous_unique_keys: boolean = false,
+    throw_on_no_identifying_keys: boolean = true
 ) => {
     const { record, path } = mutation_piece
     const entity_name = path_to_entity(path)
@@ -26,8 +27,12 @@ export const generate_record_where_clause = (
         allow_ambiguous_unique_keys
     )
 
-    // throw if we cant find a unique key
-    throw_identifying_key_errors(record.$operation, identifying_keys, path)
+    if (throw_on_no_identifying_keys) {
+        // throw if we cant find a unique key
+        throw_identifying_key_errors(record.$operation, identifying_keys, path)
+    } else if (!identifying_keys?.length) {
+        return { identifying_keys }
+    }
 
     const where_clauses = identifying_keys.map(key => ({
         $eq: [

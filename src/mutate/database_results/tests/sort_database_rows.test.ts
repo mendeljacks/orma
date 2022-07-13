@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { as_orma_schema } from '../../../query/query'
-import { replace_guids_with_values, save_guids } from '../guid_processing'
+import { MutationPiece } from '../../plan/mutation_plan'
 import { sort_database_rows } from '../sort_database_rows'
 
 describe('guid_processing.ts', () => {
@@ -71,7 +71,7 @@ describe('guid_processing.ts', () => {
             } catch (error) {}
         })
         test('sorts mutation pieces', () => {
-            const mutation_pieces = [
+            const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
                         $operation: 'create',
@@ -124,7 +124,7 @@ describe('guid_processing.ts', () => {
             ])
         })
         test('sorts rows from multiple queries', () => {
-            const mutation_pieces = [
+            const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
                         $operation: 'create',
@@ -179,7 +179,7 @@ describe('guid_processing.ts', () => {
             ])
         })
         test('handles compound primary key', () => {
-            const mutation_pieces = [
+            const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
                         $operation: 'update',
@@ -237,7 +237,7 @@ describe('guid_processing.ts', () => {
         })
         test('handles duplicate rows', () => {
             // this situation could happen e.g. if there are rows in different locations in the mutation
-            const mutation_pieces = [
+            const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
                         $operation: 'update',
@@ -289,7 +289,7 @@ describe('guid_processing.ts', () => {
         })
         test('allows ambiguous identifying keys', () => {
             // this situation could happen e.g. if there are rows in different locations in the mutation
-            const mutation_pieces = [
+            const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
                         $operation: 'create',
