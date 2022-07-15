@@ -22,9 +22,14 @@ Orma also helps with validation, sql injection protection, while leaving the res
 
 ## Getting started
 
+Try out the Interactive playground
+https://orma-playground.web.app/
+
+Install orma as well as your favorite database adapter
 ```
-npm i orma  // Or yarn add orma
-npm i pg // Or npm i mysql
+npm i orma
+npm i pg
+(or npm i mysql2)
 ```
 
 ## Orma Schema
