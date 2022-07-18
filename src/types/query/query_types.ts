@@ -10,13 +10,14 @@ import {
 This is basically broken because of a typescript bug (as usual). Here is the code to reproduce:
 
 type MyType<Obj> = {
-  [K in keyof Obj]: { b?: {c?: true} }
+  [K in keyof Obj]: { b?: true }
 }
 
 const as_t = <T extends MyType<T>>(arg: T) => arg
 const t = as_t({
   a: {
     // no intellisense here, but typescript knowns that only b: true is allowed...
+    // removinfg the ? from b?: in the type definition causes intellisense to work again
   }
 })
 
