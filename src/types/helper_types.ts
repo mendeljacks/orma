@@ -9,6 +9,7 @@ export type IsType<T, U> = T extends U ? T : never
 
 /**
  * Takes an object type and picks out the values based on the desired keys
+ * @deprecated Use direct indexing of type instead e.g. MyType['prop']
  */
 export type Pluck<
     Obj extends Record<string, any>,

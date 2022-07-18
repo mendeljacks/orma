@@ -210,7 +210,7 @@ export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) =>
 
 export const as_orma_query = <
     Schema extends OrmaSchema,
-    T extends DeepReadonly<OrmaQuery<Schema>>
+    T extends OrmaQuery<Schema, T>
 >(
     schema: Schema,
     query: T

@@ -1,6 +1,7 @@
 import { OrmaSchema } from '../../introspector/introspector'
+import { as_orma_query } from '../../query/query'
 import { GetAllEntities, GetFields } from '../schema_types'
-import { OrmaQuery, WhereConnected } from './query_types'
+import { OrmaQuery, Subquery, WhereConnected } from './query_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a
 
@@ -52,12 +53,15 @@ const test_schema = getA({
 } as const)
 
 type TestSchema = typeof test_schema
+const as_test_query = <Query extends OrmaQuery<TestSchema, Query>>(
+    query: Query
+) => query
 
 {
     // test fields
     type test = OrmaQuery<TestSchema>
 
-    const good: test = {
+    const good = as_test_query({
         products: {
             id: 'location_id',
             location_id: true,
@@ -65,16 +69,16 @@ type TestSchema = typeof test_schema
                 $sum: 'id',
             },
         },
-    }
+    })
 
-    const bad1: test = {
+    const bad1 = as_test_query({
         products: {
             // @ts-expect-error
             id: 'not_a_field',
             // @ts-expect-error
             location_id: 0,
         },
-    }
+    })
 }
 
 {
@@ -82,22 +86,22 @@ type TestSchema = typeof test_schema
     type test = OrmaQuery<TestSchema>
 
     // known root entities
-    const good1: test = {
+    const good1 = as_test_query({
         images: {
             url: true,
         },
         vendors: {
             $from: 'vendors',
         },
-    }
+    })
 
     // unknown root entities, has type inference based on $from
-    const good2: test = {
+    const good2 = as_test_query({
         my_images: {
             $from: 'images',
             url: true,
         },
-    }
+    })
 
     // nested subqueries
     const good3: OrmaQuery<TestSchema> = {
@@ -118,14 +122,21 @@ type TestSchema = typeof test_schema
         },
     }
 
+    // orma actually doesnt allow this
+    const good6 = as_test_query({
+        products: {
+            asdasdas: true,
+        },
+    })
+
     // orma actually doesnt allow this, since in this case a $from clause must
     // be provided, but the types allow this since I can't figure out
     // how to disallow it without ruining other parts of the type
-    const good4: test = {
+    const good4 = as_test_query({
         my_images: {
             url: true,
         },
-    }
+    })
 
     // orma would not allow this, since regular nested fields cant start with $,
     // but I cant get typescript to only apply virtual fields type to strings
@@ -134,11 +145,11 @@ type TestSchema = typeof test_schema
     // I believe this is something to do with the way I tried it (enumerating ever
     // alphanumeric character except $) overloading the type checker with too
     // many code paths, but who knows for sure
-    const good5: test = {
+    const good5 = as_test_query({
         products: {
             $sum: 'id',
         },
-    }
+    })
 
     // searching products under the key images is disallowed on a type level.
     // Orma allows this, but I couldnt figure out how to be able to do this
@@ -148,30 +159,30 @@ type TestSchema = typeof test_schema
     // then just put product fields on). So since this is an uncommon usecase,
     // if needed a user would just have to ts-ignore this (and potentially lost
     // typing on all subqueries of images)
-    const b: test = {
+    const b = as_test_query({
         images: {
             // @ts-expect-error
             $from: 'products',
             id: true,
         },
-    }
+    })
 }
 
 {
     // test pagination
     type test = OrmaQuery<TestSchema>
-    const good: test = {
+    const good = as_test_query({
         products: {
             $limit: 1,
             $offset: 2,
         },
-    }
+    })
 }
 
 {
     // test group by
     type test = OrmaQuery<TestSchema>
-    const good: test = {
+    const good = as_test_query({
         products: {
             $group_by: [
                 'id',
@@ -181,13 +192,13 @@ type TestSchema = typeof test_schema
                 },
             ],
         },
-    }
+    })
 }
 
 {
     // test order by
     type test = OrmaQuery<TestSchema>
-    const good: test = {
+    const good = as_test_query({
         products: {
             $order_by: [
                 'id',
@@ -200,16 +211,16 @@ type TestSchema = typeof test_schema
                 'asdjaskdhasjd',
             ],
         },
-    }
+    })
 
-    const bad1: test = {
+    const bad1 = as_test_query({
         products: {
             // @ts-expect-error
             $order_by: 'id',
         },
-    }
+    })
 
-    const bad2: test = {
+    const bad2 = as_test_query({
         products: {
             $order_by: [
                 {
@@ -218,7 +229,7 @@ type TestSchema = typeof test_schema
                 },
             ],
         },
-    }
+    })
 }
 
 {
@@ -235,7 +246,7 @@ type TestSchema = typeof test_schema
 
 {
     // handles $where_connected macro
-    const good: OrmaQuery<TestSchema> = {
+    const good = as_test_query({
         $where_connected: [
             {
                 $entity: 'products',
@@ -243,9 +254,9 @@ type TestSchema = typeof test_schema
                 $values: [1, 'a'],
             },
         ],
-    }
+    })
 
-    const bad: OrmaQuery<TestSchema> = {
+    const bad = as_test_query({
         $where_connected: [
             // @ts-expect-error
             {
@@ -254,5 +265,19 @@ type TestSchema = typeof test_schema
                 $values: [1, 'a'],
             },
         ],
-    }
+    })
+}
+
+{
+    const testing = as_test_query({
+        products: {
+            
+        }
+    } as const)
+
+    const as_test_subquery = <S extends Subquery<TestSchema, S, 'products', false>>(
+        query: S
+    ) => query
+
+    const t2 = as_test_subquery({asdas: true})
 }
