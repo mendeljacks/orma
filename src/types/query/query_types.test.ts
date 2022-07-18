@@ -1,6 +1,6 @@
 import { OrmaSchema } from '../../introspector/introspector'
 import { GetAllEntities, GetFields } from '../schema_types'
-import { OrmaQuery, WhereConnected } from './query_types'
+import { OrmaQuery, SimplifiedQuery, WhereConnected } from './query_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a
 
@@ -254,5 +254,29 @@ type TestSchema = typeof test_schema
                 $values: [1, 'a'],
             },
         ],
+    }
+}
+
+{
+    // Simplified query
+    const good: SimplifiedQuery<TestSchema> = {
+        products: {
+            id: true,
+            location_id: true,
+            vendors: {
+                id: true,
+            },
+        },
+    }
+    
+    const good2: SimplifiedQuery<TestSchema> = {}
+
+    const bad: SimplifiedQuery<TestSchema> = {
+        products: {
+            // @ts-ignore
+            image_urls: {
+                id: true,
+            },
+        },
     }
 }

@@ -5,6 +5,7 @@ import {
     GetAllEdges,
     GetAllEntities,
     GetFields,
+    GetFieldType,
 } from '../schema_types'
 
 export type OrmaQuery<Schema extends OrmaSchema> = {
@@ -160,3 +161,19 @@ type OrderBy<Schema extends OrmaSchema, Entity extends GetAllEntities<Schema>> =
         | { $asc: FieldOrString<Schema, Entity> | Expression<Schema, Entity> }
         | { $desc: FieldOrString<Schema, Entity> | Expression<Schema, Entity> }
     )[]
+
+export type SimplifiedQuery<Schema extends OrmaSchema> = {
+    [Entity in GetAllEntities<Schema>]?: SimplifiedSubquery<Schema, Entity>
+}
+
+export type SimplifiedSubquery<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> = {
+    [Field in GetFields<Schema, Entity>]?: true
+} & {
+    [NestedEntity in GetAllEdges<
+        Schema,
+        Entity
+    >['to_entity']]?: SimplifiedSubquery<Schema, NestedEntity>
+}
