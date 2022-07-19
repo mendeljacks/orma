@@ -137,10 +137,10 @@ export type GetFieldType<
     ? Schema[Entity][Field] extends { not_null: true }
         ? FieldTypeStringToType<
               MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
-          > | null
+          > 
         : FieldTypeStringToType<
               MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
-          >
+          > | null
     : any
 
 export type GetFieldSchema<
