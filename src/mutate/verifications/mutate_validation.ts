@@ -12,6 +12,7 @@ import {
 import { OrmaSchema } from '../../introspector/introspector'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
 import { get_identifying_keys } from '../helpers/identifying_keys'
+import { MutationOperation } from '../mutate'
 
 export const mutate_validation_schema = {
     type: 'object',
@@ -109,10 +110,14 @@ const validate_mutation_record = (
     record,
     record_path,
     orma_schema: OrmaSchema,
-    higher_operation = undefined
+    higher_operation: MutationOperation | undefined = undefined
 ): OrmaError[] => {
     const operation = record.$operation ?? higher_operation
     const entity_name = get_ancestor_name_from_path(record_path, 0)
+
+    if (!entity_name) {
+        throw new Error('Shouldnt happen')
+    }
 
     const errors = [
         ...validate_operation_existence(mutation, record_path, operation),
@@ -139,14 +144,14 @@ const validate_mutation_record = (
             operation,
             orma_schema
         ),
-        ...validate_operation_nesting(
-            mutation,
-            record_path,
-            entity_name,
-            operation,
-            higher_operation,
-            orma_schema
-        ),
+        // ...validate_operation_nesting(
+        //     mutation,
+        //     record_path,
+        //     entity_name,
+        //     operation,
+        //     higher_operation,
+        //     orma_schema
+        // ),
     ]
     return errors
 }
@@ -171,8 +176,8 @@ const validate_operation_existence = (
 }
 
 const is_valid_operation_nesting = (
-    parent_operation: 'create' | 'update' | 'delete',
-    child_operation: 'create' | 'update' | 'delete'
+    parent_operation: MutationOperation | undefined,
+    child_operation: MutationOperation | undefined
 ) => {
     // for more info on why these are the only correct nestings, see the mutate plan function
     const is_same = parent_operation === child_operation
@@ -183,7 +188,7 @@ const is_valid_operation_nesting = (
 const get_ancestor_name_from_path = (
     record_path: (string | number)[],
     nth_ancestor: number
-): string => {
+): string | undefined => {
     let ancestor_count = 0
     for (let i = 0; i < record_path.length; i++) {
         const path_el = record_path[record_path.length - 1 - i]
@@ -310,64 +315,64 @@ const validate_required_fields = (
     return errors
 }
 
-const validate_operation_nesting = (
-    mutation: any,
-    record_path: any,
-    entity_name: string,
-    operation: 'create' | 'update' | 'delete',
-    higher_operation: 'create' | 'update' | 'delete',
-    orma_schema: OrmaSchema
-) => {
-    const higher_entity = get_ancestor_name_from_path(record_path, 1)
-    const higher_entity_is_parent = is_parent_entity(
-        higher_entity,
-        entity_name,
-        orma_schema
-    )
-    const parent_operation = higher_entity_is_parent
-        ? higher_operation
-        : operation
-    const child_operation = higher_entity_is_parent
-        ? operation
-        : higher_operation
+// const validate_operation_nesting = (
+//     mutation: any,
+//     record_path: any,
+//     entity_name: string,
+//     operation: MutationOperation,
+//     higher_operation: MutationOperation | undefined,
+//     orma_schema: OrmaSchema
+// ) => {
+//     const higher_entity = get_ancestor_name_from_path(record_path, 1)
+//     const higher_entity_is_parent = is_parent_entity(
+//         higher_entity,
+//         entity_name,
+//         orma_schema
+//     )
+//     const parent_operation = higher_entity_is_parent
+//         ? higher_operation
+//         : operation
+//     const child_operation = higher_entity_is_parent
+//         ? operation
+//         : higher_operation
 
-    let operation_nesting_errors: OrmaError[] = []
-    // if either the current operation or the higher operation are undefined, it doesnt make sense to talk about
-    // checking the operation nesting. In either case, we are either guaranteed a good operation nesting (e.g.
-    // we are dealing with a root level record, which has no higher operation) or we already got an error from the
-    // $operation existence check. In any case, we don't need to generate an error here.
-    // Additionally, the top layer of records always can be any operation, so we dont need to check those either 
-    // (the higher operation is the root operation, but that is only used as an override)
-    if (
-        operation !== undefined &&
-        higher_operation !== undefined &&
-        record_path.length > 2 && // 0 = root, 1 = inside array, 2 = top layer of objects
-        !is_valid_operation_nesting(parent_operation, child_operation)
-    ) {
-        const parent_entity = higher_entity_is_parent
-            ? higher_entity
-            : entity_name
-        const child_entity = higher_entity_is_parent
-            ? entity_name
-            : higher_entity
+//     let operation_nesting_errors: OrmaError[] = []
+//     // if either the current operation or the higher operation are undefined, it doesnt make sense to talk about
+//     // checking the operation nesting. In either case, we are either guaranteed a good operation nesting (e.g.
+//     // we are dealing with a root level record, which has no higher operation) or we already got an error from the
+//     // $operation existence check. In any case, we don't need to generate an error here.
+//     // Additionally, the top layer of records always can be any operation, so we dont need to check those either
+//     // (the higher operation is the root operation, but that is only used as an override)
+//     if (
+//         operation !== undefined &&
+//         higher_operation !== undefined &&
+//         record_path.length > 2 && // 0 = root, 1 = inside array, 2 = top layer of objects
+//         !is_valid_operation_nesting(parent_operation, child_operation)
+//     ) {
+//         const parent_entity = higher_entity_is_parent
+//             ? higher_entity
+//             : entity_name
+//         const child_entity = higher_entity_is_parent
+//             ? entity_name
+//             : higher_entity
 
-        // TODO: rethink how operation nesting is checked. This is disallowing valid mutations
+//         // TODO: rethink how operation nesting is checked. This is disallowing valid mutations
 
-        // operation_nesting_errors.push({
-        //     message: `Invalid operation nesting. Parent ${parent_entity} has operation ${parent_operation} while child ${child_entity} has operation ${child_operation}`,
-        //     path: [...record_path, '$operation'],
-        //     original_data: mutation,
-        //     additional_info: {
-        //         parent_entity,
-        //         child_entity,
-        //         parent_operation,
-        //         child_operation,
-        //     },
-        // })
-    }
+//         // operation_nesting_errors.push({
+//         //     message: `Invalid operation nesting. Parent ${parent_entity} has operation ${parent_operation} while child ${child_entity} has operation ${child_operation}`,
+//         //     path: [...record_path, '$operation'],
+//         //     original_data: mutation,
+//         //     additional_info: {
+//         //         parent_entity,
+//         //         child_entity,
+//         //         parent_operation,
+//         //         child_operation,
+//         //     },
+//         // })
+//     }
 
-    return operation_nesting_errors
-}
+//     return operation_nesting_errors
+// }
 
 const validate_identifying_keys = (
     mutation: any,
@@ -379,6 +384,9 @@ const validate_identifying_keys = (
     let identifying_key_errors: OrmaError[] = []
     if (operation === 'update' || operation === 'delete') {
         const entity_name = get_ancestor_name_from_path(record_path, 0)
+        if (!entity_name) {
+            throw new Error('No entity name found')
+        }
         const identifying_keys = get_identifying_keys(
             entity_name,
             record,

@@ -187,7 +187,7 @@ const apply_where_connected_to_subquery = (
     $where_connected: WhereConnected<OrmaSchema>,
     subquery: any,
     entity_name: string,
-    higher_entity: string = undefined
+    higher_entity: string | undefined = undefined
 ) => {
     const existing_wheres = [subquery.$where] ?? []
     const connected_where = get_connected_where_clause(
@@ -208,7 +208,7 @@ const get_connected_where_clause = (
     connection_edges: ConnectionEdges,
     $where_connected: WhereConnected<OrmaSchema>,
     entity_name: string,
-    higher_entity: string = undefined
+    higher_entity: string | undefined = undefined
 ) => {
     const edge_paths_by_destination = get_edge_paths_by_destination(
         connection_edges,

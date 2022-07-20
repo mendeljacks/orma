@@ -247,9 +247,10 @@ type TestSchema = typeof test_schema
 
     const bad: OrmaQuery<TestSchema> = {
         $where_connected: [
-            // @ts-expect-error
             {
+                // @ts-expect-error
                 $entity: 'products',
+                // @ts-expect-error
                 $field: 'url', // this is invalid since url is not a field of products
                 $values: [1, 'a'],
             },

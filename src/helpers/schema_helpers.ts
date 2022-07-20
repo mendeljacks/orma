@@ -61,7 +61,7 @@ export const get_parent_edges = (
             return []
         }
         const parent_field_name = Object.keys(
-            field_schema.references[parent_entity_name]
+            field_schema?.references?.[parent_entity_name] ?? {}
         )[0]
 
         return [
@@ -96,7 +96,7 @@ const child_edges_cache_by_schema = new Map<
 // a helper method, having all the child edges in a single cache object helps it be memoized
 const get_child_edges_cache = orma_schema => {
     if (child_edges_cache_by_schema.has(orma_schema)) {
-        return child_edges_cache_by_schema.get(orma_schema)
+        return child_edges_cache_by_schema.get(orma_schema) ?? {}
     }
 
     const entity_names = get_entity_names(orma_schema)
@@ -127,7 +127,7 @@ export const get_child_edges = (
 ) => {
     const child_edges_cache = get_child_edges_cache(orma_schema)
 
-    return child_edges_cache[entity_name] ?? []
+    return child_edges_cache?.[entity_name] ?? []
 }
 
 /**
@@ -164,7 +164,7 @@ export const get_direct_edge = (
     from_entity: string,
     to_entity: string,
     orma_schema: OrmaSchema,
-    foreign_key_override: string[] = undefined
+    foreign_key_override: string[] | undefined = undefined
 ) => {
     const parent_edges = get_parent_edges(from_entity, orma_schema).filter(
         el => el.to_entity === to_entity

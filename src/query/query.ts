@@ -159,7 +159,7 @@ export const orma_query = async <
     apply_select_macro(query, orma_schema)
 
     const query_plan = get_query_plan(query)
-    let results = []
+    let results: any[] = []
 
     // Sequential for query plan
     for (const paths of query_plan) {

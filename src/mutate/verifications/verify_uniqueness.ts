@@ -10,7 +10,6 @@ import { PathedRecord } from '../../types'
 import { get_identifying_keys } from '../helpers/identifying_keys'
 import { split_mutation_by_entity } from '../helpers/mutate_helpers'
 
-
 /**
  * Generates errors when unique fields are duplicates in two cases:
  *   1. records from the mutation conflict with records in the database
@@ -295,20 +294,18 @@ export const get_duplicate_record_indices = (
 
     const records2_indices = records_to_indices_with_fields(records2)
 
-    const duplicates = records2_indices
-        .map(record2_index => {
-            const record2 = records2[record2_index]
-            const values = identifying_fields.map(field => record2[field])
-            const values_string = JSON.stringify(values)
-            const record1_index = records1_indices_by_value[values_string]
+    const duplicates = records2_indices.flatMap(record2_index => {
+        const record2 = records2[record2_index]
+        const values = identifying_fields.map(field => record2[field])
+        const values_string = JSON.stringify(values)
+        const record1_index = records1_indices_by_value[values_string]
 
-            if (record1_index !== undefined) {
-                return [record1_index, record2_index]
-            } else {
-                return undefined
-            }
-        })
-        .filter(el => el !== undefined)
+        if (record1_index !== undefined) {
+            return [[record1_index, record2_index]]
+        } else {
+            return []
+        }
+    })
 
     return duplicates
 }

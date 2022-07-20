@@ -40,10 +40,10 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
-        test("handles aggregate functions", () => {
+        test('handles aggregate functions', () => {
             const json = {
                 $min: 'field',
-                $count: '*'
+                $count: '*',
             }
 
             const sql = format(json_to_sql(json))
@@ -51,9 +51,9 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
-        test("handles functions with multiple args", () => {
+        test('handles functions with multiple args', () => {
             const json = {
-                $coalesce: [1, 2]
+                $coalesce: [1, 2],
             }
 
             const sql = format(json_to_sql(json))
@@ -83,6 +83,7 @@ describe('query', () => {
             const json = {
                 $having: undefined,
             }
+            //@ts-ignore
             const sql = format(json_to_sql(json))
             const goal = format('')
 

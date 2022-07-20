@@ -47,7 +47,7 @@ describe('query helpers', () => {
                 root2: {},
             }
 
-            const results = []
+            const results: any[] = []
             query_for_each(query, (value, path) => {
                 results.push([value, path])
             })
@@ -116,10 +116,9 @@ describe('query helpers', () => {
                 },
             ]
 
-            const result = get_search_records_where(
-                records,
-                record => ['field1']
-            )
+            const result = get_search_records_where(records, record => [
+                'field1',
+            ])
 
             expect(result).to.deep.equal({
                 $in: ['field1', ["'hi'"]],
@@ -132,10 +131,9 @@ describe('query helpers', () => {
                 },
             ]
 
-            const result = get_search_records_where(
-                records,
-                record => ['field1']
-            )
+            const result = get_search_records_where(records, record => [
+                'field1',
+            ])
 
             expect(result).to.deep.equal({
                 $in: ['field1', ["'hi'"]],
@@ -150,10 +148,10 @@ describe('query helpers', () => {
                 },
             ]
 
-            const result = get_search_records_where(
-                records,
-                record => ['field1', 'field2']
-            )
+            const result = get_search_records_where(records, record => [
+                'field1',
+                'field2',
+            ])
 
             expect(result).to.deep.equal({
                 $and: [
@@ -188,10 +186,8 @@ describe('query helpers', () => {
                 },
             ]
 
-            const result = get_search_records_where(
-                records,
-                record =>
-                    record.type === 1 ? ['field1'] : ['field1', 'field2']
+            const result = get_search_records_where(records, record =>
+                record.type === 1 ? ['field1'] : ['field1', 'field2']
             )
 
             expect(result).to.deep.equal({

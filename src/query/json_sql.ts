@@ -33,7 +33,7 @@ type expression =
 
 type primitive = string | number | Date | Array<any>
 
-export const json_to_sql = (expression: expression, path = []) => {
+export const json_to_sql = (expression: expression, path: any[] = []) => {
     // strings and other non-objects are returned as-is
     const is_object = is_simple_object(expression)
     if (!is_object) {

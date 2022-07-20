@@ -38,7 +38,7 @@ export const query_for_each = (
     const queue = root_paths
 
     while (queue.length > 0) {
-        const path = queue.shift()
+        const path = queue.shift() as string[]
         const subquery = deep_get(path, query)
         const subquery_keys = Object.keys(subquery).filter(
             key => !is_reserved_keyword(key) && is_subquery(subquery[key])
@@ -64,7 +64,7 @@ export const query_for_each = (
  * }
  */
 export const combine_wheres = (
-    where_clauses: Record<string, any>[],
+    where_clauses: (Record<string, any> | undefined)[],
     connective: '$and' | '$or'
 ) => {
     const combined_where = where_clauses
@@ -74,7 +74,7 @@ export const combine_wheres = (
                 return new_where
             }
 
-            const wheres: any[] = new_where[connective] ?? [new_where]
+            const wheres: any[] = new_where?.[connective] ?? [new_where]
             if (!combined_where[connective]) {
                 return {
                     [connective]: [combined_where, ...wheres],

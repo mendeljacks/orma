@@ -1,13 +1,8 @@
 import { orma_escape } from '../../helpers/escape'
-import {
-    deep_for_each,
-    deep_set
-} from '../../helpers/helpers'
+import { deep_for_each, deep_set } from '../../helpers/helpers'
 
-export const apply_escape_macro = (
-    query
-) => {
-    let raw_paths = []
+export const apply_escape_macro = query => {
+    let raw_paths: any[] = []
 
     deep_for_each(query, (value, path) => {
         if (value?.$escape !== undefined) {
@@ -22,9 +17,7 @@ export const apply_escape_macro = (
     raw_paths.forEach(([path, value]) => {
         if (path.length === 0) {
             if (path.length === 0) {
-                throw new Error(
-                    "Can't use the $escape keyword on the root."
-                )
+                throw new Error("Can't use the $escape keyword on the root.")
             }
         }
         deep_set(path, orma_escape(value.$escape), query)

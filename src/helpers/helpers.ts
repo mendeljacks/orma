@@ -121,12 +121,12 @@ export const deep_get = (
 export const deep_map = (
     item: any,
     processor: (value: any, path: (string | number)[]) => any,
-    current_path = []
+    current_path: any[] = []
 ) => {
     let mapped_item
     if (Array.isArray(item)) {
         mapped_item = item.map((el, i) => {
-            const new_path = [...current_path, i]
+            const new_path: any[] = [...current_path, i]
             const subitem = deep_map(el, processor, new_path)
             return subitem
         })
@@ -157,7 +157,7 @@ export const deep_map = (
 export const deep_for_each = (
     item: any,
     processor: (value: any, path: (string | number)[]) => void,
-    current_path = []
+    current_path: any[] = []
 ) => {
     const is_object = is_simple_object(item)
     const is_array = Array.isArray(item)
@@ -222,7 +222,7 @@ function getRegExpFlags(regExp) {
     if (typeof regExp.source.flags == 'string') {
         return regExp.source.flags
     } else {
-        var flags = []
+        var flags: string[] = []
         regExp.global && flags.push('g')
         regExp.ignoreCase && flags.push('i')
         regExp.multiline && flags.push('m')

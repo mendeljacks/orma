@@ -1,5 +1,6 @@
 import { as_orma_schema } from '../../introspector/introspector'
 import { IsEqual } from '../helper_types'
+import { GetFieldType } from '../schema_types'
 import { QueryResult } from './query_result_types'
 import { OrmaQuery } from './query_types'
 
@@ -8,6 +9,7 @@ const test = () => {
         products: {
             id: {
                 data_type: 'int',
+                not_null: true,
             },
             vendor_id: {
                 data_type: 'bigint',
@@ -122,5 +124,23 @@ const test = () => {
 
         result.products.slice()
         result.products[0].images[0].products[0].name
+    }
+    {
+        // handles null
+        const result = query_response({
+            products: {
+                id: true,
+                name: true,
+            },
+        })
+
+        result.products.slice()
+        result.products[0].id = 1
+        //@ts-expect-error
+        result.products[0].id = null
+        result.products[0].name = null
+
+        type T = GetFieldType<TestSchema, 'products', 'id'>
+        type T2 = GetFieldType<TestSchema, 'products', 'name'>
     }
 }

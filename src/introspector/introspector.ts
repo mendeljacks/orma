@@ -61,7 +61,9 @@ export interface OrmaSchemaMutable {
 export type OrmaSchema = DeepReadonly<OrmaSchemaMutable>
 
 export interface orma_entity_schema {
+    //@ts-ignore
     $comment?: string
+    //@ts-ignore
     $indexes?: orma_index_schema[]
     [field_name: string]: orma_field_schema | orma_index_schema[] | string
 }
@@ -197,6 +199,7 @@ export const generate_database_schema = (
     const database_schema: OrmaSchemaMutable = {}
 
     for (const mysql_table of mysql_tables) {
+        //@ts-ignore
         database_schema[mysql_table.table_name] = {
             $comment: mysql_table.table_comment,
         }

@@ -14,14 +14,14 @@ type ToposortGenericType<T extends string | number> = (
 export const toposort: ToposortGenericType<string> &
     ToposortGenericType<number> = dag => {
     const indegrees = countInDegrees(dag)
-    const sorted = []
+    const sorted: any[] = []
 
     let roots = getRoots(indegrees)
 
     while (roots.length) {
         sorted.push(roots)
 
-        const newRoots = []
+        const newRoots: any[] = []
         roots.forEach(root => {
             dag[root].forEach(dependent => {
                 indegrees[dependent]--

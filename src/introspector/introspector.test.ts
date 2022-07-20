@@ -131,9 +131,11 @@ describe('introspector', () => {
                 packed: null,
                 nullable: 'YES',
                 index_type: 'BTREE',
+                //@ts-ignore
                 comment: null,
                 index_comment: 'my index',
                 is_visible: 'YES',
+                //@ts-ignore
                 expression: null,
             },
         ]
@@ -193,9 +195,11 @@ describe('introspector', () => {
                 packed: null,
                 nullable: 'YES',
                 index_type: 'BTREE',
+                //@ts-ignore
                 comment: null,
                 index_comment: 'my index',
                 is_visible: 'YES',
+                //@ts-ignore
                 expression: null,
             },
             {
@@ -210,9 +214,11 @@ describe('introspector', () => {
                 packed: null,
                 nullable: '',
                 index_type: 'BTREE',
+                //@ts-ignore
                 comment: null,
                 index_comment: '',
                 is_visible: 'YES',
+                //@ts-ignore
                 expression: null,
             },
             {
@@ -227,9 +233,11 @@ describe('introspector', () => {
                 packed: null,
                 nullable: '',
                 index_type: 'BTREE',
+                //@ts-ignore
                 comment: null,
                 index_comment: '',
                 is_visible: 'YES',
+                //@ts-ignore
                 expression: null,
             },
             {
@@ -244,9 +252,11 @@ describe('introspector', () => {
                 packed: null,
                 nullable: '',
                 index_type: 'BTREE',
+                //@ts-ignore
                 comment: null,
                 index_comment: '',
                 is_visible: 'NO',
+                //@ts-ignore
                 expression: null,
             },
         ]

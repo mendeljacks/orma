@@ -36,9 +36,10 @@ export const get_mutation_statements = (
     const grouped_mutation = get_grouped_mutation(input_mutation_pieces)
 
     const mutation_infos = Object.keys(grouped_mutation).flatMap(entity =>
-        Object.keys(grouped_mutation[entity]).flatMap(
+        Object.keys(grouped_mutation[entity] ?? {}).flatMap(
             (operation: MutationOperation) => {
-                const group_pieces = grouped_mutation[entity][operation]
+                const group_pieces =
+                    grouped_mutation?.[entity]?.[operation] ?? []
                 return get_mutation_infos_for_group(
                     group_pieces,
                     operation,
@@ -52,8 +53,8 @@ export const get_mutation_statements = (
 
     const query_infos: OrmaStatement[] = Object.keys(grouped_mutation).flatMap(
         entity => {
-            const create_pieces = grouped_mutation[entity].create ?? []
-            const update_pieces = grouped_mutation[entity].update ?? []
+            const create_pieces = grouped_mutation?.[entity]?.create ?? []
+            const update_pieces = grouped_mutation?.[entity]?.update ?? []
             const group_pieces = [...create_pieces, ...update_pieces]
             const guid_query = get_guid_query(
                 group_pieces,
@@ -88,7 +89,7 @@ const get_mutation_infos_for_group = (
     values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema
 ) => {
-    let asts: Record<any, any>[]
+    let asts: (Record<any, any> | undefined)[]
     if (operation === 'create') {
         asts = [get_create_ast(mutation_pieces, entity, values_by_guid)]
     } else if (operation === 'update') {
@@ -108,9 +109,10 @@ const get_mutation_infos_for_group = (
         throw new Error(`Unrecognized $operation ${operation}`)
     }
 
-    return asts
-        .filter(ast => ast !== undefined) // can be undefined if there is nothing to do, e.g. a stub update
-        .map(ast => generate_statement(ast, mutation_pieces))
+    return asts.flatMap(ast =>
+        // can be undefined if there is nothing to do, e.g. a stub update
+        ast === undefined ? [] : [generate_statement(ast, mutation_pieces)]
+    )
 }
 
 type GroupedMutation = {

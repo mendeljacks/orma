@@ -1,13 +1,14 @@
 import { as_orma_schema } from '../introspector/introspector'
 import { AllowType, IsEqual } from './helper_types'
 import {
-    FilterFieldsBySchemaProp, GetAllEdges,
+    FilterFieldsBySchemaProp,
+    GetAllEdges,
     GetAllEntities,
     GetChildEdges,
     GetFields,
     GetFieldType,
     GetParentEdges,
-    IsKeyword
+    IsKeyword,
 } from './schema_types'
 
 const test_schema = as_orma_schema({
@@ -190,7 +191,7 @@ const test_schema = as_orma_schema({
     // reads the type from the schema
     const good: IsEqual<
         GetFieldType<typeof test_schema, 'products', 'id'>,
-        string
+        string | null
     > = true
 
     // unknown types are cast as any

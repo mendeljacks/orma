@@ -15,7 +15,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 
 var IDX = 256,
-    HEX = []
+    HEX: any[] = []
 while (IDX--) HEX[IDX] = (IDX + 256).toString(16).substring(1)
 
 export const hexoid = (len: number): (() => string) => {

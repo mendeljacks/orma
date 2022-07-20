@@ -161,7 +161,7 @@ const tests = () => {
 
         type FieldType = typeof result['products'][0]['id']
 
-        const expect: IsEqual<FieldType, number> = true
+        const expect: IsEqual<FieldType, number | null> = true
     }
 
     {
@@ -175,7 +175,7 @@ const tests = () => {
 
         type FieldType = typeof result['my_images'][0]['url']
 
-        const expect: IsEqual<FieldType, string> = true
+        const expect: IsEqual<FieldType, string | null> = true
     }
 
     {
@@ -270,7 +270,7 @@ const tests = () => {
             >
 
             type IdType = test['products']['id']
-            const expect: IsEqual<IdType, number> = true
+            const expect: IsEqual<IdType, number | null> = true
         }
         {
             // respects $from clause
@@ -285,7 +285,7 @@ const tests = () => {
             >
 
             type FieldType = test['my_images']['url']
-            const expect: IsEqual<FieldType, string> = true
+            const expect: IsEqual<FieldType, string | null> = true
         }
         {
             // handles computed fields
@@ -317,7 +317,7 @@ const tests = () => {
             >
 
             type FieldType = test['products']['my_id']
-            const expect: IsEqual<FieldType, number> = true
+            const expect: IsEqual<FieldType, number | null> = true
         }
     }
 }

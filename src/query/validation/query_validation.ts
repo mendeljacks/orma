@@ -216,6 +216,8 @@ const validate_data_props = (
                 orma_schema
             )
         }
+
+        return []
     })
 
     return errors

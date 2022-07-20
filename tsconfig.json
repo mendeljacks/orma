@@ -6,7 +6,8 @@
       "outDir": "./build",
       "strict": false,
       "lib": ["ES2019", "DOM"],
-      "downlevelIteration": true
+      "downlevelIteration": true,
+      "strictNullChecks": true
     },
     "include": ["src"],
     "exclude": ["node_modules"]
