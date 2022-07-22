@@ -92,7 +92,7 @@ describe('select_macro', () => {
 
             expect(query).to.deep.equal(goal)
         })
-        test.only("adds foreign keys for renamed subquery", () => {
+        test("adds foreign keys for renamed subquery", () => {
             const query = {
                 products: {
                     my_images: {
