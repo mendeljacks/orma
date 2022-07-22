@@ -5,6 +5,7 @@ import {
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
+import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { is_subquery, query_for_each } from '../query_helpers'
 
 /**
@@ -12,7 +13,7 @@ import { is_subquery, query_for_each } from '../query_helpers'
  */
 export const apply_select_macro = (query, orma_schema: OrmaSchema) => {
     query_for_each(query, (value, path) => {
-        const new_select = get_select(value, path, orma_schema)
+        const new_select = get_select(value, path, query, orma_schema)
         const existing_select = query.$select ?? []
         const $select = [...new_select, ...existing_select]
         const $from = value.$from ?? last(path)
@@ -38,9 +39,10 @@ export const apply_select_macro = (query, orma_schema: OrmaSchema) => {
 export const get_select = (
     subquery,
     subquery_path: string[],
+    query,
     orma_schema: OrmaSchema
 ) => {
-    const entity_name = last(subquery_path)
+    const entity_name = get_real_entity_name(last(subquery_path), subquery)
 
     const $select = Object.keys(subquery).flatMap(key => {
         if (is_reserved_keyword(key)) {
@@ -75,7 +77,7 @@ export const get_select = (
     })
 
     if (subquery_path.length > 1) {
-        const higher_entity = subquery_path[subquery_path.length - 2]
+        const higher_entity = get_real_higher_entity_name(subquery_path, query)
         const edges_to_higher_entity = get_direct_edges(
             entity_name,
             higher_entity,

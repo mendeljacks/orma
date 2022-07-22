@@ -4,7 +4,7 @@ import { as_orma_query } from '../../query/query'
 import { QueryResult } from './query_result_types'
 import { OrmaQuery } from './query_types'
 
-{
+const t = () => {
     const schema = {
         products: {
             id: {

@@ -92,6 +92,29 @@ describe('select_macro', () => {
 
             expect(query).to.deep.equal(goal)
         })
+        test.only("adds foreign keys for renamed subquery", () => {
+            const query = {
+                products: {
+                    my_images: {
+                        $from: 'images'
+                    }
+                }
+            }
+
+            apply_select_macro(query, orma_schema)
+            const goal = {
+                products: {
+                    $select: ['id'],
+                    $from: 'products',
+                    my_images: {
+                        $select: ['product_id'],
+                        $from: 'images'
+                    }
+                }
+            }
+
+            expect(query).to.deep.equal(goal)
+        })
         test("respects 'from' clause", () => {
             const query = {
                 my_products: {
