@@ -1,7 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { clone } from '../../../helpers/helpers'
-import { OrmaSchema } from '../../../introspector/introspector'
 import { as_orma_schema } from '../../../query/query'
 import { apply_guid_inference_macro } from '../guid_inference_macro'
 
@@ -99,7 +98,7 @@ describe('guid_inference_macro.ts', () => {
             // @ts-ignore
             expect(mutation.images[0].product_id).to.equal(2)
         })
-        test('ignores updates', () => {
+        test('ignores nested updates', () => {
             const mutation = {
                 products: [
                     {
@@ -107,11 +106,6 @@ describe('guid_inference_macro.ts', () => {
                         images: [
                             {
                                 $operation: 'update',
-                                image_urls: [
-                                    {
-                                        $operation: 'create',
-                                    },
-                                ],
                             },
                         ],
                     },
@@ -152,6 +146,26 @@ describe('guid_inference_macro.ts', () => {
 
             // no changes
             expect(cloned_mutation).to.deep.equal(mutation)
+        })
+        test('handles create nested under update', () => {
+            const mutation = {
+                products: [
+                    {
+                        $operation: 'update',
+                        id: 1,
+                        images: [
+                            {
+                                $operation: 'create',
+                            },
+                        ],
+                    },
+                ],
+            }
+
+            apply_guid_inference_macro(mutation, schema)
+
+            //@ts-ignore
+            expect(mutation.products[0].images[0].product_id).to.deep.equal(1)
         })
     })
 })

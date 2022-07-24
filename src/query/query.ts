@@ -1,28 +1,20 @@
-import { OrmaError } from '../helpers/error_handling'
 import { clone, deep_get, drop_last, last } from '../helpers/helpers'
 import { nester } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
+import { OrmaSchema } from '../introspector/introspector'
+import { mysql_fn } from '../mutate/mutate'
+import { generate_statement } from '../mutate/statement_generation/mutation_statements'
 import { QueryResult } from '../types/query/query_result_types'
 import { OrmaQuery } from '../types/query/query_types'
-import { json_to_sql } from './json_sql'
+import { DeepReadonly } from '../types/schema_types'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
 import {
     apply_nesting_macro,
-    get_ancestor_rows,
     should_nesting_short_circuit,
 } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import { get_query_plan } from './query_plan'
-import {
-    get_any_path_errors,
-    postprocess_query_for_validation,
-    preprocess_query_for_validation,
-} from './query_validation_OLD'
-import { DeepReadonly } from '../types/schema_types'
-import { OrmaSchema } from '../introspector/introspector'
-import { mysql_fn } from '../mutate/mutate'
-import { generate_statement } from '../mutate/statement_generation/mutation_statements'
 
 // This function will default to the from clause
 export const get_real_higher_entity_name = (

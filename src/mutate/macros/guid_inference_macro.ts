@@ -19,8 +19,8 @@ const get_id = hexoid(36)
 
 /**
  * MUTATES THE INPUT. Adds guids to foreign keys of records that are adjacent in the mutation json object. We apply
- * inference in two cases: 2 creates that are adjacent in the json object, or 2 deletes that
- * are adjacent. We only do inference where we would not overwrite user supplied data. As a special precaution,
+ * inference in 3 cases: 2 creates that are adjacent in the json object, 2 deletes that
+ * are adjacent or an update adjacent to a create. We only do inference where we would not overwrite user supplied data. As a special precaution,
  * if the user already supplied a child foreign key (e.g. parent_id column) we skip inference. The final decision
  * table looks like this:
  *
@@ -136,12 +136,21 @@ const should_apply_inference = (
     child_record: Record<string, any>,
     edge_to_child: Edge
 ) => {
-    const operations_are_same =
-        parent_record.$operation === child_record.$operation
+    // there could be more cases where we want to apply guid inference (what create nested under delete?)
+    // but these are the ones I'm sure of for now
+    const both_creates =
+        parent_record.$operation === 'create' &&
+        child_record.$operation === 'create'
 
-    const is_create_or_delete =
-        parent_record.$operation === 'create' ||
-        parent_record.$operation === 'delete'
+    const both_deletes =
+        parent_record.$operation === 'delete' &&
+        child_record.$operation === 'delete'
+
+    const update_and_create =
+        parent_record.$operation === 'update' &&
+        child_record.$operation === 'create'
+
+    const valid_operations = both_creates || both_deletes || update_and_create
 
     // we dont do foreign key inference if the foreign key (e.g. parent_id) has something
     // provided by the user, even if the parent (e.g. id) is empty. We could propagate to the
@@ -153,8 +162,7 @@ const should_apply_inference = (
     const child_value_is_undefined =
         child_record[edge_to_child.to_field] === undefined
 
-    const should_apply =
-        operations_are_same && is_create_or_delete && child_value_is_undefined
+    const should_apply = valid_operations && child_value_is_undefined
 
     return should_apply
 }

@@ -196,7 +196,7 @@ export const deep_for_each = (
   objClone; // {a: 3, b: 5, c: [1, 2, 3], d: {aa: 1, bb: 2}}
 */
 
-export const clone = obj => {
+export const clone = <T>(obj: T): T => {
     if (typeof obj == 'function') {
         return obj
     }
@@ -206,15 +206,20 @@ export const clone = obj => {
         var value = obj[key]
         var type = {}.toString.call(value).slice(8, -1)
         if (type == 'Array' || type == 'Object') {
+            //@ts-ignore
             result[key] = clone(value)
         } else if (type == 'Date') {
+            //@ts-ignore
             result[key] = new Date(value.getTime())
         } else if (type == 'RegExp') {
+            //@ts-ignore
             result[key] = RegExp(value.source, getRegExpFlags(value))
         } else {
+            //@ts-ignore
             result[key] = value
         }
     }
+    //@ts-ignore
     return result
 }
 
