@@ -143,4 +143,22 @@ const test = () => {
         type T = GetFieldType<TestSchema, 'products', 'id'>
         type T2 = GetFieldType<TestSchema, 'products', 'name'>
     }
+    {
+        // excludes $ keywords
+        const result = query_response({
+            products: {
+                id: true,
+                $where: {
+                    $eq: ['id', { $escape: 1 }],
+                },
+            },
+        })
+
+        result.products.slice()
+        // @ts-expect-error
+        result.products[0].$where
+
+        type T = GetFieldType<TestSchema, 'products', 'id'>
+        type T2 = GetFieldType<TestSchema, 'products', 'name'>
+    }
 }
