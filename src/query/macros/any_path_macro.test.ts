@@ -228,5 +228,40 @@ describe('query_macros', () => {
             }
             expect(query).to.deep.equal(goal)
         })
+        test('respects $from', () => {
+            const query = {
+                my_products: {
+                    $from: 'products',
+                    $where: {
+                        $any_path: [
+                            ['images'],
+                            {
+                                $eq: ['id', 1],
+                            },
+                        ],
+                    },
+                },
+            }
+
+            apply_any_path_macro(query, orma_schema)
+            const goal = {
+                my_products: {
+                    $from: 'products',
+                    $where: {
+                        $in: [
+                            'id',
+                            {
+                                $select: ['product_id'],
+                                $from: 'images',
+                                $where: {
+                                    $eq: ['id', 1],
+                                },
+                            },
+                        ],
+                    },
+                },
+            }
+            expect(query).to.deep.equal(goal)
+        })
     })
 })

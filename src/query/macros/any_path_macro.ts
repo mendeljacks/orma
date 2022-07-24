@@ -1,6 +1,7 @@
 import { deep_for_each, deep_get, last } from '../../helpers/helpers'
 import { Edge, get_edge_path } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
+import { get_real_entity_name } from '../query'
 
 /**
  * The first argument to the $any_path macro is a list of connected entities, with the
@@ -49,12 +50,17 @@ export const apply_any_path_macro = (query, orma_schema: OrmaSchema) => {
 export const get_any_path_context_entity = (path, query) => {
     const previous_entities = path.flatMap((path_el, i) => {
         if (path_el === '$where' || path_el === '$having') {
-            return path[i - 1]
+            return [
+                get_real_entity_name(
+                    path[i - 1],
+                    deep_get(path.slice(0, i), query)
+                ),
+            ]
         } else if (path_el === '$any_path') {
-            // TODO: add test for this
             const path_segment = path.slice(0, i + 1)
             const previous_any = deep_get(path_segment, query)
-            return last(previous_any[0])
+            const last_any_path = last(previous_any[0])
+            return [last_any_path] || []
         } else {
             return []
         }
