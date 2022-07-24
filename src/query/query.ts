@@ -161,27 +161,30 @@ export const orma_query = async <
 
     // Sequential for query plan
     for (const paths of query_plan) {
-        const subqueries = paths
-            .map(path => {
-                // this pretty inefficient, but nesting macro gets confused when it sees the where clauses
-                // that it put in the query and thinks that they were there before mutation planning.
-                // The data about tier results should really come from the mutation plan and not from
-                // the (mutated) query. But this works for now.
-                const tier_query = clone(query)
+        const paths_to_query = paths.filter(path => {
+            // if this query wont return anything due to there being no higher rows, then skip it
+            const short_circuit = should_nesting_short_circuit(
+                query,
+                path,
+                results
+            )
+            return !short_circuit
+        })
+        const subqueries = paths_to_query.map(path => {
+            // this pretty inefficient, but nesting macro gets confused when it sees the where clauses
+            // that it put in the query and thinks that they were there before mutation planning.
+            // The data about tier results should really come from the mutation plan and not from
+            // the (mutated) query. But this works for now.
+            const tier_query = clone(query)
 
-                // if this query wont return anything due to there being no higher rows, then skip it
-                if (should_nesting_short_circuit(tier_query, path, results)) {
-                    return undefined
-                }
-                // the nesting macro needs previous results, so we cant do it in the beginning
-                apply_nesting_macro(tier_query, path, results, orma_schema)
+            // the nesting macro needs previous results, so we cant do it in the beginning
+            apply_nesting_macro(tier_query, path, results, orma_schema)
 
-                const subquery = deep_get(path, tier_query)
-                apply_escape_macro(subquery)
+            const subquery = deep_get(path, tier_query)
+            apply_escape_macro(subquery)
 
-                return subquery
-            })
-            .filter(el => el !== undefined)
+            return subquery
+        })
 
         // Promise.all for each element in query plan.
         // dont call query is there are no sql strings to run
@@ -195,7 +198,9 @@ export const orma_query = async <
                 : []
 
         // Combine outputs
-        subqueries.forEach((_, i) => results.push([paths[i], output[i]]))
+        subqueries.forEach((_, i) =>
+            results.push([paths_to_query[i], output[i]])
+        )
     }
 
     const output = orma_nester(results, query, orma_schema)

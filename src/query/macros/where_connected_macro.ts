@@ -1,22 +1,15 @@
 import { orma_escape } from '../../helpers/escape'
-import {
-    deep_equal,
-    deep_for_each,
-    deep_set,
-    last,
-} from '../../helpers/helpers'
-import { push_path } from '../../helpers/push_path'
+import { deep_equal, deep_for_each, last } from '../../helpers/helpers'
 import {
     Edge,
     get_entity_names,
     get_parent_edges,
-    reverse_edge,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { WhereConnected } from '../../types/query/query_types'
 import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { combine_wheres, query_for_each } from '../query_helpers'
-import { edge_path_to_where_ins, process_any_clause } from './any_path_macro'
+import { edge_path_to_where_ins } from './any_path_macro'
 
 /*
 This defines the concept of 'connected' for this macro. Each entity gets a list of edges that are considered connected.
