@@ -13,9 +13,7 @@ export type QueryResult<
 > = Omit<
     {
         // should be returned as a result if the key is not a keyword and the value is not a subquery
-        [Key in keyof Query]: Key extends Keyword
-            ? never // keywords are not in the results
-            : Query[Key] extends { $from: GetAllEntities<Schema> } // if the value has a $from prop, it is always a subquery
+        [Key in keyof Query]: Query[Key] extends { $from: GetAllEntities<Schema> } // if the value has a $from prop, it is always a subquery
             ? QueryResult<Schema, Query[Key], Query[Key]['$from']>[]
             : Key extends GetAllEntities<Schema> // The other option for a subquery is that the prop is an entity name
             ? Query[Key] extends object // and the value is an object
