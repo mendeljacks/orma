@@ -14,6 +14,10 @@ import {
     should_nesting_short_circuit,
 } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
+import {
+    apply_where_connected_macro,
+    ConnectionEdges,
+} from './macros/where_connected_macro'
 import { get_query_plan } from './query_plan'
 
 // This function will default to the from clause
@@ -141,7 +145,8 @@ export const orma_query = async <
 >(
     raw_query: Query,
     orma_schema_input: Schema,
-    query_function: mysql_fn
+    query_function: mysql_fn,
+    connection_edges: ConnectionEdges = {}
 ): Promise<QueryResult<Schema, Query>> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
@@ -149,6 +154,7 @@ export const orma_query = async <
     // simple macros
     apply_any_path_macro(query, orma_schema)
     apply_select_macro(query, orma_schema)
+    apply_where_connected_macro(query, connection_edges)
 
     const query_plan = get_query_plan(query)
     let results: any[] = []
