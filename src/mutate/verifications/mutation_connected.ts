@@ -132,27 +132,6 @@ export const get_primary_key_wheres = (
     mutation_pieces: MutationPiece[],
     entity: string
 ) => {
-    // const primary_keys = get_primary_keys(entity, orma_schema)
-    // const primary_key_values = records
-    //     .map(record => {
-    //         const operation = record.$operation
-
-    //         if (operation === 'update' || operation === 'delete') {
-    //             return record[primary_key]
-    //         } else {
-    //             return undefined
-    //         }
-    //     })
-    //     .filter(el => el !== undefined)
-
-    // if (primary_key_values.length === 0) {
-    //     return []
-    // }
-
-    // const entity_where = {
-    //     in: [primary_key, primary_key_values],
-    // }
-
     const identifying_wheres = mutation_pieces
         // creates dont get identifying wheres since they are not in the database yet
         .filter(
@@ -257,31 +236,6 @@ export const get_foreign_key_wheres = (
 
     return foreign_key_wheres
 }
-
-// const filter_ignored_edge_paths = (
-//     nest_paths,
-//     ownership_ignores: Record<string, string[]>
-// ) => {
-//     return nest_paths.filter(nest_path => {
-//         // filter out the paths that start with a diffed key
-//         const first_entity = nest_path[0].from_table
-//         const first_field = nest_path[0].from_key
-//         const initial_table_fields = ownership_ignores[first_entity] ?? []
-//         return !initial_table_fields.includes(first_field)
-//     })
-// }
-
-// const ownership_path_to_any_path = (ownership_edge_path, descendant_entity) =>
-//     // reversed because the ownership path is descendant table -> ownership table but we
-//     // need the other way around to query on the ownership table
-//     reverse(ownership_edge_path)
-//         // @ts-ignore
-//         .map(edge => edge.to_table)
-//         // after reversing, we need to cut the first element (the ownership table) and add a last element (the descendant table)
-//         // this is just to match the formatting of the any clause, since the ownership path doesnt include the first table
-//         .filter((_, i) => i !== 0)
-//         .concat([descendant_entity])
-//         .join('.')
 
 const generate_ownership_errors = (
     ownership_results: Record<string, any>[][],
