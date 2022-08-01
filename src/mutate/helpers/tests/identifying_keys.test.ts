@@ -1,7 +1,10 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { OrmaSchema } from '../../../introspector/introspector'
-import { get_identifying_keys } from '../identifying_keys'
+import {
+    get_identifying_keys,
+    get_possible_identifying_keys,
+} from '../identifying_keys'
 
 describe('identifying_keys.ts', () => {
     const schema: OrmaSchema = {
@@ -56,7 +59,7 @@ describe('identifying_keys.ts', () => {
         })
         test('will not use fields that have null as their value', () => {
             const record = {
-                title: null
+                title: null,
             }
 
             const values_by_guid = {}
@@ -72,7 +75,7 @@ describe('identifying_keys.ts', () => {
         })
         test('allows nullable unique fields, as long as the record value is not null', () => {
             const record = {
-                title: 'test'
+                title: 'test',
             }
 
             const values_by_guid = {}
@@ -88,8 +91,8 @@ describe('identifying_keys.ts', () => {
         })
         test('ignores guid fields', () => {
             const record = {
-                id: { $guid: '1234'},
-                title: 'test'
+                id: { $guid: '1234' },
+                title: 'test',
             }
 
             const values_by_guid = {}
@@ -102,6 +105,12 @@ describe('identifying_keys.ts', () => {
             )
 
             expect(keys).to.deep.equal(['title'])
+        })
+    })
+    describe(get_possible_identifying_keys.name, () => {
+        test('includes nullable unique keys', () => {
+            const result = get_possible_identifying_keys('products', schema)
+            expect(result).to.deep.equal([['id'], ['title']])
         })
     })
 })

@@ -12,11 +12,11 @@ export const get_possible_identifying_keys = (
     orma_schema: OrmaSchema
 ) => {
     const primary_keys = get_primary_keys(entity_name, orma_schema)
-    // we filter out nullable unique columns, since then there might be multiple records
-    // all having null so that column wouldnt uniquely identify a record
+    // we actually include nullable unique fields as potential keys, since they can be used as long as the
+    // actual value submitted by the user is not null
     const unique_field_groups = get_unique_field_groups(
         entity_name,
-        true,
+        false,
         orma_schema
     )
 
