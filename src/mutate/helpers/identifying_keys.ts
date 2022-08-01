@@ -51,15 +51,21 @@ export const get_identifying_keys = (
         }
     }
 
-    // we filter out nullable unique columns, since then there might be multiple records
-    // all having null so that column wouldnt uniquely identify a record
     const unique_field_groups = get_unique_field_groups(
         entity_name,
-        true,
+        false,
         orma_schema
+    )
+        // we filter out keys that have null as their values. This is because in mysql, you can have a unique index
+        // but still have multiple rows that have null (they are not considered the same). So if you are trying to uniquely
+        // identify a row, for example to know what row to update in the database, and the value is null you could end up
+        // updating hundreds of rows that all have null as the value of the nullable field.
+        .filter(unique_fields =>
+            unique_fields.every(unique_field => record[unique_field] !== null)
+        )
         // we dont want to use primary key even though they are unique,
         // since we already checked the primary key earlier
-    ).filter(unique_fields => !array_equals(primary_keys, unique_fields))
+        .filter(unique_fields => !array_equals(primary_keys, unique_fields))
 
     const unique_values = unique_field_groups.map(unique_fields =>
         unique_fields.map(field =>
