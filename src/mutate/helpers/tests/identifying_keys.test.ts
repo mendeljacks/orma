@@ -86,5 +86,22 @@ describe('identifying_keys.ts', () => {
 
             expect(keys).to.deep.equal(['title'])
         })
+        test('ignores guid fields', () => {
+            const record = {
+                id: { $guid: '1234'},
+                title: 'test'
+            }
+
+            const values_by_guid = {}
+
+            const keys = get_identifying_keys(
+                'products',
+                record,
+                values_by_guid,
+                schema
+            )
+
+            expect(keys).to.deep.equal(['title'])
+        })
     })
 })
