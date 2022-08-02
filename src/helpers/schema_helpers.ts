@@ -326,6 +326,12 @@ export const is_required_field = (
     return is_required
 }
 
+export const get_field_is_nullable = (schema: OrmaSchema, entity: string, field: string) => {
+    const field_schema = schema?.[entity]?.[field] as orma_field_schema
+    const is_nullable = !field_schema?.not_null
+    return is_nullable
+}
+
 export const get_parent_edges_for_field = (
     entity: string,
     field: string,

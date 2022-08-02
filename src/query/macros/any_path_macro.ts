@@ -1,5 +1,9 @@
 import { deep_for_each, deep_get, last } from '../../helpers/helpers'
-import { Edge, get_edge_path } from '../../helpers/schema_helpers'
+import {
+    Edge,
+    get_edge_path,
+    get_field_is_nullable,
+} from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { get_real_entity_name } from '../query'
 
@@ -96,14 +100,16 @@ export const process_any_clause = (
 export const edge_path_to_where_ins = (
     edge_path: Edge[],
     filter_type: '$having' | '$where',
-    subquery: any
+    subquery: any,
+    allow_null_foreign_keys = false,
+    orma_schema: OrmaSchema = {}
 ) => {
     // we need to reverse the edge path since we are building the where ins
     // from the inside out
     const reversed_edge_path = edge_path.slice().reverse()
 
     const clause = reversed_edge_path.reduce((acc, edge) => {
-        return {
+        const new_acc = {
             $in: [
                 edge.from_field,
                 {
@@ -112,6 +118,21 @@ export const edge_path_to_where_ins = (
                     [filter_type]: acc,
                 },
             ],
+        }
+
+        // if the from column is nullable, i.e. a nullable foreign key, then we should explicitly
+        // allow any rows where that column is null
+        const is_nullable = get_field_is_nullable(
+            orma_schema,
+            edge.from_entity,
+            edge.from_field
+        )
+        if (allow_null_foreign_keys && is_nullable) {
+            return {
+                $or: [new_acc, { $eq: [edge.from_field, null] }],
+            }
+        } else {
+            return new_acc
         }
     }, subquery)
 

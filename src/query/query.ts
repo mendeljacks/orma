@@ -154,7 +154,7 @@ export const orma_query = async <
     // simple macros
     apply_any_path_macro(query, orma_schema)
     apply_select_macro(query, orma_schema)
-    apply_where_connected_macro(query, connection_edges)
+    apply_where_connected_macro(orma_schema, query, connection_edges)
 
     const query_plan = get_query_plan(query)
     let results: any[] = []
