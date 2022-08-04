@@ -290,7 +290,7 @@ describe('where_connected_macro.ts', () => {
 
             // @ts-ignore
             expect(query.children.$where).to.deep.equal({
-                $and: [
+                $or: [
                     {
                         $in: [
                             'parent_id',

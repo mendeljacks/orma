@@ -181,4 +181,22 @@ describe('diff_mutation.ts', () => {
             ],
         })
     })
+    test.skip('handles nested deletes', () => {
+        const original = { images: [{ id: 1, image_in_stores: [{ id: 2 }] }] }
+        const modified = {}
+        const update_obj = diff_mutation(original, modified)
+
+        expect(update_obj).to.deep.equal({
+            $operation: 'update',
+            images: [
+                {
+                    $operation: 'delete',
+                    id: 1,
+                    image_in_stores: {
+                        id: 2, // no operation create here, since it is a guid
+                    },
+                },
+            ],
+        })
+    })
 })

@@ -19,3 +19,5 @@ Mutation
 Mutation validation
 
 Mutation types
+
+- Add better error messages when foreign keys dont exist between two entities in a query
