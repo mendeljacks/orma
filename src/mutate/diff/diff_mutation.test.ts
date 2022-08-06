@@ -40,7 +40,6 @@ describe('diff_mutation.ts', () => {
                 $operation: 'update',
                 id: 2,
                 title: 'pc',
-                old_column: undefined,
                 new_column: 'ho',
             },
         })
@@ -151,7 +150,7 @@ describe('diff_mutation.ts', () => {
             ],
         })
     })
-    test.skip('Top level create with nesting', () => {
+    test('Top level create with nesting', () => {
         const original = null
         const modified = {
             variants: [
@@ -181,9 +180,9 @@ describe('diff_mutation.ts', () => {
             ],
         })
     })
-    test.skip('handles nested deletes', () => {
+    test('handles nested deletes', () => {
         const original = { images: [{ id: 1, image_in_stores: [{ id: 2 }] }] }
-        const modified = {}
+        const modified = null
         const update_obj = diff_mutation(original, modified)
 
         expect(update_obj).to.deep.equal({
@@ -192,9 +191,12 @@ describe('diff_mutation.ts', () => {
                 {
                     $operation: 'delete',
                     id: 1,
-                    image_in_stores: {
-                        id: 2, // no operation create here, since it is a guid
-                    },
+                    image_in_stores: [
+                        {
+                            $operation: 'delete',
+                            id: 2,
+                        },
+                    ],
                 },
             ],
         })

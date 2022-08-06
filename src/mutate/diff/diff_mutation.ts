@@ -7,6 +7,17 @@ const is_object = el =>
 const is_primitive = el => !is_array(el) && !is_object(el)
 
 export const diff_mutation = (original, modified) => {
+    if (is_object(original) && modified === null) {
+        const empty_subtables = Object.keys(original).reduce((acc, val, i) => {
+            if (is_array(original[val])) {
+                acc[val] = []
+            }
+            return acc
+        }, {})
+
+        return diff_mutation(original, empty_subtables)
+    }
+
     if (is_primitive(modified) || modified?.$guid !== undefined) {
         return modified
     }
@@ -57,13 +68,14 @@ export const diff_mutation = (original, modified) => {
 
         return [
             ...left.map(obj => ({
+                ...diff_mutation(obj, null),
                 $operation: 'delete',
                 id: obj.id,
             })),
             ...inner, // Recursively made in the inner function
             ...right.map(obj => ({
+                ...diff_mutation(null, obj),
                 $operation: 'create',
-                ...obj,
             })),
         ]
     }
@@ -88,7 +100,7 @@ export const diff_mutation = (original, modified) => {
         for (let i = 0; i < original_columns.length; i++) {
             const key = original_columns[i]
             if (!has_prop(key, modified)) {
-                update_obj[key] = undefined
+                delete update_obj[key]
             }
         }
 
