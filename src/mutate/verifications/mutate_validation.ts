@@ -469,7 +469,22 @@ const validate_field = (
                   ]
                 : []
 
-        return [...length_errors, ...decimal_errors]
+        const unsigned_errors =
+            field_schema.unsigned && number_field_value < 0
+                ? [
+                      {
+                          message: `${entity_name} ${field_name} is ${number_field_value} but cannot be negative.`,
+                          path: field_path,
+                          original_data: mutation,
+                          additional_info: {
+                              given_decimals,
+                              max_decimals,
+                          },
+                      },
+                  ]
+                : []
+
+        return [...length_errors, ...decimal_errors, ...unsigned_errors]
     }
 
     if (required_simple_type === 'boolean') {

@@ -14,6 +14,7 @@ describe('mutation_validation', () => {
                 data_type: 'int',
                 character_count: 5,
                 decimal_places: 2,
+                unsigned: true,
                 references: {
                     vendors: {
                         id: {},
@@ -358,22 +359,25 @@ describe('mutation_validation', () => {
                         vendor_id: 12 // allowed
                     },
                     {
-                        vendor_id: '-12.1' // allowed
+                        vendor_id: '12.1' // allowed
                     },
                     {
                         vendor_id: true // allowed, interpreted as 1
                     },
                     {
-                        vendor_id: 1.111 // not allowed - too many decimal places
+                        vendor_id: 1.1111 // not allowed - too many decimal places
                     },
                     {
                         vendor_id: 123456 // not allowed - too many digits
+                    },
+                    {
+                        vendor_id: -12 // not allowed - cant be negative
                     },
                 ],
             }
 
             const errors = validate_mutation(test_mutation, orma_schema)
-            expect(errors).to.have.lengthOf(2)
+            expect(errors).to.have.lengthOf(3)
         })
     })
 })
