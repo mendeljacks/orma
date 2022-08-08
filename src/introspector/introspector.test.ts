@@ -80,6 +80,42 @@ describe('introspector', () => {
             default: 1.5,
         })
     })
+    test('enum field schema', () => {
+        const mysql_column: mysql_column = {
+            table_name: 'users',
+            column_name: 'username',
+            ordinal_position: 2,
+            column_type: "enum('running','pending','paused')",
+            is_nullable: 'NO',
+            data_type: 'enum',
+            column_key: 'UNI',
+        }
+        const field_schema = generate_field_schema(mysql_column)
+
+        expect(field_schema).to.deep.equal({
+            data_type: 'enum',
+            not_null: true,
+            indexed: true,
+            ordinal_position: 2,
+            enum_values: ['running', 'pending', 'paused'],
+        })
+    })
+    test('unsigned field schema', () => {
+        const mysql_column: mysql_column = {
+            table_name: 'users',
+            column_name: 'username',
+            column_type: 'int(10) unsigned',
+            ordinal_position: 2,
+            data_type: 'int',
+        }
+        const field_schema = generate_field_schema(mysql_column)
+
+        expect(field_schema).to.deep.equal({
+            data_type: 'int',
+            ordinal_position: 2,
+            unsigned: true,
+        })
+    })
 
     test('full schema test', () => {
         const mysql_tables: mysql_table[] = [

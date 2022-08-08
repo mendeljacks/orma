@@ -12,6 +12,8 @@ describe('mutation_validation', () => {
             },
             vendor_id: {
                 data_type: 'int',
+                character_count: 5,
+                decimal_places: 2,
                 references: {
                     vendors: {
                         id: {},
@@ -19,10 +21,15 @@ describe('mutation_validation', () => {
                 },
             },
             name: {
+                character_count: 10,
                 data_type: 'varchar',
             },
             description: {
                 data_type: 'varchar',
+            },
+            status: {
+                data_type: 'enum',
+                enum_values: ['published', 'unpublished'],
             },
             $indexes: [],
         },
@@ -42,7 +49,11 @@ describe('mutation_validation', () => {
             },
         },
         image_urls: {
+            url: {
+                data_type: 'varchar',
+            },
             image_id: {
+                data_type: 'int',
                 not_null: true,
                 references: {
                     images: {
@@ -270,6 +281,99 @@ describe('mutation_validation', () => {
 
             const errors = validate_mutation(test_mutation, orma_schema)
             expect(errors).to.have.lengthOf(0)
+        })
+        test('requires $guids be on foreign / primary keys', () => {
+            const test_mutation = {
+                $operation: 'create',
+                products: [
+                    {
+                        name: { $guid: 1 }, // not allowed
+                        vendor_id: 1,
+                    },
+                    {
+                        id: { $guid: 2 }, // allowed
+                        name: 'test',
+                        vendor_id: { $guid: 1 }, // allowed
+                    },
+                ],
+            }
+
+            const errors = validate_mutation(test_mutation, orma_schema)
+            expect(errors).to.have.lengthOf(1)
+        })
+        test('does not allow null for non-nullable fields', () => {
+            const test_mutation = {
+                $operation: 'create',
+                image_urls: [
+                    {
+                        url: null, // allowed
+                        image_id: null, // not allowed
+                    },
+                ],
+            }
+
+            const errors = validate_mutation(test_mutation, orma_schema)
+            expect(errors).to.have.lengthOf(1)
+        })
+        test('requires enums be one of the allowed values', () => {
+            const test_mutation = {
+                $operation: 'create',
+                products: [
+                    {
+                        status: 'published', // allowed
+                    },
+                    {
+                        status: 'this_is_not_in_the_enum', // not allowed
+                    },
+                ],
+            }
+
+            const errors = validate_mutation(test_mutation, orma_schema)
+            expect(errors).to.have.lengthOf(1)
+        })
+        test('requires valid string', () => {
+            const test_mutation = {
+                $operation: 'create',
+                products: [
+                    {
+                        name: '1234567890', // allowed, 10 characters
+                    },
+                    {
+                        name: new Date(), // not allowed - incorrect type
+                    },
+                    {
+                        name: '12345678901', // not allowed - max characters exceeded
+                    },
+                ],
+            }
+
+            const errors = validate_mutation(test_mutation, orma_schema)
+            expect(errors).to.have.lengthOf(2)
+        })
+        test('requires valid number', () => {
+            const test_mutation = {
+                $operation: 'create',
+                products: [
+                    {
+                        vendor_id: 12 // allowed
+                    },
+                    {
+                        vendor_id: '-12.1' // allowed
+                    },
+                    {
+                        vendor_id: true // allowed, interpreted as 1
+                    },
+                    {
+                        vendor_id: 1.111 // not allowed - too many decimal places
+                    },
+                    {
+                        vendor_id: 123456 // not allowed - too many digits
+                    },
+                ],
+            }
+
+            const errors = validate_mutation(test_mutation, orma_schema)
+            expect(errors).to.have.lengthOf(2)
         })
     })
 })

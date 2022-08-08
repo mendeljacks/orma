@@ -326,7 +326,11 @@ export const is_required_field = (
     return is_required
 }
 
-export const get_field_is_nullable = (schema: OrmaSchema, entity: string, field: string) => {
+export const get_field_is_nullable = (
+    schema: OrmaSchema,
+    entity: string,
+    field: string
+) => {
     const field_schema = schema?.[entity]?.[field] as orma_field_schema
     const is_nullable = !field_schema?.not_null
     return is_nullable
@@ -340,4 +344,25 @@ export const get_parent_edges_for_field = (
     const parent_edges = get_parent_edges(entity, orma_schema)
     const matching_edges = parent_edges.filter(el => el.from_field === field)
     return matching_edges
+}
+
+export const get_field_schema = (
+    schema: OrmaSchema,
+    entity: string,
+    field: string
+) => {
+    const field_schema = schema?.[entity]?.[field] as orma_field_schema
+    return field_schema
+}
+
+export const can_have_guid = (
+    schema: OrmaSchema,
+    entity: string,
+    field: string
+) => {
+    const field_schema = get_field_schema(schema, entity, field)
+    const is_primary_key = field_schema.primary_key
+    const is_foreign_key = field_schema.references
+
+    return is_primary_key || is_foreign_key
 }

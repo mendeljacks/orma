@@ -22,6 +22,7 @@ export interface mysql_column {
     character_maximum_length?: number
     numeric_precision?: number
     numeric_scale?: number
+    column_type?: string
     datetime_precision?: number
     column_key?: 'PRI' | 'UNI' | 'MUL'
     extra?: string
@@ -70,15 +71,17 @@ export interface orma_entity_schema {
 
 export interface orma_field_schema {
     data_type?: keyof typeof mysql_to_typescript_types
-    character_count?: number | string // string in postgres
+    character_count?: number
     ordinal_position?: number
     decimal_places?: number
     not_null?: boolean
     primary_key?: boolean
+    unsigned?: boolean
     indexed?: boolean
     default?: string | number
     comment?: string
     auto_increment?: boolean
+    enum_values?: (string | number)[]
     references?: {
         [referenced_entity: string]: {
             [referenced_field: string]: Record<string, never>
@@ -289,6 +292,7 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         character_maximum_length,
         numeric_precision,
         numeric_scale,
+        column_type,
         is_identity,
         datetime_precision,
         column_key,
@@ -301,6 +305,19 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         data_type:
             data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
         ordinal_position,
+    }
+
+    if (data_type === 'enum') {
+        // will be like "enum('running','pending','paused')"
+        const enum_match = column_type?.match(/enum\((.+)\)/)?.[1] ?? ''
+        const enum_values = enum_match
+            .split(',')
+            .map(el => el.replaceAll("'", ''))
+        field_schema.enum_values = enum_values
+    }
+
+    if (column_type?.match(/unsigned/)) {
+        field_schema.unsigned = true
     }
 
     // indices
@@ -318,11 +335,11 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
 
     // data constraints
     if (numeric_precision) {
-        field_schema.character_count = numeric_precision
+        field_schema.character_count = Number(numeric_precision) ?? 0
     }
 
     if (character_maximum_length) {
-        field_schema.character_count = character_maximum_length
+        field_schema.character_count = Number(character_maximum_length) ?? 0
     }
 
     if (numeric_scale) {

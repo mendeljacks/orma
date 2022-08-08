@@ -1,15 +1,21 @@
 import { validate } from 'jsonschema'
 import { OrmaError } from '../../helpers/error_handling'
+import { last } from '../../helpers/helpers'
 import {
+    can_have_guid,
     get_all_edges,
     get_field_names,
+    get_field_schema,
     is_entity_name,
     is_field_name,
-    is_parent_entity,
     is_required_field,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import {
+    mysql_to_typescript_types,
+    OrmaSchema,
+} from '../../introspector/introspector'
+import { Path } from '../../types'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
 import { get_identifying_keys } from '../helpers/identifying_keys'
 import { MutationOperation } from '../mutate'
@@ -254,7 +260,13 @@ const validate_fields_and_nested_mutations = (
                     ] as OrmaError[]
                 }
 
-                return []
+                return validate_field(
+                    orma_schema,
+                    mutation,
+                    [...record_path, key],
+                    entity_name,
+                    record[key]
+                )
             } else {
                 // unknown prop
                 return [
@@ -267,6 +279,238 @@ const validate_fields_and_nested_mutations = (
             }
         })
     return field_errors
+}
+
+const validate_field = (
+    orma_schema: OrmaSchema,
+    mutation: any,
+    field_path: Path,
+    entity_name: string,
+    field_value: string | number | null | boolean | { $guid: string | number }
+): OrmaError[] => {
+    const field_name = last(field_path) as string
+    const field_schema = get_field_schema(orma_schema, entity_name, field_name)
+    const required_data_type = field_schema.data_type
+
+    const required_simple_type = required_data_type
+        ? mysql_to_typescript_types[required_data_type]
+        : null
+
+    if (
+        !required_simple_type ||
+        required_simple_type === 'not_supported' ||
+        !required_data_type
+    ) {
+        // if there is no data type, thats interpreted to mean don't run data type validation so we exit early
+        return []
+    }
+
+    // @ts-ignore
+    if (field_value?.$guid) {
+        if (can_have_guid(orma_schema, entity_name, field_name)) {
+            // no further checks needed if this field can have a guid
+            return []
+        } else {
+            return [
+                {
+                    message: `${entity_name} ${field_name} has a $guid but is not a primary or foreign key.`,
+                    path: field_path,
+                    original_data: mutation,
+                },
+            ]
+        }
+    }
+
+    if (field_value === null) {
+        if (field_schema.not_null) {
+            return [
+                {
+                    message: `${entity_name} ${field_name} is non-nullable but is set to null.`,
+                    path: field_path,
+                    original_data: mutation,
+                },
+            ]
+        } else {
+            // if the field value is null, and the column is nullable, then it is always valid, we don't need
+            // further checks
+            return []
+        }
+    }
+
+    // enums only get a check that the value is in the list of allowed values, no other checks
+    if (required_simple_type === 'enum') {
+        const enum_values = field_schema.enum_values ?? []
+        const enum_errors = enum_values.includes(field_value as any)
+            ? []
+            : [
+                  {
+                      message: `${entity_name} ${field_name} is ${field_value} but must be one of ${enum_values?.join(
+                          ', '
+                      )}.`,
+                      path: field_path,
+                      original_data: mutation,
+                      additional_info: {
+                          enum_values,
+                      },
+                  },
+              ]
+
+        return enum_errors
+    }
+
+    // field value cannot be null at this point, so we dont need to handle that case for the typeof
+    const given_js_type = typeof field_value
+
+    if (required_simple_type === 'string') {
+        const allowed_types = ['boolean', 'string', 'number']
+        if (!allowed_types.includes(given_js_type)) {
+            return get_type_mismatch_errors(
+                mutation,
+                field_path,
+                entity_name,
+                required_data_type,
+                allowed_types.join(', '),
+                given_js_type
+            )
+        }
+
+        // cast from string / boolean
+        const string_field_value = Number(field_value).toString()
+        const max_character_count = field_schema.character_count ?? Infinity
+        const given_character_count = string_field_value.length
+        const length_errors =
+            given_character_count > max_character_count
+                ? [
+                      {
+                          message: `${entity_name} ${field_name} is ${string_field_value.length} characters long but cannot be more than ${field_schema.character_count} characters long.`,
+                          path: field_path,
+                          original_data: mutation,
+                          additional_info: {
+                              given_character_count,
+                              max_character_count,
+                          },
+                      },
+                  ]
+                : []
+
+        return length_errors
+    }
+
+    if (required_simple_type === 'number') {
+        const allowed_types = ['boolean', 'string', 'number']
+        if (!allowed_types.includes(given_js_type)) {
+            return get_type_mismatch_errors(
+                mutation,
+                field_path,
+                entity_name,
+                required_data_type,
+                allowed_types.join(', '),
+                given_js_type
+            )
+        }
+
+        const number_field_value = Number(field_value)
+        if (isNaN(number_field_value)) {
+            return [
+                {
+                    message: `${entity_name} ${field_name} is not a valid number, boolean or number string.`,
+                    path: field_path,
+                    original_data: mutation,
+                },
+            ]
+        }
+
+        if (number_field_value > Number.MAX_SAFE_INTEGER) {
+            return [
+                {
+                    message: `${entity_name} ${field_name} is larger than ${Number.MAX_SAFE_INTEGER}, the largest allowed number.`,
+                    path: field_path,
+                    original_data: mutation,
+                },
+            ]
+        }
+
+        const max_character_count = field_schema.character_count ?? Infinity
+        const given_character_count = number_field_value
+            .toString()
+            .replaceAll(/[^0-9]/g, '').length
+
+        const length_errors =
+            given_character_count > max_character_count
+                ? [
+                      {
+                          message: `${entity_name} ${field_name} has ${given_character_count} digits but cannot have more than ${max_character_count} digits.`,
+                          path: field_path,
+                          original_data: mutation,
+                          additional_info: {
+                              given_character_count,
+                              max_character_count,
+                          },
+                      },
+                  ]
+                : []
+
+        const decimal_part = number_field_value.toString().match(/\.(.*)/)?.[1]
+        const max_decimals = field_schema.decimal_places ?? Infinity
+        const given_decimals = decimal_part?.length ?? 0
+
+        const decimal_errors =
+            given_decimals > max_decimals
+                ? [
+                      {
+                          message: `${entity_name} ${field_name} has ${given_decimals} digits after the decimal point but cannot have more than ${max_decimals} digits.`,
+                          path: field_path,
+                          original_data: mutation,
+                          additional_info: {
+                              given_decimals,
+                              max_decimals,
+                          },
+                      },
+                  ]
+                : []
+
+        return [...length_errors, ...decimal_errors]
+    }
+
+    if (required_simple_type === 'boolean') {
+        const allowed_values = [0, 1, '0', '1', true, false]
+        if (!allowed_values.includes(field_value as any)) {
+            return [
+                {
+                    message: `${entity_name} ${field_name} is ${field_value} but must be one of true, false, 0, 1, '0', '1'.`,
+                    path: field_path,
+                    original_data: mutation,
+                },
+            ]
+        } else {
+            return []
+        }
+    }
+
+    return []
+}
+
+const get_type_mismatch_errors = (
+    mutation: any,
+    field_path: Path,
+    entity_name: string,
+    required_data_type: string,
+    required_simple_type: string,
+    given_js_type: string
+): OrmaError[] => {
+    const field_name = last(field_path)
+    return [
+        {
+            message: `${entity_name} ${field_name} is a ${given_js_type} but must be a ${required_simple_type}.`,
+            path: field_path,
+            original_data: mutation,
+            additional_info: {
+                required_data_type,
+                given_js_type,
+                required_js_type: required_simple_type,
+            },
+        },
+    ]
 }
 
 const validate_required_fields = (
