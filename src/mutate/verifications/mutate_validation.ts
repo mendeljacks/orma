@@ -410,7 +410,7 @@ const validate_field = (
         }
 
         const number_field_value = Number(field_value)
-        if (isNaN(number_field_value)) {
+        if (isNaN(number_field_value) || field_value === '') {
             return [
                 {
                     message: `${entity_name} ${field_name} is not a valid number, boolean or number string.`,
