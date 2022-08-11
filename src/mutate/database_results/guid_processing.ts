@@ -6,15 +6,15 @@ import { MutationPiece } from '../plan/mutation_plan'
  * Saves guid values into the provided index. Database rows should be in the same order as the mutation rows.
  * Will mutate the input values_by_guid
  */
- export const save_guids = (
+export const save_guids = (
     values_by_guid: ValuesByGuid,
     mutation_pieces: MutationPiece[],
-    sorted_database_rows: Record<string, any>[]
+    sorted_database_rows: (Record<string, any> | undefined)[]
 ) => {
     mutation_pieces.forEach((mutation_piece, mutation_piece_index) => {
         Object.keys(mutation_piece.record).forEach(field => {
             const guid = mutation_piece.record[field]?.$guid
-            const db_value = sorted_database_rows[mutation_piece_index][field]
+            const db_value = sorted_database_rows?.[mutation_piece_index]?.[field]
 
             if (guid !== undefined && db_value !== undefined) {
                 values_by_guid[guid] = db_value

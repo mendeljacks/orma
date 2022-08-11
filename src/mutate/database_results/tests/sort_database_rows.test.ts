@@ -329,6 +329,35 @@ describe('guid_processing.ts', () => {
                 },
             ])
         })
+        test('works when there is no query for an entity', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        // in this case all data is provided by the user, so there is no
+                        // query to fetch extra data
+                        $operation: 'update',
+                        id: 1,
+                        title: 'test',
+                        resource_id: 1,
+                    },
+                    path: ['products', 0],
+                },
+            ]
+            const query_results = []
+
+            const queries = []
+
+            const sorted_database_rows = sort_database_rows(
+                mutation_pieces,
+                queries,
+                query_results,
+                {},
+                schema
+            )
+
+            // expect a sparse array in slots where there is no database row
+            expect(sorted_database_rows).to.deep.equal([undefined])
+        })
         test.skip('works with guids as the identifying keys')
     })
 })

@@ -98,6 +98,25 @@ describe('guid_processing.ts', () => {
 
             expect(values_by_guids).to.deep.equal({})
         })
+        test('handles undefined database rows', () => {
+            const values_by_guids = {}
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'create',
+                        title: 'test'
+                    },
+                    path: ['products', 0],
+                },
+            ]
+            const database_rows = [
+                undefined
+            ]
+
+            save_guids(values_by_guids, mutation_pieces, database_rows)
+
+            expect(values_by_guids).to.deep.equal({})
+        })
     })
     describe(replace_guids_with_values.name, () => {
         test('replaces guids', () => {

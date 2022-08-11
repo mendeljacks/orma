@@ -92,6 +92,11 @@ const sort_database_rows_given_indexes = (
     const ordered_database_rows = mutation_pieces.map(({ record, path }) => {
         const entity = path_to_entity(path)
 
+        // this can happen if all data is provided by the user so there is no query to get more data about this record
+        if (!database_indexes_by_entity[entity]) {
+            return undefined
+        }
+
         const identifying_keys = get_identifying_keys(
             entity,
             record,
