@@ -116,8 +116,11 @@ describe('guid_inference_macro.ts', () => {
 
             apply_guid_inference_macro(mutation, schema)
 
-            // no changes
-            expect(cloned_mutation).to.deep.equal(mutation)
+            // no linked guids
+            //@ts-ignore
+            expect(cloned_mutation.products[0].images[0].product_id).to.equal(
+                undefined
+            )
         })
         test('ignores parent -> child -> parent ambiguous nesting', () => {
             const mutation = {
@@ -144,8 +147,11 @@ describe('guid_inference_macro.ts', () => {
 
             apply_guid_inference_macro(mutation, schema)
 
-            // no changes
-            expect(cloned_mutation).to.deep.equal(mutation)
+            // no linked guids
+            //@ts-ignore
+            expect(cloned_mutation.products[0].images[0].product_id).to.equal(
+                undefined
+            )
         })
         test('handles create nested under update', () => {
             const mutation = {

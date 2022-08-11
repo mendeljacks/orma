@@ -3,6 +3,7 @@ import { hexoid } from '../../helpers/hexoid'
 import {
     Edge,
     get_direct_edges,
+    get_primary_keys,
     is_parent_entity,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
@@ -105,6 +106,17 @@ export const apply_guid_inference_macro = (
                     )
                 }
             )
+
+            // if the primary keys dont have $guids or values yet, add a $guid. This $guid wont connect to any
+            // foreign key, it will only be used to add the primary keys to the mutation later on. We want this
+            // because it is usefull to guarantee that the primary keys are in scope when processing the mutation
+            // results
+            const primary_keys = get_primary_keys(child_entity, orma_schema)
+            primary_keys.forEach(key => {
+                if (child_record[key] === undefined) {
+                    child_record[key] = { $guid: get_id() }
+                }
+            })
         }
     )
 }
