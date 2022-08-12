@@ -174,7 +174,7 @@ const sql_command_parsers = {
     $all: args => `ALL (${args})`,
     $eq: (args, path) =>
         args[1] === null
-            ? `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IS NULL`
+            ? `${args[0]} IS${nested_under_odd_nots(path) ? ' NOT' : ''} NULL`
             : `${args[0]} ${nested_under_odd_nots(path) ? '!' : ''}= ${
                   args[1]
               }`,
