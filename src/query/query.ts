@@ -1,5 +1,5 @@
 import { clone, deep_get, drop_last, last } from '../helpers/helpers'
-import { nester } from '../helpers/nester'
+import { nester, NesterData } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
 import { OrmaSchema } from '../introspector/introspector'
 import { mysql_fn } from '../mutate/mutate'
@@ -129,7 +129,7 @@ export const orma_nester = (
         return [edge.from_field, edge.to_field]
     })
 
-    const data = results.map(result => {
+    const data: NesterData = results.map(result => {
         const path = result[0]
         const rows = result[1]
         return [path.flatMap(path_el => [path_el, 0]), rows] // all array nesting for now
