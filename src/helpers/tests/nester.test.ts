@@ -1,10 +1,10 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { nester } from '../nester'
+import { nester, NesterData } from '../nester'
 
 describe('nester', () => {
     test('basic deep nesting', async () => {
-        const data = [
+        const data: NesterData = [
             [
                 ['vendors', 0],
                 [{ id: 1 }, { id: 2 }],
@@ -48,7 +48,7 @@ describe('nester', () => {
         expect(result).to.deep.equal(goal)
     })
     test('handles entities with no children', async () => {
-        const data = [
+        const data: NesterData = [
             [['vendors', 0], [{ id: 1 }]],
             [['images', 0], [{ id: 1 }]],
             [
@@ -90,7 +90,7 @@ describe('nester', () => {
         expect(result).to.deep.equal(goal)
     })
     test('handles sibling nesting', async () => {
-        const data = [
+        const data: NesterData = [
             [['vendors', 0], [{ id: 1 }]],
             [['images', 0], [{ id: 1 }]],
             [
@@ -149,7 +149,7 @@ describe('nester', () => {
         expect(result).to.deep.equal(goal)
     })
     test('object nesting', () => {
-        const data = [
+        const data: NesterData = [
             [
                 ['vendors', 0],
                 [{ id: 1 }, { id: 2 }],
@@ -179,7 +179,7 @@ describe('nester', () => {
         expect(result).to.deep.equal(goal)
     })
     test('handles nesting same object multiple times', () => {
-        const data = [
+        const data: NesterData = [
             [
                 ['variants', 0],
                 [
@@ -241,26 +241,28 @@ describe('nester', () => {
             }))
         })
 
-        const data = [
-            [['vendors'], vendors],
-            [['vendors', 0, 'products'], products],
-            [['vendors', 0, 'products', 0, 'images'], images],
+        const data: NesterData = [
+            [['vendors', 0], vendors],
+            [['vendors', 0, 'products', 0], products],
+            [['vendors', 0, 'products', 0, 'images', 0], images],
         ]
 
-        const edges = [
-            {
-                from_entity: 'vendors',
-                from_field: 'id',
-                to_entity: 'products',
-                to_field: 'vendor_id',
-            },
-            {
-                from_entity: 'products',
-                from_field: 'id',
-                to_entity: 'images',
-                to_field: 'product_id',
-            },
-        ]
+        // const edges = [
+        //     {
+        //         from_entity: 'vendors',
+        //         from_field: 'id',
+        //         to_entity: 'products',
+        //         to_field: 'vendor_id',
+        //     },
+        //     {
+        //         from_entity: 'products',
+        //         from_field: 'id',
+        //         to_entity: 'images',
+        //         to_field: 'product_id',
+        //     },
+        // ]
+
+        const edges = [null, ['id', 'vendor_id'], ['id', 'product_id']]
 
         const goal = {
             vendors: [
@@ -303,7 +305,7 @@ describe('nester', () => {
         // The bug was that the same item was being added to multiple places
         // and the user expects data to be copied to each spot.
 
-        const data = [
+        const data: NesterData = [
             [
                 ['order_items', 0],
                 [
@@ -320,9 +322,13 @@ describe('nester', () => {
         const result: any = nester(data, edges)
         const len = result.order_items[0].variants[0].products.length
         expect(len).to.equal(1)
+        // these should be a copy, not referentially equal
+        expect(result.order_items[0].variants[0]).to.not.equal(
+            result.order_items[1].variants[0]
+        )
     })
     test('dev test', () => {
-        const data = [
+        const data: NesterData = [
             [
                 ['products', 0],
                 [
