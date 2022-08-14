@@ -2,7 +2,7 @@ import { clone, deep_get, drop_last, last } from '../helpers/helpers'
 import { nester, NesterData } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
 import { OrmaSchema } from '../introspector/introspector'
-import { mysql_fn } from '../mutate/mutate'
+import { MysqlFunction } from '../mutate/mutate'
 import { generate_statement } from '../mutate/statement_generation/mutation_statements'
 import { QueryResult } from '../types/query/query_result_types'
 import { OrmaQuery } from '../types/query/query_types'
@@ -145,7 +145,7 @@ export const orma_query = async <
 >(
     raw_query: Query,
     orma_schema_input: Schema,
-    query_function: mysql_fn,
+    query_function: MysqlFunction,
     connection_edges: ConnectionEdges = {}
 ): Promise<QueryResult<Schema, Query>> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query

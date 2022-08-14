@@ -6,7 +6,7 @@ const is_object = el =>
     !Array.isArray(el) && typeof el === 'object' && el !== null
 const is_primitive = el => !is_array(el) && !is_object(el)
 
-export const diff_mutation = (original, modified) => {
+export const get_mutation_diff = (original, modified) => {
     if (is_object(original) && modified === null) {
         const empty_subtables = Object.keys(original).reduce((acc, val, i) => {
             if (is_array(original[val])) {
@@ -15,7 +15,7 @@ export const diff_mutation = (original, modified) => {
             return acc
         }, {})
 
-        return diff_mutation(original, empty_subtables)
+        return get_mutation_diff(original, empty_subtables)
     }
 
     if (is_primitive(modified) || modified?.$guid !== undefined) {
@@ -24,14 +24,14 @@ export const diff_mutation = (original, modified) => {
     if (!is_object(original) && is_object(modified)) {
         const uo = {
             id: modified.id,
-            ...diff_mutation({}, modified),
+            ...get_mutation_diff({}, modified),
             $operation: 'create',
         }
         if (!uo.id) delete uo.id
         return uo
     }
     if (!is_array(original) && is_array(modified)) {
-        return diff_mutation([], modified)
+        return get_mutation_diff([], modified)
     }
     if (is_array(original) && is_array(modified)) {
         ;[...original, ...modified].forEach(el => {
@@ -52,7 +52,7 @@ export const diff_mutation = (original, modified) => {
                 const left_obj = l[0]
                 const right_obj = r[0]
                 if (!deep_equal(left_obj, right_obj)) {
-                    const update_obj = diff_mutation(left_obj, right_obj)
+                    const update_obj = get_mutation_diff(left_obj, right_obj)
                     i.push(update_obj)
                 }
                 return i
@@ -68,13 +68,13 @@ export const diff_mutation = (original, modified) => {
 
         return [
             ...left.map(obj => ({
-                ...diff_mutation(obj, null),
+                ...get_mutation_diff(obj, null),
                 $operation: 'delete',
                 id: obj.id,
             })),
             ...inner, // Recursively made in the inner function
             ...right.map(obj => ({
-                ...diff_mutation(null, obj),
+                ...get_mutation_diff(null, obj),
                 $operation: 'create',
             })),
         ]
@@ -94,7 +94,7 @@ export const diff_mutation = (original, modified) => {
                 if (modified.id !== undefined) {
                     update_obj['id'] = modified.id
                 }
-                update_obj[key] = diff_mutation(original_value, modified_value)
+                update_obj[key] = get_mutation_diff(original_value, modified_value)
             }
         }
         for (let i = 0; i < original_columns.length; i++) {

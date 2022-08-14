@@ -18,7 +18,7 @@ import {
 
 export type MutationOperation = 'create' | 'update' | 'delete'
 export type operation = MutationOperation | 'query'
-export type mysql_fn = (
+export type MysqlFunction = (
     statements: OrmaStatement[]
 ) => Promise<Record<string, any>[][]>
 
@@ -34,7 +34,7 @@ export const orma_mutate_prepare = (orma_schema: OrmaSchema, mutation) => {
 
 export const orma_mutate_run = async (
     orma_schema: OrmaSchema,
-    mysql_function: mysql_fn,
+    mysql_function: MysqlFunction,
     mutation_plan: MutationPlan,
     mutation: any
 ) => {
@@ -70,7 +70,7 @@ export const orma_mutate_run = async (
 
 export const orma_mutate = async (
     input_mutation,
-    mysql_function: mysql_fn,
+    mysql_function: MysqlFunction,
     orma_schema: OrmaSchema
 ) => {
     const mutation_plan = orma_mutate_prepare(orma_schema, input_mutation)

@@ -11,14 +11,14 @@ import { combine_wheres } from '../../query/query_helpers'
 import { WhereConnected } from '../../types/query/query_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { generate_record_where_clause } from '../helpers/record_searching'
-import { mysql_fn } from '../mutate'
+import { MysqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import { generate_statement } from '../statement_generation/mutation_statements'
 
 export const get_mutation_connected_errors = async (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
-    mysql_function: mysql_fn,
+    mysql_function: MysqlFunction,
     where_connecteds: WhereConnected<OrmaSchema>,
     mutation_pieces: MutationPiece[]
 ) => {
