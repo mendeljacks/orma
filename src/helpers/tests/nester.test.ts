@@ -327,31 +327,4 @@ describe('nester', () => {
             result.order_items[1].variants[0]
         )
     })
-    test('dev test', () => {
-        const data: NesterData = [
-            [
-                ['products', 0],
-                [
-                    {
-                        id: 2497,
-                    },
-                ],
-            ],
-            [
-                ['products', 0, 'variants', 0],
-                [
-                    {
-                        id: 909,
-                        product_id: 2497,
-                    },
-                ],
-            ],
-        ]
-
-        const edges = [null, ['id', 'product_id']]
-
-        const output = nester(data, edges)
-
-        const a = 1
-    })
 })
