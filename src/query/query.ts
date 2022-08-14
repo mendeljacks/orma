@@ -41,55 +41,6 @@ export const get_real_entity_name = (
     return subquery.$from ?? last_path_item
 }
 
-// export const get_subquery_sql = (
-//     query,
-//     subquery_path: string[],
-//     previous_results: (string[] | Record<string, unknown>[])[][],
-//     orma_schema: orma_schema
-// ): string => {
-//     const json_sql = query_to_json_sql(query, subquery_path, previous_results, orma_schema)
-//     const sql = json_to_sql(json_sql)
-
-//     return sql
-// }
-
-// /**
-//  * transforms a query into a simplified json sql. This is still json, but can be parsed directly into sql (so no subqueries, $from is always there etc.)
-//  */
-// export const query_to_json_sql = (
-//     query,
-//     subquery_path: string[],
-//     previous_results: (string[] | Record<string, unknown>[])[][],
-//     orma_schema: orma_schema
-// ): Record<string, any> => {
-//     const subquery = deep_get(subquery_path, query)
-
-//     // strip sub subqueries from the subquery
-//     const reserved_commands = Object.keys(subquery).filter(is_reserved_keyword)
-//     const reserved_json = reserved_commands.reduce((previous, key) => {
-//         return {
-//             ...previous,
-//             [key]: subquery[key]
-//         }
-//     }, {})
-
-//     //
-//     const $select = select_to_json_sql(query, subquery_path, orma_schema)
-//     const $from = subquery.$from ?? last(subquery_path)
-//     const $where = where_to_json_sql(query, subquery_path, previous_results, orma_schema)
-//     const $having = having_to_json_sql(query, subquery_path, orma_schema)
-
-//     const json_sql: Record<string, unknown> = {
-//         ...reserved_json,
-//         ...($select && { $select }),
-//         ...($from && { $from }),
-//         ...($where && { $where }),
-//         ...($having && { $having })
-//     }
-
-//     return json_sql
-// }
-
 export const having_to_json_sql = (
     query: any,
     subquery_path: string[],
