@@ -83,7 +83,9 @@ const expression_schema = {
         {
             type: 'object',
             properties: {
-                $escape: primitive_schema,
+                $escape: {
+                    $ref: '#/$defs/primitive',
+                },
             },
             additionalProperties: false,
         },
@@ -165,7 +167,7 @@ const where_schema = {
                 type: 'array',
                 minItems: 2,
                 maxItems: 2,
-                prefixItems: [
+                items: [
                     {
                         $ref: `#/$defs/expression`,
                     },
@@ -181,9 +183,22 @@ const where_schema = {
                             {
                                 $ref: '#/$defs/inner_query',
                             },
+                            {
+                                type: 'object',
+                                properties: {
+                                    $escape: {
+                                        type: 'array',
+                                        minItems: 1,
+                                        items: {
+                                            $ref: '#/$defs/primitive',
+                                        },
+                                    },
+                                },
+                                additionalProperties: false,
+                            },
                         ],
                     },
-                ],
+                ]
             },
         },
         {
@@ -196,7 +211,7 @@ const where_schema = {
                 type: 'array',
                 minItems: 2,
                 maxItems: 2,
-                prefixItems: [
+                items: [
                     {
                         type: 'array',
                         items: {
@@ -283,6 +298,7 @@ const inner_query_schema = {
         },
         ...query_shared_props,
     },
+    required: ['$select', '$from'],
     additionalProperties: false,
 }
 
@@ -301,7 +317,9 @@ const where_connected_schema = {
             $values: {
                 type: 'array',
                 minItems: 1,
-                items: primitive_schema,
+                items: {
+                    $ref: '#/$defs/primitive',
+                },
             },
         },
         additionalProperties: false,
@@ -315,6 +333,7 @@ export const query_validation_schema = {
         where_clause: where_schema,
         outer_query: outer_query_schema,
         inner_query: inner_query_schema,
+        primitive: primitive_schema,
     },
     type: 'object',
     properties: {

@@ -40,10 +40,7 @@ const validate_query_js = (query, orma_schema: OrmaSchema) => {
 
     const where_connected_errors = validate_where_connected(query, orma_schema)
 
-    return [
-        ...field_errors,
-        ...where_connected_errors
-    ]
+    return [...field_errors, ...where_connected_errors]
 }
 
 const validate_outer_subquery = (
@@ -236,7 +233,7 @@ const validate_expression = (
         if (expression === '*' && sql_function_definition.allow_star === true) {
             return []
         }
-        
+
         return !is_field_name(context_entity, expression, orma_schema) &&
             !field_aliases.includes(expression)
             ? [
@@ -445,6 +442,8 @@ const validate_where = (
                       orma_schema
                   )
               )
+            : where[prop][1]?.$escape
+            ? [] // if there is an escape, this is always valid
             : validate_inner_subquery(
                   where[prop][1],
                   [...where_path, prop, 1],
@@ -531,31 +530,38 @@ const validate_any_path_clause = (
 }
 
 const validate_where_connected = (query, orma_schema: OrmaSchema) => {
-    const where_connected = (query.$where_connected ?? []) as WhereConnected<OrmaSchema>
+    const where_connected = (query.$where_connected ??
+        []) as WhereConnected<OrmaSchema>
 
     const done_fields = new Set<string>()
     const errors: OrmaError[] = where_connected.flatMap((el, i) => {
         if (!is_entity_name(el.$entity, orma_schema)) {
-            return [{
-                message: `${el.$entity} is not a valid entity name.`,
-                path: ['$where_connected', i, '$entity']
-            }]
+            return [
+                {
+                    message: `${el.$entity} is not a valid entity name.`,
+                    path: ['$where_connected', i, '$entity'],
+                },
+            ]
         }
 
         if (!is_field_name(el.$entity, el.$field, orma_schema)) {
-            return [{
-                message: `${el.$field} is not a valid field name of entity ${el.$entity}.`,
-                path: ['$where_connected', i, '$field']
-            }]
+            return [
+                {
+                    message: `${el.$field} is not a valid field name of entity ${el.$entity}.`,
+                    path: ['$where_connected', i, '$field'],
+                },
+            ]
         }
 
         // check for duplicates
         const field_string = JSON.stringify([el.$entity, el.$field])
         if (done_fields.has(field_string)) {
-            return [{
-                message: `Field ${el.$field} in entity ${el.$entity} appears more than once in the $where_connected.`,
-                path: ['$where_connected', i]
-            }]
+            return [
+                {
+                    message: `Field ${el.$field} in entity ${el.$entity} appears more than once in the $where_connected.`,
+                    path: ['$where_connected', i],
+                },
+            ]
         }
         done_fields.add(field_string)
 

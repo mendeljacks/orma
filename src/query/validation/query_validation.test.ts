@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import { validate } from 'jsonschema'
 import { describe, test } from 'mocha'
 import { as_orma_schema } from '../query'
 import { validate_query } from './query_validation'
@@ -327,6 +328,40 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
+        test('allows escape on outside of $in values', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        id: true,
+                        $from: 'products',
+                        $where: {
+                            $in: ['id', { $escape: [1, 2] }],
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
+        test('requires an array for $in', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        id: true,
+                        $from: 'products',
+                        $where: {
+                            $in: ['id', { $escape: true }],
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([['products', '$where']])
+        })
         test('allows where clause $in with subquery', () => {
             const errors = validate_query(
                 {
@@ -544,8 +579,8 @@ describe('query_validation.ts', () => {
                     products: {
                         max_id: {
                             $max: {
-                                $distinct: 'id'
-                            }
+                                $distinct: 'id',
+                            },
                         },
                     },
                 },
@@ -560,8 +595,8 @@ describe('query_validation.ts', () => {
                 {
                     products: {
                         count: {
-                            $count: '*'
-                        }
+                            $count: '*',
+                        },
                     },
                 },
                 orma_schema
