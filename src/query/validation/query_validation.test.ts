@@ -605,5 +605,31 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
+        test('requies at least one $or', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        $where: { $or: []}
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([['products', '$where']])
+        })
+        test('requies at least one $and', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        $where: { $and: []}
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([['products', '$where']])
+        })
     })
 })

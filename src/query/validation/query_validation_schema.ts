@@ -152,6 +152,7 @@ const where_schema = {
                 items: {
                     $ref: `#/$defs/where_clause`,
                 },
+                minItems: 1
             },
         },
         {
@@ -160,6 +161,7 @@ const where_schema = {
                 items: {
                     $ref: `#/$defs/where_clause`,
                 },
+                minItems: 1
             },
         },
         {
