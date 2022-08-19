@@ -4,7 +4,7 @@
  */
 
 import { deep_set, group_by } from '../helpers/helpers'
-import { DeepReadonly } from '../types/schema_types'
+import { DeepMutable } from '../types/schema_types'
 
 export interface mysql_table {
     table_name: string
@@ -55,52 +55,55 @@ export interface mysql_foreign_key {
     constraint_name: string
 }
 
-export interface OrmaSchemaMutable {
-    [entity_name: string]: orma_entity_schema
+type OrmaSchemaMutable = DeepMutable<OrmaSchema>
+
+export type OrmaSchema = {
+    readonly [entity_name: string]: orma_entity_schema
 }
 
-export type OrmaSchema = DeepReadonly<OrmaSchemaMutable>
-
-export interface orma_entity_schema {
+export type orma_entity_schema = {
     //@ts-ignore
-    $comment?: string
+    readonly $comment?: string
     //@ts-ignore
-    $indexes?: orma_index_schema[]
-    [field_name: string]: orma_field_schema | orma_index_schema[] | string
+    readonly $indexes?: readonly orma_index_schema[]
+    readonly [field_name: string]:
+        | orma_field_schema
+        | readonly orma_index_schema[]
+        | string
 }
 
-export interface orma_field_schema {
-    data_type?: keyof typeof mysql_to_typescript_types
-    character_count?: number
-    ordinal_position?: number
-    decimal_places?: number
-    not_null?: boolean
-    primary_key?: boolean
-    unsigned?: boolean
-    indexed?: boolean
-    default?: string | number
-    comment?: string
-    auto_increment?: boolean
-    enum_values?: (string | number)[]
-    references?: {
-        [referenced_entity: string]: {
-            [referenced_field: string]: Record<string, never>
+export type orma_field_schema = {
+    readonly data_type?: keyof typeof mysql_to_typescript_types
+    readonly character_count?: number
+    readonly ordinal_position?: number
+    readonly decimal_places?: number
+    readonly not_null?: boolean
+    readonly primary_key?: boolean
+    readonly unsigned?: boolean
+    readonly indexed?: boolean
+    readonly default?: string | number
+    readonly comment?: string
+    readonly auto_increment?: boolean
+    readonly enum_values?: (string | number)[]
+    readonly references?: {
+        readonly [referenced_entity: string]: {
+            readonly [referenced_field: string]: Record<string, never>
         }
     }
 }
 
-export interface orma_index_schema {
-    index_name?: string
-    is_unique?: boolean
-    fields: string[]
-    index_type?: string
-    invisible?: boolean
-    collation?: 'A' | 'D'
-    sub_part?: number | null
-    packed?: string | null
-    extra?: string
-    index_comment?: string
-    expression?: string
+export type orma_index_schema = {
+    readonly index_name?: string
+    readonly is_unique?: boolean
+    readonly fields: string[]
+    readonly index_type?: string
+    readonly invisible?: boolean
+    readonly collation?: 'A' | 'D'
+    readonly sub_part?: number | null
+    readonly packed?: string | null
+    readonly extra?: string
+    readonly index_comment?: string
+    readonly expression?: string
 }
 
 type SupportedDbs = 'mysql' | 'postgres'
@@ -301,7 +304,7 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         column_comment,
     } = mysql_column
 
-    const field_schema: orma_field_schema = {
+    const field_schema: DeepMutable<orma_field_schema> = {
         data_type:
             data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
         ordinal_position,

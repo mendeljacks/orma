@@ -22,6 +22,8 @@ export type DeepReadonlyObject<T> = {
     readonly [P in keyof T]: DeepReadonly<T[P]>
 }
 
+export type DeepMutable<T> = { -readonly [P in keyof T]: DeepMutable<T[P]> }
+
 // export type OrmaSchema = DeepReadonly<OrmaSchema>
 
 // basic structure
@@ -137,7 +139,7 @@ export type GetFieldType<
     ? Schema[Entity][Field] extends { not_null: true }
         ? FieldTypeStringToType<
               MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
-          > 
+          >
         : FieldTypeStringToType<
               MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
           > | null
