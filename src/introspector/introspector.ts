@@ -84,10 +84,12 @@ export type orma_field_schema = {
     readonly default?: string | number
     readonly comment?: string
     readonly auto_increment?: boolean
-    readonly enum_values?: (string | number)[]
+    readonly enum_values?: readonly (string | number)[]
     readonly references?: {
         readonly [referenced_entity: string]: {
-            readonly [referenced_field: string]: Record<string, never>
+            readonly [referenced_field: string]: {
+                readonly [key: string]: never
+            }
         }
     }
 }
@@ -95,7 +97,7 @@ export type orma_field_schema = {
 export type orma_index_schema = {
     readonly index_name?: string
     readonly is_unique?: boolean
-    readonly fields: string[]
+    readonly fields: readonly string[]
     readonly index_type?: string
     readonly invisible?: boolean
     readonly collation?: 'A' | 'D'
@@ -399,7 +401,7 @@ export const generate_index_schemas = (mysql_indexes: mysql_index[]) => {
 
         acc[table_name] = index_schemas
         return acc
-    }, {} as Record<string, orma_index_schema[]>)
+    }, {} as Record<string, DeepMutable<orma_index_schema[]>>)
 
     return index_schemas_by_table
 }
@@ -422,7 +424,7 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
         expression,
     } = mysql_index
 
-    const orma_index_schema: orma_index_schema = {
+    const orma_index_schema: DeepMutable<orma_index_schema> = {
         index_name,
         is_unique: Number(non_unique) === 0 ? true : false,
         fields,
