@@ -174,6 +174,10 @@ export const get_introspect_sqls = (
     return query_strings
 }
 
+export const sort_by_prop = <T>(a: T, b: T, prop: keyof T) =>
+    // @ts-ignore
+    a?.[prop]?.localeCompare(b?.[prop])
+
 /**
  * Takes the results of running the queries from {@link get_introspect_sqls `get_introspect_sqls`} and makes a JSON schema for orma.
  * @returns A JSON schema for orma
@@ -244,7 +248,9 @@ export const generate_database_schema = (
 
     const index_schemas = generate_index_schemas(mysql_indexes)
     for (const table_name of Object.keys(index_schemas)) {
-        database_schema[table_name].$indexes = index_schemas[table_name]
+        database_schema[table_name].$indexes = index_schemas[table_name].sort(
+            (a, b) => sort_by_prop(a, b, 'index_name')
+        )
     }
 
     return database_schema

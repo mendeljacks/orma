@@ -10,6 +10,7 @@ import {
     mysql_table,
     mysql_index,
     generate_index_schemas,
+    sort_by_prop,
 } from './introspector'
 
 describe('introspector', () => {
@@ -19,7 +20,12 @@ describe('introspector', () => {
         expect(introspect_sqls.length).to.equal(4)
         expect(type(introspect_sqls[0])).to.equal('String')
     })
-
+    test(sort_by_prop.name, () => {
+        const arr = [{ my_prop: 'b' }, { my_prop: 'a' }]
+        const sorted = [{ my_prop: 'a' }, { my_prop: 'b' }]
+        const result = arr.sort((a, b) => sort_by_prop(a, b, 'my_prop'))
+        expect(result).to.deep.equal(sorted)
+    })
     test('primary key field schema', () => {
         const mysql_column: mysql_column = {
             table_name: 'users',
