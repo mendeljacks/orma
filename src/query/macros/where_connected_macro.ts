@@ -178,7 +178,7 @@ const get_connected_where_clause = (
     // if there are multiple connection paths, then the item is considered connected if at least ONE of the paths
     // are connected. To see why this is, think
     return combine_wheres(connection_clauses, '$or')
-}
+} 
 
 
 export const get_edge_paths_by_destination = (

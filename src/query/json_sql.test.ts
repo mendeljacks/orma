@@ -89,5 +89,16 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
+        test('handles $entity $field', () => {
+            const json = {
+                $entity: 'items',
+                $field: 'sku'
+            }
+            //@ts-ignore
+            const sql = format(json_to_sql(json))
+            const goal = format('items.sku')
+
+            expect(sql).to.equal(goal)
+        })
     })
 })

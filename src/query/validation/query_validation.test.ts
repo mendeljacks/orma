@@ -609,7 +609,7 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     products: {
-                        $where: { $or: []}
+                        $where: { $or: [] },
                     },
                 },
                 orma_schema
@@ -622,7 +622,7 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     products: {
-                        $where: { $and: []}
+                        $where: { $and: [] },
                     },
                 },
                 orma_schema
@@ -630,6 +630,42 @@ describe('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['products', '$where']])
+        })
+        test('allows valid $entity $field', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        $where: {
+                            $eq: [
+                                { $entity: 'products', $field: 'id' },
+                                { $escape: 1 },
+                            ],
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
+        test('requires valid field name', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        $where: {
+                            $eq: [
+                                { $entity: 'products', $field: 'image_id' },
+                                { $escape: 1 },
+                            ],
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([['products', '$where', '$eq', 0, '$field']])
         })
     })
 })

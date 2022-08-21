@@ -23,6 +23,19 @@ const expression_schema = {
             // expression can be the name of a field
             type: 'string',
         },
+        {
+            // or an entity / field combo
+            type: 'object',
+            properties: {
+                $entity: {
+                    type: 'string',
+                },
+                $field: {
+                    type: 'string',
+                },
+            },
+            additionalProperties: false,
+        },
         // or an sql function
         ...Object.keys(sql_function_definitions).map(function_name => {
             const sql_function_definition =
@@ -152,7 +165,7 @@ const where_schema = {
                 items: {
                     $ref: `#/$defs/where_clause`,
                 },
-                minItems: 1
+                minItems: 1,
             },
         },
         {
@@ -161,7 +174,7 @@ const where_schema = {
                 items: {
                     $ref: `#/$defs/where_clause`,
                 },
-                minItems: 1
+                minItems: 1,
             },
         },
         {
@@ -200,7 +213,7 @@ const where_schema = {
                             },
                         ],
                     },
-                ]
+                ],
             },
         },
         {

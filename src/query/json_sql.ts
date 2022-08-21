@@ -151,6 +151,8 @@ const sql_command_parsers = {
     // DML commands
     $select: args => `SELECT ${args.join(', ')}`,
     $as: args => `(${args[0]}) AS ${args[1]}`,
+    $entity: args => `${args}.`,
+    $field: args => `${args}`,
     $from: args => `FROM ${args}`,
     $where: args => `WHERE ${args}`,
     $having: args => `HAVING ${args}`,

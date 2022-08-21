@@ -238,17 +238,44 @@ const validate_expression = (
             !field_aliases.includes(expression)
             ? [
                   {
-                      message: `${expression} is not a valid field name of entity ${context_entity}.`,
+                      message: `${expression} is not a valid field name of entity ${context_entity}. If you want to use a literal value, try replacing ${expression} with {$esacpe: ${expression}}.`,
                       path: expression_path,
                   },
               ]
             : []
     }
 
+    if (expression?.$entity) {
+        if (!is_entity_name(expression.$entity, orma_schema)) {
+            return [
+                {
+                    message: `${expression.$entity} is not a valid entity name.`,
+                    path: [...expression_path, '$entity'],
+                },
+            ]
+        }
+
+        if (
+            !is_field_name(expression.$entity, expression.$field, orma_schema)
+        ) {
+            return [
+                {
+                    message: `${expression.$field} is not a valid field name of entity ${expression.$entity}.`,
+                    path: [...expression_path, '$field'],
+                },
+            ]
+        }
+
+        return []
+    }
+
     if (is_simple_object(expression) && !is_subquery(expression)) {
         const props = Object.keys(expression)
         // expressions can have exactly one prop if they are mysql functions
-        if (props.length !== 1) {
+        if (
+            props.length !== 1 &&
+            props.some(prop => sql_function_definitions[prop] !== undefined)
+        ) {
             throw new Error('Expected one prop in expression')
         }
 

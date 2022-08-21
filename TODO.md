@@ -21,3 +21,5 @@ Mutation validation
 Mutation types
 
 - Add better error messages when foreign keys dont exist between two entities in a query
+
+- Allow independent control of nesting $where clause and nester function, maybe add $nest syntax or equivalent. (e.g. you may want a custom where clause but still have nesting in the json)
