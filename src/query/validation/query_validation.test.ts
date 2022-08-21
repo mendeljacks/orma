@@ -649,7 +649,25 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
-        test('requires valid field name', () => {
+        test('requires valid $entity name', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        $where: {
+                            $eq: [
+                                { $entity: 'not_an_entity', $field: 'image_id' },
+                                { $escape: 1 },
+                            ],
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([['products', '$where', '$eq', 0, '$entity']])
+        })
+        test('requires valid $field name', () => {
             const errors = validate_query(
                 {
                     products: {
