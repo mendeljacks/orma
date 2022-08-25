@@ -3,6 +3,7 @@ import { describe, test } from 'mocha'
 import { OrmaSchema } from '../../introspector/introspector'
 import {
     add_connection_edges,
+    ConnectionEdges,
     get_upwards_connection_edges,
 } from '../../query/macros/where_connected_macro'
 import { WhereConnected } from '../../types/query/query_types'
@@ -59,6 +60,12 @@ describe('mutation_connected.ts', () => {
                     is_unique: true,
                 },
             ],
+        },
+        categories: {
+            id: {
+                not_null: true,
+                primary_key: true,
+            },
         },
         warehouses: {
             id: {
@@ -381,6 +388,27 @@ describe('mutation_connected.ts', () => {
                     },
                 },
             ])
+        })
+        test('handles entity with no connected to table', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'create',
+                    },
+                    path: ['categories', 0],
+                },
+            ]
+
+            const connection_edges: ConnectionEdges = {}
+
+            const ownership_queries = get_ownership_queries(
+                schema,
+                connection_edges,
+                [vendor_where_connected],
+                mutation_pieces
+            )
+
+            expect(ownership_queries).to.deep.equal([])
         })
         test('ignores $guids', () => {
             const mutation_pieces: MutationPiece[] = [

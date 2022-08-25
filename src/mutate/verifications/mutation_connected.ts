@@ -159,25 +159,27 @@ export const get_primary_key_wheres = (
         return identifying_wheres
     }
 
-    const edge_paths = get_edge_paths_by_destination(connection_edges, entity)
-
-    const primary_key_wheres = edge_paths[where_connected.$entity].map(
-        edge_path => {
-            // reverse since we are queryng the where connected root entity and these paths are going from the
-            // current entity to the root, not the root to the current entity
-            const reversed_edge_path = edge_path
-                .slice()
-                .reverse()
-                .map(edge => reverse_edge(edge))
-
-            const where = edge_path_to_where_ins(
-                reversed_edge_path,
-                '$where',
-                combine_wheres(identifying_wheres, '$or')
-            )
-            return where
-        }
+    const edge_paths_obj = get_edge_paths_by_destination(
+        connection_edges,
+        entity
     )
+
+    const edge_paths = edge_paths_obj[where_connected.$entity]
+    const primary_key_wheres = edge_paths.map(edge_path => {
+        // reverse since we are queryng the where connected root entity and these paths are going from the
+        // current entity to the root, not the root to the current entity
+        const reversed_edge_path = edge_path
+            .slice()
+            .reverse()
+            .map(edge => reverse_edge(edge))
+
+        const where = edge_path_to_where_ins(
+            reversed_edge_path,
+            '$where',
+            combine_wheres(identifying_wheres, '$or')
+        )
+        return where
+    })
 
     return primary_key_wheres
 }
@@ -189,9 +191,13 @@ export const get_foreign_key_wheres = (
     entity: string
 ) => {
     // TODO: optimize by combining this with the one in the other function
-    const edge_paths = get_edge_paths_by_destination(connection_edges, entity)
+    const edge_paths_obj = get_edge_paths_by_destination(
+        connection_edges,
+        entity
+    )
 
-    const foreign_key_wheres = edge_paths[where_connected.$entity]
+    const edge_paths = edge_paths_obj[where_connected.$entity] ?? []
+    const foreign_key_wheres = edge_paths
         .map(edge_path => {
             const values = mutation_pieces
                 .map(({ record }) => {
@@ -254,7 +260,9 @@ const generate_ownership_errors = (
                 error_code: 'missing_access_rights',
                 message: `Tried to mutate data from ${
                     where_connected.$entity
-                } ${owners.join(', ')} but only has permission to modify data from ${
+                } ${owners.join(
+                    ', '
+                )} but only has permission to modify data from ${
                     where_connected.$entity
                 } ${where_connected.$values.join(', ')}.`,
                 additional_info: {
