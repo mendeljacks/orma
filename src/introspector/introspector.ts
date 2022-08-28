@@ -323,7 +323,7 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         const enum_match = column_type?.match(/enum\((.+)\)/)?.[1] ?? ''
         const enum_values = enum_match
             .split(',')
-            .map(el => el.replaceAll("'", ''))
+            .map((el: any) => el.replaceAll("'", ''))
         field_schema.enum_values = enum_values
     }
 
