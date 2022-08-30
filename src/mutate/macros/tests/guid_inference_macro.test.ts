@@ -174,4 +174,6 @@ describe('guid_inference_macro.ts', () => {
             expect(mutation.products[0].images[0].product_id).to.deep.equal(1)
         })
     })
+    //TODO: add a test where a guid is provided in the id column, and the foreign key should then use the provided guid, not generate its own
+    // (reverse nest if that makes any difference)
 })
