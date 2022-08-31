@@ -1,6 +1,9 @@
+import { OrmaStatement } from '../mutate/statement_generation/mutation_statements'
+
 export const mysql2_adapter =
     (connection: { query: Function }) =>
-    async (sqls: string[]): Promise<Record<string, any>[][]> => {
+    async (statements: OrmaStatement[]): Promise<Record<string, any>[][]> => {
+        const sqls = statements.map(statement => statement.sql_string)
         if (sqls.length === 0) {
             return []
         }
