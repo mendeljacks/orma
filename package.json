@@ -5,6 +5,7 @@
     "main": "build/index.js",
     "scripts": {
         "build": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc",
+        "bump": "npm version patch --no-git-tag-version && git add package*.json",
         "deploy": "node -e \"require('./.github/deploy.js').deploy()\"",
         "test": "mocha --package package.json",
         "nt": "nodemon --exec npm run test",
