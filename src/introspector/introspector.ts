@@ -17,7 +17,8 @@ export interface mysql_column {
     ordinal_position: number
     column_default?: string | number
     is_nullable?: string
-    is_identity?: 'YES' | 'NO' //postgres
+    is_identity?: 'YES' | 'NO' // postgres
+    identity_generation?: string | null // postgres
     data_type: string
     character_maximum_length?: number
     numeric_precision?: number
@@ -310,6 +311,7 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         extra,
         generation_expression,
         column_comment,
+        identity_generation,
     } = mysql_column
 
     const field_schema: DeepMutable<orma_field_schema> = {
@@ -362,8 +364,8 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
     }
 
     // defaults
-    if (column_default) {
-        field_schema.default = column_default
+    if (identity_generation || column_default) {
+        field_schema.default = identity_generation || column_default
     }
 
     if (extra === 'auto_increment') {
