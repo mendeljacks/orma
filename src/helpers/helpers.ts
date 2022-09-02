@@ -321,7 +321,7 @@ export const has_prop = (prop, obj) => {
 /**
  * Return items in array 1 but not array 2
  */
-export const difference = <T, U>(array_1: T[], array_2: U[]) => {
+export const difference = <T>(array_1: T[], array_2: any[]) => {
     const array_2_set = new Set(array_2)
     return array_1.filter(el => !array_2_set.has(el))
 }
