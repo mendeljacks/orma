@@ -1,5 +1,12 @@
 import { orma_escape } from '../../helpers/escape'
-import { deep_equal, deep_for_each, last } from '../../helpers/helpers'
+import {
+    clone,
+    deep_equal,
+    deep_for_each,
+    difference,
+    last,
+} from '../../helpers/helpers'
+import { push_path } from '../../helpers/push_path'
 import {
     Edge,
     get_entity_names,
@@ -95,7 +102,6 @@ export const apply_where_connected_macro = (
     return query
 }
 
-
 const apply_where_connected_to_subquery = (
     connection_edges: ConnectionEdges,
     $where_connected: WhereConnected<OrmaSchema>,
@@ -178,8 +184,7 @@ const get_connected_where_clause = (
     // if there are multiple connection paths, then the item is considered connected if at least ONE of the paths
     // are connected. To see why this is, think
     return combine_wheres(connection_clauses, '$or')
-} 
-
+}
 
 export const get_edge_paths_by_destination = (
     connection_edges: ConnectionEdges,
@@ -314,4 +319,67 @@ export type ConnectionEdges = {
         to_entity: string
         to_field: string
     }[]
+}
+
+/**
+ * MUTATES THE INPUT QUERY.
+ * Ensures that the where connected are allowable, and generates default where connecteds if there are none. Specifically,
+ * generates errors if any where connected has values that are not in the given list of restrictions for that entity and
+ * field. If there is no where connected for a restriction, then the entire restriction is added as a where connected.
+ */
+export const restrict_where_connected = (
+    query,
+    where_connected_restrictions: WhereConnected<OrmaSchema>
+) => {
+    const errors = where_connected_restrictions.flatMap(
+        where_connected_restriction => {
+            // combine given values in the where connected
+            const given_values =
+                query?.$where_connected?.reduce(
+                    (acc, { $entity, $field, $values }) => {
+                        if (
+                            $entity === where_connected_restriction.$entity &&
+                            $field === where_connected_restriction.$field
+                        ) {
+                            acc.push(...$values)
+                        }
+                        return acc
+                    },
+                    [] as (string | number)[]
+                ) ?? []
+
+            if (given_values.length === 0) {
+                // default to the maximum allowed users for this user. If the magic perm is present, this is all users
+                // so we dont add any $where_connected. Otherwise, the user only has access to one user
+                push_path(
+                    ['$where_connected'],
+                    clone(where_connected_restriction),
+                    query
+                )
+            } else {
+                const forbidden_values = difference(
+                    given_values,
+                    where_connected_restriction.$values
+                )
+
+                if (forbidden_values.length > 0) {
+                    return [
+                        {
+                            message: `Where connected only allows ${where_connected_restriction.$entity} ${where_connected_restriction.$field} ${where_connected_restriction.$values.join(', ')} but ${forbidden_values} was given.`,
+                            path: ['$where_connected'],
+                            additional_info: {
+                                where_connected_restriction,
+                                given_where_connected: query.$where_connected,
+                                forbidden_values
+                            }
+                        },
+                    ]
+                }
+            }
+
+            return []
+        }
+    )
+
+    return errors
 }

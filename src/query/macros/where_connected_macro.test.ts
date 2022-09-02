@@ -1,11 +1,14 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
+import { clone } from '../../helpers/helpers'
 import { OrmaSchema } from '../../introspector/introspector'
+import { WhereConnected } from '../../types/query/query_types'
 import { as_orma_schema } from '../query'
 import {
     apply_where_connected_macro,
     get_edge_paths_by_destination,
     get_upwards_connection_edges,
+    restrict_where_connected,
 } from './where_connected_macro'
 
 describe('where_connected_macro.ts', () => {
@@ -569,6 +572,58 @@ describe('where_connected_macro.ts', () => {
             const query = {}
             apply_where_connected_macro(schema, query, {})
             expect(query).to.deep.equal({})
+        })
+    })
+    describe.only(restrict_where_connected.name, () => {
+        test('defaults to the restriction', () => {
+            const query = {}
+            const restrictions = [
+                { $entity: 'parents', $field: 'id', $values: [1, 2] },
+            ]
+            const errors = restrict_where_connected(query, restrictions)
+
+            expect(errors).to.deep.equal([])
+            //@ts-ignore
+            expect(query.$where_connected).to.deep.equal(restrictions)
+        })
+        test('generates an error if values are not in the restriction', () => {
+            const query = {
+                $where_connected: [
+                    { $entity: 'parents', $field: 'id', $values: [1, 3] },
+                ],
+            }
+            const restrictions = [
+                { $entity: 'parents', $field: 'id', $values: [1, 2] },
+            ]
+            const input_query = clone(query)
+            const errors = restrict_where_connected(input_query, restrictions)
+
+            expect(input_query).to.deep.equal(query) // shouldnt mutate the query
+            expect(errors.length).to.equal(1)
+        })
+        test('ignores where connecteds not in the restriction', () => {
+            const query = {
+                $where_connected: [
+                    { // this one is ignored since the $field is different to the restriction
+                        $entity: 'parents',
+                        $field: 'grandparent_id',
+                        $values: [5],
+                    },
+                    {
+                        $entity: 'parents',
+                        $field: 'id',
+                        $values: [1],
+                    },
+                ],
+            }
+            const restrictions = [
+                { $entity: 'parents', $field: 'id', $values: [1, 2] },
+            ]
+            const input_query = clone(query)
+            const errors = restrict_where_connected(input_query, restrictions)
+
+            expect(input_query).to.deep.equal(query) // shouldnt mutate the query
+            expect(errors).to.deep.equal([])
         })
     })
     test.skip('handles nullalbe foreign keys')

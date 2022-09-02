@@ -317,3 +317,11 @@ export const force_array = <T>(param: T | T[]) =>
 export const has_prop = (prop, obj) => {
     return Object.prototype.hasOwnProperty.call(obj, prop)
 }
+
+/**
+ * Return items in array 1 but not array 2
+ */
+export const difference = <T, U>(array_1: T[], array_2: U[]) => {
+    const array_2_set = new Set(array_2)
+    return array_1.filter(el => !array_2_set.has(el))
+}
