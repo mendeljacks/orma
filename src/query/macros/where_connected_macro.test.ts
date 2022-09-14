@@ -574,7 +574,7 @@ describe('where_connected_macro.ts', () => {
             expect(query).to.deep.equal({})
         })
     })
-    describe.only(restrict_where_connected.name, () => {
+    describe(restrict_where_connected.name, () => {
         test('defaults to the restriction', () => {
             const query = {}
             const restrictions = [
