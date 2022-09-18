@@ -323,7 +323,7 @@ export const is_required_field = (
         field_schema.not_null &&
         !field_schema.default &&
         !field_schema.auto_increment
-    return is_required
+    return !!is_required
 }
 
 export const get_field_is_nullable = (

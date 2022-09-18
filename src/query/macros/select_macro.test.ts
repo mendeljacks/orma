@@ -20,6 +20,7 @@ describe('select_macro', () => {
         },
         images: {
             id: {},
+            url: {},
             product_id: {
                 references: {
                     products: {
@@ -92,13 +93,13 @@ describe('select_macro', () => {
 
             expect(query).to.deep.equal(goal)
         })
-        test("adds foreign keys for renamed subquery", () => {
+        test('adds foreign keys for renamed subquery', () => {
             const query = {
                 products: {
                     my_images: {
-                        $from: 'images'
-                    }
-                }
+                        $from: 'images',
+                    },
+                },
             }
 
             apply_select_macro(query, orma_schema)
@@ -108,9 +109,9 @@ describe('select_macro', () => {
                     $from: 'products',
                     my_images: {
                         $select: ['product_id'],
-                        $from: 'images'
-                    }
-                }
+                        $from: 'images',
+                    },
+                },
             }
 
             expect(query).to.deep.equal(goal)
@@ -128,6 +129,24 @@ describe('select_macro', () => {
                 my_products: {
                     $select: ['id'],
                     $from: 'products',
+                },
+            }
+
+            expect(query).to.deep.equal(goal)
+        })
+        test('combines with existing $select', () => {
+            const query = {
+                products: {
+                    id: true,
+                    $select: ['title'],
+                },
+            }
+
+            apply_select_macro(query, orma_schema)
+            const goal = {
+                products: {
+                    $from: 'products',
+                    $select: ['title', 'id'],
                 },
             }
 

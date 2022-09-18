@@ -14,8 +14,8 @@ import { is_subquery, query_for_each } from '../query_helpers'
 export const apply_select_macro = (query, orma_schema: OrmaSchema) => {
     query_for_each(query, (value, path) => {
         const new_select = get_select(value, path, query, orma_schema)
-        const existing_select = query.$select ?? []
-        const $select = [...new_select, ...existing_select]
+        const existing_select = value.$select ?? []
+        const $select = [...existing_select, ...new_select]
         const $from = value.$from ?? last(path)
 
         if ($select) {
