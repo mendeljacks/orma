@@ -1,3 +1,4 @@
+import { escapeId } from 'sqlstring'
 import { is_simple_object, last } from '../../helpers/helpers'
 import {
     get_direct_edge,
@@ -53,11 +54,10 @@ export const get_select = (
             return key
         }
 
-        if (typeof subquery[key] === 'string') {
-            return { $as: [subquery[key], key] }
-        }
-
-        if (is_simple_object(subquery[key]) && !is_subquery(subquery[key])) {
+        const is_string_field = typeof subquery[key] === 'string'
+        const is_function_field =
+            is_simple_object(subquery[key]) && !is_subquery(subquery[key])
+        if (is_string_field || is_function_field) {
             return { $as: [subquery[key], key] }
         }
 
