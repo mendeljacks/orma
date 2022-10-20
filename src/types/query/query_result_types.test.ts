@@ -7,6 +7,7 @@ import { OrmaQuery } from './query_types'
 const test = () => {
     const test_schema = as_orma_schema({
         products: {
+            $database_type: 'mysql',
             id: {
                 data_type: 'int',
                 not_null: true,
@@ -32,9 +33,11 @@ const test = () => {
             $indexes: [],
         },
         vendors: {
+            $database_type: 'mysql',
             id: {},
         },
         images: {
+            $database_type: 'mysql',
             id: {},
             product_id: {
                 references: {
@@ -48,6 +51,7 @@ const test = () => {
             },
         },
         image_urls: {
+            $database_type: 'mysql',
             image_id: {
                 references: {
                     images: {
@@ -57,6 +61,7 @@ const test = () => {
             },
         },
         locations: {
+            $database_type: 'mysql',
             id: {},
         },
     } as const)

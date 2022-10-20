@@ -2,6 +2,9 @@ import { escape } from 'sqlstring'
 import { orma_escape } from '../helpers/escape'
 import { deep_get, is_simple_object, last } from '../helpers/helpers'
 import { is_reserved_keyword } from '../helpers/schema_helpers'
+import { OrmaSchema } from '../introspector/introspector'
+import { path_to_entity } from '../mutate/helpers/mutate_helpers'
+import { PathedRecord } from '../types'
 
 /**
  * Returns true if the parameter is a subquery. A subquery is an object that has at least one data fetching prop
@@ -89,37 +92,56 @@ export const combine_wheres = (
 }
 
 export const get_search_records_where = (
-    records: Record<string, any>[],
-    get_search_fields: (record: Record<string, any>) => string[]
+    pathed_records: PathedRecord[], // Record<string, any>[],
+    get_search_fields: (record: Record<string, any>) => string[],
+    orma_schema: OrmaSchema
 ) => {
-    const records_by_search_fields = records.reduce((acc, record) => {
-        const identifying_fields = get_search_fields(record)
-        if (identifying_fields.length === 0) {
-            throw new Error("Can't find identifying fields for record")
-        }
-        const key = JSON.stringify(identifying_fields)
-        if (!acc[key]) {
-            acc[key] = []
-        }
+    const pathed_records_by_search_fields = pathed_records.reduce(
+        (acc, path_record) => {
+            const identifying_fields = get_search_fields(path_record.record)
+            if (identifying_fields.length === 0) {
+                throw new Error("Can't find identifying fields for record")
+            }
+            const key = JSON.stringify(identifying_fields)
+            if (!acc[key]) {
+                acc[key] = []
+            }
 
-        acc[key].push(record)
-        return acc
-    }, {})
+            acc[key].push(path_record)
+            return acc
+        },
+        {}
+    )
 
-    const ors = Object.keys(records_by_search_fields).flatMap(key => {
+    const ors = Object.keys(pathed_records_by_search_fields).flatMap(key => {
         const identifying_fields = JSON.parse(key)
-        const records = records_by_search_fields[key]
+        const pathed_records = pathed_records_by_search_fields[key]
         if (identifying_fields.length === 1) {
             const field = identifying_fields[0]
             return {
-                $in: [field, records.map(record => orma_escape(record[field]))],
+                $in: [
+                    field,
+                    pathed_records.map(({ record, path }) => {
+                        const entity = path_to_entity(path)
+                        return orma_escape(
+                            record[field],
+                            orma_schema[entity].$database_type
+                        )
+                    }),
+                ],
             }
         } else {
             // 2 or more, e.g. combo unique
             // generate an or per record and an and per identifying field
-            return records.map(record => ({
+            return pathed_records.map(({ path, record }) => ({
                 $and: identifying_fields.map(field => ({
-                    $eq: [field, orma_escape(record[field])],
+                    $eq: [
+                        field,
+                        orma_escape(
+                            record[field],
+                            orma_schema[path_to_entity(path)].$database_type
+                        ),
+                    ],
                 })),
             }))
         }

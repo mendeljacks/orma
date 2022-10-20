@@ -12,12 +12,14 @@ import {
 describe('mutation_plan.ts', () => {
     const orma_schema: OrmaSchema = {
         grandparents: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
             },
             quantity: {},
         },
         parents: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
             },
@@ -50,6 +52,7 @@ describe('mutation_plan.ts', () => {
             ],
         },
         children: {
+            $database_type: 'mysql',
             id1: {
                 primary_key: true,
             },
@@ -65,6 +68,7 @@ describe('mutation_plan.ts', () => {
             },
         },
         step_children: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
             },

@@ -6,6 +6,7 @@ const getA = <K extends OrmaSchema>(a: K) => a
 
 const test_schema = getA({
     products: {
+        $database_type: 'mysql',
         id: {},
         vendor_id: {
             references: {
@@ -24,9 +25,11 @@ const test_schema = getA({
         $indexes: [],
     },
     vendors: {
+        $database_type: 'mysql',
         id: {},
     },
     images: {
+        $database_type: 'mysql',
         id: {},
         product_id: {
             references: {
@@ -38,6 +41,7 @@ const test_schema = getA({
         url: {},
     },
     image_urls: {
+        $database_type: 'mysql',
         image_id: {
             references: {
                 images: {
@@ -47,6 +51,7 @@ const test_schema = getA({
         },
     },
     locations: {
+        $database_type: 'mysql',
         id: {},
     },
 } as const)
@@ -269,7 +274,7 @@ type TestSchema = typeof test_schema
             },
         },
     }
-    
+
     const good2: SimplifiedQuery<TestSchema> = {}
 
     const bad: SimplifiedQuery<TestSchema> = {

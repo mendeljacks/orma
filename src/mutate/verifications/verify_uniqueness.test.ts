@@ -11,6 +11,7 @@ import { expect } from 'chai'
 describe('verify_uniqueness', () => {
     const orma_schema: OrmaSchema = {
         users: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -31,6 +32,7 @@ describe('verify_uniqueness', () => {
             ],
         },
         products: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -53,6 +55,7 @@ describe('verify_uniqueness', () => {
             const pathed_records_by_entity = {
                 products: [
                     {
+                        path: ['products'],
                         record: {
                             $operation: 'update',
                             id: 12,
@@ -81,6 +84,7 @@ describe('verify_uniqueness', () => {
             const pathed_records_by_entity = {
                 users: [
                     {
+                        path: ['users'],
                         record: {
                             $operation: 'update',
                             first_name: 'john', // combo unique
@@ -118,26 +122,20 @@ describe('verify_uniqueness', () => {
             const pathed_records_by_entity = {
                 products: [
                     {
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                            description: 'hi',
-                        },
+                        $operation: 'update',
+                        id: 12,
+                        description: 'hi',
                     },
                     {
-                        record: {
-                            $operation: 'delete',
-                            id: 13,
-                        },
+                        $operation: 'delete',
+                        id: 13,
                     },
                     {
-                        record: {
-                            $operation: 'create',
-                            id: 14,
-                            description: 'hi',
-                        },
+                        $operation: 'create',
+                        id: 14,
+                        description: 'hi',
                     },
-                ],
+                ].map(el => ({ path: ['products'], record: el })),
             }
 
             const result = get_verify_uniqueness_query(
@@ -159,29 +157,23 @@ describe('verify_uniqueness', () => {
             const pathed_records_by_entity = {
                 products: [
                     {
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                            description: 'hi',
-                        },
+                        $operation: 'update',
+                        id: 12,
+                        description: 'hi',
                     },
                     {
-                        record: {
-                            $operation: 'update',
-                            title: 'chair',
-                            description: 'hi',
-                        },
+                        $operation: 'update',
+                        title: 'chair',
+                        description: 'hi',
                     },
-                ],
+                ].map(el => ({ path: ['products'], record: el })),
                 users: [
                     {
-                        record: {
-                            $operation: 'update',
-                            id: 13,
-                            first_name: 'john',
-                        },
+                        $operation: 'update',
+                        id: 13,
+                        first_name: 'john',
                     },
-                ],
+                ].map(el => ({ path: ['users'], record: el })),
             }
 
             const result = get_verify_uniqueness_query(

@@ -132,7 +132,7 @@ export const orma_query = async <
             apply_nesting_macro(tier_query, path, results, orma_schema)
 
             const subquery = deep_get(path, tier_query)
-            apply_escape_macro(subquery)
+            apply_escape_macro(subquery, orma_schema)
 
             return subquery
         })

@@ -91,7 +91,14 @@ const get_mutation_infos_for_group = (
 ) => {
     let asts: (Record<any, any> | undefined)[]
     if (operation === 'create') {
-        asts = [get_create_ast(mutation_pieces, entity, values_by_guid)]
+        asts = [
+            get_create_ast(
+                mutation_pieces,
+                entity,
+                values_by_guid,
+                orma_schema
+            ),
+        ]
     } else if (operation === 'update') {
         asts = mutation_pieces.map(mutation_piece =>
             get_update_ast(mutation_piece, values_by_guid, orma_schema)

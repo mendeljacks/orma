@@ -1,11 +1,18 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
+import { OrmaSchema } from '../introspector/introspector'
 import {
     combine_wheres,
     get_search_records_where,
     is_subquery,
     query_for_each,
 } from './query_helpers'
+
+const orma_schema = {
+    products: {
+        $database_type: 'mysql',
+    },
+}
 
 describe('query helpers', () => {
     describe(is_subquery.name, () => {
@@ -109,49 +116,63 @@ describe('query helpers', () => {
     })
     describe(get_search_records_where.name, () => {
         test('handles single field', () => {
-            const records = [
+            const pathed_records = [
                 {
-                    field1: 'hi',
-                    field2: 'hi2',
+                    path: ['products'],
+                    record: {
+                        field1: 'hi',
+                        field2: 'hi2',
+                    },
                 },
             ]
 
-            const result = get_search_records_where(records, record => [
-                'field1',
-            ])
+            const result = get_search_records_where(
+                pathed_records,
+                record => ['field1'],
+                orma_schema as OrmaSchema
+            )
 
             expect(result).to.deep.equal({
                 $in: ['field1', ["'hi'"]],
             })
         })
         test('handles escaping', () => {
-            const records = [
+            const pathed_records = [
                 {
-                    field1: 'hi',
+                    path: ['products'],
+                    record: {
+                        field1: 'hi',
+                    },
                 },
             ]
 
-            const result = get_search_records_where(records, record => [
-                'field1',
-            ])
+            const result = get_search_records_where(
+                pathed_records,
+                record => ['field1'],
+                orma_schema as OrmaSchema
+            )
 
             expect(result).to.deep.equal({
                 $in: ['field1', ["'hi'"]],
             })
         })
         test('handles multiple fields', () => {
-            const records = [
+            const pathed_records = [
                 {
-                    field1: 'hi',
-                    field2: 'hi2',
-                    field3: 'hi3',
+                    path: ['products'],
+                    record: {
+                        field1: 'hi',
+                        field2: 'hi2',
+                        field3: 'hi3',
+                    },
                 },
             ]
 
-            const result = get_search_records_where(records, record => [
-                'field1',
-                'field2',
-            ])
+            const result = get_search_records_where(
+                pathed_records,
+                record => ['field1', 'field2'],
+                orma_schema as OrmaSchema
+            )
 
             expect(result).to.deep.equal({
                 $and: [
@@ -165,7 +186,7 @@ describe('query helpers', () => {
             })
         })
         test('handles multiple records', () => {
-            const records = [
+            const pathed_records = [
                 {
                     type: 1,
                     field1: 'a',
@@ -184,10 +205,13 @@ describe('query helpers', () => {
                     field1: 'd1',
                     field2: 'd2',
                 },
-            ]
+            ].map(el => ({ path: ['products'], record: el }))
 
-            const result = get_search_records_where(records, record =>
-                record.type === 1 ? ['field1'] : ['field1', 'field2']
+            const result = get_search_records_where(
+                pathed_records,
+                record =>
+                    record.type === 1 ? ['field1'] : ['field1', 'field2'],
+                orma_schema as OrmaSchema
             )
 
             expect(result).to.deep.equal({

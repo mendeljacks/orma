@@ -6,6 +6,7 @@ import { OrmaSchema } from '../../introspector/introspector'
 describe('select_macro', () => {
     const orma_schema: OrmaSchema = {
         products: {
+            $database_type: 'mysql',
             id: {},
             vendor_id: {
                 references: {
@@ -16,9 +17,11 @@ describe('select_macro', () => {
             },
         },
         vendors: {
+            $database_type: 'mysql',
             id: {},
         },
         images: {
+            $database_type: 'mysql',
             id: {},
             product_id: {
                 references: {
@@ -29,6 +32,7 @@ describe('select_macro', () => {
             },
         },
         image_urls: {
+            $database_type: 'mysql',
             image_id: {
                 references: {
                     images: {
@@ -92,13 +96,13 @@ describe('select_macro', () => {
 
             expect(query).to.deep.equal(goal)
         })
-        test("adds foreign keys for renamed subquery", () => {
+        test('adds foreign keys for renamed subquery', () => {
             const query = {
                 products: {
                     my_images: {
-                        $from: 'images'
-                    }
-                }
+                        $from: 'images',
+                    },
+                },
             }
 
             apply_select_macro(query, orma_schema)
@@ -108,9 +112,9 @@ describe('select_macro', () => {
                     $from: 'products',
                     my_images: {
                         $select: ['product_id'],
-                        $from: 'images'
-                    }
-                }
+                        $from: 'images',
+                    },
+                },
             }
 
             expect(query).to.deep.equal(goal)

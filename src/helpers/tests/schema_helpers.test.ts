@@ -14,8 +14,12 @@ describe('schema_helpers', () => {
     describe('get_entity_names', () => {
         test('gets entity names', () => {
             const orma_schema: OrmaSchema = {
-                vendors: {},
-                products: {},
+                vendors: {
+                    $database_type: 'mysql',
+                },
+                products: {
+                    $database_type: 'mysql',
+                },
             }
 
             const entity_names = get_entity_names(orma_schema)
@@ -27,8 +31,11 @@ describe('schema_helpers', () => {
     describe('get_field_names', () => {
         test('gets field names', () => {
             const orma_schema: OrmaSchema = {
-                vendors: {},
+                vendors: {
+                    $database_type: 'mysql',
+                },
                 products: {
+                    $database_type: 'mysql',
                     id: {},
                     title: {},
                 },
@@ -42,9 +49,11 @@ describe('schema_helpers', () => {
         test('gets parent edges', () => {
             const orma_schema: OrmaSchema = {
                 vendors: {
+                    $database_type: 'mysql',
                     id: {},
                 },
                 products: {
+                    $database_type: 'mysql',
                     id: {},
                     vendor_id: {
                         references: {
@@ -72,9 +81,11 @@ describe('schema_helpers', () => {
         test('gets child edges', () => {
             const orma_schema: OrmaSchema = {
                 vendors: {
+                    $database_type: 'mysql',
                     id: {},
                 },
                 products: {
+                    $database_type: 'mysql',
                     id: {},
                     vendor_id: {
                         references: {
@@ -102,9 +113,11 @@ describe('schema_helpers', () => {
         test('gets all edges', () => {
             const orma_schema: OrmaSchema = {
                 vendors: {
+                    $database_type: 'mysql',
                     id: {},
                 },
                 products: {
+                    $database_type: 'mysql',
                     id: {},
                     vendor_id: {
                         references: {
@@ -115,6 +128,7 @@ describe('schema_helpers', () => {
                     },
                 },
                 images: {
+                    $database_type: 'mysql',
                     product_id: {
                         references: {
                             products: {

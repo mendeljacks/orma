@@ -63,6 +63,7 @@ export type OrmaSchema = {
 }
 
 export type orma_entity_schema = {
+    readonly $database_type: SupportedDbs
     //@ts-ignore
     readonly $comment?: string
     //@ts-ignore
@@ -109,26 +110,26 @@ export type orma_index_schema = {
     readonly expression?: string
 }
 
-type SupportedDbs = 'mysql' | 'postgres'
+export type SupportedDbs = 'mysql' | 'postgres'
 /**
  * Gets a list of sql strings to collect introspector data for the given database
  * @returns [tables_sql, columns_sql, foreign_keys_sql]
  */
 export const get_introspect_sqls = (
     database_name: string,
-    db_type: SupportedDbs
+    database_type: SupportedDbs
 ): string[] => {
     /* selects: table_name, table_comment FROM INFORMATION_SCHEMA.TABLES column_name, table_name, data_type, column_type, column_key, is_nullable, numeric_precision, numeric_scale, character_maximum_length, column_default, extra, column_comment FROM information_schema.COLUMNS  table_name, column_name, referenced_table_name, referenced_column_name, constraint_name FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE table_name, non_unique, index_name, seq_in_index, column_name, collation, sub_part, packed, nullable, index_type, comment, index_comment, is_visible, expression FROM INFORMATION_SCHEMA.STATISTICS */
 
     const tables = `SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='${database_name}'`
     const columns =
-        db_type === 'postgres'
+        database_type === 'postgres'
             ? `SELECT * FROM INFORMATION_SCHEMA.COLUMNS  where table_schema = '${database_name}' and table_name in (
         SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='${database_name}'
         )`
             : `SELECT * FROM INFORMATION_SCHEMA.COLUMNS  WHERE table_schema = '${database_name}'`
     const foreign_keys =
-        db_type === 'postgres'
+        database_type === 'postgres'
             ? `SELECT
             tc.table_schema, 
             tc.constraint_name, 
@@ -148,7 +149,7 @@ export const get_introspect_sqls = (
         WHERE tc.constraint_type = 'FOREIGN KEY' and tc.table_schema = '${database_name}'`
             : `SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`
     const indexes =
-        db_type === 'postgres'
+        database_type === 'postgres'
             ? ` 
             select 
             pgc.conname as index_name,
@@ -207,7 +208,8 @@ export const generate_database_schema = (
     mysql_tables: mysql_table[],
     mysql_columns: mysql_column[],
     mysql_foreign_keys: mysql_foreign_key[],
-    mysql_indexes: mysql_index[]
+    mysql_indexes: mysql_index[],
+    database_type: SupportedDbs
 ) => {
     const database_schema: OrmaSchemaMutable = {}
 
@@ -215,6 +217,7 @@ export const generate_database_schema = (
         //@ts-ignore
         database_schema[mysql_table.table_name] = {
             $comment: mysql_table.table_comment,
+            $database_type: database_type,
         }
     }
 
@@ -452,9 +455,9 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
 export const orma_introspect = async (
     db: string,
     fn: (s: { sql_string }[]) => Promise<Record<string, unknown>[][]>,
-    options: { db_type: 'mysql' | 'postgres' }
+    options: { database_type: 'mysql' | 'postgres' }
 ): Promise<OrmaSchema> => {
-    const sql_strings = get_introspect_sqls(db, options.db_type)
+    const sql_strings = get_introspect_sqls(db, options.database_type)
     // @ts-ignore
     const [mysql_tables, mysql_columns, mysql_foreign_keys, mysql_indexes]: [
         mysql_table[],
@@ -474,7 +477,8 @@ export const orma_introspect = async (
         mysql_tables.map(transform_keys_to_lower) as mysql_table[],
         mysql_columns.map(transform_keys_to_lower) as mysql_column[],
         mysql_foreign_keys.map(transform_keys_to_lower) as mysql_foreign_key[],
-        mysql_indexes.map(transform_keys_to_lower) as mysql_index[]
+        mysql_indexes.map(transform_keys_to_lower) as mysql_index[],
+        options.database_type
     )
 
     return orma_schema

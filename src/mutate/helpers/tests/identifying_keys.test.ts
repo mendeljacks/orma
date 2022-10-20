@@ -9,6 +9,7 @@ import {
 describe('identifying_keys.ts', () => {
     const schema: OrmaSchema = {
         product_has_images: {
+            $database_type: 'mysql',
             product_id: {
                 not_null: true,
             },
@@ -23,6 +24,7 @@ describe('identifying_keys.ts', () => {
             ],
         },
         products: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
             },

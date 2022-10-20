@@ -14,11 +14,13 @@ import {
 describe('where_connected_macro.ts', () => {
     const schema = as_orma_schema({
         grandparents: {
+            $database_type: 'mysql',
             id: {
                 not_null: true,
             },
         },
         nullable_entity: {
+            $database_type: 'mysql',
             id: {
                 not_null: true,
             },
@@ -31,6 +33,7 @@ describe('where_connected_macro.ts', () => {
             },
         },
         parents: {
+            $database_type: 'mysql',
             id: {
                 not_null: true,
             },
@@ -44,6 +47,7 @@ describe('where_connected_macro.ts', () => {
             },
         },
         parents_2: {
+            $database_type: 'mysql',
             id: {
                 not_null: true,
             },
@@ -57,6 +61,7 @@ describe('where_connected_macro.ts', () => {
             },
         },
         children: {
+            $database_type: 'mysql',
             id: {
                 not_null: true,
             },
@@ -83,9 +88,11 @@ describe('where_connected_macro.ts', () => {
         test('handles multiple entities', () => {
             const schema: OrmaSchema = {
                 grandparents: {
+                    $database_type: 'mysql',
                     id: {},
                 },
                 parents: {
+                    $database_type: 'mysql',
                     id: {},
                     grandparent_id: {
                         references: {
@@ -96,6 +103,7 @@ describe('where_connected_macro.ts', () => {
                     },
                 },
                 children: {
+                    $database_type: 'mysql',
                     id: {},
                     parent_id: {
                         references: {
@@ -131,12 +139,15 @@ describe('where_connected_macro.ts', () => {
         test('handles multiple edges', () => {
             const schema: OrmaSchema = {
                 parents: {
+                    $database_type: 'mysql',
                     id: {},
                 },
                 parents_2: {
+                    $database_type: 'mysql',
                     id: {},
                 },
                 children: {
+                    $database_type: 'mysql',
                     id: {},
                     parent_id: {
                         references: {
@@ -177,6 +188,7 @@ describe('where_connected_macro.ts', () => {
         test('skips edges from an entity to itself', () => {
             const schema: OrmaSchema = {
                 entity: {
+                    $database_type: 'mysql',
                     id: {},
                     entity_id: {
                         references: {
@@ -574,7 +586,7 @@ describe('where_connected_macro.ts', () => {
             expect(query).to.deep.equal({})
         })
     })
-    describe.only(restrict_where_connected.name, () => {
+    describe(restrict_where_connected.name, () => {
         test('defaults to the restriction', () => {
             const query = {}
             const restrictions = [
@@ -604,7 +616,8 @@ describe('where_connected_macro.ts', () => {
         test('ignores where connecteds not in the restriction', () => {
             const query = {
                 $where_connected: [
-                    { // this one is ignored since the $field is different to the restriction
+                    {
+                        // this one is ignored since the $field is different to the restriction
                         $entity: 'parents',
                         $field: 'grandparent_id',
                         $values: [5],

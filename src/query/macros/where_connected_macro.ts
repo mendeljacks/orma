@@ -155,7 +155,12 @@ const get_connected_where_clause = (
             )
 
             const inner_clause = {
-                $in: [$field, $values.map(el => orma_escape(el))],
+                $in: [
+                    $field,
+                    $values.map(el =>
+                        orma_escape(el, orma_schema[$entity].$database_type)
+                    ),
+                ],
             }
 
             const clauses = edge_paths.map(edge_path => {
@@ -365,13 +370,19 @@ export const restrict_where_connected = (
                 if (forbidden_values.length > 0) {
                     return [
                         {
-                            message: `Where connected only allows ${where_connected_restriction.$entity} ${where_connected_restriction.$field} ${where_connected_restriction.$values.join(', ')} but ${forbidden_values} was given.`,
+                            message: `Where connected only allows ${
+                                where_connected_restriction.$entity
+                            } ${
+                                where_connected_restriction.$field
+                            } ${where_connected_restriction.$values.join(
+                                ', '
+                            )} but ${forbidden_values} was given.`,
                             path: ['$where_connected'],
                             additional_info: {
                                 where_connected_restriction,
                                 given_where_connected: query.$where_connected,
-                                forbidden_values
-                            }
+                                forbidden_values,
+                            },
                         },
                     ]
                 }

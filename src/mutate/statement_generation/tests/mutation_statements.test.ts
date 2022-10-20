@@ -7,6 +7,7 @@ import { get_mutation_statements } from '../mutation_statements'
 describe('mutation_statements.ts', () => {
     const orma_schema: OrmaSchema = {
         users: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -26,6 +27,7 @@ describe('mutation_statements.ts', () => {
             ],
         },
         products: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,

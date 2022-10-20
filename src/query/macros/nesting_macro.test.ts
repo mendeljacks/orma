@@ -6,6 +6,7 @@ import { apply_nesting_macro } from './nesting_macro'
 describe('query_macros', () => {
     const orma_schema: OrmaSchema = {
         products: {
+            $database_type: 'mysql',
             id: {},
             vendor_id: {
                 references: {
@@ -16,9 +17,11 @@ describe('query_macros', () => {
             },
         },
         vendors: {
+            $database_type: 'mysql',
             id: {},
         },
         payments: {
+            $database_type: 'mysql',
             id: {},
             from_vendor_id: {
                 references: {
@@ -36,6 +39,7 @@ describe('query_macros', () => {
             },
         },
         receipts: {
+            $database_type: 'mysql',
             id: {},
             payment_id: {
                 references: {
@@ -46,6 +50,7 @@ describe('query_macros', () => {
             },
         },
         images: {
+            $database_type: 'mysql',
             id: {},
             product_id: {
                 references: {
@@ -56,6 +61,7 @@ describe('query_macros', () => {
             },
         },
         image_urls: {
+            $database_type: 'mysql',
             image_id: {
                 references: {
                     images: {
@@ -292,15 +298,13 @@ describe('query_macros', () => {
                     payments: {
                         $foreign_key: ['from_vendor_id'],
                         receipts: {
-                            id: true
+                            id: true,
                         },
                     },
                 },
             }
 
-            const previous_results = [
-                [['vendors'], [{ id: 1 }, { id: 2 }]],
-            ]
+            const previous_results = [[['vendors'], [{ id: 1 }, { id: 2 }]]]
             apply_nesting_macro(
                 query,
                 ['vendors', 'payments', 'receipts'],

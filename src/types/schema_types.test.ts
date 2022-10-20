@@ -13,6 +13,7 @@ import {
 
 const test_schema = as_orma_schema({
     products: {
+        $database_type: 'mysql',
         id: {
             data_type: 'varchar',
         },
@@ -36,9 +37,11 @@ const test_schema = as_orma_schema({
         $indexes: [],
     },
     vendors: {
+        $database_type: 'mysql',
         id: {},
     },
     images: {
+        $database_type: 'mysql',
         id: {},
         product_id: {
             references: {
@@ -49,6 +52,7 @@ const test_schema = as_orma_schema({
         },
     },
     image_urls: {
+        $database_type: 'mysql',
         image_id: {
             references: {
                 images: {

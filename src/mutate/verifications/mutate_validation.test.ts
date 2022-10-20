@@ -6,6 +6,7 @@ import { validate_mutation } from './mutate_validation'
 describe('mutation_validation', () => {
     const orma_schema: OrmaSchema = {
         products: {
+            $database_type: 'mysql',
             id: {
                 data_type: 'int',
                 primary_key: true,
@@ -35,11 +36,13 @@ describe('mutation_validation', () => {
             $indexes: [],
         },
         vendors: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
             },
         },
         images: {
+            $database_type: 'mysql',
             id: {},
             product_id: {
                 references: {
@@ -50,6 +53,7 @@ describe('mutation_validation', () => {
             },
         },
         image_urls: {
+            $database_type: 'mysql',
             url: {
                 data_type: 'varchar',
             },
@@ -356,22 +360,22 @@ describe('mutation_validation', () => {
                 $operation: 'create',
                 products: [
                     {
-                        vendor_id: 12 // allowed
+                        vendor_id: 12, // allowed
                     },
                     {
-                        vendor_id: '12.1' // allowed
+                        vendor_id: '12.1', // allowed
                     },
                     {
-                        vendor_id: true // allowed, interpreted as 1
+                        vendor_id: true, // allowed, interpreted as 1
                     },
                     {
-                        vendor_id: 1.1111 // not allowed - too many decimal places
+                        vendor_id: 1.1111, // not allowed - too many decimal places
                     },
                     {
-                        vendor_id: 123456 // not allowed - too many digits
+                        vendor_id: 123456, // not allowed - too many digits
                     },
                     {
-                        vendor_id: -12 // not allowed - cant be negative
+                        vendor_id: -12, // not allowed - cant be negative
                     },
                 ],
             }

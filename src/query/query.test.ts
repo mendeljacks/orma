@@ -6,6 +6,7 @@ import { orma_nester, orma_query } from './query'
 describe('query', () => {
     const orma_schema: OrmaSchema = {
         products: {
+            $database_type: 'mysql',
             id: {},
             vendor_id: {
                 references: {
@@ -16,9 +17,11 @@ describe('query', () => {
             },
         },
         vendors: {
+            $database_type: 'mysql',
             id: {},
         },
         images: {
+            $database_type: 'mysql',
             id: {},
             product_id: {
                 references: {
@@ -29,6 +32,7 @@ describe('query', () => {
             },
         },
         image_urls: {
+            $database_type: 'mysql',
             image_id: {
                 references: {
                     images: {

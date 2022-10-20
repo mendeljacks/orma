@@ -7,12 +7,14 @@ import { apply_guid_inference_macro } from '../guid_inference_macro'
 describe('guid_inference_macro.ts', () => {
     const schema = as_orma_schema({
         products: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
             },
         },
         images: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -27,6 +29,7 @@ describe('guid_inference_macro.ts', () => {
             },
         },
         image_urls: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,

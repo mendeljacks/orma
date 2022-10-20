@@ -186,12 +186,14 @@ describe('introspector', () => {
             mysql_tables,
             mysql_columns,
             mysql_foreign_keys,
-            mysql_indexes
+            mysql_indexes,
+            'mysql'
         )
 
         expect(database_schema).to.deep.equal({
             posts: {
                 $comment: 'user posts',
+                $database_type: 'mysql',
                 user_id: {
                     data_type: 'int',
                     ordinal_position: 1,
@@ -204,6 +206,7 @@ describe('introspector', () => {
             },
             users: {
                 $comment: 'table of users',
+                $database_type: 'mysql',
                 id: {
                     data_type: 'int',
                     ordinal_position: 1,

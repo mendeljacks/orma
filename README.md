@@ -113,7 +113,7 @@ import { orma_schema } from '../../generated/orma_schema'
 
 // To save results of introspection to disk using fs
 export const introspect = async db => {
-    const orma_schema = await orma_introspect('public', byo_query_fn, { db_type: 'postgres' })
+    const orma_schema = await orma_introspect('public', byo_query_fn, { database_type: 'postgres' })
     try {
         const str = `export const orma_schema = ${JSON.stringify(orma_schema, null, 2)} as const`
         writeFileSync('./generated/orma_schema.ts', str)

@@ -19,18 +19,21 @@ import {
 describe('mutation_connected.ts', () => {
     const schema: OrmaSchema = {
         vendors: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
             },
         },
         listings: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
             },
         },
         products: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -62,12 +65,14 @@ describe('mutation_connected.ts', () => {
             ],
         },
         categories: {
+            $database_type: 'mysql',
             id: {
                 not_null: true,
                 primary_key: true,
             },
         },
         warehouses: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -91,6 +96,7 @@ describe('mutation_connected.ts', () => {
             ],
         },
         accounts: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -111,6 +117,7 @@ describe('mutation_connected.ts', () => {
             },
         },
         variants: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,

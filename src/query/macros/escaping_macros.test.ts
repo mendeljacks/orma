@@ -1,6 +1,13 @@
 import { describe, test } from 'mocha'
 import { apply_escape_macro } from './escaping_macros'
 import { expect } from 'chai'
+import { OrmaSchema } from '../../introspector/introspector'
+
+const orma_schema: OrmaSchema = {
+    products: {
+        $database_type: 'mysql',
+    },
+}
 
 describe('escaping_macros', () => {
     describe(apply_escape_macro.name, () => {
@@ -20,7 +27,7 @@ describe('escaping_macros', () => {
                 },
             }
 
-            apply_escape_macro(query)
+            apply_escape_macro(query, orma_schema)
 
             expect(query).to.deep.equal({
                 my_products: {
@@ -36,35 +43,47 @@ describe('escaping_macros', () => {
         })
         test('handles nested $escapes', () => {
             const query = {
-                $in: [
-                    'column',
-                    [
-                        {
-                            $escape: [
+                products: {
+                    $where: {
+                        $in: [
+                            'column',
+                            [
                                 {
-                                    $escape: 'val',
+                                    $escape: [
+                                        {
+                                            $escape: 'val',
+                                        },
+                                    ],
                                 },
                             ],
-                        },
-                    ],
-                ],
+                        ],
+                    },
+                },
             }
 
-            apply_escape_macro(query)
+            apply_escape_macro(query, orma_schema)
 
             expect(query).to.deep.equal({
-                $in: ['column', ["'\\'val\\''"]],
+                products: {
+                    $where: {
+                        $in: ['column', ["'\\'val\\''"]],
+                    },
+                },
             })
         })
         test('handles null', () => {
             const query = {
-                $eq: [1, { $escape: null }]
+                products: {
+                    $where: {
+                        $eq: [1, { $escape: null }],
+                    },
+                },
             }
 
-            apply_escape_macro(query)
+            apply_escape_macro(query, orma_schema)
 
-            expect(query).to.deep.equal({
-                $eq: [1, 'NULL']
+            expect(query.products.$where).to.deep.equal({
+                $eq: [1, 'NULL'],
             })
         })
     })

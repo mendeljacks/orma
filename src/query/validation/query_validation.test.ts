@@ -7,6 +7,7 @@ import { validate_query } from './query_validation'
 describe('query_validation.ts', () => {
     const orma_schema = as_orma_schema({
         products: {
+            $database_type: 'mysql',
             id: {
                 data_type: 'int',
             },
@@ -27,9 +28,11 @@ describe('query_validation.ts', () => {
             $indexes: [],
         },
         vendors: {
+            $database_type: 'mysql',
             id: {},
         },
         images: {
+            $database_type: 'mysql',
             id: {},
             product_id: {
                 references: {
@@ -40,6 +43,7 @@ describe('query_validation.ts', () => {
             },
         },
         image_urls: {
+            $database_type: 'mysql',
             image_id: {
                 references: {
                     images: {
@@ -655,7 +659,10 @@ describe('query_validation.ts', () => {
                     products: {
                         $where: {
                             $eq: [
-                                { $entity: 'not_an_entity', $field: 'image_id' },
+                                {
+                                    $entity: 'not_an_entity',
+                                    $field: 'image_id',
+                                },
                                 { $escape: 1 },
                             ],
                         },
@@ -665,7 +672,9 @@ describe('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', '$where', '$eq', 0, '$entity']])
+            expect(paths).to.deep.equal([
+                ['products', '$where', '$eq', 0, '$entity'],
+            ])
         })
         test('requires valid $field name', () => {
             const errors = validate_query(
@@ -683,7 +692,9 @@ describe('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', '$where', '$eq', 0, '$field']])
+            expect(paths).to.deep.equal([
+                ['products', '$where', '$eq', 0, '$field'],
+            ])
         })
     })
 })

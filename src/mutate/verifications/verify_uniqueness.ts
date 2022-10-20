@@ -90,9 +90,10 @@ export const get_verify_uniqueness_query = (
 
         // searches all records for the entity
         const $where = get_search_records_where(
-            searchable_pathed_records.map(({ record }) => record),
+            searchable_pathed_records,
             // TODO: add values_by_guid
-            record => get_identifying_keys(entity, record, {}, orma_schema)
+            record => get_identifying_keys(entity, record, {}, orma_schema),
+            orma_schema
         )
 
         if (!$where) {

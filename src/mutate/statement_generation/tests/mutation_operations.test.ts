@@ -11,6 +11,7 @@ import {
 describe('mutation_operations.ts', () => {
     const orma_schema: OrmaSchema = {
         grandparents: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -18,6 +19,7 @@ describe('mutation_operations.ts', () => {
             quantity: {},
         },
         parents: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -55,6 +57,7 @@ describe('mutation_operations.ts', () => {
             ],
         },
         children: {
+            $database_type: 'mysql',
             id1: {
                 primary_key: true,
                 not_null: true,
@@ -72,6 +75,7 @@ describe('mutation_operations.ts', () => {
             },
         },
         step_children: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -411,7 +415,8 @@ describe('mutation_operations.ts', () => {
                     },
                 ],
                 'parents',
-                values_by_guid
+                values_by_guid,
+                orma_schema
             )
 
             const goal = {
@@ -445,7 +450,8 @@ describe('mutation_operations.ts', () => {
                     },
                 ],
                 'parents',
-                values_by_guid
+                values_by_guid,
+                orma_schema
             )
 
             const goal = {
@@ -477,7 +483,8 @@ describe('mutation_operations.ts', () => {
                     },
                 ],
                 'parents',
-                values_by_guid
+                values_by_guid,
+                orma_schema
             )
 
             const goal = {

@@ -11,7 +11,8 @@ import { MutationPiece } from '../plan/mutation_plan'
 export const get_create_ast = (
     mutation_pieces: MutationPiece[],
     entity: string,
-    values_by_guid: Record<any, any>
+    values_by_guid: Record<any, any>,
+    orma_schema: OrmaSchema
 ) => {
     // get insert keys by combining the keys from all records
     const fields = mutation_pieces.reduce((acc, mutation_piece, i) => {
@@ -37,7 +38,10 @@ export const get_create_ast = (
                 field,
                 values_by_guid
             )
-            const escaped_value = orma_escape(resolved_value ?? null)
+            const escaped_value = orma_escape(
+                resolved_value ?? null,
+                orma_schema[entity].$database_type
+            )
             return escaped_value
         })
 
@@ -62,7 +66,11 @@ const get_resolved_mutation_value_if_field = (
         return undefined
     }
 
-    const resolved_value = get_resolved_mutation_value(record, field, values_by_guid)
+    const resolved_value = get_resolved_mutation_value(
+        record,
+        field,
+        values_by_guid
+    )
     return resolved_value?.$guid === undefined ? resolved_value : undefined
 }
 
@@ -96,6 +104,8 @@ export const get_update_ast = (
         false
     )
 
+    const entity = path_to_entity(mutation_piece.path)
+
     const $set = Object.keys(mutation_piece.record)
         .map(field => {
             if (identifying_keys.includes(field)) {
@@ -110,13 +120,14 @@ export const get_update_ast = (
             if (resolved_value === undefined) {
                 return undefined
             }
-            const escaped_value = orma_escape(resolved_value)
+            const escaped_value = orma_escape(
+                resolved_value,
+                orma_schema[entity].$database_type
+            )
 
             return [field, escaped_value]
         })
         .filter(el => el !== undefined)
-
-    const entity = path_to_entity(mutation_piece.path)
 
     return $set.length === 0
         ? undefined

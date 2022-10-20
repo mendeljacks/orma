@@ -7,6 +7,7 @@ import { sort_database_rows } from '../sort_database_rows'
 describe('guid_processing.ts', () => {
     const schema = as_orma_schema({
         products: {
+            $database_type: 'mysql',
             id: {
                 primary_key: true,
                 not_null: true,
@@ -29,6 +30,7 @@ describe('guid_processing.ts', () => {
             },
         },
         images: {
+            $database_type: 'mysql',
             id: {
                 not_null: true,
                 primary_key: true,
@@ -51,6 +53,7 @@ describe('guid_processing.ts', () => {
             ],
         },
         users: {
+            $database_type: 'mysql',
             first_name: {
                 primary_key: true,
                 not_null: true,

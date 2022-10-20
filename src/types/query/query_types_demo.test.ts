@@ -7,11 +7,13 @@ import { OrmaQuery } from './query_types'
 const t = () => {
     const schema = {
         products: {
+            $database_type: 'mysql',
             id: {
                 data_type: 'int',
             },
         },
         images: {
+            $database_type: 'mysql',
             product_id: {
                 references: {
                     products: {
