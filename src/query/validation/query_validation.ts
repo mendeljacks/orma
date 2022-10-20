@@ -51,6 +51,7 @@ const validate_outer_subquery = (
     const errors = [
         ...validate_common_subquery(subquery, subquery_path, orma_schema),
         ...validate_data_props(subquery, subquery_path, orma_schema),
+        ...validate_select(subquery, subquery_path, false, orma_schema),
     ]
 
     return errors
@@ -64,12 +65,7 @@ const validate_inner_subquery = (
 ) => {
     const errors = [
         ...validate_common_subquery(subquery, subquery_path, orma_schema),
-        ...validate_select(
-            subquery,
-            subquery_path,
-            required_one_field,
-            orma_schema
-        ),
+        ...validate_select(subquery, subquery_path, false, orma_schema),
     ]
 
     return errors
@@ -238,7 +234,7 @@ const validate_expression = (
             !field_aliases.includes(expression)
             ? [
                   {
-                      message: `${expression} is not a valid field name of entity ${context_entity}. If you want to use a literal value, try replacing ${expression} with {$esacpe: ${expression}}.`,
+                      message: `${expression} is not a valid field name of entity ${context_entity}. If you want to use a literal value, try replacing ${expression} with {$escape: ${expression}}.`,
                       path: expression_path,
                   },
               ]
@@ -286,16 +282,24 @@ const validate_expression = (
             return []
         }
 
-        const args = force_array(expression[prop])
-        const args_errors = args.flatMap(arg =>
-            validate_expression(
-                arg,
-                [...expression_path, prop],
-                context_entity,
-                field_aliases,
-                orma_schema
-            )
-        )
+        const args_errors = Array.isArray(expression[prop])
+            ? expression[prop].flatMap((arg, i) =>
+                  validate_expression(
+                      arg,
+                      [...expression_path, prop, i],
+                      context_entity,
+                      field_aliases,
+                      orma_schema
+                  )
+              )
+            : validate_expression(
+                  expression[prop],
+                  [...expression_path, prop],
+                  context_entity,
+                  field_aliases,
+                  orma_schema
+              )
+
         return args_errors
     }
 
@@ -332,13 +336,23 @@ const validate_select = (
 
     const entity_name = get_real_entity_name(last(subquery_path), subquery)
     const expression_errors = select.flatMap((field, i) =>
-        validate_expression(
-            field,
-            [...subquery_path, '$select', i],
-            entity_name,
-            [],
-            orma_schema
-        )
+        // for $as, the second item in the array is the alias name which is always valid by the json schema.
+        // here we just need to validate the first item as an expression.
+        field?.$as
+            ? validate_expression(
+                  field.$as[0],
+                  [...subquery_path, '$select', i, '$as', 0],
+                  entity_name,
+                  [],
+                  orma_schema
+              )
+            : validate_expression(
+                  field,
+                  [...subquery_path, '$select', i],
+                  entity_name,
+                  [],
+                  orma_schema
+              )
     )
 
     return [...require_one_field_errors, ...expression_errors]

@@ -322,6 +322,24 @@ describe('nester', () => {
         const result: any = nester(data, edges)
         const len = result.order_items[0].variants[0].products.length
         expect(len).to.equal(1)
+        expect(result).to.deep.equal({
+            order_items: [
+                {
+                    id: 1,
+                    variant_id: 11,
+                    variants: [
+                        { id: 11, product_id: 111, products: [{ id: 111 }] },
+                    ],
+                },
+                {
+                    id: 2,
+                    variant_id: 11,
+                    variants: [
+                        { id: 11, product_id: 111, products: [{ id: 111 }] },
+                    ],
+                },
+            ],
+        })
         // these should be a copy, not referentially equal
         expect(result.order_items[0].variants[0]).to.not.equal(
             result.order_items[1].variants[0]

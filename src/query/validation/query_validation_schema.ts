@@ -1,5 +1,7 @@
 import { sql_function_definitions } from '../json_sql'
 
+const alias_regex = '^[A-Za-z0-9_]+$' // alphanumeric and _
+
 const primitive_schema = {
     oneOf: [
         {
@@ -34,6 +36,7 @@ const expression_schema = {
                     type: 'string',
                 },
             },
+            required: ['$entity', '$field'],
             additionalProperties: false,
         },
         // or an sql function
@@ -247,6 +250,38 @@ const where_schema = {
 }
 
 const query_shared_props = {
+    $select: {
+        type: 'array',
+        minItems: 1,
+        items: {
+            anyOf: [
+                {
+                    $ref: '#/$defs/expression',
+                },
+                {
+                    type: 'object',
+                    properties: {
+                        $as: {
+                            type: 'array',
+                            minItems: 2,
+                            maxItems: 2,
+                            items: [
+                                {
+                                    $ref: '#/$defs/expression',
+                                },
+                                {
+                                    minLength: 1,
+                                    type: 'string',
+                                    pattern: alias_regex,
+                                },
+                            ],
+                        },
+                    },
+                    additionalProperties: false,
+                },
+            ],
+        },
+    },
     $from: {
         type: 'string',
     },
@@ -279,22 +314,25 @@ const outer_query_schema = {
     //      entity in key name
     //   5. value is a subquery with a $from clause (e.g. { id: true, $from: 'my_table'}). The subquery is from the
     //      entity in the $from clause
-    additionalProperties: {
-        anyOf: [
-            {
-                // this covers case 1
-                type: 'boolean',
-            },
-            {
-                // this covers cases 2 and 3
-                $ref: '#/$defs/expression',
-            },
-            {
-                // this covers cases 4 and 5
-                $ref: '#/$defs/outer_query',
-            },
-        ],
+    patternProperties: {
+        [alias_regex]: {
+            anyOf: [
+                {
+                    // this covers case 1
+                    type: 'boolean',
+                },
+                {
+                    // this covers cases 2 and 3
+                    $ref: '#/$defs/expression',
+                },
+                {
+                    // this covers cases 4 and 5
+                    $ref: '#/$defs/outer_query',
+                },
+            ],
+        },
     },
+    additionalProperties: false,
     // known properties of a query
     properties: query_shared_props,
 }
@@ -304,13 +342,6 @@ const outer_query_schema = {
 const inner_query_schema = {
     type: 'object',
     properties: {
-        $select: {
-            type: 'array',
-            minItems: 1,
-            items: {
-                $ref: '#/$defs/expression',
-            },
-        },
         ...query_shared_props,
     },
     required: ['$select', '$from'],

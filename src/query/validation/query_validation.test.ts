@@ -143,9 +143,13 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     products: {
+                        $select: [{ $as: ['id', 'my_id2'] }],
                         my_id: 'id',
                         $from: 'products',
-                        $order_by: [{ $asc: { $sum: 'my_id' } }],
+                        $order_by: [
+                            { $asc: { $sum: 'my_id' } },
+                            { $desc: 'my_id2' },
+                        ],
                     },
                 },
                 orma_schema
@@ -187,6 +191,25 @@ describe('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['products', '$group_by', 0]])
+        })
+        test('doesnt allow special characters in field alias', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        $select: [{ $as: ['id', "i'd"] }],
+                        "my_'id": 'id',
+                        $from: 'products',
+                        $group_by: ['my_id'],
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([
+                ['products'],
+                ['products', '$select', 0],
+            ])
         })
         test('allows group by to referenced aliased fields', () => {
             const errors = validate_query(

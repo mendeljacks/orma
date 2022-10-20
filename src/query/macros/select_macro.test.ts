@@ -23,6 +23,7 @@ describe('select_macro', () => {
         images: {
             $database_type: 'mysql',
             id: {},
+            url: {},
             product_id: {
                 references: {
                     products: {
@@ -132,6 +133,24 @@ describe('select_macro', () => {
                 my_products: {
                     $select: ['id'],
                     $from: 'products',
+                },
+            }
+
+            expect(query).to.deep.equal(goal)
+        })
+        test('combines with existing $select', () => {
+            const query = {
+                products: {
+                    id: true,
+                    $select: ['title'],
+                },
+            }
+
+            apply_select_macro(query, orma_schema)
+            const goal = {
+                products: {
+                    $from: 'products',
+                    $select: ['title', 'id'],
                 },
             }
 

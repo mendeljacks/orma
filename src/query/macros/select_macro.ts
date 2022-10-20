@@ -1,3 +1,4 @@
+import { escapeId } from 'sqlstring'
 import { is_simple_object, last } from '../../helpers/helpers'
 import {
     get_direct_edge,
@@ -14,8 +15,8 @@ import { is_subquery, query_for_each } from '../query_helpers'
 export const apply_select_macro = (query, orma_schema: OrmaSchema) => {
     query_for_each(query, (value, path) => {
         const new_select = get_select(value, path, query, orma_schema)
-        const existing_select = query.$select ?? []
-        const $select = [...new_select, ...existing_select]
+        const existing_select = value.$select ?? []
+        const $select = [...existing_select, ...new_select]
         const $from = value.$from ?? last(path)
 
         if ($select) {
@@ -53,11 +54,10 @@ export const get_select = (
             return key
         }
 
-        if (typeof subquery[key] === 'string') {
-            return { $as: [subquery[key], key] }
-        }
-
-        if (is_simple_object(subquery[key]) && !is_subquery(subquery[key])) {
+        const is_string_field = typeof subquery[key] === 'string'
+        const is_function_field =
+            is_simple_object(subquery[key]) && !is_subquery(subquery[key])
+        if (is_string_field || is_function_field) {
             return { $as: [subquery[key], key] }
         }
 

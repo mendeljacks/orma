@@ -23,6 +23,7 @@
  * @module json_sql
  */
 
+import { escapeId } from 'sqlstring'
 import { is_simple_object } from '../helpers/helpers'
 
 type expression =

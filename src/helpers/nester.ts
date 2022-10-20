@@ -86,19 +86,17 @@ const get_results = (
             // using the index we created previously
             const value = record[field]
             const higher_records = higher_index[higher_field][value]
-            higher_records.forEach((higher_record, i) =>
-                nester_set(
-                    higher_record,
-                    // shallow copy if there are other places we are nesting this, so that two places in the
-                    // result are not referencing the same object which can cause strance bugs where
-                    // a change in one place changes both places
-                    i === 0 ? record : { ...record },
-                    set_field,
-                    array_mode
-                )
-            )
-            // add this record to the index so we can nest other stuff on it
-            add_to_index(index, record)
+            higher_records.forEach((higher_record, i) => {
+                // shallow copy if there are other places we are nesting this, so that two places in the
+                // result are not referencing the same object which can cause strance bugs where
+                // a change in one place changes both places
+                let record_to_nest = i === 0 ? record : { ...record }
+
+                // add this record to the index so we can nest other stuff on it. We must do this once per higher record,
+                // since we are making shallow copies for each higher record
+                add_to_index(index, record_to_nest)
+                nester_set(higher_record, record_to_nest, set_field, array_mode)
+            })
         })
     })
 
