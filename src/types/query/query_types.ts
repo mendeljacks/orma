@@ -120,12 +120,6 @@ export type Expression<
     | {
           $coalesce: Expression<Schema, Entity>
       }
-    | {
-          $upper: Expression<Schema, Entity>
-      }
-    | {
-          $lower: Expression<Schema, Entity>
-      }
     | GetFields<Schema, Entity>
 
 export type PaginationObj = {
