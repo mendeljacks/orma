@@ -61,6 +61,19 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
+        test('handles upper', () => {
+            const json = { $upper: "'hello'" }
+            const sql = format(json_to_sql(json))
+            const goal = format(`UPPER('hello')`)
+            expect(sql).to.equal(goal)
+        })
+        test('handles lower', () => {
+            const json = { $lower: "'hello'" }
+            const sql = format(json_to_sql(json))
+            const goal = format(`LOWER('hello')`)
+            expect(sql).to.equal(goal)
+        })
+
         test("ignores even number of '$not' commands", () => {
             const json = {
                 $not: {
@@ -92,7 +105,7 @@ describe('query', () => {
         test('handles $entity $field', () => {
             const json = {
                 $entity: 'items',
-                $field: 'sku'
+                $field: 'sku',
             }
             //@ts-ignore
             const sql = format(json_to_sql(json))
