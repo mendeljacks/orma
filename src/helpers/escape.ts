@@ -1,5 +1,5 @@
 import { escape } from 'sqlstring'
-import * as pg_escape from 'pg-escape'
+import * as pg_escape from 'pg-escape-browser'
 import { SupportedDbs } from '../introspector/introspector'
 
 /**
