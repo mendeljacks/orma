@@ -739,7 +739,11 @@ describe('query_validation.ts', () => {
                     products: {
                         images: {
                             id: true,
-                            $foreign_key: ['product_id'],
+                            $foreign_key: ['product_id'], // regular nest
+                            products: {
+                                id: true,
+                                $foreign_key: ['product_id'] // reverse nest
+                            }
                         },
                     },
                 },

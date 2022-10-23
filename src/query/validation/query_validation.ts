@@ -401,7 +401,7 @@ const validate_foreign_key = (
 
     const valid_edges = [
         ...entity_edges.filter(edge => edge.to_entity === higher_entity),
-        ...higher_entity_edges.filter(edge => edge.to_entity === higher_entity),
+        ...higher_entity_edges.filter(edge => edge.to_entity === entity),
     ]
     const matching_edges = valid_edges.filter(edge => edge.from_field === field)
 
