@@ -1,7 +1,8 @@
 import { validate } from 'jsonschema'
 import { OrmaError } from '../../helpers/error_handling'
-import { force_array, is_simple_object, last } from '../../helpers/helpers'
+import { is_simple_object, last } from '../../helpers/helpers'
 import {
+    get_parent_edges,
     is_entity_name,
     is_field_name,
     is_parent_entity,
@@ -11,7 +12,7 @@ import { OrmaSchema } from '../../introspector/introspector'
 import { Path } from '../../types'
 import { WhereConnected } from '../../types/query/query_types'
 import { sql_function_definitions } from '../json_sql'
-import { get_real_entity_name } from '../query'
+import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { is_subquery } from '../query_helpers'
 import { query_validation_schema } from './query_validation_schema'
 
@@ -35,7 +36,9 @@ const validate_query_js = (query, orma_schema: OrmaSchema) => {
     // then generate errors for nested queries
     const field_errors = Object.keys(query)
         .filter(key => !is_reserved_keyword(key))
-        .flatMap(key => validate_outer_subquery(query[key], [key], orma_schema))
+        .flatMap(key =>
+            validate_outer_subquery(query, query[key], [key], orma_schema)
+        )
         .map(error => ({ ...error, original_data: query }))
 
     const where_connected_errors = validate_where_connected(query, orma_schema)
@@ -44,14 +47,16 @@ const validate_query_js = (query, orma_schema: OrmaSchema) => {
 }
 
 const validate_outer_subquery = (
+    query,
     subquery,
     subquery_path: string[],
     orma_schema: OrmaSchema
 ) => {
     const errors = [
         ...validate_common_subquery(subquery, subquery_path, orma_schema),
-        ...validate_data_props(subquery, subquery_path, orma_schema),
+        ...validate_data_props(query, subquery, subquery_path, orma_schema),
         ...validate_select(subquery, subquery_path, false, orma_schema),
+        ...validate_foreign_key(query, subquery, subquery_path, orma_schema),
     ]
 
     return errors
@@ -152,6 +157,7 @@ const validate_from_clause = (
  * Data props refer to props that end up in the response json, these are props without a $ at the front
  */
 const validate_data_props = (
+    query,
     subquery,
     subquery_path: string[],
     orma_schema: OrmaSchema
@@ -204,6 +210,7 @@ const validate_data_props = (
         // cases 4 and 5
         if (is_subquery(value)) {
             return validate_outer_subquery(
+                query,
                 value,
                 [...subquery_path, prop],
                 orma_schema
@@ -230,15 +237,18 @@ const validate_expression = (
             return []
         }
 
-        return !is_field_name(context_entity, expression, orma_schema) &&
+        const errors =
+            !is_field_name(context_entity, expression, orma_schema) &&
             !field_aliases.includes(expression)
-            ? [
-                  {
-                      message: `${expression} is not a valid field name of entity ${context_entity}. If you want to use a literal value, try replacing ${expression} with {$escape: ${expression}}.`,
-                      path: expression_path,
-                  },
-              ]
-            : []
+                ? [
+                      {
+                          message: `${expression} is not a valid field name of entity ${context_entity}. If you want to use a literal value, try replacing ${expression} with {$escape: ${expression}}.`,
+                          path: expression_path,
+                      },
+                  ]
+                : []
+
+        return errors
     }
 
     if (expression?.$entity) {
@@ -356,6 +366,62 @@ const validate_select = (
     )
 
     return [...require_one_field_errors, ...expression_errors]
+}
+
+const validate_foreign_key = (
+    query,
+    subquery,
+    subquery_path,
+    orma_schema: OrmaSchema
+): OrmaError[] => {
+    const $foreign_key = subquery.$foreign_key
+    if (!$foreign_key) {
+        return []
+    }
+
+    if ($foreign_key.length !== 1) {
+        return [
+            {
+                message:
+                    'Only a $foreign_key with one field is currently supported.',
+                path: [...subquery_path, '$foreign_key'],
+                additional_info: {
+                    foreign_key_length: $foreign_key.length,
+                },
+            },
+        ]
+    }
+
+    const field = $foreign_key[0]
+
+    const entity = get_real_entity_name(last(subquery_path), subquery)
+    const higher_entity = get_real_higher_entity_name(subquery_path, query)
+    const entity_edges = get_parent_edges(entity, orma_schema)
+    const higher_entity_edges = get_parent_edges(higher_entity, orma_schema)
+
+    const valid_edges = [
+        ...entity_edges.filter(edge => edge.to_entity === higher_entity),
+        ...higher_entity_edges.filter(edge => edge.to_entity === entity),
+    ]
+    const matching_edges = valid_edges.filter(edge => edge.from_field === field)
+
+    if (matching_edges.length === 0) {
+        return [
+            {
+                message: `$foreign key must be either a field of ${entity} which references ${higher_entity} or a field of ${higher_entity} which references ${entity}.`,
+                path: [...subquery_path, '$foreign_key', 0],
+                additional_info: {
+                    entity,
+                    higher_entity,
+                    valid_foreign_keys: valid_edges.map(
+                        edge => edge.from_field
+                    ),
+                },
+            },
+        ]
+    }
+
+    return []
 }
 
 // group by and order by works on any field or selected field alias

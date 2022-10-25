@@ -305,7 +305,6 @@ const query_shared_props = {
 
 // outer queries are regular queries like { products: { id: true }}
 const outer_query_schema = {
-    type: 'object',
     // there are 5 cases for data properties:
     //   1. key is a field, value is a boolean. In this case the key will end up in the $select
     //   2. value is a field name. In this case the value will end up in the select
@@ -314,6 +313,7 @@ const outer_query_schema = {
     //      entity in key name
     //   5. value is a subquery with a $from clause (e.g. { id: true, $from: 'my_table'}). The subquery is from the
     //      entity in the $from clause
+    type: 'object',
     patternProperties: {
         [alias_regex]: {
             anyOf: [
@@ -334,7 +334,10 @@ const outer_query_schema = {
     },
     additionalProperties: false,
     // known properties of a query
-    properties: query_shared_props,
+    properties: {
+        ...query_shared_props,
+        $foreign_key: { type: 'array', minItems: 1, items: { type: 'string' } },
+    },
 }
 
 // inner queries dont have property selects, nesting etc and are used inside where clauses, e.g.

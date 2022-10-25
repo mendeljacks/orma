@@ -186,7 +186,9 @@ const sql_command_parsers = {
     $any: args => `ANY (${args})`,
     $all: args => `ALL (${args})`,
     $eq: (args, path) =>
-        args[1] === null
+        // handle regular null or string null
+        args[1] === null ||
+        (typeof args[1] === 'string' && args[1].toLowerCase() === 'null')
             ? `${args[0]} IS${nested_under_odd_nots(path) ? ' NOT' : ''} NULL`
             : `${args[0]} ${nested_under_odd_nots(path) ? '!' : ''}= ${
                   args[1]

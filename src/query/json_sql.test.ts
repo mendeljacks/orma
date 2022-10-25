@@ -40,6 +40,29 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
+        test('$not works with null equality', () => {
+            const json = {
+                $and: [
+                    {
+                        $not: {
+                            $eq: ['a', null],
+                        },
+                    },
+                    {
+                        $not: {
+                            // this also evualuates to NULL when passed into sql. Sql commands are case insensitive, so
+                            // the casing shouldnt matter
+                            $eq: ['a', 'NuLl'],
+                        },
+                    },
+                ],
+            }
+
+            const sql = format(json_to_sql(json))
+            const goal = format('(a IS NOT NULL) AND (a IS NOT NULL)')
+
+            expect(sql).to.equal(goal)
+        })
         test('handles aggregate functions', () => {
             const json = {
                 $min: 'field',

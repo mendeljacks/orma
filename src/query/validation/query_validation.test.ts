@@ -719,5 +719,64 @@ describe('query_validation.ts', () => {
                 ['products', '$where', '$eq', 0, '$field'],
             ])
         })
+        test.skip('must have a data prop if there is no valid sql function', () => {
+            // not necessary, but could make user experience better. Add this to js validation when there is time
+            const errors = validate_query(
+                {
+                    products: {
+                        $limit: 1, // limit is not an sql function, so there neeeds to be a prop e.g. id: true
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([['products']])
+        })
+        test('allows $foreign_key', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        images: {
+                            id: true,
+                            $foreign_key: ['product_id'], // regular nest
+                            products: {
+                                id: true,
+                                $foreign_key: ['product_id'] // reverse nest
+                            }
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
+        test('$foreign_key must be valid', () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        $foreign_key: ['product_id'], // wrong level, should be on images
+                        images: {
+                            id: true,
+                            $foreign_key: ['vendor_id'], // wrong field, vendor_id doesnt connect images and products
+                        },
+                        vendors: {
+                            id: true,
+                            $foreign_key: ['id', 'id'], // two fields are invalid
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([
+                ['products', 'images', '$foreign_key', 0],
+                ['products', 'vendors', '$foreign_key'],
+                ['products', '$foreign_key', 0],
+            ])
+        })
     })
 })
