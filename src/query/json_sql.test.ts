@@ -61,6 +61,16 @@ describe('query', () => {
 
             expect(sql).to.equal(goal)
         })
+        test('$round', () => {
+            const json = {
+                $round: [1.234, 2],
+            }
+
+            const sql = format(json_to_sql(json))
+            const goal = format('ROUND(1.234, 2)')
+
+            expect(sql).to.equal(goal)
+        })
         test('handles upper', () => {
             const json = { $upper: "'hello'" }
             const sql = format(json_to_sql(json))

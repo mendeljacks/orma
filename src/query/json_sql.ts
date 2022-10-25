@@ -146,6 +146,10 @@ export const sql_function_definitions: {
         ast_to_sql: args => `COALESCE(${args.join(', ')})`,
         multiple_args: true,
     },
+    $round: {
+        ast_to_sql: args => `ROUND(${args.join(', ')})`,
+        multiple_args: true,
+    },
     $lower: {
         ast_to_sql: args => `LOWER(${args})`,
     },
