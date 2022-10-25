@@ -24,10 +24,8 @@ export const apply_escape_macro = (query, orma_schema: OrmaSchema) => {
             }
         }
 
-        const entity = get_real_entity_name(
-            get_any_path_context_entity(path, query),
-            value
-        )
+        const entity = get_any_path_context_entity(path, query)
+
         deep_set(
             path,
             orma_escape(value.$escape, orma_schema[entity].$database_type),

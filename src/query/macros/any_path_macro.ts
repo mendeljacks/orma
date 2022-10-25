@@ -53,7 +53,11 @@ export const apply_any_path_macro = (query, orma_schema: OrmaSchema) => {
 
 export const get_any_path_context_entity = (path, query) => {
     const previous_entities = path.flatMap((path_el, i) => {
-        if (path_el === '$where' || path_el === '$having') {
+        if (
+            path_el === '$where' ||
+            path_el === '$having' ||
+            path_el === '$select'
+        ) {
             return [
                 get_real_entity_name(
                     path[i - 1],

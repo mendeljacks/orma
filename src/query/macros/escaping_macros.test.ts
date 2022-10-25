@@ -11,6 +11,54 @@ const orma_schema: OrmaSchema = {
 
 describe('escaping_macros', () => {
     describe(apply_escape_macro.name, () => {
+        test.only('Can determine database type from $as', () => {
+            const query = {
+                products: {
+                    id: true,
+                    $select: [
+                        {
+                            $as: [
+                                { $coalesce: ['count', { $escape: 0 }] },
+                                'my_id',
+                            ],
+                        },
+                    ],
+                },
+            }
+
+            apply_escape_macro(query, orma_schema)
+        })
+        test('Can find database type $coalesce', () => {
+            const orma_schema: OrmaSchema = {
+                places: { $database_type: 'postgres' },
+                reviews: { $database_type: 'postgres' },
+            }
+            const query = {
+                places: {
+                    id: true,
+                    $select: [
+                        {
+                            $as: [
+                                {
+                                    $select: [
+                                        {
+                                            $coalesce: [
+                                                { $max: 'created_at' },
+                                                { $escape: '1996-01-01' },
+                                            ],
+                                        },
+                                    ],
+                                    $from: 'reviews',
+                                },
+                                'latest_review',
+                            ],
+                        },
+                    ],
+                },
+            }
+
+            apply_escape_macro(query, orma_schema)
+        })
         test('escapes primitives', () => {
             const query = {
                 my_products: {
