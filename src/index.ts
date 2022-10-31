@@ -1,5 +1,6 @@
 // query
 export { orma_query } from './query/query'
+export { validate_query } from './query/validation/query_validation'
 
 // mutate
 export {

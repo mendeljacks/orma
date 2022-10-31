@@ -14,6 +14,7 @@ export const mysql2_adapter =
             any
         ] = await connection.query(sql)
 
+        // always return an array of arrays
         if (!Array.isArray(rows[0])) {
             return [rows]
         } else {
