@@ -1,6 +1,14 @@
 // query
 export { orma_query } from './query/query'
 export { validate_query } from './query/validation/query_validation'
+export {
+    get_upwards_connection_edges,
+    restrict_where_connected,
+    ConnectionEdges,
+    add_connection_edges,
+    remove_connection_edges,
+} from './query/macros/where_connected_macro'
+export { Edge, reverse_edge } from './helpers/schema_helpers'
 
 // mutate
 export {

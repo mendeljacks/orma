@@ -1,21 +1,24 @@
 # What is Orma?
 
-Orma is a light-weight declarative ORM for SQL databases.
+Orma is a JSON-based, statically typed query language for SQL databases.
 
-Orma makes it easy to use JSON based GraphQL style syntax to query and mutate existing databases.
+Orma provides the tools to secure and simplify your database queries, while still exposing the full power of SQL.
 
 Key Features
 
--   Powerful
-    -   Mixed operations (create, update, delete in one request)
-    -   Nested Queries and Mutations (automatic foreign key propogation)
-    -   Powerful JSON query syntax with automatic typescript for queries and mutations
--   Portable
-    -   Can run server-side or client-side (for sql-lite)
-    -   BYO connection pool
--   Performant
-    -   Batched insert statements.
-    -   Multi stage query planning
+💪 Powerful
+- Nested queries and mutations
+- Mixed operations (create, update and delete in one request)
+- Extensive SQL-based syntax
+- Automatic typescript for queries and mutations
+
+🛹 Portable
+- Pure JS with no code generation
+- BYO database connector
+
+🕥 Performant
+- All SQL statements are batched
+- Query plans for maximum parallelization
 
 Orma also helps with validation, sql injection protection, while leaving the rest of the database management to the programmer. The programmer will be responsible for providing a configured connection pool so that sql strings can get executed.
 
@@ -38,7 +41,7 @@ Orma is not opinionated on database connectors, so feel free to use your favouri
 
 Example setup:
 
-```js
+```typescript
 import mysql from 'mysql2'
 import { mysql2_adapter } from 'orma'
 
@@ -319,6 +322,38 @@ In some cases, Orma can't figure out the correct foreign key. For example, if th
 </td>
 </tr>
 </table>
+
+### SQL functions
+
+Orma supports functions to transform data, for example:
+
+<table><tr><th> Query </th> <th> Result </th></tr><tr><td>
+
+```js
+{
+    users: {
+        id: true,
+        capitalized_first_name: {
+            $upper: 'first_name'
+        }
+    },
+}
+```
+
+</td><td>
+    
+```js
+{
+    users: [{
+        id: 1,
+        capitalized_first_name: 'ALICE'
+    }]
+}
+```
+
+</td></tr></table>
+
+A full list of currently supported functions can be found in the sql_function_definitions variable in the [source code](src/query/json_sql.ts).
 
 ## Pagination
 
@@ -769,6 +804,64 @@ first_name = posts.id
 </td></tr>
 </table>
 
+## Grouping and ordering
+
+The $group_by and $order_by keywords work the same as GROUP BY and ORDER BY in SQL. Ordering can be done using $asc or $desc. $group_by allows aggregate functions such as $sum to be used. For example:
+
+<table><tr><th> Query </th> <th> Result </th></tr>
+<tr><td>
+
+```js
+{
+    users: {
+        id: true,
+        $order_by: [{ $desc: 'id' }]
+    }
+}
+```
+
+</td><td>
+    
+```js
+{
+    users: [{
+        id: 2
+    }, {
+        id: 1
+    }]
+}
+```
+
+</td></tr>
+<tr><td>
+
+```js
+{
+    posts: {
+        user_id: true,
+        total_views: {
+            $sum: 'views'
+        },
+        $group_by: ['user_id']
+    }
+}
+```
+
+</td><td>
+    
+```sql
+posts: [{
+    user_id: 1,
+    total_views: 152
+}, {
+    user_id: 2,
+    total_views: 439
+}]
+```
+
+</td></tr>
+</table>
+
 # Mutations
 
 Mutations provide a way to modify data through three $operations: create, update and delete.
@@ -975,6 +1068,90 @@ first_name, last_name
 </td></tr>
 </table>
 
+## Creating in batch
+
+All create operations are done in batches for efficiency. In other words, one CREATE statement is generated with many records from a single entity. To determine auto-generated ids, Orma requires that all the fields from at least one unique index is provided in the mutation. For example:
+
+<table><tr><th> Mutation piece </th> <th> Valid </th></tr>
+<tr><td>
+
+```js
+{
+    $operation: 'create',
+    id: 1,
+    first_name: 'John',
+    last_name: 'Smith'
+}
+```
+
+</td><td>
+✅ Yes, primary key is provided
+</td>
+</td></tr>
+<tr><td>
+
+```js
+{
+    $operation: 'create',
+    email: 'john@smith.com'
+    first_name: 'John',
+    last_name: 'Smith'
+}
+```
+
+</td><td>
+✅ Yes, unique field 'email' is provided
+</td>
+</td></tr>
+<tr><td>
+
+```js
+{
+    $operation: 'create',
+    first_name: 'John',
+    last_name: 'Smith'
+}
+```
+
+</td><td>
+❌ No, no unique field provided
+</td>
+</td></tr>
+</table>
+
+If there are entities that have no required unique fields, a temporary_id column with a unique index can be added. In the following example, a temporary_id column has been added to every table in the database. The temporary id is randomly generated using [nanoid](https://www.npmjs.com/package/nanoid) before the mutation runs:
+
+```js
+import {
+    orma_mutate_prepare, 
+    orma_mutate_run
+} from 'orma'
+
+import { nanoid } from 'nanoid'
+
+const mutation = { 
+    $operation: 'update',
+    addresses: { id: 1, line_1: '123 Road' }
+}
+
+const mutation_plan = orma_mutate_prepare(orma_schema, mutation)
+
+mutation_plan.mutation_pieces.forEach(mutation_piece => {
+    if (mutation_piece.record.$operation === 'create') {
+        mutation_piece.record.temporary_id = nanoid()
+    }
+})
+
+await orma_mutate_run(
+    orma_schema,
+    orma_sql_function,
+    mutation_plan,
+    mutation
+)
+```
+
+In the previous example, orma_mutate_prepare and orma_mutate_run were used instead of orma_mutate, allowing custom logic to happen in between.
+
 ## Guids
 
 Just like foreign keys in queries, mutations rely on inference to automatically insert foreign keys when creating records. The $guid keyword provides a way to customize this behaviour by specifying that two or more fields should end up with the same value. This can be used to control foreign key insertion even in cases where there are multiple foreign keys or for records that are not adjacent in the mutation. 
@@ -1063,141 +1240,255 @@ In the second example, $guids are used to specify which address is the billing a
 ```
 </td></tr>
 </table>
-
 $guid values can be any strings or numbers. In these examples, a short random string was used to keep the examples simple. However, to avoid collisions between guids, it is recommended that a longer random string or some unique piece of data be used.
 
+# Multitenancy
 
-
-
-
-
-
----
+## Connection edges
+Orma supports [multitenancy](https://en.wikipedia.org/wiki/Multitenancy) using a concept of **connected records**. Records are connected if there is a path between them following a given list of **edges** (directed foreign keys). Orma provides a function to generate one edge per foreign key, from the foreign key to the referenced field. This covers most multitenancy use cases:
 
 ```js
-// Example query of first 10 users with their first 10 US addresses
-const query = {
-    users: {
-        id: true,
-        first_name: true,
-        last_name: true,
-        $offset: 0,
-        $limit: 10,
-        addresses: {
-            id: true,
-            $offset: 0,
-            $limit: 10,
-            $where: { $eq: ['country', { $escape: 'US' }] }, // <-- It is recommended to escape all user input to avoid SQL injection
-        },
-    },
-}
+import { get_upwards_connection_edges } from 'orma'
 
-// Similar query, but this time only get the first 10 users who have at least one Canadian address.
-const query = {
-    users: {
-        id: true,
-        first_name: true,
-        last_name: true,
-        addresses: {
-            id: true,
-        },
-        $where: { $any: ['addresses.country', { $escape: 'CA' }] },
-    },
-}
-
-// Chaining multiple where clauses with and / or statements
-const query = {
-    users: {
-        id: true,
-        first_name: true,
-        last_name: true,
-        $where: {
-            $and: [
-                { $eq: ['first_name', { $escape: 'John' }] },
-                { $eq: ['last_name', { $escape: 'Doe' }] },
-            ],
-        },
-    },
-}
+const connection_edges = get_upwards_connection_edges(orma_schema)
 ```
 
-Notice that the query syntax is similar to graphql. Each column in the query will be fetched from the database and returned in the response in the same shape as the query. Since it is JSON based the true is required next to each column name. {$as: 'new_column_name'} is also supported in place of the boolean if desired. In the above example because the address table has a user_id on it, orma will know to join the addresses of each user to their spot in the response. You can also query tables in their reverse order such as addresses with users inside and this will be honored in the response as well.
+To figure out which records are connected to a source record, we follow the connection edges. For example, say we wanted to find all the comments connected to the user with id 1, using the default connection edges generated above. We would first find all the connected posts (all the posts with user_id 1) and then find all the connected comments (all the comments with a post_id that references a connected post).
 
-Searching, paginating, sorting and more advanced filtering are implemented using a $ syntax.
-Keywords which begin with $ are called macros and are used to represent abstractions of the sql AST. SQL keywords can be accessed with the $ prefix and snake case. (eg $group_by, $limit, $where)
-
-Query performance is due to ormas single pass toposort which decomposes requests into the minimum number of sql queries. Orma will then group requests to be executed as parallel as possible while ensuring to wait for the results of some requests which are required for subsequent requests such as parents getting created before children tables and where in statements being resolved.
-
-## Mutations
-
-To insert, update or delete rows, mutations are used.
-
-An orma mutations are json based and support batch operations.
-When tables are passed in nested format, orma will normalised them for insertion to the database.
+<table><tr><th> Distance from users </th> <th> Connected records </th></tr>
+<tr><td>
+0
+</td><td>
 
 ```js
-// Example of creating new rows in batch
-const mutation = {
-    $operation: 'create',
-    users: [
-        {
-            first_name: 'John',
-            last_name: 'Doe',
-        },
-        {
-            first_name: 'Jane',
-            last_name: 'Smith',
-        },
-    ],
-}
-```
-
-```js
-// Example of nested creation
-const mutation = {
-    $operation: 'create',
+{
     users: [{
-        first_name: 'John',
-        last_name: 'Doe'
-        posts: [{
-            title: 'Post 1',
-            message: 'Hello world'
-        }]
+        id: 1
     }]
 }
 ```
-
-You can mix and match any combination of batch and nested operations.
-By default the operation at the top will be inherited all the way down, however you can have mixed operations in the same request for example:
+</td></tr>
+<tr><td>
+1
+</td><td>
 
 ```js
-// Example of creating a user while deleting a user by unique column and updating a unother by id
-const mutation = {
-    users: [
+{
+    posts: [{
+        id: 10,
+        user_id: 1
+    }, {
+        id: 11,
+        user_id: 1
+    }]
+}
+```
+</td></tr>
+<tr><td>
+2
+</td><td>
+
+```js
+{
+    comments: [{
+        id: 100,
+        post_id: 10
+    }, {
+        id: 101,
+        post_id: 10
+    }, {
+        id: 110,
+        post_id: 11
+    }]
+}
+```
+</td></tr>
+</table>
+
+All the users, posts and comments listed above are connected to the user with id 1.
+
+With this in mind, Orma provides two main functions for dealing with connected edges. Given one or more source records:
+1. The $where_connected keyword automatically filteres everything in the query to only include records connected to the source records
+2. The get_mutation_connected_errors function returns errors if anything in the mutation is not connected to the source records
+
+Here is an example usage of each one:
+
+```js
+import { 
+    orma_query, 
+    orma_mutate_prepare, 
+    get_mutation_connected_errors, 
+    orma_mutate_run
+} from 'orma'
+
+// query example. Only addresses with the user_id 1 are returned
+const results = await orma_query(
+    { 
+        $where_connected: [{
+            $entity: 'users',
+            $field: 'id',
+            $values: [1]
+        }],
+        addresses: { id: true }
+    },
+    orma_schema,
+    orma_sql_function,
+    connection_edges
+)
+
+// mutation example. Since address 1 has the user_id 1, the mutation is valid and the errors array is empty
+const mutation = { 
+    $operation: 'update',
+    addresses: { id: 1, line_1: '123 Road' }
+}
+const mutation_plan = orma_mutate_prepare(orma_schema, mutation)
+const errors = await get_mutation_connected_errors(
+    orma_schema,
+    connection_edges,
+    orma_sql_function,
+    [
         {
-            $operation: 'create',
-            first_name: 'John',
-            last_name: 'Doe',
-        },
-        {
-            $operation: 'delete',
-            email: 'john@gmail.com',
-        },
-        {
-            $operation: 'update',
-            id: 123,
-            last_name: 'Doe',
+            $entity: 'users',
+            $field: 'id',
+            $values: [1],
         },
     ],
+    mutation_plan.mutation_pieces
+)
+
+if (connected_errors.length > 0) {
+    // handle invalid mutation
+}
+
+await orma_mutate_run(
+    orma_schema,
+    orma_sql_function,
+    mutation_plan,
+    mutation
+)
+```
+
+In the previous example, orma_mutate_prepare and orma_mutate_run were used instead of orma_mutate, allowing the get_connected_errors function to run in between.
+
+## Restricting $where_connected
+
+To ensure a $where_connected is present, the restrict_where_connected function can be used. This function takes the maximal set of records that a query should have access to - you can still pass a smaller subset of those records into the query's $where_connected. If any non-allowed records are passed, the function will generate an error. For example, imagine an admin has access to records connected to user 1 and 2:
+
+```js
+const maximal_where_connected = [{
+    $entity: 'users',
+    $field: 'id',
+    $values: [1, 2] // has access to user 1 and 2
+}]
+```
+
+Example where a valid $where_connected is provided
+
+```js
+const query = {
+    $where_connected: [{
+        $entity: 'users',
+        $field: 'id',
+        $values: [1] // requests records connected to user 1, which is a subset of 1 and 2
+    }],
+    addresses: { id: true }
+}
+
+// the errors array is empty
+const errors = restrict_where_connected(query, maximal_where_connected)
+
+if (errors.length > 0) {
+    // handle invalid query
 }
 ```
 
-# Additional features
+Example where no $where_connected is provided
 
--   Using {$guid: '...'} in two spots can be used to bypass circular dependencies in mutations (acts as a temporary identifier for the row)
--   Results of queries can always be passed directly to mutations with contents changed and it will work as expected.
--   Anypath and anyconnected can be used for row based multi-tenancy
-- raw sql by skipping validation ($where: 'id = 1')
+```js
+const query = {
+    addresses: { id: true }
+}
+
+// since no $where_connected is provided in the query, there are no errors
+const errors = restrict_where_connected(query, maximal_where_connected)
+
+if (errors.length > 0) {
+    // handle invalid query
+}
+
+// query.$where_connected is now equal to maximal_where_connected. If we ran the query, addresses from users 1 and 2 would be returned
+```
+
+> ⚠️ if no $where_connected is provided, restrict_where_connected will mutate the input query.
+
+## Setting connection edges
+
+Connection edges can be added, removed or reversed to cover more use cases. For example, imagine we wanted posts to be public, so that any user can query posts from any other user. We could do this by removing the connection edge between users and posts (we would ony pass this into the query function, so that users can't edit posts from other users):
+
+```js
+import { get_upwards_connection_edges, remove_connection_edges } from 'orma'
+
+const default_connection_edges = get_upwards_connection_edges(orma_schema)
+
+const connection_edges = remove_connection_edges(default_connection_edges, [{
+    from_entity: 'posts',
+    from_field: 'user_id',
+    to_entity: 'users',
+    to_field: 'id'
+}])
+```
+
+We can also reverse connection edges. For example, imagine we had a post_groupings table and each post had an optional post_grouping_id that referenced a post_groupings id. By default, the connection edge would go from the post to the post grouping. This means that a post_grouping has no connection path to the users table, and so any user can edit any post grouping. If we want users to only have access to post groupings that their posts are part of, we can reverse the connection edge:
+
+```js
+import { 
+    get_upwards_connection_edges, 
+    add_connection_edges, 
+    remove_connection_edges, 
+    Edge, 
+    reverse_edges 
+} from 'orma'
+
+const default_connection_edges = get_upwards_connection_edges(orma_schema)
+
+const add_edges: Edge[] = [
+    {
+        from_entity: 'post_groupings',
+        from_field: 'id',
+        to_entity: 'posts',
+        to_field: 'post_grouping_id',
+    }
+]
+
+const remove_edges: Edge[] = [
+    // other edges can also be removed here
+    ...add_edges.map(edge => reverse_edge(edge))
+]
+
+const connection_edges = add_connection_edges(
+    remove_connection_edges(default_connection_edges, remove_edges),
+    add_edges
+)
+```
+
+# Advanced use cases
+
+## Custom SQL
+
+For internal use, Orma allows custom sql strings for features that do not yet have an Orma syntax. To do this, simply include an SQL string and skip validation:
+
+```js
+import { orma_query } from 'orma'
+
+const results = await orma_query({
+    users: {
+        id: true,
+        $where: "first_name = 'John' AND last_name = 'Smith'"
+    }
+})
+```
+
+> ⚠️ Custom SQL is provided as a last resort and is not well supported by Orma. Any custom SQL should be tested before use. Additionally, custom SQL will not always work well with other Orma features such as $where_connected.
 
 # Extra examples
 
