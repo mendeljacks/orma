@@ -2,9 +2,11 @@
 
 Orma is a JSON-based, statically typed query language for SQL databases.
 
-Orma provides the tools to secure and simplify your database queries, while still exposing the full power of SQL.
 
-Key Features
+
+At its heart, Orma's mission is simple: convert a parsable, serializable and type-safe JSON syntax into SQL strings. However Orma builds on its base SQL syntax by providing other features such as validation, multi-tenancy, database introspection, declarative foreign keys and more. In other words, Orma provides the tools to secure and simplify your database queries, while still exposing the full power of SQL.
+
+## Key Features
 
 💪 Powerful
 - Nested queries and mutations
@@ -18,11 +20,9 @@ Key Features
 
 🕥 Performant
 - All SQL statements are batched
-- Query plans for maximum parallelization
+- Query planning for maximum parallelization
 
-Orma also helps with validation, sql injection protection, while leaving the rest of the database management to the programmer. The programmer will be responsible for providing a configured connection pool so that sql strings can get executed.
-
-## Getting started
+# Getting started
 
 Try out the Interactive playground
 https://orma-playground.web.app/
@@ -58,16 +58,16 @@ const pool = mysql
 
 const orma_sql_function = mysql2_adapter(pool)
 ```
-
+> ⚠️ The mysql2 adapter generates SQL statements separated by semicolons, so make sure they are enabled in the connector config.
 ## Orma Schema
 
-The orma schema is a JSON object that is required when making queries or mutations. The schema contains entity names, column names, as well as foreign key references and uniqness constraints and can be introspected directly by reading a live database or written manually. The schema is regular, serializable JSON, so it can be created dynamically at runtime, or fetched via an HTTP request. However, it is recommended to save the schema to disk so that Orma can provide intellisense through its Typescript types.
+The orma schema is a JSON object which is required to make queries or mutations. The schema contains all the information about a database that Orma needs, such as entity / field names, foreign keys and indexes. The schema is regular JSON, so it can be created dynamically at runtime, or fetched via an HTTP request. However, to get proper type-safety and intellisense, it is recommended to save the schema to disk.
 
-### Automatic Introspection
+### Introspection
 
-While Orma schemas can be hand-written, there is currently no way to populate a database with an orma schema. Instead, a schema can be introspected from an existing database which can be managed through other tools such as [db-migrate](https://www.npmjs.com/package/db-migrate). To get intellisense, the schema must be saved to a .ts file with 'as const' at the end.
+While Orma schemas can be hand-written, there is currently no way to apply an Orma schema onto a database. Instead, a schema can be introspected from an existing database which can be managed through other tools such as [db-migrate](https://www.npmjs.com/package/db-migrate). For intellisense to work, the schema must be saved to a .ts file and have 'as const' at the end.
 
-The following is an example of a mysql database being introspected:
+Here is an example of a mysql database being introspected:
 
 ```js
 const orma_schema = await orma_introspect('database_name', orma_sql_function, {
@@ -83,25 +83,25 @@ const orma_schema_string = `export const orma_schema = ${JSON.stringify(
 writeFileSync('./orma_schema.ts', orma_schema_string)
 ```
 
-The generated schema JSON will look something like this:
+The generated schema will look something like this:
 
 ```js
 // {
 //     "users": {
 //         "id": {
-//           "data_type": "bigint",
-//           "not_null": true,
-//           "primary_key": true,
+//              "data_type": "bigint",
+//              "not_null": true,
+//              "primary_key": true,
 //         },
 //         "email": {
-//             "data_type": "character varying",
-//           "not_null": true,
-//           "character_count": 10485760
+//              "data_type": "character varying",
+//              "not_null": true,
+//              "character_count": 10485760
 //         },
 //         "first_name": {
-//           "data_type": "character varying",
-//           "ordinal_position": 4,
-//           "character_count": 10485760
+//              "data_type": "character varying",
+//              "ordinal_position": 4,
+//              "character_count": 10485760
 //         },
 //         ...
 //     }
@@ -116,14 +116,15 @@ The generated schema JSON will look something like this:
 Queries are executed though the orma_query function:
 
 ```js
-import { orma_query, validate_query } from 'orma'
+import { orma_query, validate_query, as_orma_query } from 'orma'
 
-const query = {
+// as_orma_query doesn't do anything at runtime - it is only used so that typescript types work properly
+const query = as_orma_query({
     users: {
         id: true,
         first_name: true,
     },
-}
+})
 
 const validation_errors = validate_query(query, orma_schema)
 
@@ -140,20 +141,20 @@ const results = await orma_query(query, orma_schema, orma_sql_function)
 // }
 ```
 
-> ⚠️ If Orma is being exposed via a public-facing API, it is imperative that queries be validated with the validate_query function. This is because validation ensures that every element in the query is either from a known list of values (e.g. keywords, field and entity names) or properly sanitized (e.g. escaping in $where clauses). In other words, <b>queries that include user input and are not validated are vulnerable to SQL injection</b>.
+> ⚠️ If Orma queries are being exposed via a public API, it is extremely important that queries be validated with the validate_query function. This is because validation ensures that every element in the query is either from a known list of values (e.g. keywords, field and entity names) or properly sanitized (e.g. escaping in $where clauses). In other words, <b>queries that include user input and are not validated are vulnerable to SQL injection</b>.
 
 ## Structure
 
 Orma queries are serializable JSON objects that represent sql queries and are used to fetch data from a database. Queries are made up of properties that:
 
-1. Start with '$'. These are keywords and will not appear in the query response
-2. Start with anything else. These are data props and will appear in the response
+1. Start with '$'. These are keywords and **will not** appear in the query response
+2. Start with anything else. These are data props and **will** appear in the response
 
-In the following example, users and posts entities exist. The posts entity has a foreign key, user_id, which references users. Since there is only one foreign key, Orma automatically infers the correct foreign key for nesting.
+In the following example, users and posts entities exist in the database. The posts entity has a foreign key, user_id, which references users. Since there is only one foreign key, Orma automatically infers the correct foreign key for nesting.
 
 <table>
 <tr>
-<th> Query </th> <th> Response </th>
+<th> Query </th> <th> Result </th>
 </tr>
 <tr>
 <td>
@@ -199,7 +200,7 @@ Nested queries like the one above are called subqueries. Subqueries can also be 
 
 <table>
 <tr>
-<th> Query </th> <th> Response </th>
+<th> Query </th> <th> Result </th>
 </tr>
 <tr>
 <td>
@@ -238,11 +239,13 @@ Nested queries like the one above are called subqueries. Subqueries can also be 
 </tr>
 </table>
 
-Recall that the JSON properties in the result must exactly match the JSON properties in the query. By changing the property names in the query, fields and entities in the response can be renamed. Note the added $from keyword in the posts subquery, which tells orma which entity to fetch the posts from:
+## Renaming
+
+Recall that the JSON properties in the result must exactly match the JSON properties in the query. By changing their property names, fields and entities can be renamed in the response. Note the added $from keyword in the posts subquery, which tells orma where to fetch my_posts from (since my_posts is not an entity name):
 
 <table>
 <tr>
-<th> Query </th> <th> Response </th>
+<th> Query </th> <th> Result </th>
 </tr>
 <tr>
 <td>
@@ -277,11 +280,11 @@ Recall that the JSON properties in the result must exactly match the JSON proper
 </tr>
 </table>
 
-In some cases, Orma can't figure out the correct foreign key. For example, if the users entity has both a billing_address_id and shipping_address_id that reference an addresses entity, then nesting addresses onto users is ambiguous. In this case the $foreign_key keyword can be used to choose a foreign key, and the entities can be renamed so that they can both exist on the same result object. Note that $foreign_key should always be on the more deeply nested entity, in this case addresses.
+In some cases, Orma can't figure out the correct foreign key. For example, if the users entity has both a billing_address_id and shipping_address_id that reference an addresses entity, then Orma doesn't know which foreign key it should use. In this case the $foreign_key keyword can be used to choose one. Entity renaming can be used to allow multiple subqueries to fetch from the same entity. Note that $foreign_key should always be on the lower (more deeply nested) entity, which in this case is addresses:
 
 <table>
 <tr>
-<th> Query </th> <th> Response </th>
+<th> Query </th> <th> Result </th>
 </tr>
 <tr>
 <td>
@@ -323,9 +326,9 @@ In some cases, Orma can't figure out the correct foreign key. For example, if th
 </tr>
 </table>
 
-### SQL functions
+## SQL functions
 
-Orma supports functions to transform data, for example:
+Orma supports the use of SQL functions. When using an SQL function a field name must be provided, for example:
 
 <table><tr><th> Query </th> <th> Result </th></tr><tr><td>
 
@@ -357,11 +360,11 @@ A full list of currently supported functions can be found in the sql_function_de
 
 ## Pagination
 
-Pagination is done though the $limit and $offset keywords, which work the same as in standard SQL. This example will return only 1 result, starting from the second record of users:
+Pagination is done though the $limit and $offset keywords, which work the same way as LIMIT and OFFSET in SQL. This example will return only 1 record, starting from the second user:
 
 <table>
 <tr>
-<th> Query </th> <th> Response </th>
+<th> Query </th> <th> Result </th>
 </tr>
 <tr>
 <td>
@@ -393,9 +396,9 @@ Pagination is done though the $limit and $offset keywords, which work the same a
 </tr>
 </table>
 
-> ⚠️ because Orma fetches all data in batch, pagination on subqueries applies to ALL records for that subquery, as opposed to applying once per record in the higher query. For example, the following query will fetch one post for <b>all</b> users, as opposed to one post <b>per</b> user as you might expect.
+> ⚠️ because Orma batches SELECT statements, pagination on subqueries apply globally, rather than once per record. For example, the following query will fetch one post for <b>all</b> users, as opposed to the expected one post <b>per</b> user.
 
-<table><tr><th> Query </th> <th> Response </th></tr><tr><td>
+<table><tr><th> Query </th> <th> Result </th></tr><tr><td>
 
 ```js
 {
@@ -430,9 +433,9 @@ Pagination is done though the $limit and $offset keywords, which work the same a
 
 ## Filtering
 
-Results can be filtered using the $where keyword. The following example returns users with the name 'Alice', notice the use of the $escape keyword, which tells Orma to interpret 'Alice' as a value instead of a field name. Specifically, $escape wraps the value in quotes (if it is a string) and escapes any unsafe SQL characters, such as ' characters:
+Results can be filtered using the $where keyword. The following example returns users with the name 'Alice', notice the use of the $escape keyword, which tells Orma to interpret 'Alice' as a string instead of a field name. Specifically, $escape wraps the value in quotes (if it is a string) and escapes any unsafe SQL characters, such as quotes ('):
 
-<table><tr><th> Query </th> <th> Response </th></tr><tr><td>
+<table><tr><th> Query </th> <th> Result </th></tr><tr><td>
 
 ```js
 {
@@ -463,7 +466,7 @@ Results can be filtered using the $where keyword. The following example returns 
 
 ### Filtering operations
 
-Other filter operations are also available:
+The following SQL operations are available:
 
 <table><tr><th> $where clause </th> <th> Generated SQL </th></tr>
 <tr><td>
@@ -611,6 +614,12 @@ $not: {
 }
 ```
 
+</td><td>
+    
+```sql
+column_1 <= column_2
+```
+
 </td></tr>
 </table>
 
@@ -632,7 +641,7 @@ The $and and $or keywords can be used to combine multiple $where clauses togethe
                     $eq: ['last_name', { $escape: 'Anderson'}]
                 }]
             }, {
-                $like: ['name', { $escape: 'B%' }]
+                $like: ['first_name', { $escape: 'B%' }]
             }]
         }
     },
@@ -643,16 +652,16 @@ The $and and $or keywords can be used to combine multiple $where clauses togethe
     
 ```sql
 SELECT first_name FROM users
-WHERE (first_name = 'Alice' AND last_name = 'Anderson') OR (id LIKE 'B%')
+WHERE (first_name = 'Alice' AND last_name = 'Anderson') OR (first_name LIKE 'B%')
 ```
 
 </td></tr></table>
 
 ### Any path
 
-Sometimes you want to search for some record based on the existence of some other record. For example, we can find all users who had at least one of their posts commented on by the user 'Bob'. Nesting posts and comments is not necessary for $any_path to work, and is only done here for demonstration purposes:
+Sometimes you want to search for some record based on the existence of some other record. For example, we can find all users who had at least one of their posts commented on by the user 'Bob'. Including data from the posts and comments entities is not necessary for $any_path to work - it is only done here for demonstration purposes:
 
-<table><tr><th> Query </th> <th> Response </th><th> Generated SQL (for users) </th></tr><tr><td>
+<table><tr><th> Query </th> <th> Result </th><th> Generated SQL (for users) </th></tr><tr><td>
 
 ```js
 {
@@ -669,7 +678,7 @@ Sometimes you want to search for some record based on the existence of some othe
         },
         $where: {
             $any_path: [['posts', 'comments', 'users'], {
-                // this object is a $where clause on the 'users' entity, since 'users' is the last entity in the $any_path
+                // The second argument of $any_path is the same as a $where clause of the last entity in the path, in this case a $where clause on 'users'
                 $eq: ['first_name', { $escape: 'Bob' }]
             }]
         }
@@ -713,9 +722,9 @@ SELECT first_name FROM users WHERE id IN (
 
 ### Subqueries in $where clauses
 
-Like in regular SQL, Orma allows subqueries inside where clauses. These can be used instead of $any_path, to handle more complicated use cases - $any_path is simply a utility provided by Orma to generate a series of these nested subqueries:
+Like in regular SQL, Orma allows subqueries inside where clauses. Although these are more verbose than $any_path, they provide more control over the $where clause:
 
-<table><tr><th> Query </th> <th> Response </th><th> Generated SQL (for users) </th></tr><tr><td>
+<table><tr><th> Query </th> <th> Result </th><th> Generated SQL (for users) </th></tr><tr><td>
 
 ```js
 {
@@ -763,7 +772,7 @@ SELECT first_name FROM users WHERE id IN (
 
 ### Self reference
 
-As seen in previous examples, operations can be done to compare columns, as they can be in raw SQL. In cases where both an entity name and a field name must be given, the $entity $field syntax can be used. This can be necessary if, for example, a field in a subquery should be equal to another field in the higher query.
+As seen in previous examples, operations can be done to compare columns, just like with raw SQL. In cases where both an entity name and a field name must be given, the $entity $field syntax can be used. This can be useful when using a subquery inside a $where clause:
 
 <table><tr><th> Query </th> <th> Generated SQL </th></tr>
 <tr><td>
@@ -806,7 +815,7 @@ first_name = posts.id
 
 ## Grouping and ordering
 
-The $group_by and $order_by keywords work the same as GROUP BY and ORDER BY in SQL. Ordering can be done using $asc or $desc. $group_by allows aggregate functions such as $sum to be used. For example:
+The $group_by and $order_by keywords work the same as GROUP BY and ORDER BY in SQL. Ordering can be done using $asc or $desc. $group_by can be used with aggregate functions such as $sum. For example:
 
 <table><tr><th> Query </th> <th> Result </th></tr>
 <tr><td>
@@ -849,18 +858,106 @@ The $group_by and $order_by keywords work the same as GROUP BY and ORDER BY in S
 
 </td><td>
     
-```sql
-posts: [{
-    user_id: 1,
-    total_views: 152
-}, {
-    user_id: 2,
-    total_views: 439
-}]
+```js
+{
+    posts: [{
+        user_id: 1,
+        total_views: 152
+    }, {
+        user_id: 2,
+        total_views: 439
+    }]
+}
 ```
 
 </td></tr>
 </table>
+
+## $select and $as
+
+The $select syntax can be used as an alternative to regular subqueries. The main difference is that $select is run in the same query as opposed to a subquery which is run as a separate SELECT statement. For example:
+
+<table><tr><th> Query </th> <th> Result </th> <th> Generated SQL </th></tr>
+<tr><td>
+
+```js
+{
+    posts: {
+        id: true,
+        users: {
+            first_name: true
+        }
+    }
+}
+```
+
+</td><td>
+    
+```js
+{
+    posts: [{
+        id: 10,
+        users: [{
+            first_name: 'Alice'
+        }]
+    }]
+}
+```
+
+</td><td>
+    
+```sql
+SELECT id FROM users;
+
+SELECT user_id, first_name FROM posts
+```
+
+</td></tr>
+<tr><td>
+
+```js
+{
+    posts: {
+        id: true,
+        $select: [{
+            $as: [{
+                $select: ['first_name'],
+                $from: 'users',
+                $where: {
+                    $eq: ['id', {
+                        $entity: 'posts',
+                        $field: 'user_id'
+                    }]
+                }
+            }, 'user_first_name']
+        }]
+    }
+}
+```
+
+</td><td>
+    
+```js
+{
+    posts: [{
+        id: 10,
+        user_first_name: 'Alice'
+    }]
+}
+```
+
+</td><td>
+    
+```sql
+SELECT id, (
+    SELECT first_name FROM users WHERE id = posts.user_id
+) FROM posts
+```
+
+</td></tr>
+</table>
+
+> ⚠️ $select and $as currently do not provide types on the query result, but they are otherwise fully supported.
 
 # Mutations
 
@@ -868,7 +965,7 @@ Mutations provide a way to modify data through three $operations: create, update
 
 ## Mutation diffs
 
-The simplest way to generate a mutation is by fetching data, modifying it and using Orma's get_mutation_diff function to automatically generate a mutation. The clone() function used is a deep clone, which can be found in most utility libraries such as [lodash](https://lodash.com/docs/4.17.15#cloneDeep) or [ramda](https://ramdajs.com/docs/#clone):
+The simplest way to generate a mutation is by fetching data, modifying it and using Orma's get_mutation_diff function to automatically generate a mutation. The clone() function in this example is a deep clone, which can be found in most utility libraries such as [lodash](https://lodash.com/docs/4.17.15#cloneDeep) or [ramda](https://ramdajs.com/docs/#clone):
 
 ```js
 import { get_mutation_diff, orma_query, orma_mutate } from 'orma'
@@ -908,13 +1005,13 @@ await orma_mutate(mutation_diff, orma_sql_function, orma_schema)
 // Now Alice's last_name is 'Smith'
 ```
 
-To create or add data this way, simply add a record to the users array (with no id field) or delete a user (using javascript's .splice() method). Additionally, get_mutation_diff can handle creating, updating, or deleteing nested entities, or even adding new entities that were not in the original data (these will always be creates).
+To create or add data this way, simply add a record to the users array (with no id field) or delete a user (using javascript's .splice() method). Additionally, get_mutation_diff can handle creating, updating, or deleteing nested entities, or even adding new entities that were not in the original data.
 
 > ⚠️ get_mutation_diff only works with entities that have a single-field primary key named '**id**' selected in the query.
 
 ## Operations
 
-Mutations can also be created using the $operation keyword. Operations can be combined to do multiple things in the same mutation. For example:
+Mutations can also be created by specifying the $operations directly. Multiple operations can be used in the same mutation. For example:
 
 <table><tr><th> Mutation </th> <th> Effect </th></tr>
 <tr><td>
@@ -931,7 +1028,7 @@ Mutations can also be created using the $operation keyword. Operations can be co
 ```
 
 </td><td>
-Creates a new user. In this case, the id column is generated by the database
+Creates a new user. The id column is not provided since it is generated by the database.
 </td></tr>
 <tr><td>
 
@@ -952,7 +1049,7 @@ Creates a new user. In this case, the id column is generated by the database
 ```
 
 </td><td>
-Update the user with id 1 (Alice) to have last_name 'Smith' <b>and</b> delete the user with id 2 (Bob)
+Update the user with id 1 (Alice) to have last_name 'Smith' <b>and</b> delete the user with id 2 (Bob).
 
 </td></tr>
 <tr><td>
@@ -974,7 +1071,7 @@ Update the user with id 1 (Alice) to have last_name 'Smith' <b>and</b> delete th
 ```
 
 </td><td>
-Create a new user for Charlie, and create a post. Orma will automatically set the user_id of this post to whatever id the database generated for Charlie. This works because there is only one foreign key (user_id) connecting the users and posts tables.
+Create a new user for Charlie, then create a post. Orma will automatically set the user_id of this post to whatever id the database generated for Charlie. This works because there is only one foreign key (user_id) connecting the users and posts tables.
 
 </td></tr>
 </table>
@@ -983,21 +1080,21 @@ Notice that in the last example, we did not need a $operation on the post - Orma
 
 ## Operation cascading
 
-It can be cumbersome to write an operation on each record (especially when creating mutations by hand), which is why Orma provides operation cascading. This means that a record with no $operation will inherit an operation from the closest ancestor record above it. In addition to regular operations cascading, a root operation can be provided to cascade onto top-level records (besides for cascading, root operations don't do anything). For example:
+It can be cumbersome to write an operation on each record (especially when creating mutations by hand), which is why Orma provides operation cascading. This means that a record with no $operation will inherit an operation from the closest ancestor record above it. A root operation can be provided to cascade onto top-level records (besides for cascading, root operations don't do anything). For example:
 
 ```js
 {
     $operation: 'update',
     users: [{
-        // $operation is inherited as an 'update'
+        // $operation: 'update' is inherited
         id: 1,
         last_name: 'Smith',
         posts: [{
-            // $operation is inherited as an 'update'
+            // $operation: 'update' is inherited
             id: 2,
             views: 123
         }, {
-            // $operation cascading is overriden by providing an operation
+            // operation cascading is overriden by explicitly setting the operation to be create. Any records nested under this one will be inferred as a create, rather than an update
             $operation: 'create',
             title: 'My post'
         }]
@@ -1007,13 +1104,13 @@ It can be cumbersome to write an operation on each record (especially when creat
 
 ## Record identifiers
 
-When updating or deleting, Orma will choose one or more fields to act as the **record identifier**. These fields determine which record in the database will be modified. In the case of updates, the value of record identifiers will never be changed. Record identifiers are chosen in this order:
+When updating or deleting, Orma will choose one or more fields to act as the **record identifier**. These fields determine which record in the database will be modified. The value of a record identifier will never be changed when updating a record. Orma will prioritize record identifiers based on whether a field is:
 1. primary key(s)
 2. unique field(s)
 
 Primary keys or unique indexes with more than one field are supported. If the choice is ambiguous, then the mutation is invalid (for example, two fields belonging to different unique indexes are given, but no primary key is provided). Note that fields that have a $guid as their value are *not* considered when chosing a record identifier.
 
-Since primary keys are always chosen to be the record identifier if they are present, it is currently impossible to change a primary key via a mutation. 
+It is currently impossible to change a primary key via an Orma mutation, since primary keys are always chosen as record identifiers and record identifiers are not changed when updating.
 
 <table><tr><th> Mutation piece </th> <th> Record identifiers </th><th> Fields that are updated </th></tr>
 <tr><td>
@@ -1070,7 +1167,7 @@ first_name, last_name
 
 ## Creating in batch
 
-All create operations are done in batches for efficiency. In other words, one CREATE statement is generated with many records from a single entity. To determine auto-generated ids, Orma requires that all the fields from at least one unique index is provided in the mutation. For example:
+All create operations are done in batches for efficiency. In other words, one CREATE statement can contain many records. To figure out which record was assigned which id by the database, Orma requires that the fields of at least one unique index are given in the mutation. For example:
 
 <table><tr><th> Mutation piece </th> <th> Valid </th></tr>
 <tr><td>
@@ -1114,17 +1211,18 @@ All create operations are done in batches for efficiency. In other words, one CR
 ```
 
 </td><td>
-❌ No, no unique field provided
+❌ No, a unique field is not provided
 </td>
 </td></tr>
 </table>
 
-If there are entities that have no required unique fields, a temporary_id column with a unique index can be added. In the following example, a temporary_id column has been added to every table in the database. The temporary id is randomly generated using [nanoid](https://www.npmjs.com/package/nanoid) before the mutation runs:
+If an entity doesnt have a required unique field, a temporary_id field can be added to that entity in the database. In this example, temporary ids are randomly generated for the addresses entity using [nanoid](https://www.npmjs.com/package/nanoid):
 
 ```js
 import {
     orma_mutate_prepare, 
-    orma_mutate_run
+    orma_mutate_run,
+    mutation_path_to_entity
 } from 'orma'
 
 import { nanoid } from 'nanoid'
@@ -1137,7 +1235,10 @@ const mutation = {
 const mutation_plan = orma_mutate_prepare(orma_schema, mutation)
 
 mutation_plan.mutation_pieces.forEach(mutation_piece => {
-    if (mutation_piece.record.$operation === 'create') {
+    const operation = mutation_piece.record.$operation
+    const entity = mutation_path_to_entity(mutation_piece.path)
+    
+    if (operation === 'create' && entity === 'addresses') {
         mutation_piece.record.temporary_id = nanoid()
     }
 })
@@ -1150,16 +1251,18 @@ await orma_mutate_run(
 )
 ```
 
-In the previous example, orma_mutate_prepare and orma_mutate_run were used instead of orma_mutate, allowing custom logic to happen in between.
+In the previous example, orma_mutate_prepare and orma_mutate_run were used instead of orma_mutate, allowing custom behaviour to run between the logic and execution stages.
 
 ## Guids
 
-Just like foreign keys in queries, mutations rely on inference to automatically insert foreign keys when creating records. The $guid keyword provides a way to customize this behaviour by specifying that two or more fields should end up with the same value. This can be used to control foreign key insertion even in cases where there are multiple foreign keys or for records that are not adjacent in the mutation. 
-In the first example, Orma cannot automatically infer a foreign key value, since the records are not nested together in the mutation.
-In the second example, $guids are used to specify which address is the billing address and which one is the shipping address. Orma can't infer which foreign key to use automatically, since there are two foreign keys to choose from: billing_address_id and shipping_address_id.
+When creating records, Orma automatically sets the value of foreign keys to be the same as the value of the corresponding primary key. The $guid keyword provides a way to customize this behaviour. If two fields have the same $guid, then Orma will ensure that they both end up with the same value in the database. This can be used to control foreign key propagation by giving a primary key and a foreign key the same $guid. This is useful in cases where Orma cannot automatically infer which foreign keys to use. 
+
+In the first example, Orma cannot automatically propagate foreign keys, since the user and post records are not adjacent (one is not nested under the other).
+
+In the second example, $guids specify which address is the billing address and which is the shipping address. Orma can't figure this out automatically, since there are two foreign keys to choose from: billing_address_id and shipping_address_id.
 
 
-<table><tr><th> Mutation </th> <th> Example created data </th></tr>
+<table><tr><th> Mutation </th> <th> Created records </th></tr>
 <tr><td>
 
 ```js
@@ -1240,12 +1343,13 @@ In the second example, $guids are used to specify which address is the billing a
 ```
 </td></tr>
 </table>
-$guid values can be any strings or numbers. In these examples, a short random string was used to keep the examples simple. However, to avoid collisions between guids, it is recommended that a longer random string or some unique piece of data be used.
+
+> ⚠️ $guids can be any string or number. However, to avoid collisions between guids, it is recommended to use long random strings or data that is known to be unique.
 
 # Multitenancy
 
 ## Connection edges
-Orma supports [multitenancy](https://en.wikipedia.org/wiki/Multitenancy) using a concept of **connected records**. Records are connected if there is a path between them following a given list of **edges** (directed foreign keys). Orma provides a function to generate one edge per foreign key, from the foreign key to the referenced field. This covers most multitenancy use cases:
+Orma supports [multitenancy](https://en.wikipedia.org/wiki/Multitenancy) using the concept of **connected records**. Records are connected if there is a path between them following a given list of **edges** (directed foreign keys). Orma provides a function to generate one edge per foreign key, from the foreign key to the referenced field. For most edges, this will be the desired behaviour.
 
 ```js
 import { get_upwards_connection_edges } from 'orma'
@@ -1308,8 +1412,8 @@ To figure out which records are connected to a source record, we follow the conn
 All the users, posts and comments listed above are connected to the user with id 1.
 
 With this in mind, Orma provides two main functions for dealing with connected edges. Given one or more source records:
-1. The $where_connected keyword automatically filteres everything in the query to only include records connected to the source records
-2. The get_mutation_connected_errors function returns errors if anything in the mutation is not connected to the source records
+1. The $where_connected keyword forces queries to only return connected records
+2. The get_mutation_connected_errors function generates errors if anything in the mutation is not connected
 
 Here is an example usage of each one:
 
@@ -1368,11 +1472,9 @@ await orma_mutate_run(
 )
 ```
 
-In the previous example, orma_mutate_prepare and orma_mutate_run were used instead of orma_mutate, allowing the get_connected_errors function to run in between.
-
 ## Restricting $where_connected
 
-To ensure a $where_connected is present, the restrict_where_connected function can be used. This function takes the maximal set of records that a query should have access to - you can still pass a smaller subset of those records into the query's $where_connected. If any non-allowed records are passed, the function will generate an error. For example, imagine an admin has access to records connected to user 1 and 2:
+To ensure a $where_connected is present, the restrict_where_connected function can be used. This function takes the maximal set of records that a query should have access to and a query. If any non-allowed records are in the query's $where_connected, an error will be generated. For example, imagine an admin has access to records connected to users 1 and 2:
 
 ```js
 const maximal_where_connected = [{
@@ -1389,7 +1491,7 @@ const query = {
     $where_connected: [{
         $entity: 'users',
         $field: 'id',
-        $values: [1] // requests records connected to user 1, which is a subset of 1 and 2
+        $values: [1] // the query wants records connected to user 1, which is a subset of 1 and 2, so it is valid
     }],
     addresses: { id: true }
 }
@@ -1416,14 +1518,14 @@ if (errors.length > 0) {
     // handle invalid query
 }
 
-// query.$where_connected is now equal to maximal_where_connected. If we ran the query, addresses from users 1 and 2 would be returned
+// query.$where_connected is now equal to maximal_where_connected. If we ran the query, addresses connected to users 1 and 2 would be returned
 ```
 
 > ⚠️ if no $where_connected is provided, restrict_where_connected will mutate the input query.
 
 ## Setting connection edges
 
-Connection edges can be added, removed or reversed to cover more use cases. For example, imagine we wanted posts to be public, so that any user can query posts from any other user. We could do this by removing the connection edge between users and posts (we would ony pass this into the query function, so that users can't edit posts from other users):
+Connection edges can be added, removed or reversed to cover more use cases. For example, imagine we wanted posts to be public, so that any user can query posts from any other user. We could do this by removing the connection edge between users and posts (we would ony pass the modified connection edges into the query function, so that users can't mutate posts from other users):
 
 ```js
 import { get_upwards_connection_edges, remove_connection_edges } from 'orma'
@@ -1438,7 +1540,7 @@ const connection_edges = remove_connection_edges(default_connection_edges, [{
 }])
 ```
 
-We can also reverse connection edges. For example, imagine we had a post_groupings table and each post had an optional post_grouping_id that referenced a post_groupings id. By default, the connection edge would go from the post to the post grouping. This means that a post_grouping has no connection path to the users table, and so any user can edit any post grouping. If we want users to only have access to post groupings that their posts are part of, we can reverse the connection edge:
+We can also reverse connection edges. For example, imagine we had a post_groupings table with each post having an optional post_grouping_id. By default, the connection edge would go from the post to the post grouping. This means that a post_grouping has no connection path to the users table, and so any user can edit any post grouping. If we want users to only have read / write access to post groupings that their posts are part of, we can reverse the connection edge:
 
 ```js
 import { 
@@ -1475,7 +1577,7 @@ const connection_edges = add_connection_edges(
 
 ## Custom SQL
 
-For internal use, Orma allows custom sql strings for features that do not yet have an Orma syntax. To do this, simply include an SQL string and skip validation:
+For internal use (as in not passing in data from a public API), Orma allows custom sql strings for features that do not yet have an Orma syntax. To do this, simply include an SQL string and skip validation:
 
 ```js
 import { orma_query } from 'orma'

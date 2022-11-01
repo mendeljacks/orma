@@ -25,6 +25,7 @@ export {
 } from './mutate/diff/diff_mutation'
 export { apply_guid_inference_macro } from './mutate/macros/guid_inference_macro'
 export { apply_inherit_operations_macro } from './mutate/macros/inherit_operations_macro'
+export { path_to_entity as mutation_path_to_entity } from './mutate/helpers/mutate_helpers'
 
 // introspect
 export { orma_introspect } from './introspector/introspector'
