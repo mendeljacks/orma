@@ -156,6 +156,16 @@ export const sql_function_definitions: {
     $upper: {
         ast_to_sql: args => `UPPER(${args})`,
     },
+
+    // Postgres's PostGIS functions
+    $st_distance: {
+        ast_to_sql: args => `ST_Distance(${args.join(', ')})`,
+        multiple_args: true,
+    },
+    $st_dwithin: {
+        ast_to_sql: args => `ST_DWithin(${args.join(', ')})`,
+        multiple_args: true,
+    },
 }
 
 const sql_command_parsers = {
