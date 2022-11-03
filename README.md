@@ -22,22 +22,56 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
 - All SQL statements are batched
 - Query planning for maximum parallelization
 
+# Table of contents
+- [What is Orma?](#what-is-orma)
+  - [Key Features](#key-features)
+- [Table of contents](#table-of-contents)
+- [Getting started](#getting-started)
+  - [Database connector](#database-connector)
+  - [Orma Schema](#orma-schema)
+    - [Introspection](#introspection)
+- [Queries](#queries)
+  - [Setup](#setup)
+  - [Structure](#structure)
+  - [Renaming](#renaming)
+  - [SQL functions](#sql-functions)
+  - [Pagination](#pagination)
+  - [Filtering](#filtering)
+    - [Basic operations](#basic-operations)
+    - [Connectives](#connectives)
+    - [$any_path](#any_path)
+    - [Subqueries in $where clauses](#subqueries-in-where-clauses)
+    - [Referencing fields](#referencing-fields)
+  - [Grouping and ordering](#grouping-and-ordering)
+  - [$select and $as](#select-and-as)
+- [Mutations](#mutations)
+  - [Mutation diffs](#mutation-diffs)
+  - [Operations](#operations)
+  - [Operation cascading](#operation-cascading)
+  - [Record identifiers](#record-identifiers)
+  - [Creating in batch](#creating-in-batch)
+  - [Guids](#guids)
+- [Multitenancy](#multitenancy)
+  - [Connection edges](#connection-edges)
+  - [Restricting $where_connected](#restricting-where_connected)
+  - [Setting connection edges](#setting-connection-edges)
+- [Advanced use cases](#advanced-use-cases)
+  - [Custom SQL](#custom-sql)
+- [Extra examples](#extra-examples)
+
 # Getting started
 
 Try out the Interactive playground
 https://orma-playground.web.app/
 
-Install orma as well as your favorite database adapter
-
+To install orma with npm, run
 ```
-npm i orma
-npm i pg
-(or npm i mysql2)
+npm install orma
 ```
 
 ## Database connector
 
-Orma is not opinionated on database connectors, so feel free to use your favourite one. The examples here will use [mysql2](https://www.npmjs.com/package/mysql2). To use a different connector, a small wrapper may need to be written. This is relatively straightforward to implement, please check the [source code](src/helpers/database_adapters.ts) for details on what the wrapper needs to do.
+Orma is not opinionated on database connectors, so feel free to use your favourite one. The examples here will use [mysql2](https://www.npmjs.com/package/mysql2). To use Orma with a database library that is not yet supported, you can write your own adapter. This is relatively straightforward to implement, please check the [source code](src/helpers/database_adapters.ts) for details on what the adapter needs to do.
 
 Example setup:
 
@@ -464,7 +498,7 @@ Results can be filtered using the $where keyword. The following example returns 
 
 </td></tr></table>
 
-### Filtering operations
+### Basic operations
 
 The following SQL operations are available:
 
@@ -657,7 +691,7 @@ WHERE (first_name = 'Alice' AND last_name = 'Anderson') OR (first_name LIKE 'B%'
 
 </td></tr></table>
 
-### Any path
+### $any_path
 
 Sometimes you want to search for some record based on the existence of some other record. For example, we can find all users who had at least one of their posts commented on by the user 'Bob'. Including data from the posts and comments entities is not necessary for $any_path to work - it is only done here for demonstration purposes:
 
@@ -770,7 +804,7 @@ SELECT first_name FROM users WHERE id IN (
 
 </td></tr></table>
 
-### Self reference
+### Referencing fields
 
 As seen in previous examples, operations can be done to compare columns, just like with raw SQL. In cases where both an entity name and a field name must be given, the $entity $field syntax can be used. This can be useful when using a subquery inside a $where clause:
 
