@@ -11,7 +11,7 @@ const orma_schema: OrmaSchema = {
 
 describe('escaping_macros', () => {
     describe(apply_escape_macro.name, () => {
-        test.only('Can determine database type from $as', () => {
+        test('Can determine database type from $as', () => {
             const query = {
                 products: {
                     id: true,

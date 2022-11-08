@@ -136,7 +136,7 @@ describe('mutation_statements.ts', () => {
                         records: [mutation_pieces[1].record],
                         paths: [mutation_pieces[1].path],
                         sql_string:
-                            "UPDATE users SET first_name = 'john' WHERE id = 1",
+                            "UPDATE users SET first_name = 'john' WHERE (id) = (1)",
                     },
                     {
                         ast: {
@@ -149,7 +149,7 @@ describe('mutation_statements.ts', () => {
                         entity: 'products',
                         records: [mutation_pieces[2].record],
                         paths: [mutation_pieces[2].path],
-                        sql_string: 'DELETE FROM products WHERE id = 1',
+                        sql_string: 'DELETE FROM products WHERE (id) = (1)',
                     },
                 ],
                 query_infos: [
@@ -184,7 +184,7 @@ describe('mutation_statements.ts', () => {
                             mutation_pieces[1].path,
                         ],
                         sql_string:
-                            'SELECT country_id, id FROM users WHERE (id = 1) OR (id = 1) OR (id = 1)',
+                            'SELECT country_id, id FROM users WHERE ((id) = (1)) OR ((id) = (1)) OR ((id) = (1))',
                     },
                 ],
             }

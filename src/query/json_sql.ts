@@ -199,18 +199,18 @@ const sql_command_parsers = {
         // handle regular null or string null
         args[1] === null ||
         (typeof args[1] === 'string' && args[1].toLowerCase() === 'null')
-            ? `${args[0]} IS${nested_under_odd_nots(path) ? ' NOT' : ''} NULL`
-            : `${args[0]} ${nested_under_odd_nots(path) ? '!' : ''}= ${
+            ? `(${args[0]}) IS${nested_under_odd_nots(path) ? ' NOT' : ''} NULL`
+            : `(${args[0]}) ${nested_under_odd_nots(path) ? '!' : ''}= (${
                   args[1]
-              }`,
+              })`,
     $gt: (args, path) =>
-        `${args[0]} ${nested_under_odd_nots(path) ? '<=' : '>'} ${args[1]}`,
+        `(${args[0]}) ${nested_under_odd_nots(path) ? '<=' : '>'} (${args[1]})`,
     $lt: (args, path) =>
-        `${args[0]} ${nested_under_odd_nots(path) ? '>=' : '<'} ${args[1]}`,
+        `(${args[0]}) ${nested_under_odd_nots(path) ? '>=' : '<'} (${args[1]})`,
     $gte: (args, path) =>
-        `${args[0]} ${nested_under_odd_nots(path) ? '<' : '>='} ${args[1]}`,
+        `(${args[0]}) ${nested_under_odd_nots(path) ? '<' : '>='} (${args[1]})`,
     $lte: (args, path) =>
-        `${args[0]} ${nested_under_odd_nots(path) ? '>' : '<='} ${args[1]}`,
+        `(${args[0]}) ${nested_under_odd_nots(path) ? '>' : '<='} (${args[1]})`,
     $exists: (args, path) =>
         `${nested_under_odd_nots(path) ? 'NOT ' : ''}EXISTS (${args})`,
     $limit: args => `LIMIT ${args}`,
@@ -221,9 +221,9 @@ const sql_command_parsers = {
         // return `${args[0]}${
         // nested_under_odd_nots(path) ? ' NOT' : ''
         // } LIKE '%${search_value}%'`
-        return `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} LIKE ${
-            args[1]
-        }`
+        return `(${args[0]})${
+            nested_under_odd_nots(path) ? ' NOT' : ''
+        } LIKE (${args[1]})`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
 

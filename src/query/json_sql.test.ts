@@ -24,7 +24,7 @@ describe('query', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('WHERE a = b')
+            const goal = format('WHERE (a) = (b)')
 
             expect(sql).to.equal(goal)
         })
@@ -59,7 +59,7 @@ describe('query', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('(a IS NOT NULL) AND (a IS NOT NULL)')
+            const goal = format('((a) IS NOT NULL) AND ((a) IS NOT NULL)')
 
             expect(sql).to.equal(goal)
         })
@@ -143,6 +143,33 @@ describe('query', () => {
             //@ts-ignore
             const sql = format(json_to_sql(json))
             const goal = format('items.sku')
+
+            expect(sql).to.equal(goal)
+        })
+        test('Can wrap subqueries in ()', () => {
+            const json = {
+                $having: {
+                    $gte: [
+                        {
+                            $select: ['*'],
+                            $from: 'reviews',
+                            $where: { $eq: ['listing_id', 0] },
+                        },
+                        4,
+                    ],
+                },
+            }
+
+            const sql = format(json_to_sql(json))
+
+            const goal = format(`
+            HAVING
+            (SELECT
+              *
+            FROM
+              reviews
+            WHERE
+              (listing_id) = (0)) >= (4)`)
 
             expect(sql).to.equal(goal)
         })
