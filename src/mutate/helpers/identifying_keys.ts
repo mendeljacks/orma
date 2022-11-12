@@ -42,10 +42,7 @@ export const get_identifying_keys = (
         value => value !== undefined
     )
     if (has_primary_keys && primary_keys.length > 0) {
-        const has_guid = check_values_for_guids(
-            primary_key_values,
-            false
-        )
+        const has_guid = check_values_for_guids(primary_key_values, false)
         if (!has_guid) {
             return primary_keys
         }
@@ -80,10 +77,7 @@ export const get_identifying_keys = (
         return included_unique_keys[0]
     } else {
         if (included_unique_keys.length === 1) {
-            const has_guid = check_values_for_guids(
-                unique_values[0],
-                false
-            )
+            const has_guid = check_values_for_guids(unique_values[0], false)
             if (!has_guid) {
                 // if there are 2 or more unique keys, we cant use them since it would be ambiguous which we choose
                 return included_unique_keys[0]
