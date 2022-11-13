@@ -3,6 +3,7 @@ import { apply_supersede_macro } from './supersede_macro'
 import { expect } from 'chai'
 import { OrmaSchema } from '../../introspector/introspector'
 import { clone } from '../../helpers/helpers'
+import { OrmaMutation } from '../../types/mutation/mutation_types'
 
 const orma_schema: OrmaSchema = {
     users: {
@@ -44,25 +45,30 @@ const orma_schema: OrmaSchema = {
                 },
             },
         },
+        $indexes: [
+            {
+                index_name: 'uniq',
+                fields: ['text', 'user_id'],
+                is_unique: true,
+            },
+        ],
     },
-}
+} as const
 
-describe.only('supersede_macro', () => {
+describe('supersede_macro', () => {
     test('handles supersedes', async () => {
+        // @ts-ignore
         const mutation = {
             $operation: 'update',
             users: [
                 {
                     id: 1,
                     $supersede: ['user_has_photos', 'user_has_posts'],
-                    user_has_photos: [
-                        { url: 'https://pic.jpg' },
-                        { url: 'https://pic2.jpg' },
-                    ],
+                    user_has_photos: [{ url: 'https://pic.jpg' }],
                     user_has_posts: [{ text: 'hi' }, { text: 'there' }],
                 },
             ],
-        }
+        } as OrmaMutation<typeof orma_schema>
 
         const goal = {
             $operation: 'update',
@@ -70,21 +76,23 @@ describe.only('supersede_macro', () => {
                 {
                     id: 1,
                     user_has_photos: [
-                        { $operation: 'delete', category_id: 1 },
-                        { $operation: 'update', category_id: 2 },
-                        { $operation: 'create', category_id: 3 },
+                        { $operation: 'delete', id: 1 },
+                        { $operation: 'create', url: 'https://pic.jpg' },
                     ],
                     user_has_posts: [
-                        { $operation: 'delete', attribute_id: 1 },
-                        { $operation: 'update', attribute_id: 2 },
-                        { $operation: 'create', attribute_id: 3 },
+                        { $operation: 'delete', id: 1 },
+                        { $operation: 'create', text: 'hi' },
+                        { $operation: 'create', text: 'there' },
                     ],
                 },
             ],
         }
 
         const orma_query = async query => {
-            debugger
+            return {
+                user_has_photos: [{ id: 1 }],
+                user_has_posts: [{ id: 1 }],
+            }
         }
 
         await apply_supersede_macro(mutation, orma_query, orma_schema).catch(
@@ -95,96 +103,14 @@ describe.only('supersede_macro', () => {
 
         expect(mutation).to.deep.equal(goal)
     })
+
+    // Todo: tests
     // reverse nesting
     // unique column finding
     // multiple and single supersede
     // only deletes connected
     // updates when exists
-
-    test('handles reverse nesting foreign keys', () => {
-        const query = {
-            products: {
-                images: { url: true },
-                vendors: {},
-            },
-        }
-
-        apply_supersede_macro(query, orma_schema)
-
-        const goal = {
-            products: {
-                $supersede: ['id', 'vendor_id'],
-                $from: 'products',
-                images: {
-                    $supersede: ['url', 'product_id'],
-                    $from: 'images',
-                },
-                vendors: {
-                    $supersede: ['id'],
-                    $from: 'vendors',
-                },
-            },
-        }
-
-        expect(query).to.deep.equal(goal)
-    })
-    test('adds foreign keys for renamed subquery', () => {
-        const query = {
-            products: {
-                my_images: {
-                    $from: 'images',
-                },
-            },
-        }
-
-        apply_supersede_macro(query, orma_schema)
-        const goal = {
-            products: {
-                $supersede: ['id'],
-                $from: 'products',
-                my_images: {
-                    $supersede: ['product_id'],
-                    $from: 'images',
-                },
-            },
-        }
-
-        expect(query).to.deep.equal(goal)
-    })
-    test("respects 'from' clause", () => {
-        const query = {
-            my_products: {
-                id: true,
-                $from: 'products',
-            },
-        }
-
-        apply_supersede_macro(query, orma_schema)
-        const goal = {
-            my_products: {
-                $supersede: ['id'],
-                $from: 'products',
-            },
-        }
-
-        expect(query).to.deep.equal(goal)
-    })
-    test('combines with existing $supersede', () => {
-        const query = {
-            products: {
-                id: true,
-                $supersede: ['title'],
-            },
-        }
-
-        apply_supersede_macro(query, orma_schema)
-        const goal = {
-            products: {
-                $from: 'products',
-                $supersede: ['title', 'id'],
-            },
-        }
-
-        expect(query).to.deep.equal(goal)
-    })
+    // respect from clause
+    // allow providing any unique instead of primary key
+    // allow delete where connected by guid
 })

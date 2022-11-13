@@ -1,6 +1,12 @@
 import { escapeId } from 'sqlstring'
 import { mutation_path_to_entity } from '../..'
-import { drop_last, is_simple_object, last } from '../../helpers/helpers'
+import {
+    deep_set,
+    drop_last,
+    is_simple_object,
+    last,
+} from '../../helpers/helpers'
+import { push_path } from '../../helpers/push_path'
 import {
     get_direct_edge,
     get_direct_edges,
@@ -24,6 +30,20 @@ import { OrmaQuery } from '../../types/query/query_types'
 import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { is_subquery, query_for_each } from '../query_helpers'
 
+const get_direct_pk = (entity: string, orma_schema: OrmaSchema): string => {
+    const pk_candidates = get_primary_keys(entity, orma_schema)
+
+    if (pk_candidates.length !== 1) {
+        throw new Error(
+            `Could not find single column to use as primary key. Entity ${entity} has ${pk_candidates.length} primary keys`
+        )
+    }
+
+    const pk = pk_candidates[0]
+
+    return pk
+}
+
 /**
  * Applies the supersede macro. Mutates the input query
  */
@@ -32,19 +52,13 @@ export const apply_supersede_macro = async (
     orma_query: Function,
     orma_schema: OrmaSchema
 ) => {
-    mutation_entity_deep_for_each(mutation, (value, path) => {
+    mutation_entity_deep_for_each(mutation, async (value, path) => {
         if (value.$supersede?.length > 0) {
             const supersedes = value.$supersede
             const entity = mutation_path_to_entity(path)
-            const pk_candidates = get_primary_keys(entity, orma_schema)
 
-            if (pk_candidates.length !== 1) {
-                throw new Error(
-                    `Supersede macro can only be applied to entities with a single primary key. Entity ${entity} has ${pk_candidates.length} primary keys`
-                )
-            }
+            const pk = get_direct_pk(entity, orma_schema)
 
-            const pk = pk_candidates[0]
             const pk_value = value[pk]
 
             if (pk_value === undefined) {
@@ -53,20 +67,25 @@ export const apply_supersede_macro = async (
                 )
             }
 
-            const query = supersedes.reduce((acc, val) => {
-                const is_parent = is_parent_entity(entity, val, orma_schema)
+            const selects = supersedes.reduce((acc, child_entity: string) => {
+                const is_parent = is_parent_entity(
+                    entity,
+                    child_entity,
+                    orma_schema
+                )
                 if (!is_parent) {
                     throw new Error(
-                        `Supersede macro can only be applied to entities that are parents of the entity being superseded. ${entity} is not a parent of ${val}`
+                        `Supersede macro can only be applied to entities that are parents of the entity being superseded. ${entity} is not a parent of ${child_entity}`
                     )
                 }
 
-                const fk = get_direct_edge(entity, val, orma_schema)
+                const fk = get_direct_edge(entity, child_entity, orma_schema)
+                const child_pk = get_direct_pk(child_entity, orma_schema)
 
                 return {
                     ...acc,
-                    [val]: {
-                        $select: column_names,
+                    [child_entity]: {
+                        $select: [child_pk],
                         $where: {
                             $eq: [fk.to_field, { $escape: pk_value }],
                         },
@@ -74,45 +93,21 @@ export const apply_supersede_macro = async (
                 }
             }, {})
 
-            debugger
+            const query = await orma_query(selects)
 
-            // const entities = value.$supersede
+            supersedes.forEach((child_entity: string) => {
+                const deletes = query[child_entity].map(row => ({
+                    $operation: 'delete',
+                    ...row,
+                }))
 
-            // for (let i = 0; i < entities.length; i++) {
-            //     const entity = entities[i]
-
-            //     const lower_pieces = get_lower_mutation_pieces({
-            //         path,
-            //         record: value,
-            //     })
-            //     const fks = get_foreign_keys_in_mutation(
-            //         mutation,
-            //         path,
-            //         orma_schema
-            //     )
-            //     const possible_identifying_keys = get_possible_identifying_keys(
-            //         entity,
-            //         orma_schema
-            //     )
-
-            //     const rows = value[entity]
-            //     if (rows?.length === undefined) {
-            //         throw new Error(
-            //             `Supersede macro requires an array of rows for entity ${entity}`
-            //         )
-            //     }
-
-            //     debugger
-            //     // const supersede_query = {
-            //     //     [entity]: {}
-            //     // }
-
-            //     // const supersede_result = orma_query(supersede_query)
-
-            //     // Object.assign(value, supersede_result[entity_name][0])
-            // }
-
-            // delete value.$supersede
+                const creates = value[child_entity].map(row => ({
+                    $operation: 'create',
+                    ...row,
+                }))
+                value[child_entity] = [...deletes, ...creates]
+                delete value['$supersede']
+            })
         }
     })
 }
