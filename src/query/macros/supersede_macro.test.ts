@@ -7,13 +7,11 @@ import { clone } from '../../helpers/helpers'
 const orma_schema: OrmaSchema = {
     users: {
         $database_type: 'mysql',
-        id: {},
+        id: { primary_key: true },
     },
     user_has_photos: {
         $database_type: 'mysql',
-        id: {
-            primary_key: true,
-        },
+        id: { primary_key: true },
         url: {},
         user_id: {
             references: {
@@ -37,11 +35,11 @@ const orma_schema: OrmaSchema = {
     },
     user_has_posts: {
         $database_type: 'mysql',
-        id: {},
+        id: { primary_key: true },
         text: {},
         user_id: {
             references: {
-                products: {
+                users: {
                     id: {},
                 },
             },
@@ -89,7 +87,11 @@ describe.only('supersede_macro', () => {
             debugger
         }
 
-        await apply_supersede_macro(mutation, orma_query, orma_schema)
+        await apply_supersede_macro(mutation, orma_query, orma_schema).catch(
+            err => {
+                debugger
+            }
+        )
 
         expect(mutation).to.deep.equal(goal)
     })
