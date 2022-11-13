@@ -1,9 +1,8 @@
-import { describe, test } from 'mocha'
-import { apply_supersede_macro } from './supersede_macro'
 import { expect } from 'chai'
+import { describe, test } from 'mocha'
 import { OrmaSchema } from '../../introspector/introspector'
-import { clone } from '../../helpers/helpers'
 import { OrmaMutation } from '../../types/mutation/mutation_types'
+import { apply_supersede_macro } from './supersede_macro'
 
 const orma_schema: OrmaSchema = {
     users: {
