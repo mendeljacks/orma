@@ -94,11 +94,7 @@ describe('supersede_macro', () => {
             }
         }
 
-        await apply_supersede_macro(mutation, orma_query, orma_schema).catch(
-            err => {
-                debugger
-            }
-        )
+        await apply_supersede_macro(mutation, orma_query, orma_schema)
 
         expect(mutation).to.deep.equal(goal)
     })
