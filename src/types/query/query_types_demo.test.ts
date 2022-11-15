@@ -6,23 +6,32 @@ import { OrmaQuery } from './query_types'
 
 const t = () => {
     const schema = {
-        products: {
-            $database_type: 'mysql',
-            id: {
-                data_type: 'int',
+        $entities: {
+            products: {
+                $fields: { id: { data_type: 'int' } },
+                $database_type: 'mysql',
+            },
+            images: {
+                $fields: { product_id: {}, url: { data_type: 'varchar' } },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'product_id',
+                        to_entity: 'products',
+                        to_field: 'id',
+                    },
+                ],
             },
         },
-        images: {
-            $database_type: 'mysql',
-            product_id: {
-                references: {
-                    products: {
-                        id: {},
+        $cache: {
+            $reversed_foreign_keys: {
+                products: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'images',
+                        to_field: 'product_id',
                     },
-                },
-            },
-            url: {
-                data_type: 'varchar',
+                ],
             },
         },
     } as const

@@ -6,34 +6,27 @@ import { get_mutation_statements } from '../mutation_statements'
 
 describe('mutation_statements.ts', () => {
     const orma_schema: OrmaSchema = {
-        users: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
+        $entities: {
+            users: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    first_name: { not_null: true },
+                    last_name: { not_null: true },
+                    resource_id: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $indexes: [
+                    { fields: ['resource_id'], is_unique: true },
+                    { fields: ['first_name', 'last_name'], is_unique: true },
+                ],
             },
-            first_name: { not_null: true },
-            last_name: { not_null: true },
-            resource_id: { not_null: true },
-            $indexes: [
-                {
-                    fields: ['resource_id'],
-                    is_unique: true,
-                },
-                {
-                    fields: ['first_name', 'last_name'],
-                    is_unique: true,
-                },
-            ],
-        },
-        products: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
+            products: {
+                $fields: { id: { primary_key: true, not_null: true } },
+                $database_type: 'mysql',
             },
         },
     }
+
     describe(get_mutation_statements.name, () => {
         test('throws on unrecognized operation', () => {
             try {

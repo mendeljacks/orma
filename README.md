@@ -57,6 +57,7 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
   - [Setting connection edges](#setting-connection-edges)
 - [Advanced use cases](#advanced-use-cases)
   - [Custom SQL](#custom-sql)
+- [Other projects](#other-projects)
 - [Extra examples](#extra-examples)
 
 # Getting started
@@ -1224,7 +1225,7 @@ All create operations are done in batches for efficiency. In other words, one CR
 ```js
 {
     $operation: 'create',
-    email: 'john@smith.com'
+    email: 'john@smith.com',
     first_name: 'John',
     last_name: 'Smith'
 }
@@ -1625,6 +1626,12 @@ const results = await orma_query({
 ```
 
 > ⚠️ Custom SQL is provided as a last resort and is not well supported by Orma. Any custom SQL should be tested before use. Additionally, custom SQL will not always work well with other Orma features such as $where_connected.
+
+# Other projects
+These projects provide examples and tooling, however they are still being developed and documented
+(biab)[https://www.npmjs.com/package/biab]
+(orma-ui)[https://www.npmjs.com/package/orma-ui]
+(orma_demo)[https://github.com/mendeljacks/orma_demo]
 
 # Extra examples
 

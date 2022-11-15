@@ -8,9 +8,12 @@ import {
     query_for_each,
 } from './query_helpers'
 
-const orma_schema = {
-    products: {
-        $database_type: 'mysql',
+const orma_schema: OrmaSchema = {
+    $entities: {
+        products: {
+            $database_type: 'mysql',
+            $fields: {},
+        },
     },
 }
 
@@ -129,7 +132,7 @@ describe('query helpers', () => {
             const result = get_search_records_where(
                 pathed_records,
                 record => ['field1'],
-                orma_schema as OrmaSchema
+                orma_schema
             )
 
             expect(result).to.deep.equal({
@@ -149,7 +152,7 @@ describe('query helpers', () => {
             const result = get_search_records_where(
                 pathed_records,
                 record => ['field1'],
-                orma_schema as OrmaSchema
+                orma_schema
             )
 
             expect(result).to.deep.equal({
@@ -171,7 +174,7 @@ describe('query helpers', () => {
             const result = get_search_records_where(
                 pathed_records,
                 record => ['field1', 'field2'],
-                orma_schema as OrmaSchema
+                orma_schema
             )
 
             expect(result).to.deep.equal({
@@ -211,7 +214,7 @@ describe('query helpers', () => {
                 pathed_records,
                 record =>
                     record.type === 1 ? ['field1'] : ['field1', 'field2'],
-                orma_schema as OrmaSchema
+                orma_schema
             )
 
             expect(result).to.deep.equal({

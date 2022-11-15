@@ -6,53 +6,74 @@ import { validate_query } from './query_validation'
 
 describe('query_validation.ts', () => {
     const orma_schema = as_orma_schema({
-        products: {
-            $database_type: 'mysql',
-            id: {
-                data_type: 'int',
-            },
-            vendor_id: {
-                data_type: 'int',
-                references: {
-                    vendors: {
-                        id: {},
-                    },
+        $entities: {
+            products: {
+                $fields: {
+                    id: { data_type: 'int' },
+                    vendor_id: { data_type: 'int' },
+                    name: { data_type: 'varchar' },
+                    description: { data_type: 'varchar' },
                 },
-            },
-            name: {
-                data_type: 'varchar',
-            },
-            description: {
-                data_type: 'varchar',
-            },
-            $indexes: [],
-        },
-        vendors: {
-            $database_type: 'mysql',
-            id: {},
-        },
-        images: {
-            $database_type: 'mysql',
-            id: {},
-            product_id: {
-                references: {
-                    products: {
-                        id: {},
+                $database_type: 'mysql',
+                $indexes: [],
+                $foreign_keys: [
+                    {
+                        from_field: 'vendor_id',
+                        to_entity: 'vendors',
+                        to_field: 'id',
                     },
-                },
+                ],
             },
-        },
-        image_urls: {
-            $database_type: 'mysql',
-            image_id: {
-                references: {
-                    images: {
-                        id: {},
+            vendors: { $fields: { id: {} }, $database_type: 'mysql' },
+            images: {
+                $fields: { id: {}, product_id: {} },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'product_id',
+                        to_entity: 'products',
+                        to_field: 'id',
                     },
-                },
+                ],
+            },
+            image_urls: {
+                $fields: { image_id: {} },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'image_id',
+                        to_entity: 'images',
+                        to_field: 'id',
+                    },
+                ],
             },
         },
-    } as const)
+        $cache: {
+            $reversed_foreign_keys: {
+                vendors: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'products',
+                        to_field: 'vendor_id',
+                    },
+                ],
+                products: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'images',
+                        to_field: 'product_id',
+                    },
+                ],
+                images: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'image_urls',
+                        to_field: 'image_id',
+                    },
+                ],
+            },
+        },
+    })
 
     describe(validate_query.name, () => {
         test('requires valid $from', () => {
@@ -742,8 +763,8 @@ describe('query_validation.ts', () => {
                             $foreign_key: ['product_id'], // regular nest
                             products: {
                                 id: true,
-                                $foreign_key: ['product_id'] // reverse nest
-                            }
+                                $foreign_key: ['product_id'], // reverse nest
+                            },
                         },
                     },
                 },

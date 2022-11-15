@@ -1,12 +1,6 @@
 import { OrmaSchema } from '../../introspector/introspector'
 import { Pluck } from '../helper_types'
-import {
-    DeepReadonly,
-    GetAllEdges,
-    GetAllEntities,
-    GetFields,
-    GetFieldType,
-} from '../schema_types'
+import { GetAllEdges, GetAllEntities, GetFields } from '../schema_types'
 
 export type OrmaQuery<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>
@@ -26,7 +20,7 @@ export type WhereConnected<Schema extends OrmaSchema> = WhereConnectedMapped<
 type WhereConnectedMapped<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
-> = Entities extends any
+> = Entities extends GetAllEntities<Schema>
     ? {
           $entity: Entities
           $field: GetFields<Schema, Entities>
@@ -38,7 +32,7 @@ export type Subquery<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>,
     RequireFrom extends boolean
-> = Entities extends any
+> = Entities extends GetAllEntities<Schema>
     ? FieldObj<Schema, Entities> &
           SubqueryObj<Schema, Entities> &
           VirtualFieldObj<Schema, Entities> &

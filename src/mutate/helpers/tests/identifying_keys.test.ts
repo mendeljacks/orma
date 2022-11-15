@@ -8,33 +8,22 @@ import {
 
 describe('identifying_keys.ts', () => {
     const schema: OrmaSchema = {
-        product_has_images: {
-            $database_type: 'mysql',
-            product_id: {
-                not_null: true,
-            },
-            image_id: {
-                not_null: true,
-            },
-            $indexes: [
-                {
-                    fields: ['product_id', 'image_id'],
-                    is_unique: true,
+        $entities: {
+            product_has_images: {
+                $fields: {
+                    product_id: { not_null: true },
+                    image_id: { not_null: true },
                 },
-            ],
-        },
-        products: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
+                $database_type: 'mysql',
+                $indexes: [
+                    { fields: ['product_id', 'image_id'], is_unique: true },
+                ],
             },
-            title: {},
-            $indexes: [
-                {
-                    fields: ['title'],
-                    is_unique: true,
-                },
-            ],
+            products: {
+                $fields: { id: { primary_key: true }, title: {} },
+                $database_type: 'mysql',
+                $indexes: [{ fields: ['title'], is_unique: true }],
+            },
         },
     }
 

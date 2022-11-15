@@ -6,41 +6,56 @@ import { apply_guid_inference_macro } from '../guid_inference_macro'
 
 describe('guid_inference_macro.ts', () => {
     const schema = as_orma_schema({
-        products: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
+        $entities: {
+            products: {
+                $fields: { id: { primary_key: true, not_null: true } },
+                $database_type: 'mysql',
+            },
+            images: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    product_id: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'product_id',
+                        to_entity: 'products',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            image_urls: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    image_id: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'image_id',
+                        to_entity: 'images',
+                        to_field: 'id',
+                    },
+                ],
             },
         },
-        images: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            product_id: {
-                not_null: true,
-                references: {
-                    products: {
-                        id: {},
+        $cache: {
+            $reversed_foreign_keys: {
+                products: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'images',
+                        to_field: 'product_id',
                     },
-                },
-            },
-        },
-        image_urls: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            image_id: {
-                not_null: true,
-                references: {
-                    images: {
-                        id: {},
+                ],
+                images: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'image_urls',
+                        to_field: 'image_id',
                     },
-                },
+                ],
             },
         },
     })

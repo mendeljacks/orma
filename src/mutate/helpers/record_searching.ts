@@ -39,7 +39,7 @@ export const generate_record_where_clause = (
             key,
             orma_escape(
                 get_resolved_mutation_value(record, key, values_by_guid),
-                orma_schema[entity_name].$database_type
+                orma_schema.$entities[entity_name].$database_type
             ),
         ],
     }))

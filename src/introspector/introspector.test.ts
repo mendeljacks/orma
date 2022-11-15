@@ -11,6 +11,10 @@ import {
     mysql_index,
     generate_index_schemas,
     sort_by_prop,
+    generate_orma_schema_cache,
+    OrmaSchema,
+    OrmaSchemaCache,
+    as_orma_schema,
 } from './introspector'
 
 describe('introspector', () => {
@@ -191,38 +195,38 @@ describe('introspector', () => {
         )
 
         expect(database_schema).to.deep.equal({
-            posts: {
-                $comment: 'user posts',
-                $database_type: 'mysql',
-                user_id: {
-                    data_type: 'int',
-                    ordinal_position: 1,
-                    references: {
-                        users: {
-                            id: {},
+            $entities: {
+                posts: {
+                    $fields: {
+                        user_id: { data_type: 'int', ordinal_position: 1 },
+                    },
+                    $comment: 'user posts',
+                    $database_type: 'mysql',
+                    $foreign_keys: [
+                        {
+                            from_field: 'user_id',
+                            to_entity: 'users',
+                            to_field: 'id',
                         },
-                    },
+                    ],
                 },
-            },
-            users: {
-                $comment: 'table of users',
-                $database_type: 'mysql',
-                id: {
-                    data_type: 'int',
-                    ordinal_position: 1,
+                users: {
+                    $fields: { id: { data_type: 'int', ordinal_position: 1 } },
+                    $comment: 'table of users',
+                    $database_type: 'mysql',
+                    $indexes: [
+                        {
+                            index_name: 'simple_index',
+                            is_unique: false,
+                            fields: ['id'],
+                            index_type: 'BTREE',
+                            invisible: false,
+                            collation: 'A',
+                            sub_part: 1,
+                            index_comment: 'my index',
+                        },
+                    ],
                 },
-                $indexes: [
-                    {
-                        index_name: 'simple_index',
-                        is_unique: false,
-                        fields: ['id'],
-                        index_type: 'BTREE',
-                        invisible: false,
-                        collation: 'A',
-                        sub_part: 1,
-                        index_comment: 'my index',
-                    },
-                ],
             },
         })
     })
@@ -340,5 +344,50 @@ describe('introspector', () => {
                 },
             ],
         })
+    })
+    describe(generate_orma_schema_cache.name, () => {
+        const schema = as_orma_schema({
+            $entities: {
+                products: { $fields: { id: {} }, $database_type: 'mysql' },
+                images: {
+                    $fields: { product_id: {} },
+                    $database_type: 'mysql',
+                    $foreign_keys: [
+                        {
+                            from_field: 'product_id',
+                            to_entity: 'products',
+                            to_field: 'id',
+                        },
+                    ],
+                },
+            },
+            $cache: {
+                $reversed_foreign_keys: {
+                    products: [
+                        {
+                            from_entity: 'products',
+                            from_field: 'id',
+                            to_entity: 'images',
+                            to_field: 'product_id',
+                        },
+                    ],
+                },
+            },
+        })
+
+        const cache = generate_orma_schema_cache(schema)
+        const goal: OrmaSchemaCache = {
+            $reversed_foreign_keys: {
+                products: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'images',
+                        to_field: 'product_id',
+                    },
+                ],
+            },
+        }
+
+        expect(cache).to.deep.equal(goal)
     })
 })

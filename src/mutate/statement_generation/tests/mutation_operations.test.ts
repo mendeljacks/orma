@@ -10,82 +10,95 @@ import {
 
 describe('mutation_operations.ts', () => {
     const orma_schema: OrmaSchema = {
-        grandparents: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
+        $entities: {
+            grandparents: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    quantity: {},
+                },
+                $database_type: 'mysql',
             },
-            quantity: {},
-        },
-        parents: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            unique1: {
-                not_null: true,
-            },
-            unique2: {
-                not_null: true,
-            },
-            quantity: {},
-            grandparent_id: {
-                references: {
-                    grandparents: {
-                        id: {},
+            parents: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    unique1: { not_null: true },
+                    unique2: { not_null: true },
+                    quantity: {},
+                    grandparent_id: {},
+                },
+                $database_type: 'mysql',
+                $indexes: [
+                    { index_name: 'primary', fields: ['id'], is_unique: true },
+                    {
+                        index_name: 'unique1',
+                        fields: ['unique1'],
+                        is_unique: true,
                     },
-                },
-            },
-            $indexes: [
-                {
-                    index_name: 'primary',
-                    fields: ['id'],
-                    is_unique: true,
-                },
-                {
-                    index_name: 'unique1',
-                    fields: ['unique1'],
-                    is_unique: true,
-                },
-                {
-                    index_name: 'unique2',
-                    fields: ['unique2'],
-                    is_unique: true,
-                },
-            ],
-        },
-        children: {
-            $database_type: 'mysql',
-            id1: {
-                primary_key: true,
-                not_null: true,
-            },
-            id2: {
-                primary_key: true,
-                not_null: true,
-            },
-            parent_id: {
-                references: {
-                    parents: {
-                        id: {},
+                    {
+                        index_name: 'unique2',
+                        fields: ['unique2'],
+                        is_unique: true,
                     },
+                ],
+                $foreign_keys: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            children: {
+                $fields: {
+                    id1: { primary_key: true, not_null: true },
+                    id2: { primary_key: true, not_null: true },
+                    parent_id: {},
                 },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'parent_id',
+                        to_entity: 'parents',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            step_children: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    parent_id: {},
+                },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'parent_id',
+                        to_entity: 'parents',
+                        to_field: 'id',
+                    },
+                ],
             },
         },
-        step_children: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            parent_id: {
-                references: {
-                    parents: {
-                        id: {},
+        $cache: {
+            $reversed_foreign_keys: {
+                grandparents: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'parents',
+                        to_field: 'grandparent_id',
                     },
-                },
+                ],
+                parents: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'children',
+                        to_field: 'parent_id',
+                    },
+                    {
+                        from_field: 'id',
+                        to_entity: 'step_children',
+                        to_field: 'parent_id',
+                    },
+                ],
             },
         },
     }

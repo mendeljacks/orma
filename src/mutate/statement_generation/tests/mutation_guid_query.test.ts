@@ -6,27 +6,24 @@ import { get_guid_query } from '../mutation_guid_query'
 
 describe('mutation_guid_query.ts', () => {
     const orma_schema: OrmaSchema = {
-        users: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
+        $entities: {
+            users: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    first_name: { not_null: true },
+                    last_name: { not_null: true },
+                    resource_id: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $indexes: [
+                    { fields: ['resource_id'], is_unique: true },
+                    { fields: ['first_name', 'last_name'], is_unique: true },
+                ],
             },
-            first_name: { not_null: true },
-            last_name: { not_null: true },
-            resource_id: { not_null: true },
-            $indexes: [
-                {
-                    fields: ['resource_id'],
-                    is_unique: true,
-                },
-                {
-                    fields: ['first_name', 'last_name'],
-                    is_unique: true,
-                },
-            ],
         },
+        $cache: { $reversed_foreign_keys: {} },
     }
+
     describe(get_guid_query.name, () => {
         test('generates a giud query', () => {
             const mutation_pieces: MutationPiece[] = [

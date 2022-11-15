@@ -5,72 +5,113 @@ import { apply_nesting_macro } from './nesting_macro'
 
 describe('query_macros', () => {
     const orma_schema: OrmaSchema = {
-        products: {
-            $database_type: 'mysql',
-            id: {},
-            vendor_id: {
-                references: {
-                    vendors: {
-                        id: {},
+        $entities: {
+            products: {
+                $fields: { id: {}, vendor_id: {} },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'vendor_id',
+                        to_entity: 'vendors',
+                        to_field: 'id',
                     },
-                },
+                ],
+            },
+            vendors: { $fields: { id: {} }, $database_type: 'mysql' },
+            payments: {
+                $fields: { id: {}, from_vendor_id: {}, to_vendor_id: {} },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'from_vendor_id',
+                        to_entity: 'vendors',
+                        to_field: 'id',
+                    },
+                    {
+                        from_field: 'to_vendor_id',
+                        to_entity: 'vendors',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            receipts: {
+                $fields: { id: {}, payment_id: {} },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'payment_id',
+                        to_entity: 'payments',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            images: {
+                $fields: { id: {}, product_id: {} },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'product_id',
+                        to_entity: 'products',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            image_urls: {
+                $fields: { image_id: {} },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'image_id',
+                        to_entity: 'images',
+                        to_field: 'id',
+                    },
+                ],
             },
         },
-        vendors: {
-            $database_type: 'mysql',
-            id: {},
-        },
-        payments: {
-            $database_type: 'mysql',
-            id: {},
-            from_vendor_id: {
-                references: {
-                    vendors: {
-                        id: {},
+        $cache: {
+            $reversed_foreign_keys: {
+                vendors: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'products',
+                        to_field: 'vendor_id',
                     },
-                },
-            },
-            to_vendor_id: {
-                references: {
-                    vendors: {
-                        id: {},
+                    {
+                        from_field: 'id',
+                        to_entity: 'payments',
+                        to_field: 'from_vendor_id',
                     },
-                },
-            },
-        },
-        receipts: {
-            $database_type: 'mysql',
-            id: {},
-            payment_id: {
-                references: {
-                    payments: {
-                        id: {},
+                    {
+                        from_field: 'id',
+                        to_entity: 'payments',
+                        to_field: 'to_vendor_id',
                     },
-                },
-            },
-        },
-        images: {
-            $database_type: 'mysql',
-            id: {},
-            product_id: {
-                references: {
-                    products: {
-                        id: {},
+                ],
+                payments: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'receipts',
+                        to_field: 'payment_id',
                     },
-                },
-            },
-        },
-        image_urls: {
-            $database_type: 'mysql',
-            image_id: {
-                references: {
-                    images: {
-                        id: {},
+                ],
+                products: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'images',
+                        to_field: 'product_id',
                     },
-                },
+                ],
+                images: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'image_urls',
+                        to_field: 'image_id',
+                    },
+                ],
             },
         },
     }
+
     describe(apply_nesting_macro.name, () => {
         test('handles root nesting', () => {
             const query = {

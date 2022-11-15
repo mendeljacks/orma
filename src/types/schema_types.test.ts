@@ -1,4 +1,7 @@
-import { as_orma_schema } from '../introspector/introspector'
+import {
+    as_orma_schema,
+    generate_orma_schema_cache,
+} from '../introspector/introspector'
 import { AllowType, IsEqual } from './helper_types'
 import {
     FilterFieldsBySchemaProp,
@@ -12,53 +15,83 @@ import {
 } from './schema_types'
 
 const test_schema = as_orma_schema({
-    products: {
-        $database_type: 'mysql',
-        id: {
-            data_type: 'varchar',
-        },
-        vendor_id: {
-            required: true,
-            references: {
-                vendors: {
-                    id: {},
-                },
+    $entities: {
+        products: {
+            $fields: {
+                id: { data_type: 'varchar' },
+                vendor_id: { not_null: true },
+                location_id: { not_null: true },
+                name: {},
             },
-        },
-        location_id: {
-            required: true,
-            references: {
-                locations: {
-                    id: {},
+            $database_type: 'mysql',
+            $indexes: [],
+            $foreign_keys: [
+                {
+                    from_field: 'vendor_id',
+                    to_entity: 'vendors',
+                    to_field: 'id',
                 },
-            },
+                {
+                    from_field: 'location_id',
+                    to_entity: 'locations',
+                    to_field: 'id',
+                },
+            ],
         },
-        name: {},
-        $indexes: [],
+        vendors: { $fields: { id: {} }, $database_type: 'mysql' },
+        images: {
+            $fields: { id: {}, product_id: {} },
+            $database_type: 'mysql',
+            $foreign_keys: [
+                {
+                    from_field: 'product_id',
+                    to_entity: 'products',
+                    to_field: 'id',
+                },
+            ],
+        },
+        image_urls: {
+            $fields: { image_id: {} },
+            $database_type: 'mysql',
+            $foreign_keys: [
+                { from_field: 'image_id', to_entity: 'images', to_field: 'id' },
+            ],
+        },
+        locations: {
+            $database_type: 'mysql',
+            $fields: { id: {} },
+        },
     },
-    vendors: {
-        $database_type: 'mysql',
-        id: {},
-    },
-    images: {
-        $database_type: 'mysql',
-        id: {},
-        product_id: {
-            references: {
-                products: {
-                    id: {},
+    $cache: {
+        $reversed_foreign_keys: {
+            vendors: [
+                {
+                    from_field: 'id',
+                    to_entity: 'products',
+                    to_field: 'vendor_id',
                 },
-            },
-        },
-    },
-    image_urls: {
-        $database_type: 'mysql',
-        image_id: {
-            references: {
-                images: {
-                    id: {},
+            ],
+            locations: [
+                {
+                    from_field: 'id',
+                    to_entity: 'products',
+                    to_field: 'location_id',
                 },
-            },
+            ],
+            products: [
+                {
+                    from_field: 'id',
+                    to_entity: 'images',
+                    to_field: 'product_id',
+                },
+            ],
+            images: [
+                {
+                    from_field: 'id',
+                    to_entity: 'image_urls',
+                    to_field: 'image_id',
+                },
+            ],
         },
     },
 } as const)
@@ -91,14 +124,12 @@ const test_schema = as_orma_schema({
     type test = GetParentEdges<typeof test_schema, 'products'>
 
     const good1: test = {
-        from_entity: 'products',
         from_field: 'vendor_id',
         to_entity: 'vendors',
         to_field: 'id',
     }
 
     const good2: test = {
-        from_entity: 'products',
         from_field: 'location_id',
         to_entity: 'locations',
         to_field: 'id',
@@ -106,8 +137,6 @@ const test_schema = as_orma_schema({
 
     // wrong entity
     const bad1: test = {
-        // @ts-expect-error
-        from_entity: 'images',
         // @ts-expect-error
         from_field: 'product_id',
         // @ts-expect-error
@@ -124,20 +153,19 @@ const test_schema = as_orma_schema({
         to_field: 'id',
     }
 
-    // missing from_entity
-    // @ts-expect-error
-    const bad3: test = {
-        from_field: 'vendor_id',
-        to_entity: 'vendors',
-        to_field: 'id',
-    }
+    // // missing from_entity
+    // // @ts-expect-error
+    // const bad3: test = {
+    //     from_field: 'vendor_id',
+    //     to_entity: 'vendors',
+    //     to_field: 'id',
+    // }
 }
 
 {
     type test = GetChildEdges<typeof test_schema, 'products'>
 
     const good1: test = {
-        from_entity: 'products',
         from_field: 'id',
         to_entity: 'images',
         to_field: 'product_id',
@@ -145,16 +173,13 @@ const test_schema = as_orma_schema({
 
     // wrong edge direction
     const bad1: test = {
-        from_entity: 'images',
         // @ts-expect-error
         from_field: 'product_id',
+        // @ts-expect-error
         to_entity: 'products',
         // @ts-expect-error
         to_field: 'id',
     }
-
-    type t1 = { [a: string]: 'hi' }
-    type t2 = keyof t1
 }
 
 {
@@ -162,7 +187,6 @@ const test_schema = as_orma_schema({
 
     // edge to child
     const good1: test = {
-        from_entity: 'products',
         from_field: 'id',
         to_entity: 'images',
         to_field: 'product_id',
@@ -170,7 +194,6 @@ const test_schema = as_orma_schema({
 
     // edge to parent
     const good2: test = {
-        from_entity: 'products',
         from_field: 'vendor_id',
         to_entity: 'vendors',
         to_field: 'id',
@@ -178,17 +201,12 @@ const test_schema = as_orma_schema({
 
     // only allow edges from products
     const bad1: test = {
-        //@ts-expect-error
-        from_entity: 'images',
         from_field: 'id',
         //@ts-expect-error
         to_entity: 'image_urls',
         //@ts-expect-error
         to_field: 'image_id',
     }
-
-    type t1 = { [a: string]: 'hi' }
-    type t2 = keyof t1
 }
 
 {
@@ -210,7 +228,7 @@ const test_schema = as_orma_schema({
     type T = FilterFieldsBySchemaProp<
         typeof test_schema,
         'products',
-        'required',
+        'not_null',
         true
     >
     const expect: IsEqual<T, 'vendor_id' | 'location_id'> = true
@@ -221,7 +239,7 @@ const test_schema = as_orma_schema({
     type T = FilterFieldsBySchemaProp<
         typeof test_schema,
         'vendors',
-        'required',
+        'not_null',
         true
     >
     const expect: IsEqual<T, never> = true

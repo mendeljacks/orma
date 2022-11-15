@@ -6,63 +6,54 @@ import { sort_database_rows } from '../sort_database_rows'
 
 describe('guid_processing.ts', () => {
     const schema = as_orma_schema({
-        products: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            title: {
-                not_null: true,
-            },
-            $indexes: [
-                {
-                    fields: ['title'],
-                    is_unique: true,
+        $entities: {
+            products: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    title: { not_null: true },
+                    resource_id: { not_null: true },
                 },
-                {
-                    fields: ['resource_id'],
-                    is_unique: true,
+                $database_type: 'mysql',
+                $indexes: [
+                    { fields: ['title'], is_unique: true },
+                    { fields: ['resource_id'], is_unique: true },
+                ],
+            },
+            images: {
+                $fields: {
+                    id: { not_null: true, primary_key: true },
+                    product_id: {},
+                    resource_id: { not_null: true },
                 },
-            ],
-            resource_id: {
-                not_null: true,
-            },
-        },
-        images: {
-            $database_type: 'mysql',
-            id: {
-                not_null: true,
-                primary_key: true,
-            },
-            product_id: {
-                references: {
-                    products: {
-                        id: {},
+                $database_type: 'mysql',
+                $indexes: [{ fields: ['resource_id'], is_unique: true }],
+                $foreign_keys: [
+                    {
+                        from_field: 'product_id',
+                        to_entity: 'products',
+                        to_field: 'id',
                     },
-                },
+                ],
             },
-            resource_id: {
-                not_null: true,
-            },
-            $indexes: [
-                {
-                    fields: ['resource_id'],
-                    is_unique: true,
+            users: {
+                $fields: {
+                    first_name: { primary_key: true, not_null: true },
+                    last_name: { primary_key: true, not_null: true },
+                    age: {},
                 },
-            ],
+                $database_type: 'mysql',
+            },
         },
-        users: {
-            $database_type: 'mysql',
-            first_name: {
-                primary_key: true,
-                not_null: true,
+        $cache: {
+            $reversed_foreign_keys: {
+                products: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'images',
+                        to_field: 'product_id',
+                    },
+                ],
             },
-            last_name: {
-                primary_key: true,
-                not_null: true,
-            },
-            age: {},
         },
     })
 

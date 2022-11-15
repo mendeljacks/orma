@@ -28,7 +28,7 @@ export const apply_escape_macro = (query, orma_schema: OrmaSchema) => {
 
         deep_set(
             path,
-            orma_escape(value.$escape, orma_schema[entity].$database_type),
+            orma_escape(value.$escape, orma_schema.$entities[entity].$database_type),
             query
         )
     })

@@ -40,7 +40,7 @@ export const get_create_ast = (
             )
             const escaped_value = orma_escape(
                 resolved_value ?? null,
-                orma_schema[entity].$database_type
+                orma_schema.$entities[entity].$database_type
             )
             return escaped_value
         })
@@ -122,7 +122,7 @@ export const get_update_ast = (
             }
             const escaped_value = orma_escape(
                 resolved_value,
-                orma_schema[entity].$database_type
+                orma_schema.$entities[entity].$database_type
             )
 
             return [field, escaped_value]

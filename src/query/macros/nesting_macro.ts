@@ -179,7 +179,9 @@ const get_ancestor_where_clause = (
         '$where',
         {
             $in: [edge_under_ancestor.to_field, ancestor_foreign_key_values],
-        }
+        },
+        false,
+        orma_schema
     )
 
     return ancestor_query

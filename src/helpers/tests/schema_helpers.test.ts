@@ -14,11 +14,9 @@ describe('schema_helpers', () => {
     describe('get_entity_names', () => {
         test('gets entity names', () => {
             const orma_schema: OrmaSchema = {
-                vendors: {
-                    $database_type: 'mysql',
-                },
-                products: {
-                    $database_type: 'mysql',
+                $entities: {
+                    vendors: { $fields: {}, $database_type: 'mysql' },
+                    products: { $fields: {}, $database_type: 'mysql' },
                 },
             }
 
@@ -31,13 +29,12 @@ describe('schema_helpers', () => {
     describe('get_field_names', () => {
         test('gets field names', () => {
             const orma_schema: OrmaSchema = {
-                vendors: {
-                    $database_type: 'mysql',
-                },
-                products: {
-                    $database_type: 'mysql',
-                    id: {},
-                    title: {},
+                $entities: {
+                    vendors: { $fields: {}, $database_type: 'mysql' },
+                    products: {
+                        $fields: { id: {}, title: {} },
+                        $database_type: 'mysql',
+                    },
                 },
             }
 
@@ -48,19 +45,29 @@ describe('schema_helpers', () => {
     describe('get_parent_edges', () => {
         test('gets parent edges', () => {
             const orma_schema: OrmaSchema = {
-                vendors: {
-                    $database_type: 'mysql',
-                    id: {},
-                },
-                products: {
-                    $database_type: 'mysql',
-                    id: {},
-                    vendor_id: {
-                        references: {
-                            vendors: {
-                                id: {},
+                $entities: {
+                    vendors: { $fields: { id: {} }, $database_type: 'mysql' },
+                    products: {
+                        $fields: { id: {}, vendor_id: {} },
+                        $database_type: 'mysql',
+                        $foreign_keys: [
+                            {
+                                from_field: 'vendor_id',
+                                to_entity: 'vendors',
+                                to_field: 'id',
                             },
-                        },
+                        ],
+                    },
+                },
+                $cache: {
+                    $reversed_foreign_keys: {
+                        vendors: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'products',
+                                to_field: 'vendor_id',
+                            },
+                        ],
                     },
                 },
             }
@@ -80,19 +87,29 @@ describe('schema_helpers', () => {
     describe('get_child_edges', () => {
         test('gets child edges', () => {
             const orma_schema: OrmaSchema = {
-                vendors: {
-                    $database_type: 'mysql',
-                    id: {},
-                },
-                products: {
-                    $database_type: 'mysql',
-                    id: {},
-                    vendor_id: {
-                        references: {
-                            vendors: {
-                                id: {},
+                $entities: {
+                    vendors: { $fields: { id: {} }, $database_type: 'mysql' },
+                    products: {
+                        $fields: { id: {}, vendor_id: {} },
+                        $database_type: 'mysql',
+                        $foreign_keys: [
+                            {
+                                from_field: 'vendor_id',
+                                to_entity: 'vendors',
+                                to_field: 'id',
                             },
-                        },
+                        ],
+                    },
+                },
+                $cache: {
+                    $reversed_foreign_keys: {
+                        vendors: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'products',
+                                to_field: 'vendor_id',
+                            },
+                        ],
                     },
                 },
             }
@@ -112,29 +129,47 @@ describe('schema_helpers', () => {
     describe('get_all_edges', () => {
         test('gets all edges', () => {
             const orma_schema: OrmaSchema = {
-                vendors: {
-                    $database_type: 'mysql',
-                    id: {},
-                },
-                products: {
-                    $database_type: 'mysql',
-                    id: {},
-                    vendor_id: {
-                        references: {
-                            vendors: {
-                                id: {},
+                $entities: {
+                    vendors: { $fields: { id: {} }, $database_type: 'mysql' },
+                    products: {
+                        $fields: { id: {}, vendor_id: {} },
+                        $database_type: 'mysql',
+                        $foreign_keys: [
+                            {
+                                from_field: 'vendor_id',
+                                to_entity: 'vendors',
+                                to_field: 'id',
                             },
-                        },
+                        ],
+                    },
+                    images: {
+                        $fields: { product_id: {} },
+                        $database_type: 'mysql',
+                        $foreign_keys: [
+                            {
+                                from_field: 'product_id',
+                                to_entity: 'products',
+                                to_field: 'id',
+                            },
+                        ],
                     },
                 },
-                images: {
-                    $database_type: 'mysql',
-                    product_id: {
-                        references: {
-                            products: {
-                                id: {},
+                $cache: {
+                    $reversed_foreign_keys: {
+                        vendors: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'products',
+                                to_field: 'vendor_id',
                             },
-                        },
+                        ],
+                        products: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'images',
+                                to_field: 'product_id',
+                            },
+                        ],
                     },
                 },
             }

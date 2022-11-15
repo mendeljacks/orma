@@ -125,7 +125,7 @@ export const get_search_records_where = (
                         const entity = path_to_entity(path)
                         return orma_escape(
                             record[field],
-                            orma_schema[entity].$database_type
+                            orma_schema.$entities[entity].$database_type
                         )
                     }),
                 ],
@@ -139,7 +139,7 @@ export const get_search_records_where = (
                         field,
                         orma_escape(
                             record[field],
-                            orma_schema[path_to_entity(path)].$database_type
+                            orma_schema.$entities[path_to_entity(path)].$database_type
                         ),
                     ],
                 })),

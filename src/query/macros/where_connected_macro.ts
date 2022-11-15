@@ -158,7 +158,7 @@ const get_connected_where_clause = (
                 $in: [
                     $field,
                     $values.map(el =>
-                        orma_escape(el, orma_schema[$entity].$database_type)
+                        orma_escape(el, orma_schema.$entities[$entity].$database_type)
                     ),
                 ],
             }

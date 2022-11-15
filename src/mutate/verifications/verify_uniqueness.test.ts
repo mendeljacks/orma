@@ -10,46 +10,41 @@ import { expect } from 'chai'
 
 describe('verify_uniqueness', () => {
     const orma_schema: OrmaSchema = {
-        users: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            first_name: {
-                not_null: true,
-            },
-            last_name: {
-                not_null: true,
-            },
-            age: {},
-            $indexes: [
-                {
-                    index_name: 'unique',
-                    fields: ['first_name', 'last_name'],
-                    is_unique: true,
+        $entities: {
+            users: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    first_name: { not_null: true },
+                    last_name: { not_null: true },
+                    age: {},
                 },
-            ],
-        },
-        products: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
+                $database_type: 'mysql',
+                $indexes: [
+                    {
+                        index_name: 'unique',
+                        fields: ['first_name', 'last_name'],
+                        is_unique: true,
+                    },
+                ],
             },
-            title: {
-                not_null: true,
-            },
-            description: {},
-            $indexes: [
-                {
-                    index_name: 'unique',
-                    fields: ['title'],
-                    is_unique: true,
+            products: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    title: { not_null: true },
+                    description: {},
                 },
-            ],
+                $database_type: 'mysql',
+                $indexes: [
+                    {
+                        index_name: 'unique',
+                        fields: ['title'],
+                        is_unique: true,
+                    },
+                ],
+            },
         },
     }
+
     describe(get_verify_uniqueness_query.name, () => {
         test('searches on primary key', () => {
             const pathed_records_by_entity = {

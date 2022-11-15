@@ -4,6 +4,7 @@
  */
 
 import { deep_set, group_by } from '../helpers/helpers'
+import { Edge, is_reserved_keyword } from '../helpers/schema_helpers'
 import { DeepMutable } from '../types/schema_types'
 
 export interface mysql_table {
@@ -59,19 +60,28 @@ export interface mysql_foreign_key {
 type OrmaSchemaMutable = DeepMutable<OrmaSchema>
 
 export type OrmaSchema = {
-    readonly [entity_name: string]: orma_entity_schema
+    readonly $entities: {
+        readonly [entity_name: string]: orma_entity_schema
+    }
+    $cache?: OrmaSchemaCache
 }
+
+export type OrmaSchemaCache = {
+    $reversed_foreign_keys: {
+        readonly [referenced_entity: string]: readonly ForeignKeyEdge[]
+    }
+}
+
+export type ForeignKeyEdge = Omit<Edge, 'from_entity'>
 
 export type orma_entity_schema = {
     readonly $database_type: SupportedDbs
-    //@ts-ignore
     readonly $comment?: string
-    //@ts-ignore
     readonly $indexes?: readonly orma_index_schema[]
-    readonly [field_name: string]:
-        | orma_field_schema
-        | readonly orma_index_schema[]
-        | string
+    readonly $foreign_keys?: readonly ForeignKeyEdge[]
+    readonly $fields: {
+        readonly [field_name: string]: orma_field_schema
+    }
 }
 
 export type orma_field_schema = {
@@ -87,13 +97,13 @@ export type orma_field_schema = {
     readonly comment?: string
     readonly auto_increment?: boolean
     readonly enum_values?: readonly (string | number)[]
-    readonly references?: {
-        readonly [referenced_entity: string]: {
-            readonly [referenced_field: string]: {
-                readonly [key: string]: never
-            }
-        }
-    }
+    // readonly references?: {
+    //     readonly [referenced_entity: string]: {
+    //         readonly [referenced_field: string]: {
+    //             readonly [key: string]: never
+    //         }
+    //     }
+    // }
 }
 
 export type orma_index_schema = {
@@ -211,21 +221,22 @@ export const generate_database_schema = (
     mysql_indexes: mysql_index[],
     database_type: SupportedDbs
 ) => {
-    const database_schema: OrmaSchemaMutable = {}
+    const database_schema: OrmaSchemaMutable = { $entities: {} }
 
     for (const mysql_table of mysql_tables) {
-        //@ts-ignore
-        database_schema[mysql_table.table_name] = {
+        database_schema.$entities[mysql_table.table_name] = {
             $comment: mysql_table.table_comment,
             $database_type: database_type,
+            $fields: {},
         }
     }
 
     for (const mysql_column of mysql_columns) {
         const field_schema = generate_field_schema(mysql_column)
 
-        database_schema[mysql_column.table_name][mysql_column.column_name] =
-            field_schema
+        database_schema.$entities[mysql_column.table_name].$fields[
+            mysql_column.column_name
+        ] = field_schema
     }
 
     for (const mysql_foreign_key of mysql_foreign_keys) {
@@ -237,24 +248,27 @@ export const generate_database_schema = (
             constraint_name,
         } = mysql_foreign_key
 
-        const reference_path = [
-            table_name,
-            column_name,
-            'references',
-            referenced_table_name,
-            referenced_column_name,
-        ]
         if (!referenced_table_name || !referenced_column_name) {
             continue
         }
-        deep_set(reference_path, {}, database_schema)
+
+        const entity_schema = database_schema.$entities[table_name]
+        if (!entity_schema.$foreign_keys) {
+            entity_schema.$foreign_keys = []
+        }
+
+        entity_schema.$foreign_keys.push({
+            from_field: column_name,
+            to_entity: referenced_table_name,
+            to_field: referenced_column_name,
+        })
     }
 
     const index_schemas = generate_index_schemas(mysql_indexes)
     for (const table_name of Object.keys(index_schemas)) {
-        database_schema[table_name].$indexes = index_schemas[table_name].sort(
-            (a, b) => sort_by_prop(a, b, 'index_name')
-        )
+        database_schema.$entities[table_name].$indexes = index_schemas[
+            table_name
+        ].sort((a, b) => sort_by_prop(a, b, 'index_name'))
     }
 
     return database_schema
@@ -452,6 +466,36 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
     return orma_index_schema
 }
 
+export const generate_orma_schema_cache = (
+    orma_schema: Omit<OrmaSchema, '$cache'> & { $cache?: any }
+): OrmaSchemaCache | undefined => {
+    const fk_cache: OrmaSchemaCache['$reversed_foreign_keys'] = {}
+
+    const entities = Object.keys(orma_schema.$entities)
+
+    entities.forEach(entity => {
+        orma_schema.$entities[entity].$foreign_keys?.forEach(foreign_key => {
+            if (!fk_cache[foreign_key.to_entity]) {
+                // @ts-ignore we can mutate
+                fk_cache[foreign_key.to_entity] = []
+            }
+            //@ts-ignore can mutate
+            fk_cache[foreign_key.to_entity].push({
+                // from_entity: foreign_key.to_entity,
+                from_field: foreign_key.to_field,
+                to_entity: entity,
+                to_field: foreign_key.from_field,
+            })
+        })
+    })
+
+    return Object.keys(fk_cache).length > 0
+        ? {
+              $reversed_foreign_keys: fk_cache,
+          }
+        : undefined
+}
+
 export const orma_introspect = async (
     db: string,
     fn: (s: { sql_string }[]) => Promise<Record<string, unknown>[][]>,
@@ -480,6 +524,10 @@ export const orma_introspect = async (
         mysql_indexes.map(transform_keys_to_lower) as mysql_index[],
         options.database_type
     )
+
+    const cache = generate_orma_schema_cache(orma_schema)
+    //@ts-ignore can mutate
+    orma_schema.$cache = cache
 
     return orma_schema
 }

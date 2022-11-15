@@ -176,7 +176,9 @@ export const get_primary_key_wheres = (
         const where = edge_path_to_where_ins(
             reversed_edge_path,
             '$where',
-            combine_wheres(identifying_wheres, '$or')
+            combine_wheres(identifying_wheres, '$or'),
+            false,
+            orma_schema
         )
         return where
     })
@@ -233,7 +235,9 @@ export const get_foreign_key_wheres = (
                 const where = edge_path_to_where_ins(
                     search_ownership_path,
                     '$where',
-                    parent_where
+                    parent_where,
+                    false,
+                    { $entities: {} }
                 )
                 return where
             }

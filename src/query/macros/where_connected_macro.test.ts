@@ -13,73 +13,104 @@ import {
 
 describe('where_connected_macro.ts', () => {
     const schema = as_orma_schema({
-        grandparents: {
-            $database_type: 'mysql',
-            id: {
-                not_null: true,
+        $entities: {
+            grandparents: {
+                $fields: { id: { not_null: true } },
+                $database_type: 'mysql',
+            },
+            nullable_entity: {
+                $fields: { id: { not_null: true }, grandparent_id: {} },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            parents: {
+                $fields: {
+                    id: { not_null: true },
+                    grandparent_id: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            parents_2: {
+                $fields: {
+                    id: { not_null: true },
+                    grandparent_id: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'grandparent_id',
+                        to_entity: 'grandparents',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            children: {
+                $fields: {
+                    id: { not_null: true },
+                    parent_id: { not_null: true },
+                    parents_2_id: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'parent_id',
+                        to_entity: 'parents_1',
+                        to_field: 'id',
+                    },
+                    {
+                        from_field: 'parents_2_id',
+                        to_entity: 'parents_2',
+                        to_field: 'id',
+                    },
+                ],
             },
         },
-        nullable_entity: {
-            $database_type: 'mysql',
-            id: {
-                not_null: true,
-            },
-            grandparent_id: {
-                references: {
-                    grandparents: {
-                        id: {},
+        $cache: {
+            $reversed_foreign_keys: {
+                grandparents: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'nullable_entity',
+                        to_field: 'grandparent_id',
                     },
-                },
-            },
-        },
-        parents: {
-            $database_type: 'mysql',
-            id: {
-                not_null: true,
-            },
-            grandparent_id: {
-                not_null: true,
-                references: {
-                    grandparents: {
-                        id: {},
+                    {
+                        from_field: 'id',
+                        to_entity: 'parents',
+                        to_field: 'grandparent_id',
                     },
-                },
-            },
-        },
-        parents_2: {
-            $database_type: 'mysql',
-            id: {
-                not_null: true,
-            },
-            grandparent_id: {
-                not_null: true,
-                references: {
-                    grandparents: {
-                        id: {},
+                    {
+                        from_field: 'id',
+                        to_entity: 'parents_2',
+                        to_field: 'grandparent_id',
                     },
-                },
-            },
-        },
-        children: {
-            $database_type: 'mysql',
-            id: {
-                not_null: true,
-            },
-            parent_id: {
-                not_null: true,
-                references: {
-                    parents_1: {
-                        id: {},
+                ],
+                parents_1: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'children',
+                        to_field: 'parent_id',
                     },
-                },
-            },
-            parents_2_id: {
-                not_null: true,
-                references: {
-                    parents_2: {
-                        id: {},
+                ],
+                parents_2: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'children',
+                        to_field: 'parents_2_id',
                     },
-                },
+                ],
             },
         },
     })
@@ -87,30 +118,50 @@ describe('where_connected_macro.ts', () => {
     describe(get_upwards_connection_edges.name, () => {
         test('handles multiple entities', () => {
             const schema: OrmaSchema = {
-                grandparents: {
-                    $database_type: 'mysql',
-                    id: {},
-                },
-                parents: {
-                    $database_type: 'mysql',
-                    id: {},
-                    grandparent_id: {
-                        references: {
-                            grandparents: {
-                                id: {},
+                $entities: {
+                    grandparents: {
+                        $fields: { id: {} },
+                        $database_type: 'mysql',
+                    },
+                    parents: {
+                        $fields: { id: {}, grandparent_id: {} },
+                        $database_type: 'mysql',
+                        $foreign_keys: [
+                            {
+                                from_field: 'grandparent_id',
+                                to_entity: 'grandparents',
+                                to_field: 'id',
                             },
-                        },
+                        ],
+                    },
+                    children: {
+                        $fields: { id: {}, parent_id: {} },
+                        $database_type: 'mysql',
+                        $foreign_keys: [
+                            {
+                                from_field: 'parent_id',
+                                to_entity: 'parents',
+                                to_field: 'id',
+                            },
+                        ],
                     },
                 },
-                children: {
-                    $database_type: 'mysql',
-                    id: {},
-                    parent_id: {
-                        references: {
-                            parents: {
-                                id: {},
+                $cache: {
+                    $reversed_foreign_keys: {
+                        grandparents: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'parents',
+                                to_field: 'grandparent_id',
                             },
-                        },
+                        ],
+                        parents: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'children',
+                                to_field: 'parent_id',
+                            },
+                        ],
                     },
                 },
             }
@@ -138,30 +189,42 @@ describe('where_connected_macro.ts', () => {
         })
         test('handles multiple edges', () => {
             const schema: OrmaSchema = {
-                parents: {
-                    $database_type: 'mysql',
-                    id: {},
-                },
-                parents_2: {
-                    $database_type: 'mysql',
-                    id: {},
-                },
-                children: {
-                    $database_type: 'mysql',
-                    id: {},
-                    parent_id: {
-                        references: {
-                            parents: {
-                                id: {},
+                $entities: {
+                    parents: { $fields: { id: {} }, $database_type: 'mysql' },
+                    parents_2: { $fields: { id: {} }, $database_type: 'mysql' },
+                    children: {
+                        $fields: { id: {}, parent_id: {}, parents_2_id: {} },
+                        $database_type: 'mysql',
+                        $foreign_keys: [
+                            {
+                                from_field: 'parent_id',
+                                to_entity: 'parents',
+                                to_field: 'id',
                             },
-                        },
+                            {
+                                from_field: 'parents_2_id',
+                                to_entity: 'parents_2',
+                                to_field: 'id',
+                            },
+                        ],
                     },
-                    parents_2_id: {
-                        references: {
-                            parents_2: {
-                                id: {},
+                },
+                $cache: {
+                    $reversed_foreign_keys: {
+                        parents: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'children',
+                                to_field: 'parent_id',
                             },
-                        },
+                        ],
+                        parents_2: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'children',
+                                to_field: 'parents_2_id',
+                            },
+                        ],
                     },
                 },
             }
@@ -187,15 +250,28 @@ describe('where_connected_macro.ts', () => {
         })
         test('skips edges from an entity to itself', () => {
             const schema: OrmaSchema = {
-                entity: {
-                    $database_type: 'mysql',
-                    id: {},
-                    entity_id: {
-                        references: {
-                            entity: {
-                                id: {},
+                $entities: {
+                    entity: {
+                        $fields: { id: {}, entity_id: {} },
+                        $database_type: 'mysql',
+                        $foreign_keys: [
+                            {
+                                from_field: 'entity_id',
+                                to_entity: 'entity',
+                                to_field: 'id',
                             },
-                        },
+                        ],
+                    },
+                },
+                $cache: {
+                    $reversed_foreign_keys: {
+                        entity: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'entity',
+                                to_field: 'entity_id',
+                            },
+                        ],
                     },
                 },
             }

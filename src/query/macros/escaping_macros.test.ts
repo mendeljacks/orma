@@ -4,8 +4,11 @@ import { expect } from 'chai'
 import { OrmaSchema } from '../../introspector/introspector'
 
 const orma_schema: OrmaSchema = {
-    products: {
-        $database_type: 'mysql',
+    $entities: {
+        products: {
+            $database_type: 'mysql',
+            $fields: {}
+        },
     },
 }
 
@@ -30,8 +33,10 @@ describe('escaping_macros', () => {
         })
         test('Can find database type $coalesce', () => {
             const orma_schema: OrmaSchema = {
-                places: { $database_type: 'postgres' },
-                reviews: { $database_type: 'postgres' },
+                $entities: {
+                    places: { $database_type: 'postgres', $fields: {} },
+                    reviews: { $database_type: 'postgres', $fields: {} },
+                },
             }
             const query = {
                 places: {

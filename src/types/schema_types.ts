@@ -2,6 +2,7 @@
 
 import { Edge } from '../helpers/schema_helpers'
 import {
+    ForeignKeyEdge,
     mysql_to_typescript_types,
     OrmaSchema,
     orma_field_schema,
@@ -46,42 +47,48 @@ export type IsKeyword<Field> = Field extends Keyword ? true : false
 
 export type GetStringKeys<T> = Extract<keyof T, string>
 
-export type GetAllEntities<Schema extends OrmaSchema> = GetStringKeys<Schema> // the type keyof Schema can be numbers also, but we only want string keys
+export type GetAllEntities<Schema extends OrmaSchema> = Extract<
+    keyof Schema['$entities'],
+    string
+> // the type keyof Schema can be numbers also, but we only want string keys
 
 export type GetFields<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
-> = Entity extends any
+> = Entity extends GetAllEntities<Schema>
     ? // we need to use a ternary to map over the given Entity (which may be a union). This lets
       // GetFields<Schema, 'entity1' | 'entity2'> return the union of all the fields of entity1 and entity2
-      Exclude<GetStringKeys<Schema[Entity]>, Keyword>
+      keyof Schema['$entities'][Entity]['$fields']
     : never
 
 export type GetParentEdges<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
 > = Entities extends GetAllEntities<Schema>
-    ? GetParentEdgesForFields<Schema, Entities, GetFields<Schema, Entities>>
+    ? ToEdge<
+          Schema,
+          NonNullable<Schema['$entities'][Entities]['$foreign_keys']>[number]
+      >
     : never
 
-export type GetParentEdgesForFields<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    Fields extends GetFields<Schema, Entity>
-> = Fields extends GetFields<Schema, Entity> // map over fields
-    ? Schema[Entity][Fields] extends { references: any } // filter fields to only include ones with foreign keys
-        ? {
-              from_entity: Entity
-              to_entity: GetStringKeys<Schema[Entity][Fields]['references']> // pull out entity from { references: { ... }}
-              from_field: Fields
-              to_field: GetStringKeys<
-                  Schema[Entity][Fields]['references'][GetStringKeys<
-                      Schema[Entity][Fields]['references']
-                  >]
-              > // pull out field from references objecs
-          }
-        : never
-    : never
+// export type GetParentEdgesForFields<
+//     Schema extends OrmaSchema,
+//     Entity extends GetAllEntities<Schema>,
+//     Fields extends GetFields<Schema, Entity>
+// > = Fields extends GetFields<Schema, Entity> // map over fields
+//     ? Schema[Entity][Fields] extends { references: any } // filter fields to only include ones with foreign keys
+//         ? {
+//               from_entity: Entity
+//               to_entity: GetStringKeys<Schema[Entity][Fields]['references']> // pull out entity from { references: { ... }}
+//               from_field: Fields
+//               to_field: GetStringKeys<
+//                   Schema[Entity][Fields]['references'][GetStringKeys<
+//                       Schema[Entity][Fields]['references']
+//                   >]
+//               > // pull out field from references objecs
+//           }
+//         : never
+//     : never
 
 // Fields extends any // map over fields
 //     ? Schema[Entity][Fields] extends { references: any } // filter fields to only include ones with foreign keys
@@ -98,18 +105,74 @@ export type GetParentEdgesForFields<
 //         : never
 //     : never
 
-export type GetParentEdgesForAllEntities<Schema extends OrmaSchema> =
-    GetParentEdges<Schema, GetAllEntities<Schema>>
-
 export type GetChildEdges<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
-> = GetChildEdgesFromParentEdges<Schema, GetParentEdgesForAllEntities<Schema>>
+> = ToEdge<
+    Schema,
+    NonNullable<Schema['$cache']>['$reversed_foreign_keys'][Entities][number]
+>
 
-export type GetChildEdgesFromParentEdges<
+type ToEdge<
     Schema extends OrmaSchema,
-    ParentEdges extends GetParentEdgesForAllEntities<Schema>
-> = ParentEdges extends any ? ReverseEdge<ParentEdges> : never
+    Edges extends ForeignKeyEdge
+> = Edges extends ForeignKeyEdge
+    ? {
+          //   from_entity: Edges['from_entity'] extends GetAllEntities<Schema>
+          //       ? Edges['from_entity']
+          //       : never
+          from_field: Edges['from_field'] extends GetFields<
+              Schema,
+              GetAllEntities<Schema>
+          >
+              ? Edges['from_field']
+              : never
+          to_entity: Edges['to_entity'] extends GetAllEntities<Schema>
+              ? Edges['to_entity']
+              : never
+          to_field: Edges['to_field'] extends GetFields<
+              Schema,
+              GetAllEntities<Schema>
+          >
+              ? Edges['to_field']
+              : never
+      }
+    : never
+
+type AsEdge<
+    Schema extends OrmaSchema,
+    Edges extends Edge
+> = Edges['to_entity'] extends GetAllEntities<Schema>
+    ? Edges['from_entity'] extends GetAllEntities<Schema>
+        ? AsEdge2<Schema, Edges, Edges['from_entity'], Edges['to_entity']>
+        : never
+    : never
+
+type AsEdge2<
+    Schema extends OrmaSchema,
+    Edges extends Edge,
+    FromEntity extends GetAllEntities<Schema>,
+    ToEntity extends GetAllEntities<Schema>
+> = Edges['from_field'] extends GetFields<Schema, FromEntity>
+    ? Edges['to_field'] extends GetFields<Schema, ToEntity>
+        ? Edges
+        : never
+    : never
+
+// export type GetChildEdgesFromParentEdges<
+//     Schema extends OrmaSchema,
+//     ParentEdges extends GetParentEdgesForAllEntities<Schema>
+// > = ParentEdges extends any ? ReverseEdge<ParentEdges> : never
+
+// export type GetChildEdges<
+//     Schema extends OrmaSchema,
+//     Entities extends GetAllEntities<Schema>
+// > = GetChildEdgesFromParentEdges<Schema, GetParentEdgesForAllEntities<Schema>>
+
+// export type GetChildEdgesFromParentEdges<
+//     Schema extends OrmaSchema,
+//     ParentEdges extends GetParentEdgesForAllEntities<Schema>
+// > = ParentEdges extends any ? ReverseEdge<ParentEdges> : never
 
 export type ReverseEdge<EdgeParam extends Edge> = {
     from_entity: EdgeParam['to_entity']
@@ -121,36 +184,39 @@ export type ReverseEdge<EdgeParam extends Edge> = {
 export type GetAllEdges<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
-> = FilterEdgeByFromEntity<
-    GetParentEdges<Schema, Entities> | GetChildEdges<Schema, Entities>,
-    Entities
->
-
-type FilterEdgeByFromEntity<
-    EdgeParams extends Edge,
-    Entities
-> = EdgeParams extends { from_entity: Entities } ? EdgeParams : never
+> = GetParentEdges<Schema, Entities> | GetChildEdges<Schema, Entities>
 
 export type GetFieldType<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     Field extends GetFields<Schema, Entity>
-> = Schema[Entity][Field] extends { data_type: any }
-    ? Schema[Entity][Field] extends { not_null: true }
+> = GetFieldType2<Schema['$entities'][Entity]['$fields'][Field]>
+
+type GetFieldType2<FieldSchema extends orma_field_schema> =
+    FieldSchema['not_null'] extends true
         ? FieldTypeStringToType<
-              MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
+              MysqlToTypescriptTypeString<NonNullable<FieldSchema['data_type']>>
           >
         : FieldTypeStringToType<
-              MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
+              MysqlToTypescriptTypeString<NonNullable<FieldSchema['data_type']>>
           > | null
-    : any
+
+// Schema['$entities'][Entity]['$fields'][Field] extends { data_type: any }
+//     ? Schema['$entities'][Entity]['$fields'][Field] extends { not_null: true }
+//         ? FieldTypeStringToType<
+//               MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
+//           >
+//         : FieldTypeStringToType<
+//               MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
+//           > | null
+//     : any
 
 export type GetFieldSchema<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     Field extends GetFields<Schema, Entity>
-> = Schema[Entity][Field] extends orma_field_schema
-    ? Schema[Entity][Field]
+> = Schema['$entities'][Entity]['$fields'][Field] extends orma_field_schema
+    ? Schema['$entities'][Entity]['$fields'][Field]
     : any
 
 type MysqlToTypescriptTypeString<

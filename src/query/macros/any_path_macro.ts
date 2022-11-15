@@ -96,7 +96,13 @@ export const process_any_clause = (
     const full_path = [initial_entity].concat(any_path)
 
     const edge_path = get_edge_path(full_path, orma_schema)
-    const clause = edge_path_to_where_ins(edge_path, filter_type, subquery)
+    const clause = edge_path_to_where_ins(
+        edge_path,
+        filter_type,
+        subquery,
+        false,
+        orma_schema
+    )
 
     return clause
 }
@@ -105,8 +111,8 @@ export const edge_path_to_where_ins = (
     edge_path: Edge[],
     filter_type: '$having' | '$where',
     subquery: any,
-    allow_null_foreign_keys = false,
-    orma_schema: OrmaSchema = {}
+    allow_null_foreign_keys: boolean,
+    orma_schema: OrmaSchema
 ) => {
     // we need to reverse the edge path since we are building the where ins
     // from the inside out

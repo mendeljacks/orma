@@ -18,125 +18,133 @@ import {
 
 describe('mutation_connected.ts', () => {
     const schema: OrmaSchema = {
-        vendors: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
+        $entities: {
+            vendors: {
+                $fields: { id: { primary_key: true, not_null: true } },
+                $database_type: 'mysql',
+            },
+            listings: {
+                $fields: { id: { primary_key: true, not_null: true } },
+                $database_type: 'mysql',
+            },
+            products: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    vendor_id: { not_null: true },
+                    listing_id: { not_null: true },
+                    title: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $indexes: [{ fields: ['title'], is_unique: true }],
+                $foreign_keys: [
+                    {
+                        from_field: 'vendor_id',
+                        to_entity: 'vendors',
+                        to_field: 'id',
+                    },
+                    {
+                        from_field: 'listing_id',
+                        to_entity: 'listings',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            categories: {
+                $fields: { id: { not_null: true, primary_key: true } },
+                $database_type: 'mysql',
+            },
+            warehouses: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    vendor_id: { not_null: true },
+                    name: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $indexes: [{ fields: ['name'], is_unique: true }],
+                $foreign_keys: [
+                    {
+                        from_field: 'vendor_id',
+                        to_entity: 'vendors',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            accounts: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    vendor_id1: {},
+                    vendor_id2: {},
+                },
+                $database_type: 'mysql',
+                $foreign_keys: [
+                    {
+                        from_field: 'vendor_id1',
+                        to_entity: 'vendors',
+                        to_field: 'id',
+                    },
+                    {
+                        from_field: 'vendor_id2',
+                        to_entity: 'vendors',
+                        to_field: 'id',
+                    },
+                ],
+            },
+            variants: {
+                $fields: {
+                    id: { primary_key: true, not_null: true },
+                    product_id: { not_null: true },
+                    sku: { not_null: true },
+                },
+                $database_type: 'mysql',
+                $indexes: [{ fields: ['sku'], is_unique: true }],
+                $foreign_keys: [
+                    {
+                        from_field: 'product_id',
+                        to_entity: 'products',
+                        to_field: 'id',
+                    },
+                ],
             },
         },
-        listings: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-        },
-        products: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            vendor_id: {
-                not_null: true,
-                references: {
-                    vendors: {
-                        id: {},
+        $cache: {
+            $reversed_foreign_keys: {
+                vendors: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'products',
+                        to_field: 'vendor_id',
                     },
-                },
-            },
-            listing_id: {
-                not_null: true,
-                references: {
-                    listings: {
-                        id: {},
+                    {
+                        from_field: 'id',
+                        to_entity: 'warehouses',
+                        to_field: 'vendor_id',
                     },
-                },
-            },
-            title: {
-                not_null: true,
-            },
-            $indexes: [
-                {
-                    fields: ['title'],
-                    is_unique: true,
-                },
-            ],
-        },
-        categories: {
-            $database_type: 'mysql',
-            id: {
-                not_null: true,
-                primary_key: true,
-            },
-        },
-        warehouses: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            vendor_id: {
-                not_null: true,
-                references: {
-                    vendors: {
-                        id: {},
+                    {
+                        from_field: 'id',
+                        to_entity: 'accounts',
+                        to_field: 'vendor_id1',
                     },
-                },
-            },
-            name: {
-                not_null: true,
-            },
-            $indexes: [
-                {
-                    fields: ['name'],
-                    is_unique: true,
-                },
-            ],
-        },
-        accounts: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            vendor_id1: {
-                references: {
-                    vendors: {
-                        id: {},
+                    {
+                        from_field: 'id',
+                        to_entity: 'accounts',
+                        to_field: 'vendor_id2',
                     },
-                },
-            },
-            vendor_id2: {
-                references: {
-                    vendors: {
-                        id: {},
+                ],
+                listings: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'products',
+                        to_field: 'listing_id',
                     },
-                },
-            },
-        },
-        variants: {
-            $database_type: 'mysql',
-            id: {
-                primary_key: true,
-                not_null: true,
-            },
-            product_id: {
-                not_null: true,
-                references: {
-                    products: {
-                        id: {},
+                ],
+                products: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'variants',
+                        to_field: 'product_id',
                     },
-                },
+                ],
             },
-            sku: { not_null: true },
-            $indexes: [
-                {
-                    fields: ['sku'],
-                    is_unique: true,
-                },
-            ],
         },
     }
 

@@ -5,55 +5,88 @@ import { OrmaQuery, SimplifiedQuery, WhereConnected } from './query_types'
 const getA = <K extends OrmaSchema>(a: K) => a
 
 const test_schema = getA({
-    products: {
-        $database_type: 'mysql',
-        id: {},
-        vendor_id: {
-            references: {
-                vendors: {
-                    id: {},
+    $entities: {
+        products: {
+            $database_type: 'mysql',
+            $fields: {
+                id: {},
+                vendor_id: {},
+                location_id: {},
+            },
+            $indexes: [],
+            $foreign_keys: [
+                {
+                    from_field: 'vendor_id',
+                    to_entity: 'vendors',
+                    to_field: 'id',
                 },
+                {
+                    from_field: 'location_id',
+                    to_entity: 'locations',
+                    to_field: 'id',
+                },
+            ],
+        },
+        vendors: {
+            $database_type: 'mysql',
+            $fields: {
+                id: {},
             },
         },
-        location_id: {
-            references: {
-                locations: {
-                    id: {},
+        images: {
+            $database_type: 'mysql',
+            $fields: {
+                id: {},
+                product_id: {},
+                url: {},
+            },
+            $foreign_keys: [
+                {
+                    from_field: 'product_id',
+                    to_entity: 'products',
+                    to_field: 'id',
                 },
+            ],
+        },
+        image_urls: {
+            $database_type: 'mysql',
+            $fields: {
+                image_id: {},
+            },
+            $foreign_keys: [
+                {
+                    from_field: 'image_id',
+                    to_entity: 'images',
+                    to_field: 'id',
+                },
+            ],
+        },
+        locations: {
+            $database_type: 'mysql',
+            $fields: {
+                id: {},
             },
         },
-        $indexes: [],
     },
-    vendors: {
-        $database_type: 'mysql',
-        id: {},
-    },
-    images: {
-        $database_type: 'mysql',
-        id: {},
-        product_id: {
-            references: {
-                products: {
-                    id: {},
-                },
-            },
-        },
-        url: {},
-    },
-    image_urls: {
-        $database_type: 'mysql',
-        image_id: {
-            references: {
-                images: {
-                    id: {},
-                },
-            },
-        },
-    },
-    locations: {
-        $database_type: 'mysql',
-        id: {},
-    },
+    $cache: {
+        $reversed_foreign_keys: {
+            vendors: [{
+                from_field: 'id',
+                to_entity: 'products',
+                to_field: 'vendor_id'
+            }],
+            products: [{
+                from_field: 'id',
+                to_entity: 'images',
+                to_field: 'product_id'
+            }],
+            images: [{
+                from_field: 'id',
+                to_entity: 'image_urls',
+                to_field: 'image_id'
+            }]
+        }
+    }
 } as const)
 
 type TestSchema = typeof test_schema
@@ -80,6 +113,8 @@ type TestSchema = typeof test_schema
             location_id: 0,
         },
     }
+
+    type T = GetAllEntities<OrmaSchema>
 }
 
 {
@@ -249,6 +284,8 @@ type TestSchema = typeof test_schema
             },
         ],
     }
+
+    type T = WhereConnected<TestSchema>
 
     const bad: OrmaQuery<TestSchema> = {
         $where_connected: [
