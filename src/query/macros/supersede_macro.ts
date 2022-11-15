@@ -39,6 +39,9 @@ export const apply_supersede_macro = async (
             }
         })
 
+        if (supersede_count === 0) {
+            resolve(undefined)
+        }
         mutation_entity_deep_for_each(mutation, async (value, path) => {
             if (value.$supersede?.length > 0) {
                 supersede_count -= 1
