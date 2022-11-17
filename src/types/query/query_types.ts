@@ -64,22 +64,30 @@ export type VirtualFieldObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    [VirtualFieldName in string]?: VirtualField<Schema, Entity>
+    [VirtualFieldName in string]?:
+        | object
+        | any[]
+        | number
+        | GetFields<Schema, Entity>
+        //| QueryField<Schema, Entity> //VirtualField<Schema, Entity>
+        | true
+        | Entity
 }
 
-export type VirtualField<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
-> =
-    // not all of these are valid in orma, but we need them because typescript will apply this virtual field type to
-    // all other properties too, e.g. $limit: 3 or id: true
-    | Subquery<Schema, Pluck<GetAllEdges<Schema, Entity>, 'to_entity'>, false>
-    | QueryField<Schema, Entity>
-    | Entity
-    | number
-    | GroupBy<Schema, Entity>
-    | OrderBy<Schema, Entity>
-    | any[] // TODO: replace this with a proper type for a $where clause. any[] is just for $eq: [] clauses
+// old types, had to simpify (less accurate types) to satisfy ts compiler
+// export type VirtualField<
+//     Schema extends OrmaSchema,
+//     Entity extends GetAllEntities<Schema>
+// > =
+//     // not all of these are valid in orma, but we need them because typescript will apply this virtual field type to
+//     // all other properties too, e.g. $limit: 3 or id: true
+//     | Subquery<Schema, Pluck<GetAllEdges<Schema, Entity>, 'to_entity'>, false>
+//     | QueryField<Schema, Entity>
+//     | Entity
+//     | number
+//     | GroupBy<Schema, Entity>
+//     | OrderBy<Schema, Entity>
+//     | any[] // TODO: replace this with a proper type for a $where clause. any[] is just for $eq: [] clauses
 
 export type FromObj<
     Schema extends OrmaSchema,
