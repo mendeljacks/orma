@@ -156,6 +156,9 @@ export const sql_function_definitions: {
     $upper: {
         ast_to_sql: args => `UPPER(${args})`,
     },
+    $date: {
+        ast_to_sql: args => `DATE(${args})`,
+    },
 
     // Postgres's PostGIS functions
     $st_distance: {
