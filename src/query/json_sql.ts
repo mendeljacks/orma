@@ -159,6 +159,13 @@ export const sql_function_definitions: {
     $date: {
         ast_to_sql: args => `DATE(${args})`,
     },
+    $if: {
+        ast_to_sql: args => `IF(${args.join(', ')})`,
+    },
+    $concat: {
+        ast_to_sql: args => `CONCAT(${args.join(', ')})`,
+        multiple_args: true,
+    },
 
     // Postgres's PostGIS functions
     $st_distance: {

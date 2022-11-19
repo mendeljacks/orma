@@ -106,6 +106,20 @@ describe('query', () => {
             const goal = format(`LOWER('hello')`)
             expect(sql).to.equal(goal)
         })
+        test('handles if', () => {
+            const json = {
+                $if: [{ $eq: [1, 1] }, 'yes', 'no'],
+            }
+            const sql = format(json_to_sql(json))
+            const goal = format(`if('1=1', 'yes', 'no')`)
+            expect(sql).to.equal(goal)
+        })
+        test('handles concat', () => {
+            const json = { $concat: [{ $escape: 'a' }, { $escape: 'b' }] }
+            const sql = format(json_to_sql(json))
+            const goal = format(`CONCAT('a', 'b')`)
+            expect(sql).to.equal(goal)
+        })
 
         test("ignores even number of '$not' commands", () => {
             const json = {
