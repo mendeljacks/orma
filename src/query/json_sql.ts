@@ -167,6 +167,22 @@ export const sql_function_definitions: {
         ast_to_sql: args => `CONCAT(${args.join(', ')})`,
         multiple_args: true,
     },
+    $multiply: {
+        ast_to_sql: args => `(${args.join(' * ')})`,
+        multiple_args: true,
+    },
+    $divide: {
+        ast_to_sql: args => `(${args.join(' / ')})`,
+        multiple_args: true,
+    },
+    $add: {
+        ast_to_sql: args => `(${args.join(' + ')})`,
+        multiple_args: true,
+    },
+    $subtract: {
+        ast_to_sql: args => `(${args.join(' - ')})`,
+        multiple_args: true,
+    },
 
     // Postgres's PostGIS functions
     $st_distance: {
