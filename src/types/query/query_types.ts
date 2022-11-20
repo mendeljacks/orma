@@ -70,7 +70,7 @@ export type VirtualFieldObj<
         | number
         | GetFields<Schema, Entity>
         //| QueryField<Schema, Entity> //VirtualField<Schema, Entity>
-        | true
+        | boolean
         | Entity
 }
 
