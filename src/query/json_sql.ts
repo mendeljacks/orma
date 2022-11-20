@@ -151,12 +151,10 @@ export const sql_function_definitions: {
         multiple_args: true,
     },
     $floor: {
-        ast_to_sql: args => `FLOOR(${args.join(', ')})`,
-        multiple_args: true,
+        ast_to_sql: args => `FLOOR(${args})`,
     },
     $ceil: {
-        ast_to_sql: args => `CEIL(${args.join(', ')})`,
-        multiple_args: true,
+        ast_to_sql: args => `CEIL(${args})`,
     },
     $lower: {
         ast_to_sql: args => `LOWER(${args})`,
