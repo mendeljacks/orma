@@ -1,6 +1,6 @@
 import { sql_function_definitions } from '../json_sql'
 
-const alias_regex = '^[A-Za-z0-9_]+$' // alphanumeric and _
+const alias_regex = '^[A-Za-z0-9_$]+$' // alphanumeric and _
 
 const primitive_schema = {
     oneOf: [
