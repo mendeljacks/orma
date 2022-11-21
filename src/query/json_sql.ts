@@ -150,6 +150,12 @@ export const sql_function_definitions: {
         ast_to_sql: args => `ROUND(${args.join(', ')})`,
         multiple_args: true,
     },
+    $floor: {
+        ast_to_sql: args => `FLOOR(${args})`,
+    },
+    $ceil: {
+        ast_to_sql: args => `CEIL(${args})`,
+    },
     $lower: {
         ast_to_sql: args => `LOWER(${args})`,
     },
@@ -164,6 +170,22 @@ export const sql_function_definitions: {
     },
     $concat: {
         ast_to_sql: args => `CONCAT(${args.join(', ')})`,
+        multiple_args: true,
+    },
+    $multiply: {
+        ast_to_sql: args => `(${args.join(' * ')})`,
+        multiple_args: true,
+    },
+    $divide: {
+        ast_to_sql: args => `(${args.join(' / ')})`,
+        multiple_args: true,
+    },
+    $add: {
+        ast_to_sql: args => `(${args.join(' + ')})`,
+        multiple_args: true,
+    },
+    $subtract: {
+        ast_to_sql: args => `(${args.join(' - ')})`,
         multiple_args: true,
     },
 
