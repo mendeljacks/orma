@@ -262,6 +262,10 @@ export const generate_database_schema = (
             to_entity: referenced_table_name,
             to_field: referenced_column_name,
         })
+
+        entity_schema.$foreign_keys.sort((a, b) =>
+            sort_by_prop(a, b, 'from_field')
+        )
     }
 
     const index_schemas = generate_index_schemas(mysql_indexes)
