@@ -161,7 +161,6 @@ export const sql_function_definitions: {
     },
     $if: {
         ast_to_sql: args => `IF(${args.join(', ')})`,
-        multiple_args: true,
     },
     $concat: {
         ast_to_sql: args => `CONCAT(${args.join(', ')})`,

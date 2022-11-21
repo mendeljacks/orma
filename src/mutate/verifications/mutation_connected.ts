@@ -3,6 +3,7 @@ import { group_by } from '../../helpers/helpers'
 import { reverse_edge } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { edge_path_to_where_ins } from '../../query/macros/any_path_macro'
+import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import {
     ConnectionEdges,
     get_edge_paths_by_destination,
@@ -138,19 +139,25 @@ export const get_primary_key_wheres = (
             ({ record }) =>
                 record.$operation === 'update' || record.$operation === 'delete'
         )
-        .map(
-            mutation_pieces =>
-                generate_record_where_clause(
-                    mutation_pieces,
-                    {}, // no values_by_guid since this is a pre middleware
-                    orma_schema,
-                    // force a value for now - no guid allowed (maybe change this in future when I figure out
-                    // what to do in this case)
-                    false,
-                    true
-                )?.where
-        )
-        .filter(el => el !== undefined)
+        .flatMap(mutation_pieces => {
+            const where = generate_record_where_clause(
+                mutation_pieces,
+                {}, // no values_by_guid since this is a pre middleware
+                orma_schema,
+                // force a value for now - no guid allowed (maybe change this in future when I figure out
+                // what to do in this case)
+                false,
+                true
+            )?.where
+
+            if (where) {
+                // must apply escape macro since we need valid SQL AST
+                apply_escape_macro_to_query_part(orma_schema, entity, where)
+                return [where]
+            } else {
+                return []
+            }
+        })
 
     // the first case is because if this entity is the ownership entity, then we dont need to wrap in $where $ins.
     // the second case is if there are no identifying keys (e.g. all creates or only $guids)

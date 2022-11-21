@@ -60,7 +60,7 @@ describe('guid_processing.ts', () => {
     describe(sort_database_rows.name, () => {
         test('throws if not enough mysql results', () => {
             try {
-                sort_database_rows([], [{}], [], {}, schema)
+                sort_database_rows([], [], [], {}, schema)
                 expect('should throw an error').to.equal(true)
             } catch (error) {}
         })
@@ -96,11 +96,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'products' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['products'],
                 query_results,
                 {},
                 schema
@@ -151,11 +149,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'products' }, { $from: 'images' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['products', 'images'],
                 query_results,
                 {},
                 schema
@@ -206,11 +202,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'users' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['users'],
                 query_results,
                 {},
                 schema
@@ -258,11 +252,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'products' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['products'],
                 query_results,
                 {},
                 schema
@@ -303,11 +295,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'products' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['products'],
                 query_results,
                 {},
                 schema

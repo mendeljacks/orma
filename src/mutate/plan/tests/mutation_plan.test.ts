@@ -537,6 +537,44 @@ describe('mutation_plan.ts', () => {
 
             expect(mutate_plan).to.deep.equal(goal)
         })
+        test('set a child foreign key while creating the parent', () => {
+            const mutation = {
+                children: [
+                    {
+                        $operation: 'update',
+                        id: 1,
+                        parent_id: { $guid: 1 },
+                        parents: [
+                            {
+                                id: { $guid: 1 },
+                                $operation: 'create',
+                            },
+                        ],
+                    },
+                ],
+            }
+
+            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+
+            const goal = {
+                mutation_pieces: [
+                    {
+                        record: mutation.children[0].parents[0],
+                        path: ['children', 0, 'parents', 0],
+                    },
+                    {
+                        record:  mutation.children[0],
+                        path: ['children', 0],
+                    },
+                ],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 },
+                ],
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
     })
     describe(run_mutation_plan.name, () => {
         test('runs mutation plan', async () => {

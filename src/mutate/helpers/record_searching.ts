@@ -1,5 +1,5 @@
-import { orma_escape } from '../../helpers/escape'
 import { OrmaSchema } from '../../introspector/introspector'
+import { combine_wheres } from '../../query/query_helpers'
 import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import {
@@ -34,22 +34,35 @@ export const generate_record_where_clause = (
         return { identifying_keys }
     }
 
+    const where = generate_record_where_clause_from_identifying_keys(
+        values_by_guid,
+        identifying_keys,
+        mutation_piece
+    )
+
+    return { where, identifying_keys }
+}
+
+export const generate_record_where_clause_from_identifying_keys = (
+    values_by_guid: ValuesByGuid,
+    identifying_keys: string[],
+    mutation_piece: MutationPiece
+) => {
     const where_clauses = identifying_keys.map(key => ({
         $eq: [
             key,
-            orma_escape(
-                get_resolved_mutation_value(record, key, values_by_guid),
-                orma_schema.$entities[entity_name].$database_type
-            ),
+            {
+                $escape: get_resolved_mutation_value(
+                    mutation_piece.record,
+                    key,
+                    values_by_guid
+                ),
+            },
         ],
     }))
 
-    const where =
-        where_clauses.length > 1
-            ? {
-                  $and: where_clauses,
-              }
-            : where_clauses?.[0]
+    // this will not be undefined if identifying_keys is not empty, which is assumed true
+    const where = combine_wheres(where_clauses, '$and') ?? {}
 
-    return { where, identifying_keys }
+    return where
 }

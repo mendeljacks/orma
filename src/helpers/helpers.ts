@@ -239,7 +239,7 @@ function getRegExpFlags(regExp) {
 
 export const group_by = <T>(
     array: T[],
-    key_function: (item: T, i?: number) => string
+    key_function: (item: T, i: number) => string
 ): Record<string, T[]> =>
     array.reduce((acc, item, i) => {
         const key = key_function(item, i)
@@ -256,7 +256,7 @@ export const group_by = <T>(
  */
 export const key_by = <T>(
     array: T[],
-    key_function: (item: T, i?: number) => string
+    key_function: (item: T, i: number) => string
 ): Record<string, T> =>
     array.reduce((acc, item, i) => {
         const key = key_function(item, i)
@@ -325,3 +325,19 @@ export const difference = <T>(array_1: T[], array_2: any[]) => {
     const array_2_set = new Set(array_2)
     return array_1.filter(el => !array_2_set.has(el))
 }
+
+export const map_object = <
+    InObj extends Record<any, any>,
+    OutKey extends string,
+    OutValue
+>(
+    obj: InObj,
+    fn: (
+        key: keyof InObj,
+        value: InObj[keyof InObj],
+        index: number
+    ) => [Key: OutKey, Value: OutValue]
+) =>
+    Object.fromEntries(
+        Object.entries(obj).map(([k, v], i) => fn(k, v, i))
+    ) as Record<OutKey, OutValue>

@@ -70,6 +70,90 @@ To install orma with npm, run
 npm install orma
 ```
 
+## What can orma do?
+This examples demonstrates some of orma's features by querying some data from a database, editing that data and saving it back to the database.
+
+```js
+import mysql from 'mysql2'
+import { get_mutation_diff, orma_query, orma_mutate, mysql2_adapter } from 'orma'
+import { orma_schema } from './orma_schema'
+
+// set up our database connection. Orma does not make its own database connection 
+// so that the programmer has access to and control over any SQL queries that are run
+const pool = mysql
+    .createPool({
+        host: env.host,
+        port: env.port,
+        user: env.user,
+        password: env.password,
+        database: env.database,
+        multipleStatements: true,
+    })
+    .promise()
+
+const orma_sql_function = mysql2_adapter(pool)
+
+// fetch data from the database using a query
+const query = {
+    // This query only has access to users 1 and 2.
+    // Only records connected to these users will be returned.
+    $where_connected: [{
+        $entity: 'users',
+        $field: 'id',
+        $values: [1, 2]
+    }],
+    // return all the users we have access to
+    users: {
+        id: true,
+        first_name: true,
+        email: true,
+        // return posts for each user
+        posts: {
+            id: true,
+            title: true,
+            views: true,
+            // only return posts that have 100 or more views, 
+            // or whose title starts with 'First'
+            $where: {
+                $or: [{
+                    $gte: ['view', { $escape: 100 }]
+                }, {
+                    $like: ['title', { $escape: 'First%' }]
+                }]
+            }
+        }
+    },
+}
+
+// execute the query
+const original = await orma_query(query, orma_schema, orma_sql_function)
+// {
+//     users: [{
+//         id: 1,
+//         first_name: 'Alice',
+//         email: 'aa@a.com',
+//         posts: [{
+//             id: 10
+//             title: 'First post!',
+//             views: 2
+//         }, ...]
+//     }, ...]
+// }
+
+// create a copy of the original data with a different view count
+const modified = clone(original)
+modified.users[0].posts[0].views = 3
+
+// automatically compute the difference between the original and modieifed versions,
+// and store it in an orma mutation
+const mutation_diff = get_mutation_diff(original, modified)
+
+// save the changes to the database
+await orma_mutate(mutation_diff, orma_sql_function, orma_schema)
+
+// the post with id 10 now has 3 views instead of 2
+```
+
 ## Database connector
 
 Orma is not opinionated on database connectors, so feel free to use your favourite one. The examples here will use [mysql2](https://www.npmjs.com/package/mysql2). To use Orma with a database library that is not yet supported, you can write your own adapter. This is relatively straightforward to implement, please check the [source code](src/helpers/database_adapters.ts) for details on what the adapter needs to do.
@@ -459,7 +543,9 @@ Pagination is done though the $limit and $offset keywords, which work the same w
     }, {
         id: 2,
         first_name: 'Bob'
-        // Even though Bob has posts, they are not fetched because 1 post was already fetched for Alice
+        // Even though Bob has posts, 
+        // they are not fetched because 
+        // 1 post was already fetched for Alice
     }]
 }
 ```
@@ -713,7 +799,9 @@ Sometimes you want to search for some record based on the existence of some othe
         },
         $where: {
             $any_path: [['posts', 'comments', 'users'], {
-                // The second argument of $any_path is the same as a $where clause of the last entity in the path, in this case a $where clause on 'users'
+                // The second argument of $any_path is the same 
+                // as a $where clause of the last entity in the 
+                // path, in this case a $where clause on 'users'
                 $eq: ['first_name', { $escape: 'Bob' }]
             }]
         }
@@ -725,7 +813,8 @@ Sometimes you want to search for some record based on the existence of some othe
     
 ```js
 {
-    // only Alice's user is returned, since only Alice has a post that was commented on by Bob
+    // only Alice's user is returned, since only Alice 
+    // has a post that was commented on by Bob
     users: [{
         first_name: 'Alice',
         posts: [{ 
@@ -744,10 +833,18 @@ Sometimes you want to search for some record based on the existence of some othe
 </td><td>
     
 ```sql
-SELECT first_name FROM users WHERE id IN (
-    SELECT user_id FROM posts WHERE id IN (
-        SELECT post_id FROM comments WHERE user_id IN (
-            SELECT id FROM users WHERE first_name = 'Bob'
+SELECT first_name 
+FROM users 
+WHERE id IN (
+    SELECT user_id 
+    FROM posts 
+    WHERE id IN (
+        SELECT post_id 
+        FROM comments 
+        WHERE user_id IN (
+            SELECT id 
+            FROM users 
+            WHERE first_name = 'Bob'
         )
     )
 )
@@ -785,7 +882,8 @@ Like in regular SQL, Orma allows subqueries inside where clauses. Although these
     
 ```js
 {
-    // The user that has a post with id 1 is returned (Alice in this case)
+    // The user that has a post with id 1 
+    // is returned (Alice in this case)
     users: [{
         first_name: 'Alice',
         posts: [{ 
@@ -798,8 +896,12 @@ Like in regular SQL, Orma allows subqueries inside where clauses. Although these
 </td><td>
     
 ```sql
-SELECT first_name FROM users WHERE id IN (
-    SELECT user_id FROM posts WHERE id = 1
+SELECT first_name 
+FROM users 
+WHERE id IN (
+    SELECT user_id 
+    FROM posts 
+    WHERE id = 1
 )
 ```
 
@@ -942,9 +1044,11 @@ The $select syntax can be used as an alternative to regular subqueries. The main
 </td><td>
     
 ```sql
-SELECT id FROM users;
+SELECT id 
+FROM users;
 
-SELECT user_id, first_name FROM posts
+SELECT user_id, first_name 
+FROM posts
 ```
 
 </td></tr>
@@ -985,14 +1089,17 @@ SELECT user_id, first_name FROM posts
     
 ```sql
 SELECT id, (
-    SELECT first_name FROM users WHERE id = posts.user_id
-) FROM posts
+    SELECT first_name 
+    FROM users 
+    WHERE id = posts.user_id
+) AS user_first_name
+FROM posts
 ```
 
 </td></tr>
 </table>
 
-> ⚠️ $select and $as currently do not provide types on the query result, but they are otherwise fully supported.
+> ⚠️ $select and $as currently do not provide types on the query result, but are otherwise fully supported.
 
 # Mutations
 
@@ -1007,7 +1114,8 @@ import { get_mutation_diff, orma_query, orma_mutate } from 'orma'
 
 const query = {
     users: {
-        id: true,
+        // selecting the id field is required for mutation diffs to work
+        id: true, 
         first_name: true,
         last_name: true,
     },
@@ -1129,7 +1237,10 @@ It can be cumbersome to write an operation on each record (especially when creat
             id: 2,
             views: 123
         }, {
-            // operation cascading is overriden by explicitly setting the operation to be create. Any records nested under this one will be inferred as a create, rather than an update
+            // operation cascading is overriden by explicitly 
+            // setting the operation to be create. Any records 
+            // nested under this one will be inferred as a create, 
+            // rather than an update
             $operation: 'create',
             title: 'My post'
         }]

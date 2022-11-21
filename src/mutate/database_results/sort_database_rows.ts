@@ -17,19 +17,19 @@ type DatabaseIndexesByEntity = {
 
 export const sort_database_rows = (
     mutation_pieces: MutationPiece[],
-    queries: Record<string, any>[],
+    query_entities: string[],
     query_results: Record<string, any>[][],
     values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema
 ) => {
-    if (query_results.length !== queries.length) {
+    if (query_results.length !== query_entities.length) {
         throw new Error(
             'Mysql function should return one array of rows per query'
         )
     }
 
     const database_indexes_by_entity = get_database_indexes_by_entity(
-        queries,
+        query_entities,
         query_results,
         orma_schema
     )
@@ -45,13 +45,12 @@ export const sort_database_rows = (
 }
 
 const get_database_indexes_by_entity = (
-    queries: Record<string, any>[],
+    query_entities: string[],
     query_results: Record<string, any>[][],
     orma_schema: OrmaSchema
 ) => {
-    const database_indexes_by_entity = queries.reduce<DatabaseIndexesByEntity>(
-        (acc, query, query_index) => {
-            const entity = query.$from
+    const database_indexes_by_entity = query_entities.reduce<DatabaseIndexesByEntity>(
+        (acc, entity, query_index) => {
             const possible_identifying_keys = get_possible_identifying_keys(
                 entity,
                 orma_schema

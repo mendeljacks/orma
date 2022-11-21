@@ -62,7 +62,7 @@ export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
     return mutation_plan
 }
 
-const flatten_mutation = mutation => {
+export const flatten_mutation = mutation => {
     let flat_mutation: MutationPiece[] = []
     mutation_entity_deep_for_each(mutation, (record: MutationPiece['record'], path, entity) => {
         flat_mutation.push({ record, path })
