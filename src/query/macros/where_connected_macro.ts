@@ -111,7 +111,7 @@ const apply_where_connected_to_subquery = (
     orma_schema: OrmaSchema
 ) => {
     const existing_wheres = [subquery.$where] ?? []
-    const connected_where = get_connected_where_clause(
+    const connected_where = get_where_connected_clause(
         connection_edges,
         $where_connected,
         entity_name,
@@ -126,7 +126,7 @@ const apply_where_connected_to_subquery = (
     subquery.$where = new_where
 }
 
-const get_connected_where_clause = (
+export const get_where_connected_clause = (
     connection_edges: ConnectionEdges,
     $where_connected: WhereConnected<OrmaSchema>,
     entity_name: string,
