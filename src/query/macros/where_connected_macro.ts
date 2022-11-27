@@ -129,11 +129,11 @@ const apply_where_connected_to_subquery = (
     )
 
     const connected_where = get_where_connected_clause(
+        orma_schema,
         connection_edges,
-        target_entity_wheres,
         entity_name,
         higher_entity,
-        orma_schema
+        target_entity_wheres,
     )
     const existing_wheres = [subquery.$where] ?? []
     const new_where = combine_wheres(
@@ -145,11 +145,11 @@ const apply_where_connected_to_subquery = (
 }
 
 export const get_where_connected_clause = (
+    orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
-    target_entity_wheres: { entity: string; where: Record<string, any> }[],
     filtered_entity: string,
-    higher_entity: string | undefined = undefined,
-    orma_schema: OrmaSchema
+    higher_entity: string | undefined,
+    target_entity_wheres: { entity: string; where: Record<string, any> }[],
 ) => {
     const edge_paths_by_destination = get_edge_paths_by_destination(
         connection_edges,
