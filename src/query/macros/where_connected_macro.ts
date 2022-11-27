@@ -110,14 +110,32 @@ const apply_where_connected_to_subquery = (
     higher_entity: string | undefined = undefined,
     orma_schema: OrmaSchema
 ) => {
-    const existing_wheres = [subquery.$where] ?? []
+    const target_entity_wheres = $where_connected.map(
+        ({ $entity, $field, $values }) => {
+            const where = {
+                $in: [
+                    $field,
+                    $values.map(el =>
+                        orma_escape(
+                            el,
+                            orma_schema.$entities[$entity].$database_type
+                        )
+                    ),
+                ],
+            }
+
+            return { entity: $entity, where }
+        }
+    )
+
     const connected_where = get_where_connected_clause(
         connection_edges,
-        $where_connected,
+        target_entity_wheres,
         entity_name,
         higher_entity,
         orma_schema
     )
+    const existing_wheres = [subquery.$where] ?? []
     const new_where = combine_wheres(
         [...existing_wheres, connected_where],
         '$and'
@@ -128,20 +146,20 @@ const apply_where_connected_to_subquery = (
 
 export const get_where_connected_clause = (
     connection_edges: ConnectionEdges,
-    $where_connected: WhereConnected<OrmaSchema>,
-    entity_name: string,
+    target_entity_wheres: { entity: string; where: Record<string, any> }[],
+    filtered_entity: string,
     higher_entity: string | undefined = undefined,
     orma_schema: OrmaSchema
 ) => {
     const edge_paths_by_destination = get_edge_paths_by_destination(
         connection_edges,
-        entity_name
+        filtered_entity
     )
 
-    const connection_clauses = $where_connected.flatMap(
-        ({ $entity, $field, $values }) => {
+    const connection_clauses = target_entity_wheres.flatMap(
+        ({ entity, where }) => {
             // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
-            const all_edge_paths = (edge_paths_by_destination[$entity] ??
+            const all_edge_paths = (edge_paths_by_destination[entity] ??
                 []) as typeof edge_paths_by_destination[string]
 
             // (optimization) if the higher table is the parent table, we dont need to do extra filtering.
@@ -154,20 +172,11 @@ export const get_where_connected_clause = (
                     edge_path[0].to_entity !== higher_entity
             )
 
-            const inner_clause = {
-                $in: [
-                    $field,
-                    $values.map(el =>
-                        orma_escape(el, orma_schema.$entities[$entity].$database_type)
-                    ),
-                ],
-            }
-
             const clauses = edge_paths.map(edge_path => {
                 const clause = edge_path_to_where_ins(
                     edge_path,
                     '$where',
-                    inner_clause,
+                    where,
                     true,
                     orma_schema
                 )
@@ -178,8 +187,8 @@ export const get_where_connected_clause = (
             // if the entity that we are generating the where clause for is the same as the $where_connected entity,
             // then we need to generate an extra where clause, since an entity is always connected to itself,
             // but there is no edge in the connection_edges stating this
-            if ($entity === entity_name) {
-                clauses.push(inner_clause)
+            if (entity === filtered_entity) {
+                clauses.push(where)
             }
 
             return clauses
