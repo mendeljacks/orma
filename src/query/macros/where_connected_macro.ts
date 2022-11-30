@@ -10,7 +10,9 @@ import { push_path } from '../../helpers/push_path'
 import {
     Edge,
     get_entity_names,
+    get_field_is_nullable,
     get_parent_edges,
+    is_parent_entity,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { WhereConnected } from '../../types/query/query_types'
@@ -133,7 +135,7 @@ const apply_where_connected_to_subquery = (
         connection_edges,
         entity_name,
         higher_entity,
-        target_entity_wheres,
+        target_entity_wheres
     )
     const existing_wheres = [subquery.$where] ?? []
     const new_where = combine_wheres(
@@ -149,7 +151,7 @@ export const get_where_connected_clause = (
     connection_edges: ConnectionEdges,
     filtered_entity: string,
     higher_entity: string | undefined,
-    target_entity_wheres: { entity: string; where: Record<string, any> }[],
+    target_entity_wheres: { entity: string; where: Record<string, any> }[]
 ) => {
     const edge_paths_by_destination = get_edge_paths_by_destination(
         connection_edges,
@@ -176,9 +178,7 @@ export const get_where_connected_clause = (
                 const clause = edge_path_to_where_ins(
                     edge_path,
                     '$where',
-                    where,
-                    true,
-                    orma_schema
+                    where
                 )
 
                 return clause
@@ -189,6 +189,54 @@ export const get_where_connected_clause = (
             // but there is no edge in the connection_edges stating this
             if (entity === filtered_entity) {
                 clauses.push(where)
+            } else {
+                // TODO: write up a proper explanation with truth tables. Basically the where clause checks that there
+                // is at least one connected record. But in cases where all edge paths have a nullable (or reverse nested)
+                // edge, then there could be NO connected record. In that case, there is not one connected record, but since
+                // there are also no non-connected records, we allow it explicitly. Note that this only applies
+                // if we are not directly checking the root level (which is why its in the else)
+                const should_check_no_connected_entity =
+                    edge_paths.length > 0 &&
+                    edge_paths.every(edge_path => {
+                        const is_nullable_or_reversed = edge_path.some(edge => {
+                            const is_reversed = is_parent_entity(
+                                edge.from_entity,
+                                edge.to_entity,
+                                orma_schema
+                            )
+                            const is_nullable =
+                                !is_reversed &&
+                                get_field_is_nullable(
+                                    orma_schema,
+                                    edge.from_entity,
+                                    edge.from_field
+                                )
+
+                            return is_reversed || is_nullable
+                        })
+                        return is_nullable_or_reversed
+                    })
+
+                // this clause is true if there are no connected entities
+                if (should_check_no_connected_entity) {
+                    const no_connected_entity_clauses = edge_paths.map(
+                        edge_path => {
+                            const clause = edge_path_to_where_ins(
+                                edge_path,
+                                '$where',
+                                undefined
+                            )
+
+                            return clause
+                        }
+                    )
+                    clauses.push({
+                        $not: combine_wheres(
+                            no_connected_entity_clauses,
+                            '$or'
+                        ),
+                    })
+                }
             }
 
             return clauses

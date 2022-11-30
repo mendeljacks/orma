@@ -28,7 +28,7 @@ export { apply_inherit_operations_macro } from './mutate/macros/inherit_operatio
 export { path_to_entity as mutation_path_to_entity } from './mutate/helpers/mutate_helpers'
 
 // introspect
-export { orma_introspect } from './introspector/introspector'
+export { orma_introspect, generate_orma_schema_cache } from './introspector/introspector'
 
 // adapters
 export { mysql2_adapter } from './helpers/database_adapters'
