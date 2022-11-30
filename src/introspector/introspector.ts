@@ -531,7 +531,7 @@ export const orma_introspect = async (
 
     const $cache = generate_orma_schema_cache(orma_schema.$entities)
     //@ts-ignore can mutate
-    orma_schema.$cache = cache
+    orma_schema.$cache = $cache
 
     return orma_schema
 }
