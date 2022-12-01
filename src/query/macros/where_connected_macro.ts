@@ -161,18 +161,21 @@ export const get_where_connected_clause = (
     const connection_clauses = target_entity_wheres.flatMap(
         ({ entity, where }) => {
             // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
-            const all_edge_paths = (edge_paths_by_destination[entity] ??
+            const edge_paths = (edge_paths_by_destination[entity] ??
                 []) as typeof edge_paths_by_destination[string]
 
-            // (optimization) if the higher table is the parent table, we dont need to do extra filtering.
-            // This is because orma will already filter this to be a child of the higher table,
-            // so we only need to put the extra where clause on the higher table.
-            // We only check the entity since the column of the foreign key is inferred by orma (there must be only one)
-            const edge_paths = all_edge_paths.filter(
-                edge_path =>
-                    higher_entity === undefined || // if no higher entity is provided, then skip the optimization
-                    edge_path[0].to_entity !== higher_entity
-            )
+            // This optimization was not working with multiple edge paths, where an edge path is the higher table,
+            // but the higher table is a reverse nest and the edge path also starts with a reverse nest (the higher table)
+            // maybe add this back after properly thinking through the implications...
+            // // (optimization) if the higher table is the parent table, we dont need to do extra filtering.
+            // // This is because orma will already filter this to be a child of the higher table,
+            // // so we only need to put the extra where clause on the higher table.
+            // // We only check the entity since the column of the foreign key is inferred by orma (there must be only one)
+            // const edge_paths = all_edge_paths.filter(
+            //     edge_path =>
+            //         higher_entity === undefined || // if no higher entity is provided, then skip the optimization
+            //         edge_path[0].to_entity !== higher_entity
+            // )
 
             const clauses = edge_paths.map(edge_path => {
                 const clause = edge_path_to_where_ins(
