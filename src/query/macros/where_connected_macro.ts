@@ -114,7 +114,7 @@ const apply_where_connected_to_subquery = (
 ) => {
     const target_entity_wheres = $where_connected.map(
         ({ $entity, $field, $values }) => {
-            const where = {
+            const target_where = {
                 $in: [
                     $field,
                     $values.map(el =>
@@ -126,129 +126,146 @@ const apply_where_connected_to_subquery = (
                 ],
             }
 
-            return { entity: $entity, where }
+            const edge_paths_by_destination = get_edge_paths_by_destination(
+                connection_edges,
+                entity_name
+            )
+
+            const is_connected_wheres = get_where_connected_clauses(
+                orma_schema,
+                edge_paths_by_destination,
+                entity_name,
+                $entity,
+                target_where
+            )
+
+            const not_connected_wheres = get_where_not_connected_clauses(
+                orma_schema,
+                edge_paths_by_destination,
+                entity_name,
+                $entity
+            )
+
+            // considered connected to a specific target entity if one of the edge paths
+            // are connected, or if none of the edge paths are connected
+            return combine_wheres([...is_connected_wheres, ...not_connected_wheres], '$or')
         }
     )
 
-    const connected_where = get_where_connected_clause(
-        orma_schema,
-        connection_edges,
-        entity_name,
-        higher_entity,
-        target_entity_wheres
-    )
+    // only return results that would have been returned by the user where, and are connected
+    // (or have no connections) to every entity in the $where_connected
     const existing_wheres = [subquery.$where] ?? []
     const new_where = combine_wheres(
-        [...existing_wheres, connected_where],
+        [...existing_wheres, ...target_entity_wheres],
         '$and'
     )
 
     subquery.$where = new_where
 }
 
-export const get_where_connected_clause = (
+export const get_where_connected_clauses = (
     orma_schema: OrmaSchema,
-    connection_edges: ConnectionEdges,
+    edge_paths_by_destination: ReturnType<typeof get_edge_paths_by_destination>,
     filtered_entity: string,
-    higher_entity: string | undefined,
-    target_entity_wheres: { entity: string; where: Record<string, any> }[]
+    target_entity: string,
+    target_where: Record<string, any>
 ) => {
-    const edge_paths_by_destination = get_edge_paths_by_destination(
-        connection_edges,
-        filtered_entity
-    )
+    // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
+    const edge_paths = (edge_paths_by_destination[target_entity] ??
+        []) as typeof edge_paths_by_destination[string]
 
-    const connection_clauses = target_entity_wheres.flatMap(
-        ({ entity, where }) => {
-            // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
-            const edge_paths = (edge_paths_by_destination[entity] ??
-                []) as typeof edge_paths_by_destination[string]
+    // This optimization was not working with multiple edge paths, where an edge path is the higher table,
+    // but the higher table is a reverse nest and the edge path also starts with a reverse nest (the higher table)
+    // maybe add this back after properly thinking through the implications...
+    // // (optimization) if the higher table is the parent table, we dont need to do extra filtering.
+    // // This is because orma will already filter this to be a child of the higher table,
+    // // so we only need to put the extra where clause on the higher table.
+    // // We only check the entity since the column of the foreign key is inferred by orma (there must be only one)
+    // const edge_paths = all_edge_paths.filter(
+    //     edge_path =>
+    //         higher_entity === undefined || // if no higher entity is provided, then skip the optimization
+    //         edge_path[0].to_entity !== higher_entity
+    // )
 
-            // This optimization was not working with multiple edge paths, where an edge path is the higher table,
-            // but the higher table is a reverse nest and the edge path also starts with a reverse nest (the higher table)
-            // maybe add this back after properly thinking through the implications...
-            // // (optimization) if the higher table is the parent table, we dont need to do extra filtering.
-            // // This is because orma will already filter this to be a child of the higher table,
-            // // so we only need to put the extra where clause on the higher table.
-            // // We only check the entity since the column of the foreign key is inferred by orma (there must be only one)
-            // const edge_paths = all_edge_paths.filter(
-            //     edge_path =>
-            //         higher_entity === undefined || // if no higher entity is provided, then skip the optimization
-            //         edge_path[0].to_entity !== higher_entity
-            // )
+    const clauses = edge_paths.map(edge_path => {
+        const clause = edge_path_to_where_ins(edge_path, '$where', target_where)
 
-            const clauses = edge_paths.map(edge_path => {
-                const clause = edge_path_to_where_ins(
-                    edge_path,
-                    '$where',
-                    where
+        return clause
+    })
+
+    // if the entity that we are generating the where clause for is the same as the $where_connected entity,
+    // then we need to generate an extra where clause, since an entity is always connected to itself,
+    // but there is no edge in the connection_edges stating this
+    if (target_entity === filtered_entity) {
+        clauses.push(target_where)
+    }
+
+    return clauses
+}
+
+const get_where_not_connected_clauses = (
+    orma_schema: OrmaSchema,
+    edge_paths_by_destination: ReturnType<typeof get_edge_paths_by_destination>,
+    filtered_entity: string,
+    target_entity: string
+) => {
+    // entities are always connected to themself, so a where not connected clause makes
+    // no sense if the target entity is also the filtered entity
+    if (target_entity === filtered_entity) {
+        return []
+    }
+
+    // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
+    const edge_paths = (edge_paths_by_destination[target_entity] ??
+        []) as typeof edge_paths_by_destination[string]
+
+    // TODO: write up a proper explanation with truth tables. Basically the where clause checks that there
+    // is at least one connected record. But in cases where all edge paths have a nullable (or reverse nested)
+    // edge, then there could be NO connected record. In that case, there is not one connected record, but since
+    // there are also no non-connected records, we allow it explicitly. Note that this only applies
+    // if we are not directly checking the root level (which is why its in the else)
+    const should_check_no_connected_entity =
+        edge_paths.length > 0 &&
+        edge_paths.every(edge_path => {
+            const is_nullable_or_reversed = edge_path.some(edge => {
+                const is_reversed = is_parent_entity(
+                    edge.from_entity,
+                    edge.to_entity,
+                    orma_schema
                 )
-
-                return clause
-            })
-
-            // if the entity that we are generating the where clause for is the same as the $where_connected entity,
-            // then we need to generate an extra where clause, since an entity is always connected to itself,
-            // but there is no edge in the connection_edges stating this
-            if (entity === filtered_entity) {
-                clauses.push(where)
-            } else {
-                // TODO: write up a proper explanation with truth tables. Basically the where clause checks that there
-                // is at least one connected record. But in cases where all edge paths have a nullable (or reverse nested)
-                // edge, then there could be NO connected record. In that case, there is not one connected record, but since
-                // there are also no non-connected records, we allow it explicitly. Note that this only applies
-                // if we are not directly checking the root level (which is why its in the else)
-                const should_check_no_connected_entity =
-                    edge_paths.length > 0 &&
-                    edge_paths.every(edge_path => {
-                        const is_nullable_or_reversed = edge_path.some(edge => {
-                            const is_reversed = is_parent_entity(
-                                edge.from_entity,
-                                edge.to_entity,
-                                orma_schema
-                            )
-                            const is_nullable =
-                                !is_reversed &&
-                                get_field_is_nullable(
-                                    orma_schema,
-                                    edge.from_entity,
-                                    edge.from_field
-                                )
-
-                            return is_reversed || is_nullable
-                        })
-                        return is_nullable_or_reversed
-                    })
-
-                // this clause is true if there are no connected entities
-                if (should_check_no_connected_entity) {
-                    const no_connected_entity_clauses = edge_paths.map(
-                        edge_path => {
-                            const clause = edge_path_to_where_ins(
-                                edge_path,
-                                '$where',
-                                undefined
-                            )
-
-                            return clause
-                        }
+                const is_nullable =
+                    !is_reversed &&
+                    get_field_is_nullable(
+                        orma_schema,
+                        edge.from_entity,
+                        edge.from_field
                     )
-                    clauses.push({
-                        $not: combine_wheres(
-                            no_connected_entity_clauses,
-                            '$or'
-                        ),
-                    })
-                }
-            }
 
-            return clauses
-        }
-    )
+                return is_reversed || is_nullable
+            })
+            return is_nullable_or_reversed
+        })
 
-    // if there are multiple connection paths, then the item is considered connected if at least ONE of the paths
-    // are connected. To see why this is, think
-    return combine_wheres(connection_clauses, '$or')
+    // this clause is true if there are no connected entities
+    if (should_check_no_connected_entity) {
+        const no_connected_entity_clauses = edge_paths.map(edge_path => {
+            const clause = edge_path_to_where_ins(
+                edge_path,
+                '$where',
+                undefined
+            )
+
+            return clause
+        })
+
+        return [
+            {
+                $not: combine_wheres(no_connected_entity_clauses, '$or'),
+            },
+        ]
+    } else {
+        return []
+    }
 }
 
 export const get_edge_paths_by_destination = (
