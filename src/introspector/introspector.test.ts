@@ -375,7 +375,7 @@ describe('introspector', () => {
             },
         })
 
-        const cache = generate_orma_schema_cache(schema)
+        const cache = generate_orma_schema_cache(schema.$entities)
         const goal: OrmaSchemaCache = {
             $reversed_foreign_keys: {
                 products: [

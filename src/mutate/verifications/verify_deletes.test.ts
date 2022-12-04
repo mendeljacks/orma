@@ -300,7 +300,7 @@ describe('verify_deletes.ts', () => {
                 global_test_schema,
                 blocking_pathed_records
             )
-            expect(errors).length.to.equal(1)
+            expect(errors.length).to.equal(1)
         })
     })
 })

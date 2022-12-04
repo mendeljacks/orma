@@ -27,9 +27,11 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
   - [Key Features](#key-features)
 - [Table of contents](#table-of-contents)
 - [Getting started](#getting-started)
+  - [What can orma do?](#what-can-orma-do)
   - [Database connector](#database-connector)
-  - [Orma Schema](#orma-schema)
-    - [Introspection](#introspection)
+- [Orma Schema](#orma-schema)
+  - [Introspection](#introspection)
+  - [Creating and editing](#creating-and-editing)
 - [Queries](#queries)
   - [Setup](#setup)
   - [Structure](#structure)
@@ -39,7 +41,7 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
   - [Filtering](#filtering)
     - [Basic operations](#basic-operations)
     - [Connectives](#connectives)
-    - [$any_path](#any_path)
+    - [$any\_path](#any_path)
     - [Subqueries in $where clauses](#subqueries-in-where-clauses)
     - [Referencing fields](#referencing-fields)
   - [Grouping and ordering](#grouping-and-ordering)
@@ -53,7 +55,7 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
   - [Guids](#guids)
 - [Multitenancy](#multitenancy)
   - [Connection edges](#connection-edges)
-  - [Restricting $where_connected](#restricting-where_connected)
+  - [Restricting $where\_connected](#restricting-where_connected)
   - [Setting connection edges](#setting-connection-edges)
 - [Advanced use cases](#advanced-use-cases)
   - [Custom SQL](#custom-sql)
@@ -178,17 +180,20 @@ const pool = mysql
 const orma_sql_function = mysql2_adapter(pool)
 ```
 > ⚠️ The mysql2 adapter generates SQL statements separated by semicolons, so make sure they are enabled in the connector config.
-## Orma Schema
+# Orma Schema
 
 The orma schema is a JSON object which is required to make queries or mutations. The schema contains all the information about a database that Orma needs, such as entity / field names, foreign keys and indexes. The schema is regular JSON, so it can be created dynamically at runtime, or fetched via an HTTP request. However, to get proper type-safety and intellisense, it is recommended to save the schema to disk.
 
-### Introspection
+## Introspection
 
 While Orma schemas can be hand-written, there is currently no way to apply an Orma schema onto a database. Instead, a schema can be introspected from an existing database which can be managed through other tools such as [db-migrate](https://www.npmjs.com/package/db-migrate). For intellisense to work, the schema must be saved to a .ts file and have 'as const' at the end.
 
 Here is an example of a mysql database being introspected:
 
 ```js
+import { orma_introspect } from 'orma'
+import { writeFileSync } from 'fs'
+
 const orma_schema = await orma_introspect('database_name', orma_sql_function, {
     database_type: 'mysql',
 })
@@ -227,6 +232,30 @@ The generated schema will look something like this:
 //     ...
 // }
 ```
+
+## Creating and editing
+Since the orma schema is a regular object, it can be hand-written or programatically modified. After any changes are made to the orma schema, its cache needs to be updated. For example to hand-write a schema:
+
+```js
+import { generate_orma_schema_cache } from 'orma'
+
+const $entities = {
+    users: {
+        id: {
+            data_type: "bigint",
+            not_null: true,
+            primary_key: true,
+        }
+    }
+}
+
+const orma_schema = {
+    $entities,
+    $cache: generate_orma_schema_cache($entities)
+} as const
+```
+
+> ⚠️ If the cache is not properly updated after changing the orma schema, orma will not function correctly.
 
 # Queries
 

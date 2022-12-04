@@ -1,4 +1,4 @@
-import { deep_get, last } from '../../helpers/helpers'
+import { deep_get } from '../../helpers/helpers'
 import {
     Edge,
     get_direct_edge,
@@ -7,7 +7,7 @@ import {
 import { OrmaSchema } from '../../introspector/introspector'
 import { get_real_entity_name } from '../query'
 import { combine_wheres } from '../query_helpers'
-import { edge_path_to_where_ins, process_any_clause } from './any_path_macro'
+import { edge_path_to_where_ins } from './any_path_macro'
 
 /**
  * Add a where clause which handles only getting records that are connected to previous records. Mutates the input query.
@@ -38,7 +38,11 @@ export const should_nesting_short_circuit = (
     subquery_path: string[],
     previous_results: (string[] | Record<string, unknown>[])[][]
 ) => {
-    const ancestor_rows = get_ancestor_rows(query, subquery_path, previous_results)
+    const ancestor_rows = get_ancestor_rows(
+        query,
+        subquery_path,
+        previous_results
+    )
 
     // we dont short circuit if the path length is 1, since there will be results even though there are no ancestor
     // rows (because there is no ancestor on the first nesting layer)
@@ -179,9 +183,7 @@ const get_ancestor_where_clause = (
         '$where',
         {
             $in: [edge_under_ancestor.to_field, ancestor_foreign_key_values],
-        },
-        false,
-        orma_schema
+        }
     )
 
     return ancestor_query

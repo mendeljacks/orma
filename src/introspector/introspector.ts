@@ -471,14 +471,14 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
 }
 
 export const generate_orma_schema_cache = (
-    orma_schema: Omit<OrmaSchema, '$cache'> & { $cache?: any }
+    $entities: OrmaSchema['$entities']
 ): OrmaSchemaCache | undefined => {
     const fk_cache: OrmaSchemaCache['$reversed_foreign_keys'] = {}
 
-    const entities = Object.keys(orma_schema.$entities)
+    const entities = Object.keys($entities)
 
     entities.forEach(entity => {
-        orma_schema.$entities[entity].$foreign_keys?.forEach(foreign_key => {
+        $entities[entity].$foreign_keys?.forEach(foreign_key => {
             if (!fk_cache[foreign_key.to_entity]) {
                 // @ts-ignore we can mutate
                 fk_cache[foreign_key.to_entity] = []
@@ -529,9 +529,9 @@ export const orma_introspect = async (
         options.database_type
     )
 
-    const cache = generate_orma_schema_cache(orma_schema)
+    const $cache = generate_orma_schema_cache(orma_schema.$entities)
     //@ts-ignore can mutate
-    orma_schema.$cache = cache
+    orma_schema.$cache = $cache
 
     return orma_schema
 }

@@ -52,14 +52,6 @@ Notes:
     This case will result in an SQL error if the create is run first
 - Doesn't handle udpates and deletes interacting (not sure if this can even happen, but its not supported)
 
-
-
-
-- only works with primary keys (for now. I think there should be a macro that fills in primary keys, then
-    everything should work off of primary keys, so that there is not so much complex logic repeated everywhere,
-    and so much extra computation to make multiple caches for each identifying key etc, even though this does
-    mean an extra request that is technically not necessary)
-
 */
 
 export const get_delete_verification_errors = async (
