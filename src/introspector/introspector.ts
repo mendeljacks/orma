@@ -411,9 +411,11 @@ export const generate_index_schemas = (mysql_indexes: mysql_index[]) => {
         index => index.table_name
     )
 
-    const table_names = Object.keys(mysql_indexes_by_table)
+    const table_names = Object.keys(mysql_indexes_by_table).sort()
     const index_schemas_by_table = table_names.reduce((acc, table_name) => {
         const mysql_indexes = mysql_indexes_by_table[table_name]
+            .slice()
+            .sort((a, b) => sort_by_prop(a, b, 'index_name'))
         const mysql_indexes_by_name = group_by(
             mysql_indexes,
             index => index.index_name
