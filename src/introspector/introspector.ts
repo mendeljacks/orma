@@ -231,7 +231,11 @@ export const generate_database_schema = (
         }
     }
 
-    for (const mysql_column of mysql_columns) {
+    const sorted_mysql_columns = mysql_columns
+        .slice()
+        .sort((a, b) => a.ordinal_position - b.ordinal_position)
+
+    for (const mysql_column of sorted_mysql_columns) {
         const field_schema = generate_field_schema(mysql_column)
 
         database_schema.$entities[mysql_column.table_name].$fields[
@@ -239,7 +243,11 @@ export const generate_database_schema = (
         ] = field_schema
     }
 
-    for (const mysql_foreign_key of mysql_foreign_keys) {
+    const sorted_mysql_foreign_keys = mysql_foreign_keys
+        .slice()
+        .sort((a, b) => sort_by_prop(a, b, 'constraint_name'))
+
+    for (const mysql_foreign_key of sorted_mysql_foreign_keys) {
         const {
             table_name,
             column_name,
@@ -262,10 +270,6 @@ export const generate_database_schema = (
             to_entity: referenced_table_name,
             to_field: referenced_column_name,
         })
-
-        entity_schema.$foreign_keys.sort((a, b) =>
-            sort_by_prop(a, b, 'from_field')
-        )
     }
 
     const index_schemas = generate_index_schemas(mysql_indexes)

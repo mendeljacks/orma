@@ -49,35 +49,42 @@ const get_database_indexes_by_entity = (
     query_results: Record<string, any>[][],
     orma_schema: OrmaSchema
 ) => {
-    const database_indexes_by_entity = query_entities.reduce<DatabaseIndexesByEntity>(
-        (acc, entity, query_index) => {
-            const possible_identifying_keys = get_possible_identifying_keys(
-                entity,
-                orma_schema
-            )
-            const database_rows = query_results[query_index]
-            const database_row_indexes = possible_identifying_keys.map(
-                identifying_key => {
-                    const index = key_by(database_rows, db_row =>
-                        // we chose the unique key such that none of its fields are nullable, and they are all actually
-                        // supplied in the mutation. Therefore we can safely stringify without worrying about null values getting
-                        // lost, or collisions between two rows that both have null fields (mysql allows this on unique indexes)
-                        JSON.stringify(
-                            identifying_key.map(field => db_row[field])
+    const database_indexes_by_entity =
+        query_entities.reduce<DatabaseIndexesByEntity>(
+            (acc, entity, query_index) => {
+                const possible_identifying_keys = get_possible_identifying_keys(
+                    entity,
+                    orma_schema
+                )
+                const database_rows = query_results[query_index]
+                const database_row_indexes = possible_identifying_keys.map(
+                    identifying_key => {
+                        const relevant_database_rows = database_rows.filter(
+                            row =>
+                                identifying_key.every(
+                                    key => row[key] !== undefined
+                                )
                         )
-                    )
-                    return index
-                }
-            )
+                        const index = key_by(relevant_database_rows, db_row =>
+                            // we chose the unique key such that none of its fields are nullable, and they are all actually
+                            // supplied in the mutation. Therefore we can safely stringify without worrying about null values getting
+                            // lost, or collisions between two rows that both have null fields (mysql allows this on unique indexes)
+                            JSON.stringify(
+                                identifying_key.map(field => db_row[field])
+                            )
+                        )
+                        return index
+                    }
+                )
 
-            if (acc[entity] === undefined) {
-                acc[entity] = []
-            }
-            acc[entity].push(...database_row_indexes)
-            return acc
-        },
-        {}
-    )
+                if (acc[entity] === undefined) {
+                    acc[entity] = []
+                }
+                acc[entity].push(...database_row_indexes)
+                return acc
+            },
+            {}
+        )
 
     return database_indexes_by_entity
 }
@@ -128,6 +135,7 @@ const sort_database_rows_given_indexes = (
                 )
             ] ?? {}
 
+        const a = 1
         // if (!database_row) {
         //     throw new Error(
         //         `Could not find database row for mutation row with keys ${identifying_keys} and values ${identifying_values}`
