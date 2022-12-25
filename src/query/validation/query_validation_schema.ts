@@ -66,6 +66,7 @@ const expression_schema = {
                           properties: {
                               $distinct: inner_schema,
                           },
+                          required: ['distinct'],
                           additionalProperties: false,
                       },
                   ]
@@ -84,6 +85,7 @@ const expression_schema = {
                 properties: {
                     [function_name]: inner_schema,
                 },
+                required: [function_name],
                 additionalProperties: false,
             }
 
@@ -103,6 +105,7 @@ const expression_schema = {
                     $ref: '#/$defs/primitive',
                 },
             },
+            required: ['$escape'],
             additionalProperties: false,
         },
         // or a subquery

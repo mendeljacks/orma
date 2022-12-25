@@ -339,6 +339,24 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
+        test("$eq can't have an empty object", () => {
+            const errors = validate_query(
+                {
+                    products: {
+                        id: true,
+                        $where: {
+                            $eq: ['id', {}],
+                        },
+                    },
+                },
+                orma_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([
+                ['products', '$where'],
+            ])
+        })
         test('requires valid expression in operation', () => {
             const errors = validate_query(
                 {
