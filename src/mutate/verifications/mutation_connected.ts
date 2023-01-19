@@ -172,7 +172,7 @@ export const get_primary_key_wheres = (
     )
 
     const edge_paths = edge_paths_obj[where_connected.$entity]
-    const primary_key_wheres = edge_paths.map(edge_path => {
+    const primary_key_wheres = edge_paths?.map(edge_path => {
         // reverse since we are queryng the where connected root entity and these paths are going from the
         // current entity to the root, not the root to the current entity
         const reversed_edge_path = edge_path
@@ -186,7 +186,7 @@ export const get_primary_key_wheres = (
             combine_wheres(identifying_wheres, '$or')
         )
         return where
-    })
+    }) ?? []
 
     return primary_key_wheres
 }

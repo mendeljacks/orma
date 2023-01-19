@@ -545,6 +545,33 @@ describe('mutation_connected.ts', () => {
 
             expect(wheres).to.deep.equal([])
         })
+        test.only('handles no edge paths', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 1,
+                        vendor_id: 12,
+                    },
+                    path: ['products', 0],
+                },
+            ]
+
+            // categories and products are not connected, so there is no edge paths
+            const wheres = get_primary_key_wheres(
+                schema,
+                default_connection_edges,
+                {
+                    $entity: 'categories',
+                    $field: 'id',
+                    $values: [1]
+                },
+                mutation_pieces,
+                'products'
+            )
+
+            expect(wheres).to.deep.equal([])
+        })
     })
     describe(get_foreign_key_wheres.name, () => {
         test('tracks direct child foreign keys', () => {
