@@ -21,7 +21,7 @@ import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
  * @param orma_query a function which takes an orma query and gives the results of running the query
  * @returns
  */
-export const verify_uniqueness = async (
+export const get_unique_verification_errors = async (
     orma_schema: OrmaSchema,
     mysql_function: MysqlFunction,
     mutation_plan: Pick<MutationPlan, 'mutation_pieces'>
