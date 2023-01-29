@@ -5,10 +5,13 @@ import {
     get_unique_field_groups,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
+import { orma_query } from '../../query/query'
 import { get_search_records_where } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'
 import { get_identifying_keys } from '../helpers/identifying_keys'
-import { split_mutation_by_entity } from '../helpers/mutate_helpers'
+import { path_to_entity } from '../helpers/mutate_helpers'
+import { MysqlFunction } from '../mutate'
+import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
 
 /**
  * Generates errors when unique fields are duplicates in two cases:
@@ -19,9 +22,9 @@ import { split_mutation_by_entity } from '../helpers/mutate_helpers'
  * @returns
  */
 export const verify_uniqueness = async (
-    mutation,
-    orma_query: (query) => Promise<any>,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    mysql_function: MysqlFunction,
+    mutation_plan: Pick<MutationPlan, 'mutation_pieces'>
 ) => {
     /*
     check that no two rows have the same value for the same unique column, and also make sure that no unique value
@@ -36,25 +39,26 @@ export const verify_uniqueness = async (
         check for no duplicates between mutation and database
     */
 
-    const pathed_records_by_entity = split_mutation_by_entity(mutation)
+    const mutation_pieces_by_entity = group_by(
+        mutation_plan.mutation_pieces,
+        mutation_piece => path_to_entity(mutation_piece.path)
+    )
 
     const query = get_verify_uniqueness_query(
-        pathed_records_by_entity,
-        orma_schema
+        orma_schema,
+        mutation_pieces_by_entity
     )
 
-    const results = await orma_query(query)
+    const results = await orma_query(query, orma_schema, mysql_function)
 
     const database_errors = get_database_uniqueness_errors(
-        pathed_records_by_entity,
-        results,
-        mutation,
-        orma_schema
+        orma_schema,
+        mutation_pieces_by_entity,
+        results
     )
     const mutation_errors = get_mutation_uniqueness_errors(
-        pathed_records_by_entity,
-        mutation,
-        orma_schema
+        orma_schema,
+        mutation_pieces_by_entity
     )
 
     return [...database_errors, ...mutation_errors]
@@ -66,18 +70,17 @@ export const verify_uniqueness = async (
  * The generated query will look up these records, selecting all the unique or combo unique fields
  */
 export const get_verify_uniqueness_query = (
-    pathed_records_by_entity: Record<string, PathedRecord[]>,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    mutation_pieces_by_entity: Record<string, MutationPiece[]>
 ) => {
-    const mutation_entities = Object.keys(pathed_records_by_entity)
+    const mutation_entities = Object.keys(mutation_pieces_by_entity)
     const query = mutation_entities.reduce((acc, entity) => {
-        const pathed_records = pathed_records_by_entity[entity]
+        const mutation_pieces = mutation_pieces_by_entity[entity]
 
-        // creates cannot be looked up, since they are not yet in the database
-        const searchable_pathed_records = pathed_records.filter(
-            ({ record }) =>
-                record?.$operation === 'update' ||
-                record?.$operation === 'delete'
+        // creates cannot be looked up, since they are not yet in the database, and deletes are always safe since
+        // deleting a record never causes a unique constraint to be violated. So we only check updates.
+        const searchable_mutation_pieces = mutation_pieces.filter(
+            ({ record }) => record?.$operation === 'update'
         )
 
         // all unique fields
@@ -90,8 +93,7 @@ export const get_verify_uniqueness_query = (
 
         // searches all records for the entity
         const $where = get_search_records_where(
-            searchable_pathed_records,
-            // TODO: add values_by_guid
+            searchable_mutation_pieces,
             record => get_identifying_keys(entity, record, {}, orma_schema),
             orma_schema
         )
@@ -124,10 +126,9 @@ export const get_verify_uniqueness_query = (
  * that have uniqueness conflicts with records from the database
  */
 export const get_database_uniqueness_errors = (
-    mutation_pathed_records_by_entity: Record<string, PathedRecord[]>,
-    database_records_by_entity: Record<string, Record<string, any>[]>,
-    mutation,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    mutation_pieces_by_entity: Record<string, MutationPiece[]>,
+    database_records_by_entity: Record<string, Record<string, any>[]>
 ) => {
     const database_entities = Object.keys(database_records_by_entity)
 
@@ -140,8 +141,7 @@ export const get_database_uniqueness_errors = (
 
         const entity_errors = field_groups.flatMap((field_group: any) => {
             const database_records = database_records_by_entity[entity]
-            const mutation_pathed_records =
-                mutation_pathed_records_by_entity[entity]
+            const mutation_pathed_records = mutation_pieces_by_entity[entity]
 
             const mutation_records = mutation_pathed_records.map(
                 ({ record }) => record
@@ -168,7 +168,6 @@ export const get_database_uniqueness_errors = (
                         )} must be unique but values ${values.join(
                             ', '
                         )} are already in the database.`,
-                        original_data: mutation,
                         path: mutation_pathed_record.path,
                         additional_info: {
                             database_record: database_record,
@@ -195,9 +194,8 @@ export const get_database_uniqueness_errors = (
  * Generates errors for records in the mutation that have uniqueness conflicts with other records in the mutation
  */
 export const get_mutation_uniqueness_errors = (
-    mutation_pathed_records_by_entity: Record<string, PathedRecord[]>,
-    mutation,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    mutation_pathed_records_by_entity: Record<string, PathedRecord[]>
 ) => {
     const entities = Object.keys(mutation_pathed_records_by_entity)
 
@@ -243,7 +241,6 @@ export const get_mutation_uniqueness_errors = (
                             )} must be unique but values ${values.join(
                                 ', '
                             )} appear twice in the request.`,
-                            original_data: mutation,
                             path: record.path,
                             additional_info: {
                                 mutation_record: record.record,
