@@ -83,6 +83,10 @@ export const get_verify_uniqueness_query = (
             ({ record }) => record?.$operation === 'update'
         )
 
+        if (searchable_mutation_pieces.length === 0) {
+            return acc
+        }
+
         // all unique fields
         const search_fields = new Set([
             ...get_primary_keys(entity, orma_schema),
@@ -97,12 +101,6 @@ export const get_verify_uniqueness_query = (
             record => get_identifying_keys(entity, record, {}, orma_schema),
             orma_schema
         )
-
-        if (!$where) {
-            throw new Error(
-                'There should be a where clause. Something went wrong.'
-            )
-        }
 
         // add this entity to the query
         acc[entity] = [...search_fields].reduce(
