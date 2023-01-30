@@ -9,7 +9,7 @@ import {
 import { expect } from 'chai'
 import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
 
-describe.only('verify_uniqueness.ts', () => {
+describe('verify_uniqueness.ts', () => {
     const orma_schema: OrmaSchema = {
         $entities: {
             users: {

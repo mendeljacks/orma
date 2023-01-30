@@ -545,7 +545,7 @@ describe('mutation_connected.ts', () => {
 
             expect(wheres).to.deep.equal([])
         })
-        test.only('handles no edge paths', () => {
+        test('handles no edge paths', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
