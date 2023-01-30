@@ -218,12 +218,12 @@ The generated schema will look something like this:
 //              "primary_key": true,
 //         },
 //         "email": {
-//              "data_type": "character varying",
+//              "data_type": "varchar",
 //              "not_null": true,
 //              "character_count": 10485760
 //         },
 //         "first_name": {
-//              "data_type": "character varying",
+//              "data_type": "varchar",
 //              "ordinal_position": 4,
 //              "character_count": 10485760
 //         },

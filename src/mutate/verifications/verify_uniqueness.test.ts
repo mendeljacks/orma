@@ -175,6 +175,9 @@ describe.only('verify_uniqueness.ts', () => {
                                 $eq: ['title', { $escape: 'hi' }],
                             },
                             {
+                                $eq: ['id', { $escape: 14 }],
+                            },
+                            {
                                 $eq: ['title', { $escape: '123' }],
                             },
                         ],
@@ -204,7 +207,7 @@ describe.only('verify_uniqueness.ts', () => {
 
             expect(result).to.deep.equal({})
         })
-        test('handles part of combo unique constraint being modified', () => {
+        test('handles part of combo unique', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
                 users: [
                     {
@@ -234,6 +237,85 @@ describe.only('verify_uniqueness.ts', () => {
                     last_name: true,
                     $where: {
                         $eq: ['first_name', { $escape: 'john' }],
+                    },
+                },
+            })
+        })
+        test('handles combo unique', () => {
+            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
+                users: [
+                    {
+                        $operation: 'update',
+                        id: 1,
+                        first_name: 'john',
+                        last_name: 'smith',
+                    },
+                ].map((el, i) => ({
+                    path: ['users', i],
+                    record: el,
+                })) as MutationPiece[],
+            }
+
+            const result = get_verify_uniqueness_query(
+                orma_schema,
+                mutation_pieces_by_entity
+            )
+
+            expect(result).to.deep.equal({
+                users: {
+                    id: true,
+                    email: true,
+                    first_name: true,
+                    last_name: true,
+                    $where: {
+                        $and: [
+                            {
+                                $eq: ['first_name', { $escape: 'john' }],
+                            },
+                            {
+                                $eq: ['last_name', { $escape: 'smith' }],
+                            },
+                        ],
+                    },
+                },
+            })
+        })
+        test('ignores $guid', () => {
+            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
+                users: [
+                    {
+                        $operation: 'create',
+                        id: { $guid: 1 },
+                        email: 'a@a.com',
+                        first_name: { $guid: 1 },
+                        last_name: 'smith',
+                    },
+                ].map((el, i) => ({
+                    path: ['users', i],
+                    record: el,
+                })) as MutationPiece[],
+            }
+
+            const result = get_verify_uniqueness_query(
+                orma_schema,
+                mutation_pieces_by_entity
+            )
+
+            expect(result).to.deep.equal({
+                users: {
+                    id: true,
+                    email: true,
+                    first_name: true,
+                    last_name: true,
+                    $where: {
+                        $or: [
+                            {
+                                $eq: ['last_name', { $escape: 'smith' }],
+                            },
+                            {
+                                $eq: ['email', { $escape: 'a@a.com' }],
+                            },
+                        ],
                     },
                 },
             })
@@ -442,7 +524,7 @@ describe.only('verify_uniqueness.ts', () => {
                             $operation: 'update',
                             id: 12,
                             first_name: 'john',
-                            last_name: 'a'
+                            last_name: 'a',
                         },
                     },
                 ],
@@ -453,7 +535,7 @@ describe.only('verify_uniqueness.ts', () => {
                     {
                         id: 12,
                         first_name: 'john',
-                        last_name: 'b'
+                        last_name: 'b',
                     },
                 ],
             }
@@ -474,7 +556,7 @@ describe.only('verify_uniqueness.ts', () => {
                         record: {
                             $operation: 'update',
                             id: 12,
-                            email: null
+                            email: null,
                         },
                     },
                 ],
@@ -484,7 +566,7 @@ describe.only('verify_uniqueness.ts', () => {
                 users: [
                     {
                         id: 12,
-                        email: null
+                        email: null,
                     },
                 ],
             }
@@ -566,8 +648,8 @@ describe.only('verify_uniqueness.ts', () => {
                             id: 12,
                         },
                         path: ['users', 1],
-                    }
-                ]
+                    },
+                ],
             }
 
             const errors = get_mutation_uniqueness_errors(

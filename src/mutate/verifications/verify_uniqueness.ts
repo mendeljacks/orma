@@ -102,9 +102,11 @@ export const get_verify_uniqueness_query = (
 
             return (
                 unique_field_groups
-                    // identifying keys are not actually being edited so we dont want to search for them
+                    // identifying keys are not actually being edited (for updates) so we dont want to
+                    // search for them
                     .filter(
                         unique_fields =>
+                            mutation_piece.record.$operation !== 'update' ||
                             !array_equals(identifying_fields, unique_fields)
                     )
                     .filter(unique_fields =>
@@ -120,7 +122,11 @@ export const get_verify_uniqueness_query = (
                         // so we can ignore it. Otherwise, we must take the fields that are present since changing
                         // even part of a combo unique constraint can cause a violation of the constraint
                         unique_fields.filter(
-                            field => mutation_piece.record[field] !== undefined
+                            field =>
+                                mutation_piece.record[field] !== undefined &&
+                                // ignore objects such as sql functions or $guid. These could cause sql errors,
+                                // but theres no easy way to check if these will cause a unique constraint violation
+                                typeof mutation_piece.record[field] !== 'object'
                         )
                     )
                     .filter(el => el.length > 0)
