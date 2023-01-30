@@ -1,15 +1,16 @@
 import { OrmaError } from '../../helpers/error_handling'
-import { group_by, key_by } from '../../helpers/helpers'
+import { array_equals, group_by, key_by } from '../../helpers/helpers'
 import {
     get_primary_keys,
     get_unique_field_groups,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { orma_query } from '../../query/query'
-import { get_search_records_where } from '../../query/query_helpers'
+import { combine_wheres } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'
 import { get_identifying_keys } from '../helpers/identifying_keys'
 import { path_to_entity } from '../helpers/mutate_helpers'
+import { generate_record_where_clause_from_identifying_keys } from '../helpers/record_searching'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
 
@@ -77,33 +78,70 @@ export const get_verify_uniqueness_query = (
     const query = mutation_entities.reduce((acc, entity) => {
         const mutation_pieces = mutation_pieces_by_entity[entity]
 
-        // creates cannot be looked up, since they are not yet in the database, and deletes are always safe since
-        // deleting a record never causes a unique constraint to be violated. So we only check updates.
+        // deleting a record never causes a unique constraint to be violated, so we only check creates and updates
         const searchable_mutation_pieces = mutation_pieces.filter(
-            ({ record }) => record?.$operation === 'update'
+            ({ record }) =>
+                record.$operation === 'update' || record.$operation === 'create'
         )
 
-        if (searchable_mutation_pieces.length === 0) {
+        // all unique fields
+        const unique_field_groups = [
+            get_primary_keys(entity, orma_schema),
+            ...get_unique_field_groups(entity, false, orma_schema),
+        ]
+
+        // generate a where clause for each unique field group for each mutation piece
+        const wheres = searchable_mutation_pieces.flatMap(mutation_piece => {
+            const identifying_fields = get_identifying_keys(
+                path_to_entity(mutation_piece.path),
+                mutation_piece.record,
+                {},
+                orma_schema,
+                true
+            )
+
+            return (
+                unique_field_groups
+                    // identifying keys are not actually being edited so we dont want to search for them
+                    .filter(
+                        unique_fields =>
+                            !array_equals(identifying_fields, unique_fields)
+                    )
+                    .filter(unique_fields =>
+                        // null fields never violate unique constraints since null != null in sql. so
+                        // if even one field is being set to null, the unique constraint cannot be violated and
+                        // we can ignore the whole thing
+                        unique_fields.every(
+                            field => mutation_piece.record[field] !== null
+                        )
+                    )
+                    .map(unique_fields =>
+                        // if all the fields are undefined, the unique constraint is not relevant to this record
+                        // so we can ignore it. Otherwise, we must take the fields that are present since changing
+                        // even part of a combo unique constraint can cause a violation of the constraint
+                        unique_fields.filter(
+                            field => mutation_piece.record[field] !== undefined
+                        )
+                    )
+                    .filter(el => el.length > 0)
+                    .map(unique_fields =>
+                        generate_record_where_clause_from_identifying_keys(
+                            {},
+                            unique_fields,
+                            mutation_piece
+                        )
+                    )
+            )
+        })
+
+        const $where = combine_wheres(wheres, '$or')
+
+        if (!$where) {
             return acc
         }
 
-        // all unique fields
-        const search_fields = new Set([
-            ...get_primary_keys(entity, orma_schema),
-            ...get_unique_field_groups(entity, false, orma_schema).flatMap(
-                el => el
-            ),
-        ])
-
-        // searches all records for the entity
-        const $where = get_search_records_where(
-            searchable_mutation_pieces,
-            record => get_identifying_keys(entity, record, {}, orma_schema),
-            orma_schema
-        )
-
-        // add this entity to the query
-        acc[entity] = [...search_fields].reduce(
+        // add relevant columns
+        acc[entity] = unique_field_groups.flat().reduce(
             (acc, field) => {
                 acc[field] = true
                 return acc
@@ -137,13 +175,27 @@ export const get_database_uniqueness_errors = (
             ...get_unique_field_groups(entity, false, orma_schema),
         ]
 
-        const entity_errors = field_groups.flatMap((field_group: any) => {
+        const entity_errors = field_groups.flatMap(field_group => {
             const database_records = database_records_by_entity[entity]
             const mutation_pathed_records = mutation_pieces_by_entity[entity]
 
-            const mutation_records = mutation_pathed_records.map(
-                ({ record }) => record
-            )
+            const mutation_records = mutation_pathed_records
+                .map(({ record }) => record)
+                .filter(
+                    // dont generate errors for identifying keys on updates, since these are not being modified
+                    record =>
+                        record.$operation !== 'update' ||
+                        !array_equals(
+                            get_identifying_keys(
+                                entity,
+                                record,
+                                {},
+                                orma_schema,
+                                true
+                            ),
+                            field_group
+                        )
+                )
 
             const database_duplicate_indices = get_duplicate_record_indices(
                 database_records,
@@ -161,11 +213,11 @@ export const get_database_uniqueness_errors = (
                     const values = field_group.map(el => database_record[el])
 
                     const error: OrmaError = {
-                        message: `Record is not unique. Fields ${field_group.join(
-                            ', '
-                        )} must be unique but values ${values.join(
-                            ', '
-                        )} are already in the database.`,
+                        message: `Record is not unique. Fields ${field_group
+                            .map(el => JSON.stringify(el))
+                            .join(', ')} must be unique but values ${values
+                            .map(el => JSON.stringify(el))
+                            .join(', ')} are already in the database.`,
                         path: mutation_pathed_record.path,
                         additional_info: {
                             database_record: database_record,
@@ -234,11 +286,11 @@ export const get_mutation_uniqueness_errors = (
                         pathed_record2,
                     ].map(record => {
                         return {
-                            message: `Record is not unique. Fields ${field_group.join(
-                                ', '
-                            )} must be unique but values ${values.join(
-                                ', '
-                            )} appear twice in the request.`,
+                            message: `Record is not unique. Fields ${field_group
+                                .map(el => JSON.stringify(el))
+                                .join(', ')} must be unique but values ${values
+                                .map(el => JSON.stringify(el))
+                                .join(', ')} appear twice in the request.`,
                             path: record.path,
                             additional_info: {
                                 mutation_record: record.record,
@@ -296,7 +348,11 @@ export const get_duplicate_record_indices = (
         const values_string = JSON.stringify(values)
         const record1_index = records1_indices_by_value[values_string]
 
-        if (record1_index !== undefined) {
+        if (
+            record1_index !== undefined &&
+            // nulls never make unique constraint violations, so we ignore them
+            values.every(value => value !== null)
+        ) {
             return [[record1_index, record2_index]]
         } else {
             return []

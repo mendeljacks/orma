@@ -341,3 +341,6 @@ export const map_object = <
     Object.fromEntries(
         Object.entries(obj).map(([k, v], i) => fn(k, v, i))
     ) as Record<OutKey, OutValue>
+
+export const is_nill = (el: any): el is null | undefined =>
+    el === null || el === undefined
