@@ -631,8 +631,8 @@ describe('verify_uniqueness.ts', () => {
 
             expect(errors.length).to.equal(2)
         })
-        test('generates an error for same identifying keys', () => {
-            // same identifying key is not allowed since it is ambiguous which one goes first
+        test('ignores same identifying keys', () => {
+            // same identifying key is technically a bit ambiguous but is allowed because it wont generate an sql error
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
                 users: [
                     {
@@ -657,7 +657,7 @@ describe('verify_uniqueness.ts', () => {
                 mutation_pieces_by_entity
             )
 
-            expect(errors.length).to.equal(2)
+            expect(errors.length).to.equal(0)
         })
     })
 })

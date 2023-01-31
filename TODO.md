@@ -42,3 +42,45 @@ New features (includes tests and docs)
       }]
     }
   }
+
+- $guid on query
+
+{
+  items: {
+    $guid_map: {
+      id: 'asd'
+    },
+    id: true
+  },
+  images: {
+    id: true,
+    $where: {
+      $in: ['item_id', { $guid: 'asd' }]
+    }
+  }
+}
+
+  + keeps select part of query identical, no special handling for guid
+  - fields in guid map can go out of sync
+  - need separate keyword since the structure of the guid is different
+  - different from mutations
+
+
+{
+  items: {
+    my_id: { $guid: 'asd', $value: 'id' }
+  },
+  images: {
+    id: true,
+    $where: {
+      $in: ['item_id', { $guid: 'asd' }]
+    }
+  }
+}
+
+ - need special handling in types etc for $value
+
+{
+  $select: ['id'],
+  $from: 'items'
+}

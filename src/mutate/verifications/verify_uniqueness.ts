@@ -263,7 +263,23 @@ export const get_mutation_uniqueness_errors = (
 
         const entity_errors = field_groups.flatMap((field_group: any) => {
             const pathed_records = mutation_pathed_records_by_entity[entity]
-            const records = pathed_records.map(({ record }) => record)
+            const records = pathed_records
+                .map(({ record }) => record)
+                .filter(
+                    // dont generate errors for identifying keys on updates, since these are not being modified
+                    record =>
+                        record.$operation !== 'update' ||
+                        !array_equals(
+                            get_identifying_keys(
+                                entity,
+                                record,
+                                {},
+                                orma_schema,
+                                true
+                            ),
+                            field_group
+                        )
+                )
 
             const duplicate_indices = get_duplicate_record_indices(
                 records,
