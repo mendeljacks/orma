@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
 import { json_to_sql } from './json_sql'
 
-describe('query', () => {
+describe.only('query', () => {
     describe('json_to_sql', () => {
         test('joins commands', () => {
             const json = {
@@ -186,6 +186,288 @@ describe('query', () => {
               (listing_id) = (0)) >= (4)`)
 
             expect(sql).to.equal(goal)
+        })
+        test('can create table', () => {
+            const json = {
+                $create_table: 'my_table',
+                $temporary: true,
+                $if_not_exists: true,
+                $comment: 'my table',
+                $definitions: [
+                    {
+                        $definition_type: 'field',
+                        $name: 'id',
+                        $data_type: ['int'],
+                        $not_null: true,
+                        $auto_increment: true,
+                    },
+                    {
+                        $definition_type: 'primary_key',
+                        $fields: ['id'],
+                    },
+                ],
+            }
+
+            const goal = format(`
+                CREATE TEMPORARY TABLE IF NOT EXISTS my_table (
+                    id INT NOT NULL AUTO INCREMENT,
+                    CONSTRAINT PRIMARY KEY (id)
+                ) COMMENT "my table"`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles add, drop and modify field', () => {
+            const json = {
+                $alter_table: 'my_table',
+                $definitions: [
+                    {
+                        $alter_operation: 'add',
+                        $definition_type: 'field',
+                        $name: 'id',
+                        $data_type: ['int'],
+                    },
+                    {
+                        $alter_operation: 'drop',
+                        $definition_type: 'field',
+                        $name: 'id',
+                    },
+                    {
+                        $alter_operation: 'modify',
+                        $definition_type: 'field',
+                        $old_name: 'id',
+                        $name: 'my_id',
+                        $data_type: ['decimal', 6, 2],
+                    },
+                ],
+            }
+
+            const goal = format(`
+                ALTER TABLE my_table (
+                    ADD id INT,
+                    DROP id,
+                    MODIFY id my_id DECIMAL(6, 2)
+                )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles auto_increment and not_null', () => {
+            const json = {
+                $create_table: 'my_table',
+                $definitions: [
+                    {
+                        $definition_type: 'field',
+                        $name: 'id',
+                        $data_type: ['int'],
+                        $not_null: true,
+                        $auto_increment: true,
+                    },
+                ],
+            }
+
+            const goal = format(`
+                CREATE TABLE my_table (
+                    id INT NOT NULL AUTO INCREMENT
+                )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles default', () => {
+            const json = {
+                $create_table: 'my_table',
+                $definitions: [
+                    {
+                        $definition_type: 'field',
+                        $name: 'label1',
+                        $data_type: ['varchar', 2],
+                        $default: '"N/A"',
+                    },
+                    {
+                        $definition_type: 'field',
+                        $name: 'label2',
+                        $data_type: ['varchar', 2],
+                        $default: {
+                            $current_timestamp: true,
+                        },
+                    },
+                ],
+            }
+
+            const goal = format(`
+                CREATE TABLE my_table (
+                    label1 VARCHAR(2) DEFAULT "N/A",
+                    label2 VARCHAR(2) DEFAULT CURRENT_TIMESTAMP
+                )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles $on_update for field', () => {
+            const json = {
+                $create_table: 'my_table',
+                $definitions: [
+                    {
+                        $definition_type: 'field',
+                        $name: 'updated_at',
+                        $data_type: ['timestamp'],
+                        $not_null: true,
+                        $default: {
+                            $current_timestamp: true,
+                        },
+                        $on_update: {
+                            $current_timestamp: true,
+                        },
+                    },
+                ],
+            }
+
+            const goal = format(`
+                CREATE TABLE my_table (
+                    updated_at TIMESTAMP NOT NULL 
+                        DEFAULT CURRENT_TIMESTAMP 
+                        ON UPDATE CURRENT_TIMESTAMP
+                )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles invisible index', () => {
+            const json = {
+                $alter_table: 'my_table',
+                $definitions: [
+                    {
+                        $alter_operation: 'add',
+                        $definition_type: 'index',
+                        $name: 'invisible',
+                        $invisible: true,
+                        $fields: ['label'],
+                        $comment: 'invis'
+                    },
+                ],
+            }
+
+            const goal = format(`
+                ALTER TABLE my_table (
+                    ADD INDEX invisible (label) INVISIBLE COMMENT "invis"
+                )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles unique index', () => {
+            const json = {
+                $alter_table: 'my_table',
+                $definitions: [
+                    {
+                        $alter_operation: 'add',
+                        $definition_type: 'unique_index',
+                        $name: 'uq_ind',
+                        $fields: ['label'],
+                    },
+                ],
+            }
+
+            const goal = format(`
+            ALTER TABLE my_table (
+                ADD CONSTRAINT uq_ind UNIQUE INDEX (label)
+            )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles fulltext with multiple fields', () => {
+            const json = {
+                $alter_table: 'my_table',
+                $definitions: [
+                    {
+                        $alter_operation: 'add',
+                        $definition_type: 'full_text_index',
+                        $name: 'full_text',
+                        $fields: ['size', 'label'],
+                    },
+                ],
+            }
+
+            const goal = format(`
+            ALTER TABLE my_table (
+                ADD FULLTEXT INDEX full_text (size, label)
+            )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles primary key', () => {
+            const json = {
+                $alter_table: 'my_table',
+                $definitions: [
+                    {
+                        $alter_operation: 'add',
+                        $definition_type: 'primary_key',
+                        $name: 'primary',
+                        $fields: ['id'],
+                    },
+                ],
+            }
+
+            const goal = format(`
+            ALTER TABLE my_table (
+                ADD CONSTRAINT primary PRIMARY KEY (id)
+            )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles foreign key', () => {
+            const foreign_key_base = {
+                $alter_operation: 'add',
+                $definition_type: 'foreign_key',
+                $fields: ['parent_id'],
+                $references: {
+                    $entity: 'parents',
+                    $fields: ['id'],
+                },
+            }
+
+            const json = {
+                $alter_table: 'my_table',
+                $definitions: [
+                    foreign_key_base,
+                    {
+                        ...foreign_key_base,
+                        $name: 'my_foreign_key',
+                        $on_update: {
+                            $restrict: true,
+                        },
+                        $on_delete: {
+                            $cascade: true,
+                        },
+                    },
+                    {
+                        ...foreign_key_base,
+                        $on_update: {
+                            $set_null: true,
+                        },
+                        $on_delete: {
+                            $no_action: true,
+                        },
+                    },
+                ],
+            }
+
+            const goal = format(`
+            ALTER TABLE my_table (
+                ADD CONSTRAINT FOREIGN KEY (parent_id) REFERENCES parents (id),
+                ADD CONSTRAINT my_foreign_key FOREIGN KEY (parent_id) REFERENCES parents (id) 
+                    ON DELETE CASCADE ON UPDATE RESTRICT,
+                ADD CONSTRAINT FOREIGN KEY (parent_id) REFERENCES parents (id) 
+                    ON DELETE NO ACTION ON UPDATE SET NULL
+            )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('can create table $like', () => {
+            const json = {
+                $create_table: 'my_table',
+                $like_table: 'other_table',
+            }
+
+            const goal = format(`
+            CREATE TABLE my_table LIKE other_table`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
         })
     })
 })
