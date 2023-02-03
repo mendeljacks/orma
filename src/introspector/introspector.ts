@@ -5,6 +5,7 @@
 
 import { deep_set, group_by } from '../helpers/helpers'
 import { Edge, is_reserved_keyword } from '../helpers/schema_helpers'
+import { OrmaSchema, OrmaSchemaCache, OrmaFieldSchema, OrmaIndexSchema, SupportedDbs } from '../types/schema/schema_types'
 import { DeepMutable } from '../types/schema_types'
 
 export interface mysql_table {
@@ -57,70 +58,7 @@ export interface mysql_foreign_key {
     constraint_name: string
 }
 
-type OrmaSchemaMutable = DeepMutable<OrmaSchema>
 
-export type OrmaSchema = {
-    readonly $entities: {
-        readonly [entity_name: string]: orma_entity_schema
-    }
-    $cache?: OrmaSchemaCache
-}
-
-export type OrmaSchemaCache = {
-    $reversed_foreign_keys: {
-        readonly [referenced_entity: string]: readonly ForeignKeyEdge[]
-    }
-}
-
-export type ForeignKeyEdge = Omit<Edge, 'from_entity'>
-
-export type orma_entity_schema = {
-    readonly $database_type: SupportedDbs
-    readonly $comment?: string
-    readonly $indexes?: readonly orma_index_schema[]
-    readonly $foreign_keys?: readonly ForeignKeyEdge[]
-    readonly $fields: {
-        readonly [field_name: string]: orma_field_schema
-    }
-}
-
-export type orma_field_schema = {
-    readonly data_type?: keyof typeof mysql_to_typescript_types
-    readonly character_count?: number
-    readonly ordinal_position?: number
-    readonly decimal_places?: number
-    readonly not_null?: boolean
-    readonly primary_key?: boolean
-    readonly unsigned?: boolean
-    readonly indexed?: boolean
-    readonly default?: string | number
-    readonly comment?: string
-    readonly auto_increment?: boolean
-    readonly enum_values?: readonly (string | number)[]
-    // readonly references?: {
-    //     readonly [referenced_entity: string]: {
-    //         readonly [referenced_field: string]: {
-    //             readonly [key: string]: never
-    //         }
-    //     }
-    // }
-}
-
-export type orma_index_schema = {
-    readonly index_name?: string
-    readonly is_unique?: boolean
-    readonly fields: readonly string[]
-    readonly index_type?: string
-    readonly invisible?: boolean
-    readonly collation?: 'A' | 'D'
-    readonly sub_part?: number | null
-    readonly packed?: string | null
-    readonly extra?: string
-    readonly index_comment?: string
-    readonly expression?: string
-}
-
-export type SupportedDbs = 'mysql' | 'postgres'
 /**
  * Gets a list of sql strings to collect introspector data for the given database
  * @returns [tables_sql, columns_sql, foreign_keys_sql]
@@ -339,7 +277,7 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         identity_generation,
     } = mysql_column
 
-    const field_schema: DeepMutable<orma_field_schema> = {
+    const field_schema: DeepMutable<OrmaFieldSchema> = {
         data_type:
             data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
         ordinal_position,
@@ -436,7 +374,7 @@ export const generate_index_schemas = (mysql_indexes: mysql_index[]) => {
 
         acc[table_name] = index_schemas
         return acc
-    }, {} as Record<string, DeepMutable<orma_index_schema[]>>)
+    }, {} as Record<string, DeepMutable<OrmaIndexSchema[]>>)
 
     return index_schemas_by_table
 }
@@ -459,7 +397,7 @@ const generate_index_schema = (mysql_index: mysql_index, fields: string[]) => {
         expression,
     } = mysql_index
 
-    const orma_index_schema: DeepMutable<orma_index_schema> = {
+    const orma_index_schema: DeepMutable<OrmaIndexSchema> = {
         index_name,
         is_unique: Number(non_unique) === 0 ? true : false,
         fields,
@@ -541,3 +479,5 @@ export const orma_introspect = async (
 
     return orma_schema
 }
+
+type OrmaSchemaMutable = DeepMutable<OrmaSchema>

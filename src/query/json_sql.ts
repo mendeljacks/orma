@@ -247,8 +247,8 @@ export const sql_function_definitions: {
     },
     $current_timestamp: {
         ast_to_sql: arg => `CURRENT_TIMESTAMP`,
-        max_args: 0
-    }
+        max_args: 0,
+    },
 }
 
 // note that the order of the command parsers is the same order they appear in the sql strings. this means that
@@ -355,34 +355,35 @@ const sql_command_parsers = {
             ? `${arg} TO`
             : arg,
     // column definition commands
-    $definition_type: (arg, path, obj) => {
+    $constraint: (arg, path, obj) => {
         const name = get_neighbour_field(obj, path, '$name')
         const name_with_space = name ? ` ${name}` : ''
         return {
-            field: name,
-            index: `INDEX` + name_with_space,
-            full_text_index: 'FULLTEXT INDEX' + name_with_space,
-            spatial_index: 'SPATIAL INDEX' + name_with_space,
-            unique_index: `CONSTRAINT${name_with_space} UNIQUE INDEX`,
+            unique: `CONSTRAINT${name_with_space} UNIQUE INDEX`,
             primary_key: `CONSTRAINT${name_with_space} PRIMARY KEY`,
             foreign_key: `CONSTRAINT${name_with_space} FOREIGN KEY`,
         }[arg]
     },
+    $index: arg =>
+        ({
+            true: `INDEX`,
+            full_text: 'FULLTEXT INDEX',
+            spatial: 'SPATIAL INDEX',
+        }[arg]),
+    $name: (arg, path, obj) =>
+        // for constraints, name is handled differently because it goes between CONSTRAINT
+        // and the constraint type (e.g. FOREIGN KEY)
+        get_neighbour_field(obj, path, '$constraint') ? '' : arg,
     $data_type: args =>
         args.length === 1
             ? args[0]?.toUpperCase()
             : `${args[0]?.toUpperCase()}(${args
                   .slice(1, Infinity)
                   .join(', ')})`,
-    $name: arg => '',
     $not_null: arg => (arg ? 'NOT NULL' : ''),
     $default: arg => `DEFAULT ${arg}`,
     $auto_increment: arg => (arg ? 'AUTO INCREMENT' : ''),
     // index
-    $index: arg => (arg === true ? `INDEX` : arg ? `INDEX ${arg}` : ''),
-    $unique: arg => (arg ? 'UNIQUE' : ''),
-    $full_text: arg => (arg ? 'FULLTEXT' : ''),
-    $spatial: arg => (arg ? 'SPATIAL' : ''),
     $fields: args => `(${args.join(', ')})`,
     $invisible: arg => (arg ? `INVISIBLE` : ''),
     $comment: comment => `COMMENT "${comment}"`,

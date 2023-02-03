@@ -1,9 +1,10 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
+import { AlterStatement, CreateStatement } from '../types/schema/schema_types'
 import { json_to_sql } from './json_sql'
 
-describe.only('query', () => {
+describe('query', () => {
     describe('json_to_sql', () => {
         test('joins commands', () => {
             const json = {
@@ -188,21 +189,20 @@ describe.only('query', () => {
             expect(sql).to.equal(goal)
         })
         test('can create table', () => {
-            const json = {
+            const json: CreateStatement = {
                 $create_table: 'my_table',
                 $temporary: true,
                 $if_not_exists: true,
                 $comment: 'my table',
                 $definitions: [
                     {
-                        $definition_type: 'field',
                         $name: 'id',
                         $data_type: ['int'],
                         $not_null: true,
                         $auto_increment: true,
                     },
                     {
-                        $definition_type: 'primary_key',
+                        $constraint: 'primary_key',
                         $fields: ['id'],
                     },
                 ],
@@ -217,23 +217,20 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles add, drop and modify field', () => {
-            const json = {
+            const json: AlterStatement = {
                 $alter_table: 'my_table',
                 $definitions: [
                     {
                         $alter_operation: 'add',
-                        $definition_type: 'field',
                         $name: 'id',
                         $data_type: ['int'],
                     },
                     {
                         $alter_operation: 'drop',
-                        $definition_type: 'field',
                         $name: 'id',
                     },
                     {
                         $alter_operation: 'modify',
-                        $definition_type: 'field',
                         $old_name: 'id',
                         $name: 'my_id',
                         $data_type: ['decimal', 6, 2],
@@ -251,11 +248,10 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles auto_increment and not_null', () => {
-            const json = {
+            const json: CreateStatement = {
                 $create_table: 'my_table',
                 $definitions: [
                     {
-                        $definition_type: 'field',
                         $name: 'id',
                         $data_type: ['int'],
                         $not_null: true,
@@ -272,17 +268,15 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles default', () => {
-            const json = {
+            const json: CreateStatement = {
                 $create_table: 'my_table',
                 $definitions: [
                     {
-                        $definition_type: 'field',
                         $name: 'label1',
                         $data_type: ['varchar', 2],
                         $default: '"N/A"',
                     },
                     {
-                        $definition_type: 'field',
                         $name: 'label2',
                         $data_type: ['varchar', 2],
                         $default: {
@@ -301,11 +295,10 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles $on_update for field', () => {
-            const json = {
+            const json: CreateStatement = {
                 $create_table: 'my_table',
                 $definitions: [
                     {
-                        $definition_type: 'field',
                         $name: 'updated_at',
                         $data_type: ['timestamp'],
                         $not_null: true,
@@ -329,16 +322,16 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles invisible index', () => {
-            const json = {
+            const json: AlterStatement = {
                 $alter_table: 'my_table',
                 $definitions: [
                     {
                         $alter_operation: 'add',
-                        $definition_type: 'index',
+                        $index: true,
                         $name: 'invisible',
                         $invisible: true,
                         $fields: ['label'],
-                        $comment: 'invis'
+                        $comment: 'invis',
                     },
                 ],
             }
@@ -351,12 +344,12 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles unique index', () => {
-            const json = {
+            const json: AlterStatement = {
                 $alter_table: 'my_table',
                 $definitions: [
                     {
                         $alter_operation: 'add',
-                        $definition_type: 'unique_index',
+                        $constraint: 'unique',
                         $name: 'uq_ind',
                         $fields: ['label'],
                     },
@@ -371,13 +364,13 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles fulltext with multiple fields', () => {
-            const json = {
+            const json: AlterStatement = {
                 $alter_table: 'my_table',
                 $definitions: [
                     {
                         $alter_operation: 'add',
-                        $definition_type: 'full_text_index',
-                        $name: 'full_text',
+                        $index: 'full_text',
+                        $name: 'ft',
                         $fields: ['size', 'label'],
                     },
                 ],
@@ -385,18 +378,18 @@ describe.only('query', () => {
 
             const goal = format(`
             ALTER TABLE my_table (
-                ADD FULLTEXT INDEX full_text (size, label)
+                ADD FULLTEXT INDEX ft (size, label)
             )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles primary key', () => {
-            const json = {
+            const json: AlterStatement = {
                 $alter_table: 'my_table',
                 $definitions: [
                     {
                         $alter_operation: 'add',
-                        $definition_type: 'primary_key',
+                        $constraint: 'primary_key',
                         $name: 'primary',
                         $fields: ['id'],
                     },
@@ -411,9 +404,9 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('handles foreign key', () => {
-            const foreign_key_base = {
+            const foreign_key_base: AlterStatement['$definitions'][number] = {
                 $alter_operation: 'add',
-                $definition_type: 'foreign_key',
+                $constraint: 'foreign_key',
                 $fields: ['parent_id'],
                 $references: {
                     $entity: 'parents',
@@ -421,7 +414,7 @@ describe.only('query', () => {
                 },
             }
 
-            const json = {
+            const json: AlterStatement = {
                 $alter_table: 'my_table',
                 $definitions: [
                     foreign_key_base,
@@ -459,7 +452,7 @@ describe.only('query', () => {
             expect(format(json_to_sql(json))).to.equal(goal)
         })
         test('can create table $like', () => {
-            const json = {
+            const json: CreateStatement = {
                 $create_table: 'my_table',
                 $like_table: 'other_table',
             }
