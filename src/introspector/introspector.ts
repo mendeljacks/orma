@@ -3,8 +3,10 @@
  * @module
  */
 
+import { writeFileSync } from 'fs'
 import { deep_set, group_by } from '../helpers/helpers'
 import { Edge, is_reserved_keyword } from '../helpers/schema_helpers'
+import { MysqlFunction } from '../mutate/mutate'
 import { DeepMutable } from '../types/schema_types'
 
 export interface mysql_table {
@@ -529,5 +531,31 @@ export const orma_introspect = async (
     //@ts-ignore can mutate
     orma_schema.$cache = cache
 
+    return orma_schema
+}
+
+/**
+ *
+ * @param database_name Database name or postgres schema name
+ * @param output_path The path from the root of project to put generated .ts file
+ * @param byo_query_fn a function that takes sqls and executes them
+ * @param database_type choose the type of database from supported db
+ * @returns
+ */
+export const introspect_to_file = async (
+    database_name: string,
+    output_path: string,
+    byo_query_fn: MysqlFunction,
+    database_type: SupportedDbs
+) => {
+    const orma_schema = await orma_introspect(database_name, byo_query_fn, {
+        database_type,
+    })
+    const str = `export const orma_schema = ${JSON.stringify(
+        orma_schema,
+        null,
+        2
+    )} as const`
+    writeFileSync(output_path, str)
     return orma_schema
 }
