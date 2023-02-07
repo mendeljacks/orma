@@ -3,16 +3,74 @@
  * @module
  */
 
+import { writeFileSync } from 'fs'
 import { group_by } from '../helpers/helpers'
+import { Edge } from '../helpers/schema_helpers'
 import { MysqlFunction } from '../mutate/mutate'
-import {
-    OrmaFieldSchema,
-    OrmaIndexSchema,
-    OrmaSchema,
-    OrmaSchemaCache,
-    SupportedDbs,
-} from '../types/schema/schema_types'
 import { DeepMutable } from '../types/schema_types'
+
+export type OrmaSchema = {
+    readonly $entities: {
+        readonly [entity_name: string]: OrmaEntitySchema
+    }
+    $cache?: OrmaSchemaCache
+}
+
+export type OrmaSchemaCache = {
+    $reversed_foreign_keys: {
+        readonly [referenced_entity: string]: readonly ForeignKeyEdge[]
+    }
+}
+
+export type ForeignKeyEdge = Omit<Edge, 'from_entity'>
+
+export type OrmaEntitySchema = {
+    readonly $database_type: SupportedDbs
+    readonly $comment?: string
+    readonly $indexes?: readonly OrmaIndexSchema[]
+    readonly $foreign_keys?: readonly ForeignKeyEdge[]
+    readonly $fields: {
+        readonly [field_name: string]: orma_field_schema
+    }
+}
+
+export type orma_field_schema = {
+    readonly data_type?: keyof typeof mysql_to_typescript_types
+    readonly character_count?: number
+    readonly ordinal_position?: number
+    readonly decimal_places?: number
+    readonly not_null?: boolean
+    readonly primary_key?: boolean
+    readonly unsigned?: boolean
+    readonly indexed?: boolean
+    readonly default?: string | number
+    readonly comment?: string
+    readonly auto_increment?: boolean
+    readonly enum_values?: readonly (string | number)[]
+    // readonly references?: {
+    //     readonly [referenced_entity: string]: {
+    //         readonly [referenced_field: string]: {
+    //             readonly [key: string]: never
+    //         }
+    //     }
+    // }
+}
+
+export type OrmaIndexSchema = {
+    readonly index_name?: string
+    readonly is_unique?: boolean
+    readonly fields: readonly string[]
+    readonly index_type?: string
+    readonly invisible?: boolean
+    readonly collation?: 'A' | 'D'
+    readonly sub_part?: number | null
+    readonly packed?: string | null
+    readonly extra?: string
+    readonly index_comment?: string
+    readonly expression?: string
+}
+
+export type SupportedDbs = 'mysql' | 'postgres'
 
 export interface mysql_table {
     table_name: string
@@ -282,7 +340,7 @@ export const generate_field_schema = (mysql_column: mysql_column) => {
         identity_generation,
     } = mysql_column
 
-    const field_schema: DeepMutable<OrmaFieldSchema> = {
+    const field_schema: DeepMutable<orma_field_schema> = {
         data_type:
             data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
         ordinal_position,
