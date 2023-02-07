@@ -2,9 +2,9 @@
 
 Orma is a JSON-based, statically typed query language for SQL databases.
 
-
-
 At its heart, Orma's mission is simple: convert a parsable, serializable and type-safe JSON syntax into SQL strings. However Orma builds on its base SQL syntax by providing other features such as validation, multi-tenancy, database introspection, declarative foreign keys and more. In other words, Orma provides the tools to secure and simplify your database queries, while still exposing the full power of SQL.
+
+Orma currently supports MySQL and PostgreSQL.
 
 ## Key Features
 
@@ -12,7 +12,7 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
 - Nested queries and mutations
 - Mixed operations (create, update and delete in one request)
 - Extensive SQL-based syntax
-- Automatic typescript for queries and mutations
+- Dynamic types for queries and mutations
 
 🛹 Portable
 - Pure JS with no code generation
@@ -27,9 +27,11 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
   - [Key Features](#key-features)
 - [Table of contents](#table-of-contents)
 - [Getting started](#getting-started)
+  - [What can orma do?](#what-can-orma-do)
   - [Database connector](#database-connector)
-  - [Orma Schema](#orma-schema)
-    - [Introspection](#introspection)
+- [Orma Schema](#orma-schema)
+  - [Introspection](#introspection)
+  - [Creating and editing](#creating-and-editing)
 - [Queries](#queries)
   - [Setup](#setup)
   - [Structure](#structure)
@@ -39,7 +41,7 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
   - [Filtering](#filtering)
     - [Basic operations](#basic-operations)
     - [Connectives](#connectives)
-    - [$any_path](#any_path)
+    - [$any\_path](#any_path)
     - [Subqueries in $where clauses](#subqueries-in-where-clauses)
     - [Referencing fields](#referencing-fields)
   - [Grouping and ordering](#grouping-and-ordering)
@@ -53,7 +55,7 @@ At its heart, Orma's mission is simple: convert a parsable, serializable and typ
   - [Guids](#guids)
 - [Multitenancy](#multitenancy)
   - [Connection edges](#connection-edges)
-  - [Restricting $where_connected](#restricting-where_connected)
+  - [Restricting $where\_connected](#restricting-where_connected)
   - [Setting connection edges](#setting-connection-edges)
 - [Advanced use cases](#advanced-use-cases)
   - [Custom SQL](#custom-sql)
@@ -68,6 +70,90 @@ https://orma-playground.web.app/
 To install orma with npm, run
 ```
 npm install orma
+```
+
+## What can orma do?
+This examples demonstrates some of orma's features by querying some data from a database, editing that data and saving it back to the database.
+
+```js
+import mysql from 'mysql2'
+import { get_mutation_diff, orma_query, orma_mutate, mysql2_adapter } from 'orma'
+import { orma_schema } from './orma_schema'
+
+// set up our database connection. Orma does not make its own database connection 
+// so that the programmer has access to and control over any SQL queries that are run
+const pool = mysql
+    .createPool({
+        host: env.host,
+        port: env.port,
+        user: env.user,
+        password: env.password,
+        database: env.database,
+        multipleStatements: true,
+    })
+    .promise()
+
+const orma_sql_function = mysql2_adapter(pool)
+
+// fetch data from the database using a query
+const query = {
+    // This query only has access to users 1 and 2.
+    // Only records connected to these users will be returned.
+    $where_connected: [{
+        $entity: 'users',
+        $field: 'id',
+        $values: [1, 2]
+    }],
+    // return all the users we have access to
+    users: {
+        id: true,
+        first_name: true,
+        email: true,
+        // return posts for each user
+        posts: {
+            id: true,
+            title: true,
+            views: true,
+            // only return posts that have 100 or more views, 
+            // or whose title starts with 'First'
+            $where: {
+                $or: [{
+                    $gte: ['view', { $escape: 100 }]
+                }, {
+                    $like: ['title', { $escape: 'First%' }]
+                }]
+            }
+        }
+    },
+}
+
+// execute the query
+const original = await orma_query(query, orma_schema, orma_sql_function)
+// {
+//     users: [{
+//         id: 1,
+//         first_name: 'Alice',
+//         email: 'aa@a.com',
+//         posts: [{
+//             id: 10
+//             title: 'First post!',
+//             views: 2
+//         }, ...]
+//     }, ...]
+// }
+
+// create a copy of the original data with a different view count
+const modified = clone(original)
+modified.users[0].posts[0].views = 3
+
+// automatically compute the difference between the original and modieifed versions,
+// and store it in an orma mutation
+const mutation_diff = get_mutation_diff(original, modified)
+
+// save the changes to the database
+await orma_mutate(mutation_diff, orma_sql_function, orma_schema)
+
+// the post with id 10 now has 3 views instead of 2
 ```
 
 ## Database connector
@@ -94,17 +180,20 @@ const pool = mysql
 const orma_sql_function = mysql2_adapter(pool)
 ```
 > ⚠️ The mysql2 adapter generates SQL statements separated by semicolons, so make sure they are enabled in the connector config.
-## Orma Schema
+# Orma Schema
 
 The orma schema is a JSON object which is required to make queries or mutations. The schema contains all the information about a database that Orma needs, such as entity / field names, foreign keys and indexes. The schema is regular JSON, so it can be created dynamically at runtime, or fetched via an HTTP request. However, to get proper type-safety and intellisense, it is recommended to save the schema to disk.
 
-### Introspection
+## Introspection
 
 While Orma schemas can be hand-written, there is currently no way to apply an Orma schema onto a database. Instead, a schema can be introspected from an existing database which can be managed through other tools such as [db-migrate](https://www.npmjs.com/package/db-migrate). For intellisense to work, the schema must be saved to a .ts file and have 'as const' at the end.
 
 Here is an example of a mysql database being introspected:
 
 ```js
+import { orma_introspect } from 'orma'
+import { writeFileSync } from 'fs'
+
 const orma_schema = await orma_introspect('database_name', orma_sql_function, {
     database_type: 'mysql',
 })
@@ -129,12 +218,12 @@ The generated schema will look something like this:
 //              "primary_key": true,
 //         },
 //         "email": {
-//              "data_type": "character varying",
+//              "data_type": "varchar",
 //              "not_null": true,
 //              "character_count": 10485760
 //         },
 //         "first_name": {
-//              "data_type": "character varying",
+//              "data_type": "varchar",
 //              "ordinal_position": 4,
 //              "character_count": 10485760
 //         },
@@ -143,6 +232,30 @@ The generated schema will look something like this:
 //     ...
 // }
 ```
+
+## Creating and editing
+Since the orma schema is a regular object, it can be hand-written or programatically modified. After any changes are made to the orma schema, its cache needs to be updated. For example to hand-write a schema:
+
+```js
+import { generate_orma_schema_cache } from 'orma'
+
+const $entities = {
+    users: {
+        id: {
+            data_type: "bigint",
+            not_null: true,
+            primary_key: true,
+        }
+    }
+}
+
+const orma_schema = {
+    $entities,
+    $cache: generate_orma_schema_cache($entities)
+} as const
+```
+
+> ⚠️ If the cache is not properly updated after changing the orma schema, orma will not function correctly.
 
 # Queries
 
@@ -459,7 +572,9 @@ Pagination is done though the $limit and $offset keywords, which work the same w
     }, {
         id: 2,
         first_name: 'Bob'
-        // Even though Bob has posts, they are not fetched because 1 post was already fetched for Alice
+        // Even though Bob has posts, 
+        // they are not fetched because 
+        // 1 post was already fetched for Alice
     }]
 }
 ```
@@ -713,7 +828,9 @@ Sometimes you want to search for some record based on the existence of some othe
         },
         $where: {
             $any_path: [['posts', 'comments', 'users'], {
-                // The second argument of $any_path is the same as a $where clause of the last entity in the path, in this case a $where clause on 'users'
+                // The second argument of $any_path is the same 
+                // as a $where clause of the last entity in the 
+                // path, in this case a $where clause on 'users'
                 $eq: ['first_name', { $escape: 'Bob' }]
             }]
         }
@@ -725,7 +842,8 @@ Sometimes you want to search for some record based on the existence of some othe
     
 ```js
 {
-    // only Alice's user is returned, since only Alice has a post that was commented on by Bob
+    // only Alice's user is returned, since only Alice 
+    // has a post that was commented on by Bob
     users: [{
         first_name: 'Alice',
         posts: [{ 
@@ -744,10 +862,18 @@ Sometimes you want to search for some record based on the existence of some othe
 </td><td>
     
 ```sql
-SELECT first_name FROM users WHERE id IN (
-    SELECT user_id FROM posts WHERE id IN (
-        SELECT post_id FROM comments WHERE user_id IN (
-            SELECT id FROM users WHERE first_name = 'Bob'
+SELECT first_name 
+FROM users 
+WHERE id IN (
+    SELECT user_id 
+    FROM posts 
+    WHERE id IN (
+        SELECT post_id 
+        FROM comments 
+        WHERE user_id IN (
+            SELECT id 
+            FROM users 
+            WHERE first_name = 'Bob'
         )
     )
 )
@@ -785,7 +911,8 @@ Like in regular SQL, Orma allows subqueries inside where clauses. Although these
     
 ```js
 {
-    // The user that has a post with id 1 is returned (Alice in this case)
+    // The user that has a post with id 1 
+    // is returned (Alice in this case)
     users: [{
         first_name: 'Alice',
         posts: [{ 
@@ -798,8 +925,12 @@ Like in regular SQL, Orma allows subqueries inside where clauses. Although these
 </td><td>
     
 ```sql
-SELECT first_name FROM users WHERE id IN (
-    SELECT user_id FROM posts WHERE id = 1
+SELECT first_name 
+FROM users 
+WHERE id IN (
+    SELECT user_id 
+    FROM posts 
+    WHERE id = 1
 )
 ```
 
@@ -942,9 +1073,11 @@ The $select syntax can be used as an alternative to regular subqueries. The main
 </td><td>
     
 ```sql
-SELECT id FROM users;
+SELECT id 
+FROM users;
 
-SELECT user_id, first_name FROM posts
+SELECT user_id, first_name 
+FROM posts
 ```
 
 </td></tr>
@@ -985,14 +1118,17 @@ SELECT user_id, first_name FROM posts
     
 ```sql
 SELECT id, (
-    SELECT first_name FROM users WHERE id = posts.user_id
-) FROM posts
+    SELECT first_name 
+    FROM users 
+    WHERE id = posts.user_id
+) AS user_first_name
+FROM posts
 ```
 
 </td></tr>
 </table>
 
-> ⚠️ $select and $as currently do not provide types on the query result, but they are otherwise fully supported.
+> ⚠️ $select and $as currently do not provide types on the query result, but are otherwise fully supported.
 
 # Mutations
 
@@ -1007,7 +1143,8 @@ import { get_mutation_diff, orma_query, orma_mutate } from 'orma'
 
 const query = {
     users: {
-        id: true,
+        // selecting the id field is required for mutation diffs to work
+        id: true, 
         first_name: true,
         last_name: true,
     },
@@ -1129,7 +1266,10 @@ It can be cumbersome to write an operation on each record (especially when creat
             id: 2,
             views: 123
         }, {
-            // operation cascading is overriden by explicitly setting the operation to be create. Any records nested under this one will be inferred as a create, rather than an update
+            // operation cascading is overriden by explicitly 
+            // setting the operation to be create. Any records 
+            // nested under this one will be inferred as a create, 
+            // rather than an update
             $operation: 'create',
             title: 'My post'
         }]

@@ -60,7 +60,7 @@ describe('guid_processing.ts', () => {
     describe(sort_database_rows.name, () => {
         test('throws if not enough mysql results', () => {
             try {
-                sort_database_rows([], [{}], [], {}, schema)
+                sort_database_rows([], [], [], {}, schema)
                 expect('should throw an error').to.equal(true)
             } catch (error) {}
         })
@@ -96,11 +96,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'products' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['products'],
                 query_results,
                 {},
                 schema
@@ -151,11 +149,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'products' }, { $from: 'images' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['products', 'images'],
                 query_results,
                 {},
                 schema
@@ -206,11 +202,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'users' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['users'],
                 query_results,
                 {},
                 schema
@@ -258,11 +252,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'products' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['products'],
                 query_results,
                 {},
                 schema
@@ -303,11 +295,9 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
-            const queries = [{ $from: 'products' }]
-
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                ['products'],
                 query_results,
                 {},
                 schema
@@ -337,13 +327,12 @@ describe('guid_processing.ts', () => {
                     path: ['products', 0],
                 },
             ]
-            const query_results = []
 
-            const queries = []
+            const query_results = []
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                queries,
+                [],
                 query_results,
                 {},
                 schema
@@ -351,6 +340,57 @@ describe('guid_processing.ts', () => {
 
             // expect a sparse array in slots where there is no database row
             expect(sorted_database_rows).to.deep.equal([undefined])
+        })
+        test('works with different identifying keys', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        title: 'test',
+                    },
+                    path: ['products', 0],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        resource_id: 123,
+                    },
+                    path: ['products', 1],
+                },
+            ]
+
+            const query_results = [
+                [
+                    {
+                        id: 2,
+                        resource_id: 123,
+                    },
+                    {
+                        id: 1,
+                        title: 'test',
+                    },
+                ],
+            ]
+
+            const sorted_database_rows = sort_database_rows(
+                mutation_pieces,
+                ['products'],
+                query_results,
+                {},
+                schema
+            )
+
+            // expect a sparse array in slots where there is no database row
+            expect(sorted_database_rows).to.deep.equal([
+                {
+                    id: 1,
+                    title: 'test',
+                },
+                {
+                    id: 2,
+                    resource_id: 123,
+                },
+            ])
         })
         test.skip('works with guids as the identifying keys')
     })

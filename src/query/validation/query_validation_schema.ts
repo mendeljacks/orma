@@ -44,20 +44,39 @@ const expression_schema = {
             const sql_function_definition =
                 sql_function_definitions[function_name]
 
-            const inner_schema = sql_function_definition.multiple_args
-                ? [
-                      {
-                          type: 'array',
-                          items: {
+            const inner_schema =
+                sql_function_definition.max_args === 0
+                    ? [] // in this case we only allow true, which is handled in the true_schema
+                    : sql_function_definition.max_args === 1
+                    ? [
+                          {
                               $ref: '#/$defs/expression',
                           },
-                      },
-                  ]
-                : [
-                      {
-                          $ref: '#/$defs/expression',
-                      },
-                  ]
+                      ]
+                    : [
+                          {
+                              type: 'array',
+                              minItems: sql_function_definition.min_args,
+                              maxItems: sql_function_definition.max_args,
+                              items: {
+                                  $ref: '#/$defs/expression',
+                              },
+                          },
+                      ]
+
+            // if no args are allowed, we must use true as a placeholder for the json value. If multiple args are allowed,
+            // we can provide no args with just an empty array [], so we dont allow true in that case. But if there is only
+            // one arg, then we dont wrap the arg in an array, so to provide nothing we use true
+            const true_schema =
+                (sql_function_definition.min_args === 0 &&
+                    sql_function_definition.max_args === 1) ||
+                sql_function_definition.max_args === 0
+                    ? [
+                          {
+                              const: true,
+                          },
+                      ]
+                    : []
 
             const distinct_schema = sql_function_definition.allow_distinct
                 ? [
@@ -66,6 +85,7 @@ const expression_schema = {
                           properties: {
                               $distinct: inner_schema,
                           },
+                          required: ['distinct'],
                           additionalProperties: false,
                       },
                   ]
@@ -84,10 +104,16 @@ const expression_schema = {
                 properties: {
                     [function_name]: inner_schema,
                 },
+                required: [function_name],
                 additionalProperties: false,
             }
 
-            const schemas = [...distinct_schema, ...star_schema, field_schema]
+            const schemas = [
+                ...true_schema,
+                ...distinct_schema,
+                ...star_schema,
+                field_schema,
+            ]
 
             return schemas.length > 0
                 ? {
@@ -103,6 +129,7 @@ const expression_schema = {
                     $ref: '#/$defs/primitive',
                 },
             },
+            required: ['$escape'],
             additionalProperties: false,
         },
         // or a subquery

@@ -9,6 +9,7 @@ export {
     remove_connection_edges,
 } from './query/macros/where_connected_macro'
 export { Edge, reverse_edge } from './helpers/schema_helpers'
+export { combine_wheres } from './query/query_helpers'
 
 // mutate
 export {
@@ -19,6 +20,8 @@ export {
 } from './mutate/mutate'
 export { OrmaStatement } from './mutate/statement_generation/mutation_statements'
 export { get_mutation_connected_errors } from './mutate/verifications/mutation_connected'
+export { get_unique_verification_errors } from './mutate/verifications/verify_uniqueness'
+export { get_delete_verification_errors } from './mutate/verifications/verify_deletes'
 export {
     get_mutation_diff,
     get_mutation_diff as diff_mutation,
@@ -28,7 +31,10 @@ export { apply_inherit_operations_macro } from './mutate/macros/inherit_operatio
 export { path_to_entity as mutation_path_to_entity } from './mutate/helpers/mutate_helpers'
 
 // introspect
-export { orma_introspect } from './introspector/introspector'
+export {
+    orma_introspect,
+    generate_orma_schema_cache,
+} from './introspector/introspector'
 
 // adapters
 export { mysql2_adapter } from './helpers/database_adapters'

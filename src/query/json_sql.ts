@@ -24,7 +24,13 @@
  */
 
 import { escapeId } from 'sqlstring'
-import { is_simple_object } from '../helpers/helpers'
+import {
+    deep_get,
+    drop_last,
+    is_simple_object,
+    map_object,
+} from '../helpers/helpers'
+import { mysql_to_typescript_types } from '../introspector/introspector'
 
 type expression =
     | {
@@ -32,9 +38,13 @@ type expression =
       }
     | primitive
 
-type primitive = string | number | Date | Array<any>
+type primitive = string | number | Date | Array<any> | boolean | null
 
-export const json_to_sql = (expression: expression, path: any[] = []) => {
+export const json_to_sql = (
+    expression: expression,
+    path: any[] = [],
+    original_expression: any = undefined
+) => {
     // strings and other non-objects are returned as-is
     const is_object = is_simple_object(expression)
     if (!is_object) {
@@ -73,37 +83,45 @@ export const json_to_sql = (expression: expression, path: any[] = []) => {
 
             const args = expression[command]
             const parsed_args = Array.isArray(args)
-                ? args.map((arg, i) => json_to_sql(arg, [...path, command, i]))
-                : json_to_sql(args, [...path, command])
+                ? args.map((arg, i) =>
+                      json_to_sql(
+                          arg,
+                          [...path, command, i],
+                          original_expression ?? expression
+                      )
+                  )
+                : json_to_sql(
+                      args,
+                      [...path, command],
+                      original_expression ?? expression
+                  )
 
-            return command_parser(parsed_args, path)
+            return command_parser(
+                parsed_args,
+                [...path, command],
+                original_expression ?? expression
+            )
         })
         .filter(el => el !== '')
 
     return parsed_commands.join(' ')
 }
 
-const command_order_array = [
-    '$delete_from',
-    '$update',
-    '$set',
-    '$select',
-    '$from',
-    '$where',
-    '$group_by',
-    '$having',
-    '$order_by',
-    '$limit',
-    '$offset',
-    '$insert_into',
-    '$values',
-]
-
-// turn the array into an object for fast lookups
-const command_order = command_order_array.reduce((acc, val, i) => {
-    acc[val] = i
-    return acc
-}, {})
+// const command_order_array = [
+//     '$delete_from',
+//     '$update',
+//     '$set',
+//     '$select',
+//     '$from',
+//     '$where',
+//     '$group_by',
+//     '$having',
+//     '$order_by',
+//     '$limit',
+//     '$offset',
+//     '$insert_into',
+//     '$values',
+// ]
 
 export const sql_function_definitions: {
     [function_name: string]: {
@@ -111,7 +129,8 @@ export const sql_function_definitions: {
         aggregate?: boolean
         allow_star?: boolean
         allow_distinct?: boolean
-        multiple_args?: boolean
+        min_args?: number
+        max_args?: number
     }
 } = {
     // aggregate functions
@@ -119,105 +138,155 @@ export const sql_function_definitions: {
         ast_to_sql: args => `SUM(${args})`,
         aggregate: true,
         allow_distinct: true,
+        min_args: 1,
+        max_args: 1,
     },
     $min: {
         ast_to_sql: args => `MIN(${args})`,
         aggregate: true,
         allow_distinct: true,
+        min_args: 1,
+        max_args: 1,
     },
     $max: {
         ast_to_sql: args => `MAX(${args})`,
         aggregate: true,
         allow_distinct: true,
+        min_args: 1,
+        max_args: 1,
     },
     $avg: {
         ast_to_sql: args => `AVG(${args})`,
         aggregate: true,
         allow_distinct: true,
+        min_args: 1,
+        max_args: 1,
     },
     $count: {
         ast_to_sql: args => `COUNT(${args})`,
         aggregate: true,
         allow_distinct: true,
         allow_star: true,
+        min_args: 1,
+        max_args: 1,
     },
     // non-aggregate functions
     $coalesce: {
         ast_to_sql: args => `COALESCE(${args.join(', ')})`,
-        multiple_args: true,
+        min_args: 1,
     },
     $round: {
         ast_to_sql: args => `ROUND(${args.join(', ')})`,
-        multiple_args: true,
+        min_args: 2,
+        max_args: 2,
     },
     $floor: {
         ast_to_sql: args => `FLOOR(${args})`,
+        min_args: 1,
+        max_args: 1,
     },
     $ceil: {
         ast_to_sql: args => `CEIL(${args})`,
+        min_args: 1,
+        max_args: 1,
     },
     $lower: {
         ast_to_sql: args => `LOWER(${args})`,
+        min_args: 1,
+        max_args: 1,
     },
     $upper: {
         ast_to_sql: args => `UPPER(${args})`,
+        min_args: 1,
+        max_args: 1,
     },
     $date: {
         ast_to_sql: args => `DATE(${args})`,
+        min_args: 1,
+        max_args: 1,
     },
     $if: {
         ast_to_sql: args => `IF(${args.join(', ')})`,
-        multiple_args: true,
+        min_args: 3,
+        max_args: 3,
     },
     $concat: {
         ast_to_sql: args => `CONCAT(${args.join(', ')})`,
-        multiple_args: true,
+        min_args: 1,
     },
     $multiply: {
         ast_to_sql: args => `(${args.join(' * ')})`,
-        multiple_args: true,
+        min_args: 2,
+        max_args: 2,
     },
     $divide: {
         ast_to_sql: args => `(${args.join(' / ')})`,
-        multiple_args: true,
+        min_args: 2,
+        max_args: 2,
     },
     $add: {
         ast_to_sql: args => `(${args.join(' + ')})`,
-        multiple_args: true,
+        min_args: 2,
+        max_args: 2,
     },
     $subtract: {
         ast_to_sql: args => `(${args.join(' - ')})`,
-        multiple_args: true,
+        min_args: 2,
+        max_args: 2,
     },
-
     // Postgres's PostGIS functions
     $st_distance: {
         ast_to_sql: args => `ST_Distance(${args.join(', ')})`,
-        multiple_args: true,
+        min_args: 2,
+        max_args: 3,
     },
     $st_dwithin: {
         ast_to_sql: args => `ST_DWithin(${args.join(', ')})`,
-        multiple_args: true,
+        min_args: 2,
+        max_args: 3,
+    },
+    $current_timestamp: {
+        ast_to_sql: arg => `CURRENT_TIMESTAMP`,
+        max_args: 0,
     },
 }
 
+// note that the order of the command parsers is the same order they appear in the sql strings. this means that
+// changing the order of the command parsers can break the output sql
 const sql_command_parsers = {
+    // mutations
+    $update: table_name => `UPDATE ${table_name}`,
+    $set: items =>
+        `SET ${items
+            .map(([column, value]) => `${column} = ${value}`)
+            .join(', ')}`,
+    $delete_from: table_name => `DELETE FROM ${table_name}`,
+    $distinct: column_name => `DISTINCT ${column_name}`,
+    $insert_into: ([table_name, [...columns]]) =>
+        `INSERT INTO ${table_name} (${columns.join(', ')})`,
+    $values: (values: any[][]) =>
+        `VALUES ${values
+            .map(inner_values => `(${inner_values.join(', ')})`)
+            .join(', ')}`,
+
     // DML commands
     $select: args => `SELECT ${args.join(', ')}`,
     $as: args => `(${args[0]}) AS ${args[1]}`,
-    $entity: args => `${args}.`,
-    $field: args => `${args}`,
+    $entity: args => `${args}`,
+    $field: args => `.${args}`,
     $from: args => `FROM ${args}`,
     $where: args => `WHERE ${args}`,
+    $group_by: args => `GROUP BY ${args.join(', ')}`,
     $having: args => `HAVING ${args}`,
+    $order_by: args => `ORDER BY ${args.join(', ')}`,
+    $asc: args => `${args} ASC`,
+    $desc: args => `${args} DESC`,
+    $limit: args => `LIMIT ${args}`,
+    $offset: args => `OFFSET ${args}`,
     $in: (args, path) =>
         `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IN (${
             args[1]
         })`,
-    $group_by: args => `GROUP BY ${args.join(', ')}`,
-    $order_by: args => `ORDER BY ${args.join(', ')}`,
-    $asc: args => `${args} ASC`,
-    $desc: args => `${args} DESC`,
     $and: (args, path) => {
         const res = `(${args.join(') AND (')})`
         return nested_under_odd_nots(path) ? `NOT (${res})` : res
@@ -246,8 +315,6 @@ const sql_command_parsers = {
         `(${args[0]}) ${nested_under_odd_nots(path) ? '>' : '<='} (${args[1]})`,
     $exists: (args, path) =>
         `${nested_under_odd_nots(path) ? 'NOT ' : ''}EXISTS (${args})`,
-    $limit: args => `LIMIT ${args}`,
-    $offset: args => `OFFSET ${args}`,
     $like: (args, path) => {
         // const string_arg = args[1].toString()
         // const search_value = string_arg.replace(/^\'/, '').replace(/\'$/, '') // get rid of quotes if they were put there by escape()
@@ -266,32 +333,92 @@ const sql_command_parsers = {
         return acc
     }, {}),
 
-    // mutations
-    $insert_into: ([table_name, [...columns]]) =>
-        `INSERT INTO ${table_name} (${columns.join(', ')})`,
-    $values: (values: any[][]) =>
-        `VALUES ${values
-            .map(inner_values => `(${inner_values.join(', ')})`)
-            .join(', ')}`,
-    $update: table_name => `UPDATE ${table_name}`,
-    $set: items =>
-        `SET ${items
-            .map(([column, value]) => `${column} = ${value}`)
-            .join(', ')}`,
-    $delete_from: table_name => `DELETE FROM ${table_name}`,
-    $distinct: column_name => `DISTINCT ${column_name}`,
-
     // DDL commands
+    $create_table: (table_name, path, obj) =>
+        `CREATE${
+            get_neighbour_field(obj, path, '$temporary') ? ' TEMPORARY' : ''
+        } TABLE${
+            get_neighbour_field(obj, path, '$if_not_exists')
+                ? ' IF NOT EXISTS'
+                : ''
+        } ${table_name}`,
+    $if_not_exists: _ => '',
+    $temporary: _ => '',
+    $like_table: table_name => `LIKE ${table_name}`,
+    // alter
+    $alter_table: table_name => `ALTER TABLE ${table_name}`,
+    // definitions
+    $definitions: args => (args?.length ? `(${args.join(', ')})` : ''),
+    $alter_operation: arg => arg?.toUpperCase(),
+    $old_name: (arg, path, obj) =>
+        get_neighbour_field(obj, path, '$alter_operation') === 'rename'
+            ? `${arg} TO`
+            : arg,
+    // column definition commands
+    $constraint: (arg, path, obj) => {
+        const name = get_neighbour_field(obj, path, '$name')
+        const name_with_space = name ? ` ${name}` : ''
+        return {
+            unique: `CONSTRAINT${name_with_space} UNIQUE INDEX`,
+            primary_key: `CONSTRAINT${name_with_space} PRIMARY KEY`,
+            foreign_key: `CONSTRAINT${name_with_space} FOREIGN KEY`,
+        }[arg]
+    },
+    $index: arg =>
+        ({
+            true: `INDEX`,
+            full_text: 'FULLTEXT INDEX',
+            spatial: 'SPATIAL INDEX',
+        }[arg]),
+    $name: (arg, path, obj) =>
+        // for constraints, name is handled differently because it goes between CONSTRAINT
+        // and the constraint type (e.g. FOREIGN KEY)
+        get_neighbour_field(obj, path, '$constraint') ? '' : arg,
+    $data_type: args =>
+        args.length === 1
+            ? args[0]?.toUpperCase()
+            : `${args[0]?.toUpperCase()}(${args
+                  .slice(1, Infinity)
+                  .join(', ')})`,
+    $not_null: arg => (arg ? 'NOT NULL' : ''),
+    $default: arg => `DEFAULT ${arg}`,
+    $auto_increment: arg => (arg ? 'AUTO INCREMENT' : ''),
+    // index
+    $fields: args => `(${args.join(', ')})`,
+    $invisible: arg => (arg ? `INVISIBLE` : ''),
+    $comment: comment => `COMMENT "${comment}"`,
+    // constraint
+    $references: arg => `REFERENCES ${arg}`,
+    $on_delete: arg => `ON DELETE ${arg}`,
+    $on_update: arg => `ON UPDATE ${arg}`,
+    $restrict: arg => (arg ? `RESTRICT` : ''),
+    $cascade: arg => (arg ? `CASCADE` : ''),
+    $set_null: arg => (arg ? `SET NULL` : ''),
+    $no_action: arg => (arg ? `NO ACTION` : ''),
+}
+
+const command_order = Object.keys(sql_command_parsers).reduce((acc, val, i) => {
+    acc[val] = i
+    return acc
+}, {})
+
+const get_neighbour_field = (obj, path, neighbour_field) => {
+    const res = deep_get(
+        [...drop_last(1, path), neighbour_field],
+        obj,
+        undefined
+    )
+    return res
 }
 
 /**
- * Returns true if the last n elements of a path are $not and n is odd. So ['a', '$not'] returns true
- * but ['a', '$not', '$not'] returns false
+ * Returns true if the path ends in an odd number of $not. So ['a', '$not', '$eq'] returns true
+ * but ['a', '$not', '$not', '$eq'] returns false. ignores the last element.
  */
 const nested_under_odd_nots = (path: any[]) => {
     let not_count = 0
-    for (let i = 0; i < path.length; i++) {
-        const path_element = path[path.length - 1 - i]
+    for (let i = 0; i < path.length - 1; i++) {
+        const path_element = path[path.length - 2 - i]
         if (path_element === '$not') {
             not_count += 1
         } else {
@@ -326,7 +453,7 @@ const nested_under_odd_nots = (path: any[]) => {
         // column_definition
     }]
     $like: 'my_other_table',
-    $as: { 
+    $create_as: { 
         $select: ['col'], 
         $from:'my_other_table'
     },
@@ -370,6 +497,17 @@ const nested_under_odd_nots = (path: any[]) => {
     $stored: true
 }
 
+// index definition
+{
+    $index: 'my_index',
+    $unique: true,
+    $full_text: true,
+    $spatial: true,
+    $invisible: true,
+    $comment: 'asd',
+    $fields: ['item_id', 'category_id']
+}
 
+// foreign key
 
  */

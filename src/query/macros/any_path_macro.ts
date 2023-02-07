@@ -96,13 +96,7 @@ export const process_any_clause = (
     const full_path = [initial_entity].concat(any_path)
 
     const edge_path = get_edge_path(full_path, orma_schema)
-    const clause = edge_path_to_where_ins(
-        edge_path,
-        filter_type,
-        subquery,
-        false,
-        orma_schema
-    )
+    const clause = edge_path_to_where_ins(edge_path, filter_type, subquery)
 
     return clause
 }
@@ -110,9 +104,7 @@ export const process_any_clause = (
 export const edge_path_to_where_ins = (
     edge_path: Edge[],
     filter_type: '$having' | '$where',
-    subquery: any,
-    allow_null_foreign_keys: boolean,
-    orma_schema: OrmaSchema
+    subquery: any
 ) => {
     // we need to reverse the edge path since we are building the where ins
     // from the inside out
@@ -125,25 +117,12 @@ export const edge_path_to_where_ins = (
                 {
                     $select: [edge.to_field],
                     $from: edge.to_entity,
-                    [filter_type]: acc,
+                    ...(acc === undefined ? {} : { [filter_type]: acc }),
                 },
             ],
         }
 
-        // if the from column is nullable, i.e. a nullable foreign key, then we should explicitly
-        // allow any rows where that column is null
-        const is_nullable = get_field_is_nullable(
-            orma_schema,
-            edge.from_entity,
-            edge.from_field
-        )
-        if (allow_null_foreign_keys && is_nullable) {
-            return {
-                $or: [new_acc, { $eq: [edge.from_field, null] }],
-            }
-        } else {
-            return new_acc
-        }
+        return new_acc
     }, subquery)
 
     return clause

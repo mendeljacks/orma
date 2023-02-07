@@ -5,6 +5,15 @@ import { get_real_entity_name } from '../query'
 import { get_any_path_context_entity } from './any_path_macro'
 
 export const apply_escape_macro = (query, orma_schema: OrmaSchema) => {
+    apply_escape_macro_to_query_part(orma_schema, undefined, query)
+}
+
+// can be used to escape only parts of queries, for example only escaping a $where clause
+export const apply_escape_macro_to_query_part = (
+    orma_schema: OrmaSchema,
+    root_entity: string | undefined,
+    query
+) => {
     let raw_paths: any[] = []
 
     deep_for_each(query, (value, path) => {
@@ -24,11 +33,14 @@ export const apply_escape_macro = (query, orma_schema: OrmaSchema) => {
             }
         }
 
-        const entity = get_any_path_context_entity(path, query)
+        const entity = get_any_path_context_entity(path, query) ?? root_entity
 
         deep_set(
             path,
-            orma_escape(value.$escape, orma_schema.$entities[entity].$database_type),
+            orma_escape(
+                value.$escape,
+                orma_schema.$entities[entity].$database_type
+            ),
             query
         )
     })

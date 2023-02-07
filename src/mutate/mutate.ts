@@ -55,7 +55,7 @@ export const orma_mutate_run = async (
             const query_results = await mysql_function(query_infos)
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                query_infos.map(el => el.ast),
+                query_infos.map(el => el.ast.$from as string),
                 query_results,
                 values_by_guid,
                 orma_schema

@@ -315,6 +315,14 @@ describe('introspector', () => {
         expect(index_schemas_by_table).to.deep.equal({
             users: [
                 {
+                    index_name: 'combo_unique',
+                    is_unique: true,
+                    fields: ['last_name', 'first_name'],
+                    index_type: 'BTREE',
+                    invisible: false,
+                    collation: 'A',
+                },
+                {
                     index_name: 'simple_index',
                     is_unique: false,
                     fields: ['id'],
@@ -323,14 +331,6 @@ describe('introspector', () => {
                     collation: 'A',
                     sub_part: 1,
                     index_comment: 'my index',
-                },
-                {
-                    index_name: 'combo_unique',
-                    is_unique: true,
-                    fields: ['last_name', 'first_name'],
-                    index_type: 'BTREE',
-                    invisible: false,
-                    collation: 'A',
                 },
             ],
             posts: [
@@ -375,7 +375,7 @@ describe('introspector', () => {
             },
         })
 
-        const cache = generate_orma_schema_cache(schema)
+        const cache = generate_orma_schema_cache(schema.$entities)
         const goal: OrmaSchemaCache = {
             $reversed_foreign_keys: {
                 products: [

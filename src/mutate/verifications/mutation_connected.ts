@@ -3,6 +3,7 @@ import { group_by } from '../../helpers/helpers'
 import { reverse_edge } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
 import { edge_path_to_where_ins } from '../../query/macros/any_path_macro'
+import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import {
     ConnectionEdges,
     get_edge_paths_by_destination,
@@ -138,19 +139,25 @@ export const get_primary_key_wheres = (
             ({ record }) =>
                 record.$operation === 'update' || record.$operation === 'delete'
         )
-        .map(
-            mutation_pieces =>
-                generate_record_where_clause(
-                    mutation_pieces,
-                    {}, // no values_by_guid since this is a pre middleware
-                    orma_schema,
-                    // force a value for now - no guid allowed (maybe change this in future when I figure out
-                    // what to do in this case)
-                    false,
-                    true
-                )?.where
-        )
-        .filter(el => el !== undefined)
+        .flatMap(mutation_pieces => {
+            const where = generate_record_where_clause(
+                mutation_pieces,
+                {}, // no values_by_guid since this is a pre middleware
+                orma_schema,
+                // force a value for now - no guid allowed (maybe change this in future when I figure out
+                // what to do in this case)
+                false,
+                true
+            )?.where
+
+            if (where) {
+                // must apply escape macro since we need valid SQL AST
+                apply_escape_macro_to_query_part(orma_schema, entity, where)
+                return [where]
+            } else {
+                return []
+            }
+        })
 
     // the first case is because if this entity is the ownership entity, then we dont need to wrap in $where $ins.
     // the second case is if there are no identifying keys (e.g. all creates or only $guids)
@@ -165,7 +172,7 @@ export const get_primary_key_wheres = (
     )
 
     const edge_paths = edge_paths_obj[where_connected.$entity]
-    const primary_key_wheres = edge_paths.map(edge_path => {
+    const primary_key_wheres = edge_paths?.map(edge_path => {
         // reverse since we are queryng the where connected root entity and these paths are going from the
         // current entity to the root, not the root to the current entity
         const reversed_edge_path = edge_path
@@ -176,12 +183,10 @@ export const get_primary_key_wheres = (
         const where = edge_path_to_where_ins(
             reversed_edge_path,
             '$where',
-            combine_wheres(identifying_wheres, '$or'),
-            false,
-            orma_schema
+            combine_wheres(identifying_wheres, '$or')
         )
         return where
-    })
+    }) ?? []
 
     return primary_key_wheres
 }
@@ -235,9 +240,7 @@ export const get_foreign_key_wheres = (
                 const where = edge_path_to_where_ins(
                     search_ownership_path,
                     '$where',
-                    parent_where,
-                    false,
-                    { $entities: {} }
+                    parent_where
                 )
                 return where
             }

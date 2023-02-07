@@ -1,4 +1,5 @@
 import { OrmaSchema } from '../../introspector/introspector'
+import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { combine_wheres } from '../../query/query_helpers'
 import { generate_record_where_clause } from '../helpers/record_searching'
 import { ValuesByGuid } from '../mutate'
@@ -51,6 +52,9 @@ export const get_guid_query = (
             // a repeatable way so we can do row matching later
         )
         identifying_keys.forEach(key => all_identifying_keys.add(key))
+
+        // must apply escape macro since we need valid SQL AST
+        apply_escape_macro_to_query_part(orma_schema, entity, where)
 
         return where
     })

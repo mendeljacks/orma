@@ -2,6 +2,7 @@ import { OrmaError } from '../../helpers/error_handling'
 import { orma_escape } from '../../helpers/escape'
 import { is_reserved_keyword } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../introspector/introspector'
+import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { combine_wheres } from '../../query/query_helpers'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { generate_record_where_clause } from '../helpers/record_searching'
@@ -97,6 +98,8 @@ export const get_update_ast = (
     values_by_guid: Record<any, any>,
     orma_schema: OrmaSchema
 ) => {
+    const entity = path_to_entity(mutation_piece.path)
+
     const { identifying_keys, where } = generate_record_where_clause(
         mutation_piece,
         values_by_guid,
@@ -104,7 +107,8 @@ export const get_update_ast = (
         false
     )
 
-    const entity = path_to_entity(mutation_piece.path)
+    // must apply escape macro since we need valid SQL AST
+    apply_escape_macro_to_query_part(orma_schema, entity, where)
 
     const $set = Object.keys(mutation_piece.record)
         .map(field => {
@@ -151,6 +155,9 @@ export const get_delete_ast = (
             orma_schema,
             false
         )
+
+        // must apply escape macro since we need valid SQL AST
+        apply_escape_macro_to_query_part(orma_schema, entity, where)
 
         return where
     })
