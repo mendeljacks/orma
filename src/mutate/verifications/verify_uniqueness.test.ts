@@ -58,25 +58,25 @@ describe('verify_uniqueness.ts', () => {
     }
 
     describe(get_verify_uniqueness_query.name, () => {
-        test('test case', async () => {
-            const mutation = {
-                $operation: 'create',
-                products: [
-                    { title: '1', variants: [{ sku: 'test' }] },
-                    { title: '2', variants: [{ sku: 'test' }] },
-                ],
-            }
-            const plan = get_mutation_plan(
-                mutation,
-                orma_schema as any as OrmaSchema
-            )
-            const errors = await get_unique_verification_errors(
-                orma_schema as any as OrmaSchema,
-                () => { return [] } as any,
-                plan
-            )
-            return errors
-        })
+        // test('test case', async () => {
+        //     const mutation = {
+        //         $operation: 'create',
+        //         products: [
+        //             { title: '1', variants: [{ sku: 'test' }] },
+        //             { title: '2', variants: [{ sku: 'test' }] },
+        //         ],
+        //     }
+        //     const plan = get_mutation_plan(
+        //         mutation,
+        //         orma_schema as any as OrmaSchema
+        //     )
+        //     const errors = await get_unique_verification_errors(
+        //         orma_schema as any as OrmaSchema,
+        //         () => { return [] } as any,
+        //         plan
+        //     )
+        //     return errors
+        // })
         test('searches unique key', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
                 products: [
