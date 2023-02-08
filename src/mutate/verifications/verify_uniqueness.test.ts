@@ -172,10 +172,10 @@ describe('verify_uniqueness.ts', () => {
                     $where: {
                         $or: [
                             {
-                                $eq: ['title', { $escape: 'hi' }],
+                                $eq: ['id', { $escape: 14 }],
                             },
                             {
-                                $eq: ['id', { $escape: 14 }],
+                                $eq: ['title', { $escape: 'hi' }],
                             },
                             {
                                 $eq: ['title', { $escape: '123' }],
@@ -579,6 +579,37 @@ describe('verify_uniqueness.ts', () => {
 
             expect(errors.length).to.equal(0)
         })
+        test('does not generate an error for nulls', () => {
+            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
+                users: [
+                    {
+                        path: ['users', 0],
+                        record: {
+                            $operation: 'update',
+                            id: 12,
+                            email: {},
+                        },
+                    },
+                ],
+            }
+
+            const database_records_by_entity = {
+                users: [
+                    {
+                        id: 12,
+                        email: null,
+                    },
+                ],
+            }
+
+            const errors = get_database_uniqueness_errors(
+                orma_schema,
+                mutation_pieces_by_entity,
+                database_records_by_entity
+            )
+
+            expect(errors.length).to.equal(0)
+        })
     })
     describe(get_mutation_uniqueness_errors.name, () => {
         test('gets uniqueness errors', () => {
@@ -646,6 +677,35 @@ describe('verify_uniqueness.ts', () => {
                         record: {
                             $operation: 'update',
                             id: 12,
+                        },
+                        path: ['users', 1],
+                    },
+                ],
+            }
+
+            const errors = get_mutation_uniqueness_errors(
+                orma_schema,
+                mutation_pieces_by_entity
+            )
+
+            expect(errors.length).to.equal(0)
+        })
+        test('ignores objects', () => {
+            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
+                users: [
+                    {
+                        record: {
+                            $operation: 'update',
+                            id: 12,
+                            email: [{}],
+                        },
+                        path: ['users', 0],
+                    },
+                    {
+                        record: {
+                            $operation: 'update',
+                            id: 12,
+                            email: [{}],
                         },
                         path: ['users', 1],
                     },

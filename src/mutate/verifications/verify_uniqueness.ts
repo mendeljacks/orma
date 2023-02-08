@@ -1,5 +1,10 @@
 import { OrmaError } from '../../helpers/error_handling'
-import { array_equals, group_by, key_by } from '../../helpers/helpers'
+import {
+    array_equals,
+    group_by,
+    is_simple_object,
+    key_by,
+} from '../../helpers/helpers'
 import {
     get_primary_keys,
     get_unique_field_groups,
@@ -7,7 +12,6 @@ import {
 import { OrmaSchema } from '../../introspector/introspector'
 import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
-import { PathedRecord } from '../../types'
 import { get_identifying_keys } from '../helpers/identifying_keys'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { generate_record_where_clause_from_identifying_keys } from '../helpers/record_searching'
@@ -91,53 +95,27 @@ export const get_verify_uniqueness_query = (
         ]
 
         // generate a where clause for each unique field group for each mutation piece
-        const wheres = searchable_mutation_pieces.flatMap(mutation_piece => {
-            const identifying_fields = get_identifying_keys(
-                path_to_entity(mutation_piece.path),
-                mutation_piece.record,
-                {},
+        const wheres = unique_field_groups.flatMap(unique_fields => {
+            const checkable_mutation_records = get_checkable_mutation_records(
                 orma_schema,
+                unique_fields,
+                searchable_mutation_pieces,
                 true
             )
 
-            return (
-                unique_field_groups
-                    // identifying keys are not actually being edited (for updates) so we dont want to
-                    // search for them
-                    .filter(
-                        unique_fields =>
-                            mutation_piece.record.$operation !== 'update' ||
-                            !array_equals(identifying_fields, unique_fields)
-                    )
-                    .filter(unique_fields =>
-                        // null fields never violate unique constraints since null != null in sql. so
-                        // if even one field is being set to null, the unique constraint cannot be violated and
-                        // we can ignore the whole thing
-                        unique_fields.every(
-                            field => mutation_piece.record[field] !== null
-                        )
-                    )
-                    .map(unique_fields =>
-                        // if all the fields are undefined, the unique constraint is not relevant to this record
-                        // so we can ignore it. Otherwise, we must take the fields that are present since changing
-                        // even part of a combo unique constraint can cause a violation of the constraint
-                        unique_fields.filter(
-                            field =>
-                                mutation_piece.record[field] !== undefined &&
-                                // ignore objects such as sql functions or $guid. These could cause sql errors,
-                                // but theres no easy way to check if these will cause a unique constraint violation
-                                typeof mutation_piece.record[field] !== 'object'
-                        )
-                    )
-                    .filter(el => el.length > 0)
-                    .map(unique_fields =>
-                        generate_record_where_clause_from_identifying_keys(
-                            {},
-                            unique_fields,
-                            mutation_piece
-                        )
-                    )
-            )
+            return checkable_mutation_records.map(record => {
+                const relevant_unique_fields = unique_fields.filter(
+                    field =>
+                        record[field] !== undefined &&
+                        !is_simple_object(record[field]) &&
+                        !Array.isArray(record[field])
+                )
+                return generate_record_where_clause_from_identifying_keys(
+                    {},
+                    relevant_unique_fields,
+                    record
+                )
+            })
         })
 
         const $where = combine_wheres(wheres, '$or')
@@ -163,6 +141,65 @@ export const get_verify_uniqueness_query = (
     return query
 }
 
+const get_checkable_mutation_records = (
+    orma_schema: OrmaSchema,
+    unique_key: string[],
+    mutation_pieces: MutationPiece[],
+    allow_some_undefined: boolean
+) => {
+    return mutation_pieces
+        .filter(({ record, path }) => {
+            const entity = path_to_entity(path)
+
+            // identifying keys are not actually being edited (for updates) so we dont want to
+            // search for them
+            const is_identifying_key =
+                record.$operation === 'update' &&
+                array_equals(
+                    get_identifying_keys(entity, record, {}, orma_schema, true),
+                    unique_key
+                )
+
+            // null fields never violate unique constraints since null != null in sql. so
+            // if even one field is being set to null, the unique constraint cannot be violated and
+            // we can ignore the whole thing
+            const has_null_value = unique_key.some(
+                field => record[field] === null
+            )
+
+            // for querying, if one field is undefined or an object (which is considered undefined),
+            // we still query it because changing even part of a combo unique constraint can cause a
+            // constraint violation. But for the actual check once we have all the data in scope, we ignore
+            // such records, since we only care about the database returned records that have all the fields
+            // present, not the original mutation record that only has some fields filled out
+            const undefined_check_function = allow_some_undefined
+                ? 'every'
+                : 'some'
+
+            const all_undefined = unique_key[undefined_check_function](
+                field => record[field] === undefined
+            )
+
+            // Object values are ignored and treated like undefined. Although some objects
+            // (e.g. $guids ) could cause unique constraint violations, theres no easy way to check
+            // if these will cause a constraint violation so we let it fall back to an
+            // sql error for now
+            const has_object_value = unique_key[undefined_check_function](
+                field =>
+                    Array.isArray(record[field]) ||
+                    is_simple_object(record[field])
+            )
+
+            return (
+                !is_identifying_key &&
+                !has_object_value &&
+                !has_null_value &&
+                !all_undefined
+            )
+        })
+        .map(el => el.record)
+}
+
 /**
  * Given the data from {@link get_verify_uniqueness_query}, generates errors for all records in the mutation
  * that have uniqueness conflicts with records from the database
@@ -183,25 +220,14 @@ export const get_database_uniqueness_errors = (
 
         const entity_errors = field_groups.flatMap(field_group => {
             const database_records = database_records_by_entity[entity]
-            const mutation_pathed_records = mutation_pieces_by_entity[entity]
+            const mutation_pieces = mutation_pieces_by_entity[entity]
 
-            const mutation_records = mutation_pathed_records
-                .map(({ record }) => record)
-                .filter(
-                    // dont generate errors for identifying keys on updates, since these are not being modified
-                    record =>
-                        record.$operation !== 'update' ||
-                        !array_equals(
-                            get_identifying_keys(
-                                entity,
-                                record,
-                                {},
-                                orma_schema,
-                                true
-                            ),
-                            field_group
-                        )
-                )
+            const mutation_records = get_checkable_mutation_records(
+                orma_schema,
+                field_group,
+                mutation_pieces,
+                false
+            )
 
             const database_duplicate_indices = get_duplicate_record_indices(
                 database_records,
@@ -213,8 +239,8 @@ export const get_database_uniqueness_errors = (
                 ([database_record_index, mutation_record_index]) => {
                     const database_record =
                         database_records[database_record_index]
-                    const mutation_pathed_record =
-                        mutation_pathed_records[mutation_record_index]
+                    const mutation_piece =
+                        mutation_pieces[mutation_record_index]
 
                     const values = field_group.map(el => database_record[el])
 
@@ -224,10 +250,10 @@ export const get_database_uniqueness_errors = (
                             .join(', ')} must be unique but values ${values
                             .map(el => JSON.stringify(el))
                             .join(', ')} are already in the database.`,
-                        path: mutation_pathed_record.path,
+                        path: mutation_piece.path,
                         additional_info: {
                             database_record: database_record,
-                            mutation_record: mutation_pathed_record.record,
+                            mutation_record: mutation_piece.record,
                             unique_fields: field_group,
                             incorrect_values: values,
                         },
@@ -251,9 +277,9 @@ export const get_database_uniqueness_errors = (
  */
 export const get_mutation_uniqueness_errors = (
     orma_schema: OrmaSchema,
-    mutation_pathed_records_by_entity: Record<string, PathedRecord[]>
+    mutation_pieces_by_entity: Record<string, MutationPiece[]>
 ) => {
-    const entities = Object.keys(mutation_pathed_records_by_entity)
+    const entities = Object.keys(mutation_pieces_by_entity)
 
     const errors = entities.flatMap(entity => {
         const field_groups = [
@@ -262,24 +288,13 @@ export const get_mutation_uniqueness_errors = (
         ]
 
         const entity_errors = field_groups.flatMap((field_group: any) => {
-            const pathed_records = mutation_pathed_records_by_entity[entity]
-            const records = pathed_records
-                .map(({ record }) => record)
-                .filter(
-                    // dont generate errors for identifying keys on updates, since these are not being modified
-                    record =>
-                        record.$operation !== 'update' ||
-                        !array_equals(
-                            get_identifying_keys(
-                                entity,
-                                record,
-                                {},
-                                orma_schema,
-                                true
-                            ),
-                            field_group
-                        )
-                )
+            const pathed_records = mutation_pieces_by_entity[entity]
+            const records = get_checkable_mutation_records(
+                orma_schema,
+                field_group,
+                pathed_records,
+                false
+            )
 
             const duplicate_indices = get_duplicate_record_indices(
                 records,
