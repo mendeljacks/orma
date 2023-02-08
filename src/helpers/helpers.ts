@@ -75,7 +75,7 @@ export const deep_set = (
 }
 
 // from https://stackoverflow.com/a/16608074
-export const is_simple_object = (val): val is object =>
+export const is_simple_object = (val): val is Record<string, any> =>
     !!val &&
     (val.constructor === Object || val.constructor?.name === 'RowDataPacket')
 
@@ -265,7 +265,7 @@ export const key_by = <T>(
         return acc
     }, {})
 
-export const array_equals = (array1: any[], array2: any[]) =>
+export const array_equals = (array1: readonly any[], array2: readonly any[]) =>
     array1.length === array2.length &&
     array1.every((el1, i) => el1 === array2[i])
 
@@ -344,3 +344,7 @@ export const map_object = <
 
 export const is_nill = (el: any): el is null | undefined =>
     el === null || el === undefined
+
+export const sort_by_prop = <T>(a: T, b: T, prop: keyof T) =>
+    // @ts-ignore
+    a?.[prop]?.localeCompare(b?.[prop])

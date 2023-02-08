@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { OrmaMutation } from '../../types/mutation/mutation_types'
 import { apply_supersede_macro } from './supersede_macro'
 

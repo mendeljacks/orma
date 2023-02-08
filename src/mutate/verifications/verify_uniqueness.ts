@@ -4,7 +4,7 @@ import {
     get_primary_keys,
     get_unique_field_groups,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'

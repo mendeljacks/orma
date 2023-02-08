@@ -1,5 +1,5 @@
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { expect } from 'chai'
 import { apply_nesting_macro } from './nesting_macro'
 

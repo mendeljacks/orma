@@ -1,5 +1,5 @@
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import {
     get_database_uniqueness_errors,
     get_duplicate_record_indices,

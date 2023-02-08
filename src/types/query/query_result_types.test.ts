@@ -1,6 +1,6 @@
-import { as_orma_schema } from '../../introspector/introspector'
+import { as_orma_schema } from '../../schema/introspector'
 import { IsEqual } from '../helper_types'
-import { GetAllEdges, GetFieldType } from '../schema_types'
+import { GetAllEdges, GetFieldType } from '../schema_helper_types'
 import { QueryResult } from './query_result_types'
 import { OrmaQuery } from './query_types'
 

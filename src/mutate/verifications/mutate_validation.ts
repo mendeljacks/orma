@@ -14,7 +14,7 @@ import {
 import {
     mysql_to_typescript_types,
     OrmaSchema,
-} from '../../introspector/introspector'
+} from '../../schema/introspector'
 import { Path } from '../../types'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
 import { get_identifying_keys } from '../helpers/identifying_keys'

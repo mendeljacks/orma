@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
-import { AlterStatement, CreateStatement } from '../types/schema/schema_types'
+import { AlterStatement, CreateStatement } from '../types/schema/schema_ast_types'
 import { json_to_sql } from './json_sql'
 
 describe('query', () => {

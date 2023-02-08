@@ -1,6 +1,6 @@
 import { escape } from 'sqlstring'
 import * as pg_escape from 'pg-escape-browser'
-import { SupportedDbs } from '../introspector/introspector'
+import { SupportedDbs } from '../types/schema/schema_types'
 
 /**
  * Small wrapper over sqlstring escape to prevent sqlstring from casting numbers into strings

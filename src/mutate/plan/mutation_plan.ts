@@ -6,7 +6,7 @@ import {
     get_parent_edges,
 } from '../../helpers/schema_helpers'
 import { toposort } from '../../helpers/toposort'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { Path } from '../../types'
 import {
     mutation_entity_deep_for_each,

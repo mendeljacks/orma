@@ -1,6 +1,6 @@
 import { deep_get, drop_last } from '../../helpers/helpers'
 import { get_direct_edge, is_parent_entity } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from './mutate_helpers'
 
 /**

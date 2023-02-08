@@ -1,5 +1,5 @@
 import { array_equals, key_by } from '../../helpers/helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import {
     get_identifying_keys,
     get_possible_identifying_keys,

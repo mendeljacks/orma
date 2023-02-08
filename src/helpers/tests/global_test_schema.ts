@@ -1,52 +1,57 @@
-import { as_orma_schema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 
-export const global_test_schema = as_orma_schema({
+export const global_test_schema = {
     $entities: {
         users: {
             $database_type: 'mysql',
             $fields: {
                 id: {
-                    data_type: 'int',
-                    auto_increment: true,
-                    not_null: true,
-                    primary_key: true,
+                    $data_type: 'int',
+                    $auto_increment: true,
+                    $not_null: true,
                 },
                 first_name: {
-                    data_type: 'varchar',
-                    not_null: true,
+                    $data_type: 'varchar',
+                    $not_null: true,
                 },
                 last_name: {
-                    data_type: 'varchar',
+                    $data_type: 'varchar',
                 },
                 email: {
-                    data_type: 'varchar',
-                    not_null: true,
+                    $data_type: 'varchar',
+                    $not_null: true,
                 },
                 billing_address_id: {
-                    data_type: 'int',
-                    not_null: true,
+                    $data_type: 'int',
+                    $not_null: true,
                 },
                 shipping_address_id: {
-                    data_type: 'int',
-                    not_null: true,
+                    $data_type: 'int',
+                    $not_null: true,
                 },
             },
-            $indexes: [
+            $primary_key: {
+                $fields: ['id'],
+            },
+            $unique_keys: [
                 {
-                    fields: ['email'],
-                    is_unique: true,
+                    $fields: ['email'],
                 },
             ],
             $foreign_keys: [
                 {
-                    from_field: 'billing_address_id',
-                    to_entity: 'addresses',
-                    to_field: 'id',
+                    $fields: ['billing_address_id'],
+                    $references: {
+                        $entity: 'addresses',
+                        $fields: ['id'],
+                    },
                 },
                 {
-                    from_field: 'shipping_address_id',
-                    to_entity: 'addresses',
-                    to_field: 'id',
+                    $fields: ['shipping_address_id'],
+                    $references: {
+                        $entity: 'addresses',
+                        $fields: ['id'],
+                    },
                 },
             ],
         },
@@ -54,26 +59,30 @@ export const global_test_schema = as_orma_schema({
             $database_type: 'mysql',
             $fields: {
                 id: {
-                    data_type: 'int',
-                    auto_increment: true,
-                    not_null: true,
-                    primary_key: true,
+                    $data_type: 'int',
+                    $auto_increment: true,
+                    $not_null: true,
                 },
                 user_id: {
-                    data_type: 'int',
-                    not_null: true,
+                    $data_type: 'int',
+                    $not_null: true,
                 },
                 views: {
-                    data_type: 'int',
-                    not_null: true,
-                    default: 0,
+                    $data_type: 'int',
+                    $not_null: true,
+                    $default: 0,
                 },
+            },
+            $primary_key: {
+                $fields: ['id'],
             },
             $foreign_keys: [
                 {
-                    from_field: 'user_id',
-                    to_entity: 'users',
-                    to_field: 'id',
+                    $fields: ['user_id'],
+                    $references: {
+                        $entity: 'users',
+                        $fields: ['id'],
+                    },
                 },
             ],
         },
@@ -81,29 +90,33 @@ export const global_test_schema = as_orma_schema({
             $database_type: 'mysql',
             $fields: {
                 id: {
-                    data_type: 'int',
-                    auto_increment: true,
-                    not_null: true,
-                    primary_key: true,
+                    $data_type: 'int',
+                    $auto_increment: true,
+                    $not_null: true,
                 },
                 post_id: {
-                    data_type: 'int',
-                    not_null: true,
+                    $data_type: 'int',
+                    $not_null: true,
                 },
+            },
+            $primary_key: {
+                $fields: ['id'],
             },
         },
         addresses: {
             $database_type: 'mysql',
             $fields: {
                 id: {
-                    data_type: 'int',
-                    auto_increment: true,
-                    not_null: true,
-                    primary_key: true,
+                    $data_type: 'int',
+                    $auto_increment: true,
+                    $not_null: true,
                 },
                 line_1: {
-                    data_type: 'varchar',
+                    $data_type: 'varchar',
                 },
+            },
+            $primary_key: {
+                $fields: ['id'],
             },
         },
     },
@@ -137,4 +150,4 @@ export const global_test_schema = as_orma_schema({
             ],
         },
     },
-} as const)
+} as const satisfies OrmaSchema

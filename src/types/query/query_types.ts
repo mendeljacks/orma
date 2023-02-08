@@ -1,6 +1,6 @@
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { Pluck } from '../helper_types'
-import { GetAllEdges, GetAllEntities, GetFields } from '../schema_types'
+import { GetAllEdges, GetAllEntities, GetFields } from '../schema_helper_types'
 
 export type OrmaQuery<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>

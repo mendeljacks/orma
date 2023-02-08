@@ -1,7 +1,7 @@
 import { OrmaError } from '../../helpers/error_handling'
 import { orma_escape } from '../../helpers/escape'
 import { is_reserved_keyword } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { combine_wheres } from '../../query/query_helpers'
 import { path_to_entity } from '../helpers/mutate_helpers'

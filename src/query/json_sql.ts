@@ -30,7 +30,7 @@ import {
     is_simple_object,
     map_object,
 } from '../helpers/helpers'
-import { mysql_to_typescript_types } from '../introspector/introspector'
+import { mysql_to_typescript_types } from '../schema/introspector'
 
 type expression =
     | {
@@ -374,12 +374,30 @@ const sql_command_parsers = {
         // for constraints, name is handled differently because it goes between CONSTRAINT
         // and the constraint type (e.g. FOREIGN KEY)
         get_neighbour_field(obj, path, '$constraint') ? '' : arg,
-    $data_type: args =>
-        args.length === 1
-            ? args[0]?.toUpperCase()
-            : `${args[0]?.toUpperCase()}(${args
-                  .slice(1, Infinity)
-                  .join(', ')})`,
+    // ...map_object(mysql_to_typescript_types, ([data_type, _]) => [
+    //     `$${data_type}`,
+    //     arg =>
+    //         arg === true
+    //             ? `${data_type}` // no args
+    //             : !Array.isArray(arg)
+    //             ? `${data_type}(${arg})` // one arg
+    //             : `${data_type}(${arg.join(', ')})`, // multiple args
+    // ]),
+    $data_type: (arg, path, obj) => {
+        const precision = get_neighbour_field(obj, path, '$precision')
+        const scale = get_neighbour_field(obj, path, '$scale')
+        const enum_values = get_neighbour_field(obj, path, '$enum_values')
+        const data_type_args = (enum_values ?? [precision, scale])
+            .filter(el => el !== undefined)
+            .join(', ')
+        return `${arg?.toUpperCase()}${
+            data_type_args ? `(${data_type_args})` : ''
+        }`
+    },
+    $precision: arg => '',
+    $scale: arg => '',
+    $enum_values: arg => ``,
+    $unsigned: arg => (arg ? 'UNSIGNED' : ''),
     $not_null: arg => (arg ? 'NOT NULL' : ''),
     $default: arg => `DEFAULT ${arg}`,
     $auto_increment: arg => (arg ? 'AUTO INCREMENT' : ''),

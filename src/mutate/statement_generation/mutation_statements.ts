@@ -1,5 +1,5 @@
 import { push_path } from '../../helpers/push_path'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { json_to_sql } from '../../query/json_sql'
 import { Path } from '../../types'
 import { path_to_entity } from '../helpers/mutate_helpers'

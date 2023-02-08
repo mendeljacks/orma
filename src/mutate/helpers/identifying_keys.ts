@@ -3,7 +3,7 @@ import {
     get_primary_keys,
     get_unique_field_groups,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { ValuesByGuid } from '../mutate'
 import { get_resolved_mutation_value } from '../statement_generation/mutation_operations'
 
@@ -33,7 +33,7 @@ export const get_identifying_keys = (
     values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema,
     allow_ambiguity: boolean = false
-) => {
+): string[] => {
     const primary_keys = get_primary_keys(entity_name, orma_schema)
     const primary_key_values = primary_keys.map(key =>
         get_resolved_mutation_value(record, key, values_by_guid)
@@ -44,7 +44,7 @@ export const get_identifying_keys = (
     if (has_primary_keys && primary_keys.length > 0) {
         const has_guid = check_values_for_guids(primary_key_values, false)
         if (!has_guid) {
-            return primary_keys
+            return primary_keys as string[]
         }
     }
 

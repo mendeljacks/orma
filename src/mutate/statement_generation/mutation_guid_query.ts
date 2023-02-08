@@ -1,4 +1,4 @@
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { combine_wheres } from '../../query/query_helpers'
 import { generate_record_where_clause } from '../helpers/record_searching'

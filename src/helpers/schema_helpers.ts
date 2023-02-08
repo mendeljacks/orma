@@ -3,7 +3,7 @@
  * @module
  */
 
-import { OrmaSchema } from '../introspector/introspector'
+import { OrmaSchema } from '../types/schema/schema_types'
 
 export type Edge = {
     from_entity: string
@@ -54,7 +54,9 @@ export const get_parent_edges = (
     const foreign_keys = entity_schema.$foreign_keys ?? []
     const edges = foreign_keys.map(foreign_key => ({
         from_entity: entity_name,
-        ...foreign_key,
+        from_field: foreign_key?.$fields?.[0],
+        to_entity: foreign_key?.$references?.$entity,
+        to_field: foreign_key?.$references?.$fields?.[0],
     }))
     return edges
 }
@@ -203,12 +205,8 @@ export const get_primary_keys = (
     entity_name: string,
     orma_schema: OrmaSchema
 ) => {
-    const fields = get_field_names(entity_name, orma_schema)
-    const primary_key_fields = fields.filter(field => {
-        const field_schema = orma_schema.$entities[entity_name].$fields[field]
-
-        return field_schema.primary_key
-    })
+    const primary_key_fields =
+        orma_schema.$entities[entity_name].$primary_key?.$fields
 
     return primary_key_fields
 }
@@ -229,23 +227,24 @@ export const get_unique_field_groups = (
     exclude_nullable: boolean,
     orma_schema: OrmaSchema
 ): string[][] => {
-    const indexes = orma_schema.$entities[entity_name]?.$indexes ?? []
-    const unique_field_groups = indexes
-        .filter(index => index.is_unique)
-        .filter(index => {
+    const unique_keys = orma_schema.$entities[entity_name]?.$unique_keys ?? []
+    const unique_field_groups = unique_keys
+        .filter(unique_key => {
             if (exclude_nullable) {
-                const all_fields_non_nullable = index.fields.every(field => {
-                    const field_schema =
-                        orma_schema.$entities[entity_name].$fields[field]
-                    return field_schema.not_null
-                })
+                const all_fields_non_nullable = unique_key.$fields?.every(
+                    field => {
+                        const field_schema =
+                            orma_schema.$entities[entity_name].$fields?.[field]
+                        return field_schema?.$not_null
+                    }
+                )
 
                 return all_fields_non_nullable
             } else {
                 return true
             }
         })
-        .map(index => index.fields)
+        .map(unique_key => unique_key.$fields)
 
     return unique_field_groups as string[][]
 }
@@ -269,9 +268,9 @@ export const is_required_field = (
 ) => {
     const field_schema = schema?.$entities?.[entity]?.$fields?.[field]
     const is_required =
-        !!field_schema.not_null &&
-        !field_schema.default &&
-        !field_schema.auto_increment
+        !!field_schema.$not_null &&
+        !field_schema.$default &&
+        !field_schema.$auto_increment
     return is_required
 }
 
@@ -281,7 +280,7 @@ export const get_field_is_nullable = (
     field: string
 ) => {
     const field_schema = schema?.$entities?.[entity]?.$fields?.[field]
-    const is_nullable = !field_schema?.not_null
+    const is_nullable = !field_schema?.$not_null
     return is_nullable
 }
 
@@ -309,10 +308,10 @@ export const can_have_guid = (
     entity: string,
     field: string
 ) => {
-    const field_schema = get_field_schema(schema, entity, field)
-    const is_primary_key = !!field_schema.primary_key
+    const is_primary_key =
+        schema?.$entities?.[entity]?.$primary_key?.$fields?.includes(field)
     const foreign_keys = schema?.$entities?.[entity]?.$foreign_keys ?? []
-    const is_foreign_key = foreign_keys.some(el => el.from_field === field)
+    const is_foreign_key = foreign_keys.some(el => el.$fields?.includes(field))
 
     return is_primary_key || is_foreign_key
 }

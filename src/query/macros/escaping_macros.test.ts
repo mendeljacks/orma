@@ -1,7 +1,7 @@
 import { describe, test } from 'mocha'
 import { apply_escape_macro } from './escaping_macros'
 import { expect } from 'chai'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 
 const orma_schema: OrmaSchema = {
     $entities: {

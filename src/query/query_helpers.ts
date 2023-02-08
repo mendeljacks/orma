@@ -2,7 +2,7 @@ import { escape } from 'sqlstring'
 import { orma_escape } from '../helpers/escape'
 import { deep_get, is_simple_object, last } from '../helpers/helpers'
 import { is_reserved_keyword } from '../helpers/schema_helpers'
-import { OrmaSchema } from '../introspector/introspector'
+import { OrmaSchema } from '../schema/introspector'
 import { path_to_entity } from '../mutate/helpers/mutate_helpers'
 import { PathedRecord } from '../types'
 

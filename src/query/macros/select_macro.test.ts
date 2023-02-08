@@ -1,7 +1,7 @@
 import { describe, test } from 'mocha'
 import { apply_select_macro } from './select_macro'
 import { expect } from 'chai'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 
 describe('select_macro', () => {
     const orma_schema: OrmaSchema = {

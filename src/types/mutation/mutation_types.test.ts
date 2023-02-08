@@ -1,5 +1,5 @@
-import { as_orma_schema } from '../../introspector/introspector'
-import { GetFields, GetFieldType, GetParentEdges } from '../schema_types'
+import { as_orma_schema } from '../../schema/introspector'
+import { GetFields, GetFieldType, GetParentEdges } from '../schema_helper_types'
 import { FieldType, OrmaMutation } from './mutation_types'
 
 const test_schema = as_orma_schema({

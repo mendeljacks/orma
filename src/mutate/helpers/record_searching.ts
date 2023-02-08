@@ -1,4 +1,4 @@
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { combine_wheres } from '../../query/query_helpers'
 import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'

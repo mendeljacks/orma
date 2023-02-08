@@ -1,66 +1,66 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { as_orma_schema } from '../../../query/query'
+import { global_test_schema } from '../../../helpers/tests/global_test_schema'
 import { MutationPiece } from '../../plan/mutation_plan'
 import { sort_database_rows } from '../sort_database_rows'
 
-describe('guid_processing.ts', () => {
-    const schema = as_orma_schema({
-        $entities: {
-            products: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    title: { not_null: true },
-                    resource_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $indexes: [
-                    { fields: ['title'], is_unique: true },
-                    { fields: ['resource_id'], is_unique: true },
-                ],
-            },
-            images: {
-                $fields: {
-                    id: { not_null: true, primary_key: true },
-                    product_id: {},
-                    resource_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $indexes: [{ fields: ['resource_id'], is_unique: true }],
-                $foreign_keys: [
-                    {
-                        from_field: 'product_id',
-                        to_entity: 'products',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            users: {
-                $fields: {
-                    first_name: { primary_key: true, not_null: true },
-                    last_name: { primary_key: true, not_null: true },
-                    age: {},
-                },
-                $database_type: 'mysql',
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                products: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'images',
-                        to_field: 'product_id',
-                    },
-                ],
-            },
-        },
-    })
+describe.only('guid_processing.ts', () => {
+    // const global_test_schema = as_orma_global_test_schema({
+    //     $entities: {
+    //         addresses: {
+    //             $fields: {
+    //                 id: { primary_key: true, not_null: true },
+    //                 line_1: { not_null: true },
+    //                 resource_id: { not_null: true },
+    //             },
+    //             $database_type: 'mysql',
+    //             $indexes: [
+    //                 { fields: ['line_1'], is_unique: true },
+    //                 { fields: ['resource_id'], is_unique: true },
+    //             ],
+    //         },
+    //         images: {
+    //             $fields: {
+    //                 id: { not_null: true, primary_key: true },
+    //                 product_id: {},
+    //                 resource_id: { not_null: true },
+    //             },
+    //             $database_type: 'mysql',
+    //             $indexes: [{ fields: ['resource_id'], is_unique: true }],
+    //             $foreign_keys: [
+    //                 {
+    //                     from_field: 'product_id',
+    //                     to_entity: 'addresses',
+    //                     to_field: 'id',
+    //                 },
+    //             ],
+    //         },
+    //         users: {
+    //             $fields: {
+    //                 first_name: { primary_key: true, not_null: true },
+    //                 last_name: { primary_key: true, not_null: true },
+    //                 age: {},
+    //             },
+    //             $database_type: 'mysql',
+    //         },
+    //     },
+    //     $cache: {
+    //         $reversed_foreign_keys: {
+    //             addresses: [
+    //                 {
+    //                     from_field: 'id',
+    //                     to_entity: 'images',
+    //                     to_field: 'product_id',
+    //                 },
+    //             ],
+    //         },
+    //     },
+    // })
 
     describe(sort_database_rows.name, () => {
         test('throws if not enough mysql results', () => {
             try {
-                sort_database_rows([], [], [], {}, schema)
+                sort_database_rows([], [], [], {}, global_test_schema)
                 expect('should throw an error').to.equal(true)
             } catch (error) {}
         })
@@ -70,48 +70,48 @@ describe('guid_processing.ts', () => {
                     record: {
                         $operation: 'create',
                         id: { $guid: 'a' },
-                        title: 'my product 1',
+                        line_1: 'my product 1',
                     },
-                    path: ['products', 0],
+                    path: ['addresses', 0],
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: { $guid: 'b' },
-                        title: 'my product 2',
+                        line_1: 'my product 2',
                     },
-                    path: ['products', 1],
+                    path: ['addresses', 1],
                 },
             ]
             const query_results = [
                 [
                     {
                         id: 2,
-                        title: 'my product 2',
+                        line_1: 'my product 2',
                     },
                     {
                         id: 1,
-                        title: 'my product 1',
+                        line_1: 'my product 1',
                     },
                 ],
             ]
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                ['products'],
+                ['addresses'],
                 query_results,
                 {},
-                schema
+                global_test_schema
             )
 
             expect(sorted_database_rows).to.deep.equal([
                 {
                     id: 1,
-                    title: 'my product 1',
+                    line_1: 'my product 1',
                 },
                 {
                     id: 2,
-                    title: 'my product 2',
+                    line_1: 'my product 2',
                 },
             ])
         })
@@ -121,50 +121,50 @@ describe('guid_processing.ts', () => {
                     record: {
                         $operation: 'create',
                         id: { $guid: 'a' },
-                        title: 'my product 1',
+                        line_1: 'my product 1',
                     },
-                    path: ['products', 0],
+                    path: ['addresses', 0],
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: { $guid: 'b' },
-                        resource_id: 2,
+                        post_id: 2,
                     },
-                    path: ['images', 0],
+                    path: ['comments', 0],
                 },
             ]
             const query_results = [
                 [
                     {
                         id: 11,
-                        title: 'my product 1',
+                        line_1: 'my product 1',
                     },
                 ],
                 [
                     {
                         id: 22,
-                        resource_id: 2,
+                        post_id: 2,
                     },
                 ],
             ]
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                ['products', 'images'],
+                ['addresses', 'comments'],
                 query_results,
                 {},
-                schema
+                global_test_schema
             )
 
             expect(sorted_database_rows).to.deep.equal([
                 {
                     id: 11,
-                    title: 'my product 1',
+                    line_1: 'my product 1',
                 },
                 {
                     id: 22,
-                    resource_id: 2,
+                    post_id: 2,
                 },
             ])
         })
@@ -207,7 +207,7 @@ describe('guid_processing.ts', () => {
                 ['users'],
                 query_results,
                 {},
-                schema
+                global_test_schema
             )
 
             expect(sorted_database_rows).to.deep.equal([
@@ -230,17 +230,17 @@ describe('guid_processing.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        title: 'test 1',
+                        line_1: 'test 1',
                     },
-                    path: ['products', 0],
+                    path: ['addresses', 0],
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        title: 'test 2',
+                        line_1: 'test 2',
                     },
-                    path: ['products', 1],
+                    path: ['addresses', 1],
                 },
             ]
             const query_results = [
@@ -254,10 +254,10 @@ describe('guid_processing.ts', () => {
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                ['products'],
+                ['addresses'],
                 query_results,
                 {},
-                schema
+                global_test_schema
             )
 
             // the single database row is matched to both mutation pieces, since the two mutation pieces
@@ -279,16 +279,16 @@ describe('guid_processing.ts', () => {
                 {
                     record: {
                         $operation: 'create',
-                        title: 'test',
+                        line_1: 'test',
                         resource_id: 1,
                     },
-                    path: ['products', 0],
+                    path: ['addresses', 0],
                 },
             ]
             const query_results = [
                 [
                     {
-                        title: 'test',
+                        line_1: 'test',
                         resource_id: 1,
                         created_at: 'now',
                     },
@@ -297,17 +297,17 @@ describe('guid_processing.ts', () => {
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                ['products'],
+                ['addresses'],
                 query_results,
                 {},
-                schema
+                global_test_schema
             )
 
             // the single database row is matched to both mutation pieces, since the two mutation pieces
             // have the same id
             expect(sorted_database_rows).to.deep.equal([
                 {
-                    title: 'test',
+                    line_1: 'test',
                     resource_id: 1,
                     created_at: 'now',
                 },
@@ -321,10 +321,10 @@ describe('guid_processing.ts', () => {
                         // query to fetch extra data
                         $operation: 'update',
                         id: 1,
-                        title: 'test',
+                        line_1: 'test',
                         resource_id: 1,
                     },
-                    path: ['products', 0],
+                    path: ['addresses', 0],
                 },
             ]
 
@@ -335,7 +335,7 @@ describe('guid_processing.ts', () => {
                 [],
                 query_results,
                 {},
-                schema
+                global_test_schema
             )
 
             // expect a sparse array in slots where there is no database row
@@ -346,16 +346,16 @@ describe('guid_processing.ts', () => {
                 {
                     record: {
                         $operation: 'update',
-                        title: 'test',
+                        line_1: 'test',
                     },
-                    path: ['products', 0],
+                    path: ['addresses', 0],
                 },
                 {
                     record: {
                         $operation: 'update',
                         resource_id: 123,
                     },
-                    path: ['products', 1],
+                    path: ['addresses', 1],
                 },
             ]
 
@@ -367,24 +367,24 @@ describe('guid_processing.ts', () => {
                     },
                     {
                         id: 1,
-                        title: 'test',
+                        line_1: 'test',
                     },
                 ],
             ]
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
-                ['products'],
+                ['addresses'],
                 query_results,
                 {},
-                schema
+                global_test_schema
             )
 
             // expect a sparse array in slots where there is no database row
             expect(sorted_database_rows).to.deep.equal([
                 {
                     id: 1,
-                    title: 'test',
+                    line_1: 'test',
                 },
                 {
                     id: 2,

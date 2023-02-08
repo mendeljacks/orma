@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../introspector/introspector'
+import { orma_query } from '../../query/query'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import {
     Edge,
     get_all_edges,
@@ -10,68 +11,94 @@ import {
     get_parent_edges,
 } from '../schema_helpers'
 
-describe('schema_helpers', () => {
-    describe('get_entity_names', () => {
-        test('gets entity names', () => {
-            const orma_schema: OrmaSchema = {
-                $entities: {
-                    vendors: { $fields: {}, $database_type: 'mysql' },
-                    products: { $fields: {}, $database_type: 'mysql' },
+const orma_schema: OrmaSchema = {
+    $entities: {
+        vendors: {
+            $fields: {
+                id: { $data_type: 'int' },
+                title: { $data_type: 'varchar' },
+            },
+            $primary_key: {
+                $fields: ['id'],
+            },
+            $database_type: 'mysql',
+        },
+        products: {
+            $fields: {
+                id: { $data_type: 'int' },
+                vendor_id: { $data_type: 'int', $not_null: true },
+            },
+            $database_type: 'mysql',
+            $primary_key: {
+                $fields: ['id'],
+            },
+            $foreign_keys: [
+                {
+                    $fields: ['vendor_id'],
+                    $references: {
+                        $entity: 'vendors',
+                        $fields: ['id'],
+                    },
                 },
-            }
+            ],
+        },
+        images: {
+            $database_type: 'mysql',
+            $fields: {
+                id: { $data_type: 'int' },
+                product_id: { $data_type: 'int' },
+            },
+            $primary_key: {
+                $fields: ['id'],
+            },
+            $foreign_keys: [
+                {
+                    $fields: ['product_id'],
+                    $references: {
+                        $entity: 'products',
+                        $fields: ['id'],
+                    },
+                },
+            ],
+        },
+    },
+    $cache: {
+        $reversed_foreign_keys: {
+            vendors: [
+                {
+                    from_field: 'id',
+                    to_entity: 'products',
+                    to_field: 'vendor_id',
+                },
+            ],
+            products: [
+                {
+                    from_field: 'id',
+                    to_entity: 'images',
+                    to_field: 'product_id',
+                },
+            ],
+        },
+    },
+}
 
+describe('schema_helpers.ts', () => {
+    describe(get_entity_names.name, () => {
+        test('gets entity names', () => {
             const entity_names = get_entity_names(orma_schema)
             expect(entity_names.sort()).to.deep.equal(
-                ['vendors', 'products'].sort()
+                ['vendors', 'products', 'images'].sort()
             )
         })
     })
-    describe('get_field_names', () => {
+    describe(get_field_names.name, () => {
         test('gets field names', () => {
-            const orma_schema: OrmaSchema = {
-                $entities: {
-                    vendors: { $fields: {}, $database_type: 'mysql' },
-                    products: {
-                        $fields: { id: {}, title: {} },
-                        $database_type: 'mysql',
-                    },
-                },
-            }
-
             const field_names = get_field_names('products', orma_schema)
-            expect(field_names.sort()).to.deep.equal(['id', 'title'].sort())
+            expect(field_names.sort()).to.deep.equal(['id', 'vendor_id'].sort())
         })
     })
     describe('get_parent_edges', () => {
         test('gets parent edges', () => {
-            const orma_schema: OrmaSchema = {
-                $entities: {
-                    vendors: { $fields: { id: {} }, $database_type: 'mysql' },
-                    products: {
-                        $fields: { id: {}, vendor_id: {} },
-                        $database_type: 'mysql',
-                        $foreign_keys: [
-                            {
-                                from_field: 'vendor_id',
-                                to_entity: 'vendors',
-                                to_field: 'id',
-                            },
-                        ],
-                    },
-                },
-                $cache: {
-                    $reversed_foreign_keys: {
-                        vendors: [
-                            {
-                                from_field: 'id',
-                                to_entity: 'products',
-                                to_field: 'vendor_id',
-                            },
-                        ],
-                    },
-                },
-            }
-
             const parent_edges = get_parent_edges('products', orma_schema)
             const goal: Edge[] = [
                 {
@@ -86,34 +113,6 @@ describe('schema_helpers', () => {
     })
     describe('get_child_edges', () => {
         test('gets child edges', () => {
-            const orma_schema: OrmaSchema = {
-                $entities: {
-                    vendors: { $fields: { id: {} }, $database_type: 'mysql' },
-                    products: {
-                        $fields: { id: {}, vendor_id: {} },
-                        $database_type: 'mysql',
-                        $foreign_keys: [
-                            {
-                                from_field: 'vendor_id',
-                                to_entity: 'vendors',
-                                to_field: 'id',
-                            },
-                        ],
-                    },
-                },
-                $cache: {
-                    $reversed_foreign_keys: {
-                        vendors: [
-                            {
-                                from_field: 'id',
-                                to_entity: 'products',
-                                to_field: 'vendor_id',
-                            },
-                        ],
-                    },
-                },
-            }
-
             const parent_edges = get_child_edges('vendors', orma_schema)
             const goal: Edge[] = [
                 {
@@ -128,52 +127,6 @@ describe('schema_helpers', () => {
     })
     describe('get_all_edges', () => {
         test('gets all edges', () => {
-            const orma_schema: OrmaSchema = {
-                $entities: {
-                    vendors: { $fields: { id: {} }, $database_type: 'mysql' },
-                    products: {
-                        $fields: { id: {}, vendor_id: {} },
-                        $database_type: 'mysql',
-                        $foreign_keys: [
-                            {
-                                from_field: 'vendor_id',
-                                to_entity: 'vendors',
-                                to_field: 'id',
-                            },
-                        ],
-                    },
-                    images: {
-                        $fields: { product_id: {} },
-                        $database_type: 'mysql',
-                        $foreign_keys: [
-                            {
-                                from_field: 'product_id',
-                                to_entity: 'products',
-                                to_field: 'id',
-                            },
-                        ],
-                    },
-                },
-                $cache: {
-                    $reversed_foreign_keys: {
-                        vendors: [
-                            {
-                                from_field: 'id',
-                                to_entity: 'products',
-                                to_field: 'vendor_id',
-                            },
-                        ],
-                        products: [
-                            {
-                                from_field: 'id',
-                                to_entity: 'images',
-                                to_field: 'product_id',
-                            },
-                        ],
-                    },
-                },
-            }
-
             const all_edges = get_all_edges('products', orma_schema)
             const goal: Edge[] = [
                 {

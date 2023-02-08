@@ -1,13 +1,9 @@
 // generate type for orma schema which plays well with as const declarations
 
-import { Edge } from '../helpers/schema_helpers'
-import {
-    ForeignKeyEdge,
-    mysql_to_typescript_types,
-    OrmaSchema,
-    orma_field_schema,
-} from '../introspector/introspector'
-import { IsEqual } from './helper_types'
+import { Edge } from '../../helpers/schema_helpers'
+import { mysql_to_typescript_types } from '../../schema/introspector'
+import { ForeignKeyEdge, OrmaSchema } from '../schema/schema_types'
+import { IsEqual } from '../helper_types'
 
 export type DeepReadonly<T> = T extends (infer R)[]
     ? DeepReadonlyArray<R>
@@ -23,29 +19,11 @@ export type DeepReadonlyObject<T> = {
     readonly [P in keyof T]: DeepReadonly<T[P]>
 }
 
-export type DeepMutable<T> = { -readonly [P in keyof T]: DeepMutable<T[P]> }
-
-// export type OrmaSchema = DeepReadonly<OrmaSchema>
+export type DeepMutable<T> = T extends Function
+    ? T
+    : { -readonly [P in keyof T]: DeepMutable<T[P]> }
 
 // basic structure
-
-export type Keyword = `$${string}`
-export type IsKeyword<Field> = Field extends Keyword ? true : false
-
-// /**
-//  * Non keywords cannot start with a $
-//  */
-// export type NonKeyword = `${
-//     | LowercaseChar
-//     | UppercaseChar
-//     | NumericChar
-//     | '_'}${string}`
-
-// export type IsNotKeywordHelper<F extends string> = F extends `$${string}` ? never : string
-
-// export type IsNotKeyword<Field extends IsNotKeywordHelper<Field>> = Field
-
-export type GetStringKeys<T> = Extract<keyof T, string>
 
 export type GetAllEntities<Schema extends OrmaSchema> = Extract<
     keyof Schema['$entities'],
@@ -65,7 +43,7 @@ export type GetParentEdges<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
 > = Entities extends GetAllEntities<Schema>
-    ? ToEdge<
+    ? ForeignKeyToEdge<
           Schema,
           NonNullable<Schema['$entities'][Entities]['$foreign_keys']>[number]
       >
@@ -108,12 +86,24 @@ export type GetParentEdges<
 export type GetChildEdges<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
-> = ToEdge<
+> = CacheToEdge<
     Schema,
     NonNullable<Schema['$cache']>['$reversed_foreign_keys'][Entities][number]
 >
 
-type ToEdge<
+type ForeignKeyToEdge<
+    Schema extends OrmaSchema,
+    ForeignKeys extends OrmaForeignKey
+> = ForeignKeys extends OrmaForeignKey
+    ? {
+          // on to_entity included for performance reasons, since that is the only one being used by the types
+          to_entity: ForeignKeys['$references']['$entity'] extends GetAllEntities<Schema>
+              ? ForeignKeys['$references']['$entity']
+              : never
+      }
+    : never
+
+type CacheToEdge<
     Schema extends OrmaSchema,
     Edges extends ForeignKeyEdge
 > = Edges extends ForeignKeyEdge
@@ -121,65 +111,23 @@ type ToEdge<
           //   from_entity: Edges['from_entity'] extends GetAllEntities<Schema>
           //       ? Edges['from_entity']
           //       : never
-          from_field: Edges['from_field'] extends GetFields<
-              Schema,
-              GetAllEntities<Schema>
-          >
-              ? Edges['from_field']
-              : never
+          //   from_field: Edges['from_field'] extends GetFields<
+          //       Schema,
+          //       GetAllEntities<Schema>
+          //   >
+          //       ? Edges['from_field']
+          //       : never
           to_entity: Edges['to_entity'] extends GetAllEntities<Schema>
               ? Edges['to_entity']
               : never
-          to_field: Edges['to_field'] extends GetFields<
-              Schema,
-              GetAllEntities<Schema>
-          >
-              ? Edges['to_field']
-              : never
+          //   to_field: Edges['to_field'] extends GetFields<
+          //       Schema,
+          //       GetAllEntities<Schema>
+          //   >
+          //       ? Edges['to_field']
+          //       : never
       }
     : never
-
-type AsEdge<
-    Schema extends OrmaSchema,
-    Edges extends Edge
-> = Edges['to_entity'] extends GetAllEntities<Schema>
-    ? Edges['from_entity'] extends GetAllEntities<Schema>
-        ? AsEdge2<Schema, Edges, Edges['from_entity'], Edges['to_entity']>
-        : never
-    : never
-
-type AsEdge2<
-    Schema extends OrmaSchema,
-    Edges extends Edge,
-    FromEntity extends GetAllEntities<Schema>,
-    ToEntity extends GetAllEntities<Schema>
-> = Edges['from_field'] extends GetFields<Schema, FromEntity>
-    ? Edges['to_field'] extends GetFields<Schema, ToEntity>
-        ? Edges
-        : never
-    : never
-
-// export type GetChildEdgesFromParentEdges<
-//     Schema extends OrmaSchema,
-//     ParentEdges extends GetParentEdgesForAllEntities<Schema>
-// > = ParentEdges extends any ? ReverseEdge<ParentEdges> : never
-
-// export type GetChildEdges<
-//     Schema extends OrmaSchema,
-//     Entities extends GetAllEntities<Schema>
-// > = GetChildEdgesFromParentEdges<Schema, GetParentEdgesForAllEntities<Schema>>
-
-// export type GetChildEdgesFromParentEdges<
-//     Schema extends OrmaSchema,
-//     ParentEdges extends GetParentEdgesForAllEntities<Schema>
-// > = ParentEdges extends any ? ReverseEdge<ParentEdges> : never
-
-export type ReverseEdge<EdgeParam extends Edge> = {
-    from_entity: EdgeParam['to_entity']
-    from_field: EdgeParam['to_field']
-    to_entity: EdgeParam['from_entity']
-    to_field: EdgeParam['from_field']
-}
 
 export type GetAllEdges<
     Schema extends OrmaSchema,
@@ -192,30 +140,24 @@ export type GetFieldType<
     Field extends GetFields<Schema, Entity>
 > = GetFieldType2<Schema['$entities'][Entity]['$fields'][Field]>
 
-type GetFieldType2<FieldSchema extends orma_field_schema> =
-    FieldSchema['not_null'] extends true
+type GetFieldType2<FieldSchema extends OrmaFieldSchema> =
+    FieldSchema['$not_null'] extends true
         ? FieldTypeStringToType<
-              MysqlToTypescriptTypeString<NonNullable<FieldSchema['data_type']>>
+              MysqlToTypescriptTypeString<
+                  NonNullable<FieldSchema['$data_type']>
+              >
           >
         : FieldTypeStringToType<
-              MysqlToTypescriptTypeString<NonNullable<FieldSchema['data_type']>>
+              MysqlToTypescriptTypeString<
+                  NonNullable<FieldSchema['$data_type']>
+              >
           > | null
-
-// Schema['$entities'][Entity]['$fields'][Field] extends { data_type: any }
-//     ? Schema['$entities'][Entity]['$fields'][Field] extends { not_null: true }
-//         ? FieldTypeStringToType<
-//               MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
-//           >
-//         : FieldTypeStringToType<
-//               MysqlToTypescriptTypeString<Schema[Entity][Field]['data_type']>
-//           > | null
-//     : any
 
 export type GetFieldSchema<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     Field extends GetFields<Schema, Entity>
-> = Schema['$entities'][Entity]['$fields'][Field] extends orma_field_schema
+> = Schema['$entities'][Entity]['$fields'][Field] extends OrmaFieldSchema
     ? Schema['$entities'][Entity]['$fields'][Field]
     : any
 
@@ -267,23 +209,6 @@ type FilterFieldsBySchemaPropWithFieldsExplicit<
         : never //FilterFieldBySchemaProp<Schema, Entity, Fields, SchemaProp, value>
     : never
 
-type FilterFieldBySchemaProp<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    Field extends GetFields<Schema, Entity>,
-    SchemaProp extends string,
-    value
-> = GetFieldSchema<Schema, Entity, Field> extends {
-    [prop in SchemaProp]: value
-}
-    ? IsEqual<
-          GetFieldSchema<Schema, Entity, Field>[SchemaProp],
-          value
-      > extends true
-        ? Field
-        : never
-    : never
-
 export type FieldSchemaPropEq<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
@@ -295,3 +220,11 @@ export type FieldSchemaPropEq<
 }
     ? IsEqual<GetFieldSchema<Schema, Entity, Field>[SchemaProp], value>
     : false
+
+type OrmaForeignKey = NonNullable<
+    OrmaSchema['$entities'][string]['$foreign_keys']
+>[number]
+
+type OrmaFieldSchema = NonNullable<
+    OrmaSchema['$entities'][string]['$fields']
+>[string]

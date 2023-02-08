@@ -1,23 +1,20 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { type } from '../helpers/helpers'
+import { sort_by_prop, type } from '../helpers/helpers'
+import { OrmaSchema } from '../types/schema/schema_types'
 import {
     generate_field_schema,
     generate_database_schema,
     get_introspect_sqls,
-    mysql_column,
-    mysql_foreign_key,
-    mysql_table,
-    mysql_index,
+    MysqlColumn,
+    MysqlForeignKey,
+    MysqlTable,
+    MysqlIndex,
     generate_index_schemas,
-    sort_by_prop,
     generate_orma_schema_cache,
-    OrmaSchema,
-    OrmaSchemaCache,
-    as_orma_schema,
 } from './introspector'
 
-describe('introspector', () => {
+describe.only('introspector', () => {
     test('introspect sqls are string', () => {
         const introspect_sqls = get_introspect_sqls('international', 'mysql')
 
@@ -31,7 +28,7 @@ describe('introspector', () => {
         expect(result).to.deep.equal(sorted)
     })
     test('primary key field schema', () => {
-        const mysql_column: mysql_column = {
+        const mysql_column: MysqlColumn = {
             table_name: 'users',
             column_name: 'id',
             ordinal_position: 1,
@@ -43,16 +40,13 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: 'int',
-            auto_increment: true,
-            indexed: true,
-            ordinal_position: 1,
-            primary_key: true,
+            $data_type: 'int',
+            $auto_increment: true,
         })
     })
 
     test('unique key field schema', () => {
-        const mysql_column: mysql_column = {
+        const mysql_column: MysqlColumn = {
             table_name: 'users',
             column_name: 'username',
             ordinal_position: 2,
@@ -63,15 +57,13 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: 'varchar',
-            not_null: true,
-            indexed: true,
-            ordinal_position: 2,
+            $data_type: 'varchar',
+            $not_null: true,
         })
     })
 
     test('decimal precision field schema', () => {
-        const mysql_column: mysql_column = {
+        const mysql_column: MysqlColumn = {
             table_name: 'users',
             column_name: 'rating',
             ordinal_position: 3,
@@ -83,15 +75,14 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: 'decimal',
-            ordinal_position: 3,
-            character_count: 4,
-            decimal_places: 1,
-            default: 1.5,
+            $data_type: 'decimal',
+            $precision: 4,
+            $scale: 1,
+            $default: 1.5,
         })
     })
     test('enum field schema', () => {
-        const mysql_column: mysql_column = {
+        const mysql_column: MysqlColumn = {
             table_name: 'users',
             column_name: 'username',
             ordinal_position: 2,
@@ -103,15 +94,13 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: 'enum',
-            not_null: true,
-            indexed: true,
-            ordinal_position: 2,
-            enum_values: ['running', 'pending', 'paused'],
+            $data_type: 'enum',
+            $not_null: true,
+            $enum_values: ['running', 'pending', 'paused'],
         })
     })
     test('unsigned field schema', () => {
-        const mysql_column: mysql_column = {
+        const mysql_column: MysqlColumn = {
             table_name: 'users',
             column_name: 'username',
             column_type: 'int(10) unsigned',
@@ -121,14 +110,13 @@ describe('introspector', () => {
         const field_schema = generate_field_schema(mysql_column)
 
         expect(field_schema).to.deep.equal({
-            data_type: 'int',
-            ordinal_position: 2,
-            unsigned: true,
+            $data_type: 'int',
+            $unsigned: true,
         })
     })
 
-    test('full schema test', () => {
-        const mysql_tables: mysql_table[] = [
+    test.only('full schema test', () => {
+        const mysql_tables: MysqlTable[] = [
             {
                 table_name: 'users',
                 table_comment: 'table of users',
@@ -139,22 +127,24 @@ describe('introspector', () => {
             },
         ]
 
-        const mysql_columns: mysql_column[] = [
+        const mysql_columns: MysqlColumn[] = [
             {
                 table_name: 'users',
                 column_name: 'id',
                 ordinal_position: 1,
                 data_type: 'int',
+                column_key: 'PRI',
             },
             {
                 table_name: 'posts',
                 column_name: 'user_id',
                 ordinal_position: 1,
                 data_type: 'int',
+                column_key: 'PRI',
             },
         ]
 
-        const mysql_foreign_keys: mysql_foreign_key[] = [
+        const mysql_foreign_keys: MysqlForeignKey[] = [
             {
                 table_name: 'posts',
                 column_name: 'user_id',
@@ -164,7 +154,7 @@ describe('introspector', () => {
             },
         ]
 
-        const mysql_indexes: mysql_index[] = [
+        const mysql_indexes: MysqlIndex[] = [
             {
                 // single column index
                 table_name: 'users',
@@ -198,40 +188,42 @@ describe('introspector', () => {
             $entities: {
                 posts: {
                     $fields: {
-                        user_id: { data_type: 'int', ordinal_position: 1 },
+                        user_id: { $data_type: 'int' },
                     },
                     $comment: 'user posts',
                     $database_type: 'mysql',
                     $foreign_keys: [
                         {
-                            from_field: 'user_id',
-                            to_entity: 'users',
-                            to_field: 'id',
+                            $name: 'user_post_constraint',
+                            $fields: ['user_id'],
+                            $references: {
+                                $entity: 'users',
+                                $fields: ['id'],
+                            },
                         },
                     ],
+                    $primary_key: {
+                        $fields: ['user_id'],
+                    },
                 },
                 users: {
-                    $fields: { id: { data_type: 'int', ordinal_position: 1 } },
+                    $fields: { id: { $data_type: 'int' } },
                     $comment: 'table of users',
                     $database_type: 'mysql',
                     $indexes: [
                         {
-                            index_name: 'simple_index',
-                            is_unique: false,
-                            fields: ['id'],
-                            index_type: 'BTREE',
-                            invisible: false,
-                            collation: 'A',
-                            sub_part: 1,
-                            index_comment: 'my index',
+                            $name: 'simple_index',
+                            $fields: ['id'],
+                            $comment: 'my index',
                         },
                     ],
+                    $primary_key: { $fields: ['id'] },
                 },
             },
-        })
+        } as const satisfies OrmaSchema)
     })
     test('generates index schemas', () => {
-        const mysql_indexes: mysql_index[] = [
+        const mysql_indexes: MysqlIndex[] = [
             {
                 // single column index
                 table_name: 'users',
@@ -346,37 +338,36 @@ describe('introspector', () => {
         })
     })
     describe(generate_orma_schema_cache.name, () => {
-        const schema = as_orma_schema({
+        const schema = {
             $entities: {
-                products: { $fields: { id: {} }, $database_type: 'mysql' },
-                images: {
-                    $fields: { product_id: {} },
+                products: {
+                    $fields: {
+                        id: {
+                            $data_type: 'int',
+                        },
+                    },
                     $database_type: 'mysql',
+                    $primary_key: { $fields: ['id'] },
+                },
+                images: {
+                    $fields: { product_id: { $data_type: 'int' } },
+                    $database_type: 'mysql',
+                    $primary_key: { $fields: ['id'] },
                     $foreign_keys: [
                         {
-                            from_field: 'product_id',
-                            to_entity: 'products',
-                            to_field: 'id',
+                            $fields: ['product_id'],
+                            $references: {
+                                $entity: 'products',
+                                $fields: ['id'],
+                            },
                         },
                     ],
                 },
             },
-            $cache: {
-                $reversed_foreign_keys: {
-                    products: [
-                        {
-                            from_entity: 'products',
-                            from_field: 'id',
-                            to_entity: 'images',
-                            to_field: 'product_id',
-                        },
-                    ],
-                },
-            },
-        })
+        } as const satisfies OrmaSchema
 
         const cache = generate_orma_schema_cache(schema.$entities)
-        const goal: OrmaSchemaCache = {
+        const goal = {
             $reversed_foreign_keys: {
                 products: [
                     {

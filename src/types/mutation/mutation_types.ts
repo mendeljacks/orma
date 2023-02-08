@@ -1,4 +1,3 @@
-import { OrmaSchema } from '../../introspector/introspector'
 import { XOR } from '../helper_types'
 import {
     FieldSchemaPropEq,
@@ -7,7 +6,8 @@ import {
     GetFields,
     GetFieldType,
     GetParentEdges,
-} from '../schema_types'
+} from '../schema/schema_helper_types'
+import { OrmaSchema } from '../schema/schema_types'
 
 export type OrmaMutation<Schema extends OrmaSchema> =
     | {
@@ -78,7 +78,7 @@ type ForeignKeyFieldsObj<
 > = ParentEdges extends GetParentEdges<Schema, Entity>
     ? XOR<
           {
-              [Field in ParentEdges['from_field']]: FieldType<
+              [Field in ParentEdges['to_entity']]: FieldType<
                   Schema,
                   Entity,
                   Field

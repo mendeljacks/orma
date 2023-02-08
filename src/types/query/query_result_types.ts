@@ -1,10 +1,10 @@
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import {
     GetAllEntities,
     GetFields,
     GetFieldType,
     Keyword,
-} from '../schema_types'
+} from '../schema_helper_types'
 
 export type QueryResult<
     Schema extends OrmaSchema,

@@ -1,5 +1,5 @@
-import { OrmaSchema } from '../../introspector/introspector'
-import { GetAllEntities, GetFields } from '../schema_types'
+import { OrmaSchema } from '../../types/schema/schema_types'
+import { GetAllEntities, GetFields } from '../schema_helper_types'
 import { OrmaQuery, SimplifiedQuery, WhereConnected } from './query_types'
 
 const getA = <K extends OrmaSchema>(a: K) => a

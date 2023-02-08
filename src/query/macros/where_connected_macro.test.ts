@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { clone } from '../../helpers/helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { WhereConnected } from '../../types/query/query_types'
 import { as_orma_schema } from '../query'
 import {

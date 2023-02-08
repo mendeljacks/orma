@@ -2,7 +2,7 @@
 
 Orma is a JSON-based, statically typed query language for SQL databases.
 
-At its heart, Orma's mission is simple: convert a parsable, serializable and type-safe JSON syntax into SQL strings. However Orma builds on its base SQL syntax by providing other features such as validation, multi-tenancy, database introspection, declarative foreign keys and more. In other words, Orma provides the tools to secure and simplify your database queries, while still exposing the full power of SQL.
+At its heart, Orma's mission is simple: convert a parsable, serializable and type-safe JSON syntax into SQL strings. However Orma builds on its base SQL syntax by providing other features such as validation, multi-tenancy, database introspection, declarative foreign keys and more. Put simply, Orma provides the tools to secure and simplify your database queries, while still exposing the full power of SQL.
 
 Orma currently supports MySQL and PostgreSQL.
 
@@ -16,7 +16,7 @@ Orma currently supports MySQL and PostgreSQL.
 
 🛹 Portable
 - Pure JS with no code generation
-- BYO database connector
+- Use your own database connector
 
 🕥 Performant
 - All SQL statements are batched

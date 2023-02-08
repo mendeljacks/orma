@@ -5,7 +5,7 @@ import {
     get_direct_edges,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { is_subquery, query_for_each } from '../query_helpers'
 

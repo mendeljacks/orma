@@ -1,5 +1,4 @@
-import { deep_for_each, is_simple_object } from '../../helpers/helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { is_simple_object } from '../../helpers/helpers'
 
 export const apply_inherit_operations_macro = mutation => {
     inherit_operations_macro_recursive(mutation)

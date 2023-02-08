@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../introspector/introspector'
+import { OrmaSchema } from '../schema/introspector'
 import { orma_nester, orma_query } from './query'
 
 describe('query', () => {

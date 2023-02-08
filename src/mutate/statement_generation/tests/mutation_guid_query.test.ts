@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../../introspector/introspector'
+import { OrmaSchema } from '../../../schema/introspector'
 import { MutationPiece } from '../../plan/mutation_plan'
 import { get_guid_query } from '../mutation_guid_query'
 

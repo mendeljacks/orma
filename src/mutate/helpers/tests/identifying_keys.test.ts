@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../../introspector/introspector'
+import { OrmaSchema } from '../../../schema/introspector'
 import {
     get_identifying_keys,
     get_possible_identifying_keys,

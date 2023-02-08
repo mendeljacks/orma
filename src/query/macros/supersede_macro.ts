@@ -4,7 +4,7 @@ import {
     get_primary_keys,
     is_parent_entity,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { mutation_entity_deep_for_each } from '../../mutate/helpers/mutate_helpers'
 import { OrmaMutation } from '../../types/mutation/mutation_types'
 
