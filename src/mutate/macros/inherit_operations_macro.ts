@@ -5,7 +5,7 @@ export const apply_inherit_operations_macro = mutation => {
 }
 
 const inherit_operations_macro_recursive = (
-    item,
+    item: any,
     inherited_operation = undefined
 ) => {
     const is_object = is_simple_object(item)

@@ -50,7 +50,9 @@ export const get_parent_edges = (
     entity_name: string,
     orma_schema: OrmaSchema
 ): Edge[] => {
-    const entity_schema = orma_schema.$entities[entity_name] ?? {}
+    const entity_schema =
+        orma_schema.$entities[entity_name] ??
+        ({} as OrmaSchema['$entities'][string])
     const foreign_keys = entity_schema.$foreign_keys ?? []
     const edges = foreign_keys.map(foreign_key => ({
         from_entity: entity_name,

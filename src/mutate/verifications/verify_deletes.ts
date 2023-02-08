@@ -1,11 +1,6 @@
 import { mutation_path_to_entity } from '../..'
 import { OrmaError } from '../../helpers/error_handling'
-import {
-    array_equals,
-    group_by,
-    key_by,
-    map_object,
-} from '../../helpers/helpers'
+import { group_by, map_object } from '../../helpers/helpers'
 import {
     get_child_edges,
     get_primary_keys,
@@ -15,20 +10,12 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'
-import { OrmaQuery, WhereConnected } from '../../types/query/query_types'
 import { sort_database_rows } from '../database_results/sort_database_rows'
 import { get_identifying_keys } from '../helpers/identifying_keys'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import {
-    generate_record_where_clause,
-    generate_record_where_clause_from_identifying_keys,
-} from '../helpers/record_searching'
+import { generate_record_where_clause } from '../helpers/record_searching'
 import { MysqlFunction } from '../mutate'
-import {
-    flatten_mutation,
-    MutationPiece,
-    MutationPlan,
-} from '../plan/mutation_plan'
+import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
 
 /* 
 Description:

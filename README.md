@@ -1776,105 +1776,82 @@ These projects provide examples and tooling, however they are still being develo
 # Extra examples
 
 Example of a postgres database being introspected.
-
 ```js
-// Example for introspection of Postgresql (also used for cockroachdb)
-import { writeFileSync } from 'fs'
-import { orma_introspect, orma_mutate, orma_query } from 'orma/src/index'
 import { Pool, types } from 'pg'
-import { apply_inherit_operations_macro } from 'orma/src/mutate/macros/inherit_operations_macro'
-import { validate_mutation } from 'orma/src/mutate/verifications/mutate_validation'
-import { mutation_entity_deep_for_each } from 'orma/src/mutate/helpers/mutate_helpers'
-import { pool, trans } from './pg'
-import cuid from 'cuid'
-import { orma_schema } from '../../generated/orma_schema'
 
-// To save results of introspection to disk using fs
-export const introspect = async db => {
-    const orma_schema = await orma_introspect('public', byo_query_fn, { database_type: 'postgres' })
-    try {
-        const str = `export const orma_schema = ${JSON.stringify(orma_schema, null, 2)} as const`
-        writeFileSync('./generated/orma_schema.ts', str)
-    } catch (error) {
-        console.log('Could not save the orma schema')
-    }
+// Typescript client defaults to all strings
+const parse_int = val => parseInt(val)
+const identity = el => el
+
+types.setTypeParser(20, parse_int)
+types.setTypeParser(types.builtins.TIMESTAMP, identity)
+
+const make_connection_string = (
+    host: string,
+    port: string,
+    user: string,
+    password: string,
+    database: string
+) => {
+    return `postgres://${user}:${password}@${host}:${port}/${database}`
 }
 
-// Postgres driver config for casting of data types.
-// In this example dates are cast to strings, and int to js numbers
-types.setTypeParser(20, (val) => parseInt(val, 10))
-types.setTypeParser(1084, date => date)
-types.setTypeParser(1114, date => date)
-
-export const pool = new Pool({
-    connectionString: env.pg,
-    types,
+export const my_pool = new Pool({
+    connectionString: make_connection_string(
+        process.env.POSTGRES_HOST,
+        process.env.POSTGRES_PORT,
+        process.env.POSTGRES_USERNAME,
+        process.env.POSTGRES_PASSWORD,
+        process.env.POSTGRES_DB
+    ),
+    types
     ssl: { rejectUnauthorized: false }
 })
 
-// Setup a function which will be able to facilitate multiple queries to happen on a single transaction
-// Orma mutations will operate on a single transaction if configured to do so.
-export const trans = async fn => {
-    const connection = await pool
-        .connect()
-        .catch(err => Promise.reject({ message: 'Could not start connection', err }))
-    try {
-        await connection.query('BEGIN')
-        const res = await fn(connection)
-        await connection.query('COMMIT')
-        await connection.release()
-        return res
-    } catch (err) {
-        await connection.query('ROLLBACK')
-        await connection.release()
-        return Promise.reject(err)
-    }
+```
+
+```js
+// Example for introspection of Postgresql (also used for cockroachdb)
+import { apply_inherit_operations_macro, orma_mutate, orma_query } from 'orma'
+import { pg_adapter, postgres_promise_transaction } from 'orma/build/helpers/database_adapters'
+import { introspect_to_file, OrmaSchema } from 'orma/build/introspector/introspector'
+import { validate_orma_query } from 'orma/build/query/validation/query_validation'
+import { my_pool } from '../pg'
+import { my_orma_schema } from './my_orma_schema'
+
+// To save results of introspection to disk using fs
+export const introspect = async () => {
+    await introspect_to_file(
+        'public',
+        './src/config/orma/my_orma_schema.ts',
+        pg_adapter(my_pool),
+        'postgres'
+    )
 }
 
-// Setup a function which given sql strings can return an array of results
-export const byo_query_fn = async (sqls: { sql_string }[], connection = pool) => {
-    const sql = sqls.map(el => el.sql_string).join(';\n')
-    const response = await connection.query(sql)
-
-    // pg driver returns array only when multiple statements detected
-    if (!Array.isArray(response)) {
-        return [response.rows]
-    } else {
-        return response.map(row => row.rows)
-    }
-}
-
-// It is recommended that every table in the database have a unique column called resource_id
-// When there is at least one non database generated unique column, an optimization is performed to query for results in batch following a create, so that generated ids get passed to child tables.
-const add_resource_ids = (mutation: any) => {
-    mutation_entity_deep_for_each(mutation, (value, path) => {
-        if (value?.$operation === 'create') {
-            const resource_id = cuid()
-            value.resource_id = resource_id
-        }
-    })
-}
-
-export const mutate_handler = mutation => {
-    return trans(async connection => {
+export const my_mutate = (mutation) => {
+    return postgres_promise_transaction(async (connection) => {
         apply_inherit_operations_macro(mutation)
-        add_resource_ids(mutation)
-
-        // Leveraging orma json schema based runtime validator to prevent accidental misuse.
-        const errors = validate_mutation(mutation, orma_schema)
-        if (errors.length > 0) {
-            return Promise.reject(errors)
-        }
+        await validate_orma_query(mutation, my_orma_schema as any as OrmaSchema)
 
         // Run orma mutation
         const mutation_results = await orma_mutate(
             mutation,
-            sqls => byo_query_fn(sqls, connection),
-            orma_schema
+            pg_adapter(connection),
+            my_orma_schema as any as OrmaSchema
         )
         return mutation_results
-    })
+    }, my_pool)
 }
+
+export const my_query = async (query) => {
+    await validate_orma_query(query, my_orma_schema as any as OrmaSchema)
+
+    const response = await orma_query(query, my_orma_schema as any as OrmaSchema, pg_adapter(my_pool), {})
+
+    return response
+}
+
 
 ```
 

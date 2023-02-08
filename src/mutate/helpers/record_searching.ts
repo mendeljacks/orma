@@ -37,7 +37,7 @@ export const generate_record_where_clause = (
     const where = generate_record_where_clause_from_identifying_keys(
         values_by_guid,
         identifying_keys,
-        mutation_piece
+        mutation_piece.record
     )
 
     return { where, identifying_keys }
@@ -46,14 +46,14 @@ export const generate_record_where_clause = (
 export const generate_record_where_clause_from_identifying_keys = (
     values_by_guid: ValuesByGuid,
     identifying_keys: string[],
-    mutation_piece: MutationPiece
+    record: MutationPiece['record']
 ) => {
     const where_clauses = identifying_keys.map(key => ({
         $eq: [
             key,
             {
                 $escape: get_resolved_mutation_value(
-                    mutation_piece.record,
+                    record,
                     key,
                     values_by_guid
                 ),

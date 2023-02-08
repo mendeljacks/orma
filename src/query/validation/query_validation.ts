@@ -10,7 +10,7 @@ import {
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { Path } from '../../types'
-import { WhereConnected } from '../../types/query/query_types'
+import { OrmaQuery, WhereConnected } from '../../types/query/query_types'
 import { sql_function_definitions } from '../json_sql'
 import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { is_subquery } from '../query_helpers'
@@ -25,6 +25,17 @@ export const validate_query = (query, orma_schema: OrmaSchema) => {
     }
     const js_errors = validate_query_js(query, orma_schema)
     return [...schema_response.errors, ...js_errors]
+}
+
+export const validate_orma_query = async <T>(
+    query: OrmaQuery<any>,
+    orma_schema: OrmaSchema
+) => {
+    const errors = validate_query(query, orma_schema)
+    if (errors.length > 0) {
+        return Promise.reject(errors)
+    }
+    return []
 }
 
 /**

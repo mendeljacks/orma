@@ -10,6 +10,8 @@ export const orma_escape = (val: any, database_type: SupportedDbs) => {
     const escape_fn =
         database_type === 'mysql'
             ? val => escape(val, true, '+00')
+            : typeof val === 'object'
+            ? el => el
             : pg_escape.literal
 
     return typeof val === 'number' ? val : escape_fn(val)

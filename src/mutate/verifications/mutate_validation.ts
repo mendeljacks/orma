@@ -75,6 +75,14 @@ export const validate_mutation = (mutation, orma_schema: OrmaSchema) => {
     return [...schema_response.errors, ...js_errors]
 }
 
+export const validate_orma_mutation = (mutation, orma_schema: OrmaSchema) => {
+    // Leveraging orma json schema based runtime validator to prevent accidental misuse.
+    const errors = validate_mutation(mutation, orma_schema)
+    if (errors.length > 0) {
+        return Promise.reject(errors)
+    }
+}
+
 /**
  * Handles the validation that is difficult for JSON schema, e.g. things which rely on the orma schema (and so would
  * require a code-generated JSON schema) or things which reference parent values such as operation inheritance
