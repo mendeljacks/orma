@@ -13,6 +13,8 @@ import {
     MutationPiece,
     MutationPlan,
 } from '../plan/mutation_plan'
+import { apply_inherit_operations_macro } from '../macros/inherit_operations_macro'
+import { apply_guid_inference_macro } from '../macros/guid_inference_macro'
 
 describe('verify_uniqueness.ts', () => {
     const orma_schema: OrmaSchema = {
@@ -54,11 +56,17 @@ describe('verify_uniqueness.ts', () => {
                     },
                 ],
             },
+            variants: {
+                $fields: {
+                    id: { primary_key: true, not_null: true }
+                },
+                $database_type: 'mysql',
+            }
         },
     }
 
     describe(get_verify_uniqueness_query.name, () => {
-        // test('test case', async () => {
+        // test.only('test case', async () => {
         //     const mutation = {
         //         $operation: 'create',
         //         products: [
@@ -66,13 +74,17 @@ describe('verify_uniqueness.ts', () => {
         //             { title: '2', variants: [{ sku: 'test' }] },
         //         ],
         //     }
+
+        //     apply_inherit_operations_macro(mutation)
         //     const plan = get_mutation_plan(
         //         mutation,
         //         orma_schema as any as OrmaSchema
         //     )
         //     const errors = await get_unique_verification_errors(
-        //         orma_schema as any as OrmaSchema,
-        //         () => { return [] } as any,
+        //         orma_schema,
+        //         ((a) => {
+        //             return [[]]
+        //         }) as any,
         //         plan
         //     )
         //     return errors
