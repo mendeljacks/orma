@@ -69,6 +69,10 @@ export const global_test_schema = {
                     $data_type: 'int',
                     $not_null: true,
                 },
+                title: {
+                    $data_type: 'varchar',
+                    $not_null: true
+                },
                 views: {
                     $data_type: 'int',
                     $not_null: true,
@@ -78,6 +82,10 @@ export const global_test_schema = {
             $primary_key: {
                 $fields: ['id'],
             },
+            $unique_keys: [{
+                $name: 'unique_title',
+                $fields: ['title']
+            }],
             $foreign_keys: [
                 {
                     $fields: ['user_id'],

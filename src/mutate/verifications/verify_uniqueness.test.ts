@@ -56,13 +56,13 @@ describe('verify_uniqueness.ts', () => {
     describe(get_verify_uniqueness_query.name, () => {
         test('searches unique key', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                addresses: [
+                posts: [
                     {
-                        path: ['addresses'],
+                        path: ['posts', 0],
                         record: {
                             $operation: 'update',
                             id: 12,
-                            line_1: 'hi',
+                            title: 'hi',
                         },
                     },
                 ],
@@ -74,11 +74,11 @@ describe('verify_uniqueness.ts', () => {
             )
 
             expect(result).to.deep.equal({
-                addresses: {
+                posts: {
                     id: true,
-                    line_1: true,
+                    title: true,
                     $where: {
-                        $eq: ['line_1', { $escape: 'hi' }],
+                        $eq: ['title', { $escape: 'hi' }],
                     },
                 },
             })
@@ -114,6 +114,9 @@ describe('verify_uniqueness.ts', () => {
                     $where: {
                         $or: [
                             {
+                                $eq: ['email', { $escape: 'a@a.com' }],
+                            },
+                            {
                                 $and: [
                                     {
                                         $eq: [
@@ -129,9 +132,6 @@ describe('verify_uniqueness.ts', () => {
                                     },
                                 ],
                             },
-                            {
-                                $eq: ['email', { $escape: 'a@a.com' }],
-                            },
                         ],
                     },
                 },
@@ -139,24 +139,25 @@ describe('verify_uniqueness.ts', () => {
         })
         test('only updates and creates', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                addresses: [
+                posts: [
                     {
                         $operation: 'update',
                         id: 12,
-                        line_1: 'hi',
+                        title: 'hi',
                     },
                     {
                         $operation: 'delete',
                         id: 13,
-                        line_1: 'as',
+                        title: 'as',
                     },
                     {
                         $operation: 'create',
                         id: 14,
-                        line_1: '123',
+                        user_id: 1,
+                        title: '123',
                     },
                 ].map((el, i) => ({
-                    path: ['addresses', i],
+                    path: ['categories', i],
                     record: el,
                 })) as MutationPiece[],
             }
@@ -167,19 +168,19 @@ describe('verify_uniqueness.ts', () => {
             )
 
             expect(result).to.deep.equal({
-                addresses: {
+                posts: {
                     id: true,
-                    line_1: true,
+                    title: true,
                     $where: {
                         $or: [
                             {
                                 $eq: ['id', { $escape: 14 }],
                             },
                             {
-                                $eq: ['line_1', { $escape: 'hi' }],
+                                $eq: ['title', { $escape: 'hi' }],
                             },
                             {
-                                $eq: ['line_1', { $escape: '123' }],
+                                $eq: ['title', { $escape: '123' }],
                             },
                         ],
                     },
@@ -188,15 +189,15 @@ describe('verify_uniqueness.ts', () => {
         })
         test('handles no unique fields', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                addresses: [
+                posts: [
                     {
                         $operation: 'update',
                         // not used as a unique field since it is the identifying field and so is not being edited
-                        description: 'hi',
-                        line_1: '123',
+                        title: 'hi',
+                        views: 123,
                     },
                 ].map((el, i) => ({
-                    path: ['addresses', i],
+                    path: ['posts', i],
                     record: el,
                 })) as MutationPiece[],
             }
@@ -311,10 +312,10 @@ describe('verify_uniqueness.ts', () => {
                     $where: {
                         $or: [
                             {
-                                $eq: ['last_name', { $escape: 'smith' }],
+                                $eq: ['email', { $escape: 'a@a.com' }],
                             },
                             {
-                                $eq: ['email', { $escape: 'a@a.com' }],
+                                $eq: ['last_name', { $escape: 'smith' }],
                             },
                         ],
                     },
@@ -323,19 +324,19 @@ describe('verify_uniqueness.ts', () => {
         })
         test('searches multiple entities and fields', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                addresses: [
+                posts: [
                     {
                         $operation: 'update',
                         id: 1,
-                        line_1: 'line_1 1',
+                        title: 'title 1',
                     },
                     {
                         $operation: 'update',
                         id: 2,
-                        line_1: 'line_1 2',
+                        title: 'title 2',
                     },
                 ].map((el, i) => ({
-                    path: ['addresses', i],
+                    path: ['posts', i],
                     record: el,
                 })) as MutationPiece[],
                 users: [
@@ -356,16 +357,16 @@ describe('verify_uniqueness.ts', () => {
             )
 
             expect(result).to.deep.equal({
-                addresses: {
+                posts: {
                     id: true,
-                    line_1: true,
+                    title: true,
                     $where: {
                         $or: [
                             {
-                                $eq: ['line_1', { $escape: 'line_1 1' }],
+                                $eq: ['title', { $escape: 'title 1' }],
                             },
                             {
-                                $eq: ['line_1', { $escape: 'line_1 2' }],
+                                $eq: ['title', { $escape: 'title 2' }],
                             },
                         ],
                     },
