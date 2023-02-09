@@ -71,7 +71,7 @@ export const global_test_schema = {
                 },
                 title: {
                     $data_type: 'varchar',
-                    $not_null: true
+                    $not_null: true,
                 },
                 views: {
                     $data_type: 'int',
@@ -82,10 +82,12 @@ export const global_test_schema = {
             $primary_key: {
                 $fields: ['id'],
             },
-            $unique_keys: [{
-                $name: 'unique_title',
-                $fields: ['title']
-            }],
+            $unique_keys: [
+                {
+                    $name: 'unique_title',
+                    $fields: ['title'],
+                },
+            ],
             $foreign_keys: [
                 {
                     $fields: ['user_id'],
@@ -177,6 +179,27 @@ export const global_test_schema = {
                 },
             ],
         },
+        post_has_categories: {
+            $database_type: 'mysql',
+            $fields: {
+                post_id: {
+                    $data_type: 'int',
+                    $not_null: true,
+                },
+                category_id: {
+                    $data_type: 'int',
+                    $not_null: true,
+                },
+                main_category: {
+                    $data_type: 'tinyint',
+                    $precision: 1
+                }
+            },
+            $primary_key: {
+                $fields: ['post_id', 'category_id'],
+            },
+            
+        },
     },
     $cache: {
         $reversed_foreign_keys: {
@@ -204,6 +227,18 @@ export const global_test_schema = {
                     from_field: 'id',
                     to_entity: 'comments',
                     to_field: 'post_id',
+                },
+                {
+                    from_field: 'id',
+                    to_entity: 'post_has_categories',
+                    to_field: 'post_id',
+                },
+            ],
+            categories: [
+                {
+                    from_field: 'id',
+                    to_entity: 'post_has_categories',
+                    to_field: 'category_id',
                 },
             ],
         },

@@ -1,29 +1,10 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../../schema/introspector'
+import { global_test_schema } from '../../../helpers/tests/global_test_schema'
 import { MutationPiece } from '../../plan/mutation_plan'
 import { get_guid_query } from '../mutation_guid_query'
 
 describe('mutation_guid_query.ts', () => {
-    const orma_schema: OrmaSchema = {
-        $entities: {
-            users: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    first_name: { not_null: true },
-                    last_name: { not_null: true },
-                    resource_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $indexes: [
-                    { fields: ['resource_id'], is_unique: true },
-                    { fields: ['first_name', 'last_name'], is_unique: true },
-                ],
-            },
-        },
-        $cache: { $reversed_foreign_keys: {} },
-    }
-
     describe(get_guid_query.name, () => {
         test('generates a giud query', () => {
             const mutation_pieces: MutationPiece[] = [
@@ -31,7 +12,7 @@ describe('mutation_guid_query.ts', () => {
                     record: {
                         $operation: 'create',
                         id: { $guid: 'a' },
-                        resource_id: 123,
+                        email: 'a@a.com',
                     },
                     path: ['users', 0],
                 },
@@ -49,7 +30,7 @@ describe('mutation_guid_query.ts', () => {
                         $operation: 'delete',
                         id: 1,
                     },
-                    path: ['products', 1],
+                    path: ['users', 1],
                 },
             ]
 
@@ -57,16 +38,16 @@ describe('mutation_guid_query.ts', () => {
                 mutation_pieces,
                 'users',
                 {},
-                orma_schema
+                global_test_schema
             )
 
             expect(result).to.deep.equal({
-                $select: ['id', 'resource_id', 'first_name', 'last_name'],
+                $select: ['id', 'email', 'first_name', 'last_name'],
                 $from: 'users',
                 $where: {
                     $or: [
                         {
-                            $eq: ['resource_id', 123],
+                            $eq: ['email', "'a@a.com'"],
                         },
                         {
                             $and: [
@@ -97,7 +78,7 @@ describe('mutation_guid_query.ts', () => {
                 mutation_pieces,
                 'users',
                 {},
-                orma_schema
+                global_test_schema
             )
 
             expect(result).to.deep.equal(undefined)

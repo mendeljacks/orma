@@ -1,21 +1,17 @@
-import { XOR } from '../helper_types'
+import { GlobalTestSchema } from '../../helpers/tests/global_test_schema'
 import {
     DeepReadonly,
-    FieldSchemaPropEq,
-    FilterFieldsBySchemaProp,
     GetAllEdges,
     GetAllEntities,
     GetFieldNotNull,
     GetFields,
-    GetFieldsByRequired,
     GetFieldType,
-    GetParentEdges,
 } from '../schema/schema_helper_types'
 import { OrmaSchema } from '../schema/schema_types'
 
-export type OrmaMutation<Schema extends OrmaSchema> = DeepReadonly<
+export type OrmaMutation<Schema extends OrmaSchema> =
     | {
-          [Entity in GetAllEntities<Schema>]?: MutationRecord<
+          readonly [Entity in GetAllEntities<Schema>]?: readonly MutationRecord<
               Schema,
               Entity,
               // we only need to do this on the top level, since after the highest entity everything will have an operation,
@@ -24,15 +20,14 @@ export type OrmaMutation<Schema extends OrmaSchema> = DeepReadonly<
           >[]
       }
     | ({
-          [Entity in GetAllEntities<Schema>]?: MutationRecord<
+          readonly [Entity in GetAllEntities<Schema>]?: readonly MutationRecord<
               Schema,
               Entity,
               false
           >[]
       } & {
-          $operation: Operation
+          readonly $operation?: Operation
       })
->
 
 type MutationRecord<
     Schema extends OrmaSchema,
@@ -45,10 +40,10 @@ type MutationRecord<
 type OperationObj<RequireOperation extends boolean> =
     RequireOperation extends true
         ? {
-              $operation: Operation
+              readonly $operation: Operation
           }
         : {
-              $operation?: Operation
+              readonly $operation?: Operation
           }
 
 type Operation = 'create' | 'update' | 'delete'
@@ -57,7 +52,7 @@ type FieldsObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    // baseline for regular props
+    readonly // baseline for regular props
     [Field in GetFields<Schema, Entity>]?:
         | FieldType<Schema, Entity, Field>
         // primary or foreign keys can have guids
@@ -78,27 +73,19 @@ export type ForeignKeyFieldsObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     AllEdges extends GetAllEdges<Schema, Entity>
-> = AllEdges extends GetAllEdges<Schema, Entity>
-    ? {
-          [Field in AllEdges['to_entity']]?: MutationRecord<
-              Schema,
-              Field,
-              false
-          >[]
-      }
-    : never
-
-// type ForeignKeyFieldsObj<
-//     Schema extends OrmaSchema,
-//     Entity extends GetAllEntities<Schema>,
-//     ParentEdges extends GetParentEdges<Schema, Entity>
-// > = UnionToIntersection<
-//     ParentEdges extends GetParentEdges<Schema, Entity>
-//         ? {
-//               [Field in ParentEdges['to_entity']]: 1
-//           }
-//         : never
-// >
+> =
+    // handles the case where AllEdges is never since there are not edges
+    never extends AllEdges
+        ? {}
+        : AllEdges extends GetAllEdges<Schema, Entity>
+        ? {
+              readonly [Field in AllEdges['to_entity']]?: readonly MutationRecord<
+                  Schema,
+                  Field,
+                  false
+              >[]
+          }
+        : never
 
 export type FieldType<
     Schema extends OrmaSchema,
@@ -114,3 +101,5 @@ type NullableField<
     Entity extends GetAllEntities<Schema>,
     Field extends GetFields<Schema, Entity>
 > = GetFieldNotNull<Schema, Entity, Field> extends true ? never : null //| undefined
+
+type T = FieldType<GlobalTestSchema, 'post_has_categories', 'main_category'>
