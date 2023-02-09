@@ -8,76 +8,77 @@ import {
 } from './verify_uniqueness'
 import { expect } from 'chai'
 import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
+import { global_test_schema } from '../../helpers/tests/global_test_schema'
 
 describe('verify_uniqueness.ts', () => {
-    const orma_schema: OrmaSchema = {
-        $entities: {
-            users: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    first_name: { not_null: true },
-                    last_name: { not_null: true },
-                    email: { not_null: true },
-                    age: {},
-                },
-                $database_type: 'mysql',
-                $indexes: [
-                    {
-                        index_name: 'unique',
-                        fields: ['first_name', 'last_name'],
-                        is_unique: true,
-                    },
-                    {
-                        index_name: 'unique2',
-                        fields: ['email'],
-                        is_unique: true,
-                    },
-                ],
-            },
-            products: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    title: { not_null: true },
-                    description: {},
-                },
-                $database_type: 'mysql',
-                $indexes: [
-                    {
-                        index_name: 'unique',
-                        fields: ['title'],
-                        is_unique: true,
-                    },
-                ],
-            },
-        },
-    }
+    // const global_test_schema: OrmaSchema = {
+    //     $entities: {
+    //         users: {
+    //             $fields: {
+    //                 id: { primary_key: true, not_null: true },
+    //                 first_name: { not_null: true },
+    //                 last_name: { not_null: true },
+    //                 email: { not_null: true },
+    //                 age: {},
+    //             },
+    //             $database_type: 'mysql',
+    //             $indexes: [
+    //                 {
+    //                     index_name: 'unique',
+    //                     fields: ['first_name', 'last_name'],
+    //                     is_unique: true,
+    //                 },
+    //                 {
+    //                     index_name: 'unique2',
+    //                     fields: ['email'],
+    //                     is_unique: true,
+    //                 },
+    //             ],
+    //         },
+    //         addresses: {
+    //             $fields: {
+    //                 id: { primary_key: true, not_null: true },
+    //                 line_1: { not_null: true },
+    //                 description: {},
+    //             },
+    //             $database_type: 'mysql',
+    //             $indexes: [
+    //                 {
+    //                     index_name: 'unique',
+    //                     fields: ['line_1'],
+    //                     is_unique: true,
+    //                 },
+    //             ],
+    //         },
+    //     },
+    // }
 
     describe(get_verify_uniqueness_query.name, () => {
         test('searches unique key', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                products: [
+                addresses: [
                     {
-                        path: ['products'],
+                        path: ['addresses'],
                         record: {
                             $operation: 'update',
                             id: 12,
-                            title: 'hi',
+                            line_1: 'hi',
                         },
                     },
                 ],
             }
 
             const result = get_verify_uniqueness_query(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
             expect(result).to.deep.equal({
-                products: {
+                addresses: {
                     id: true,
-                    title: true,
+                    line_1: true,
                     $where: {
-                        $eq: ['title', { $escape: 'hi' }],
+                        $eq: ['line_1', { $escape: 'hi' }],
                     },
                 },
             })
@@ -100,7 +101,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const result = get_verify_uniqueness_query(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
@@ -138,47 +139,47 @@ describe('verify_uniqueness.ts', () => {
         })
         test('only updates and creates', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                products: [
+                addresses: [
                     {
                         $operation: 'update',
                         id: 12,
-                        title: 'hi',
+                        line_1: 'hi',
                     },
                     {
                         $operation: 'delete',
                         id: 13,
-                        title: 'as',
+                        line_1: 'as',
                     },
                     {
                         $operation: 'create',
                         id: 14,
-                        title: '123',
+                        line_1: '123',
                     },
                 ].map((el, i) => ({
-                    path: ['products', i],
+                    path: ['addresses', i],
                     record: el,
                 })) as MutationPiece[],
             }
 
             const result = get_verify_uniqueness_query(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
             expect(result).to.deep.equal({
-                products: {
+                addresses: {
                     id: true,
-                    title: true,
+                    line_1: true,
                     $where: {
                         $or: [
                             {
                                 $eq: ['id', { $escape: 14 }],
                             },
                             {
-                                $eq: ['title', { $escape: 'hi' }],
+                                $eq: ['line_1', { $escape: 'hi' }],
                             },
                             {
-                                $eq: ['title', { $escape: '123' }],
+                                $eq: ['line_1', { $escape: '123' }],
                             },
                         ],
                     },
@@ -187,21 +188,21 @@ describe('verify_uniqueness.ts', () => {
         })
         test('handles no unique fields', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                products: [
+                addresses: [
                     {
                         $operation: 'update',
                         // not used as a unique field since it is the identifying field and so is not being edited
                         description: 'hi',
-                        title: '123',
+                        line_1: '123',
                     },
                 ].map((el, i) => ({
-                    path: ['products', i],
+                    path: ['addresses', i],
                     record: el,
                 })) as MutationPiece[],
             }
 
             const result = get_verify_uniqueness_query(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
@@ -225,7 +226,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const result = get_verify_uniqueness_query(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
@@ -257,7 +258,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const result = get_verify_uniqueness_query(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
@@ -297,7 +298,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const result = get_verify_uniqueness_query(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
@@ -322,19 +323,19 @@ describe('verify_uniqueness.ts', () => {
         })
         test('searches multiple entities and fields', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                products: [
+                addresses: [
                     {
                         $operation: 'update',
                         id: 1,
-                        title: 'title 1',
+                        line_1: 'line_1 1',
                     },
                     {
                         $operation: 'update',
                         id: 2,
-                        title: 'title 2',
+                        line_1: 'line_1 2',
                     },
                 ].map((el, i) => ({
-                    path: ['products', i],
+                    path: ['addresses', i],
                     record: el,
                 })) as MutationPiece[],
                 users: [
@@ -350,21 +351,21 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const result = get_verify_uniqueness_query(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
             expect(result).to.deep.equal({
-                products: {
+                addresses: {
                     id: true,
-                    title: true,
+                    line_1: true,
                     $where: {
                         $or: [
                             {
-                                $eq: ['title', { $escape: 'title 1' }],
+                                $eq: ['line_1', { $escape: 'line_1 1' }],
                             },
                             {
-                                $eq: ['title', { $escape: 'title 2' }],
+                                $eq: ['line_1', { $escape: 'line_1 2' }],
                             },
                         ],
                     },
@@ -441,13 +442,13 @@ describe('verify_uniqueness.ts', () => {
                         },
                     },
                 ],
-                products: [
+                addresses: [
                     {
-                        path: ['products', 0],
+                        path: ['addresses', 0],
                         record: {
                             $operation: 'update',
                             id: 13,
-                            title: 'hi',
+                            line_1: 'hi',
                         },
                     },
                 ],
@@ -460,16 +461,16 @@ describe('verify_uniqueness.ts', () => {
                         email: 'a',
                     },
                 ],
-                products: [
+                addresses: [
                     {
                         id: 13,
-                        title: 'hi',
+                        line_1: 'hi',
                     },
                 ],
             }
 
             const errors = get_database_uniqueness_errors(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity,
                 database_records_by_entity
             )
@@ -478,37 +479,37 @@ describe('verify_uniqueness.ts', () => {
         })
         test('does not generate an error for identifying keys on update', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                products: [
+                addresses: [
                     {
-                        path: ['products', 0],
+                        path: ['addresses', 0],
                         record: {
                             $operation: 'update',
                             id: 12,
-                            title: 'a',
+                            line_1: 'a',
                         },
                     },
                     {
-                        path: ['products', 0],
+                        path: ['addresses', 0],
                         record: {
                             $operation: 'create',
                             id: 12,
-                            title: 'c',
+                            line_1: 'c',
                         },
                     },
                 ],
             }
 
             const database_records_by_entity = {
-                products: [
+                addresses: [
                     {
                         id: 12,
-                        title: 'b',
+                        line_1: 'b',
                     },
                 ],
             }
 
             const errors = get_database_uniqueness_errors(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity,
                 database_records_by_entity
             )
@@ -541,7 +542,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const errors = get_database_uniqueness_errors(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity,
                 database_records_by_entity
             )
@@ -572,7 +573,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const errors = get_database_uniqueness_errors(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity,
                 database_records_by_entity
             )
@@ -603,7 +604,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const errors = get_database_uniqueness_errors(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity,
                 database_records_by_entity
             )
@@ -643,20 +644,20 @@ describe('verify_uniqueness.ts', () => {
                         path: ['users', 2],
                     },
                 ],
-                products: [
+                addresses: [
                     {
                         record: {
                             $operation: 'update',
                             id: 13,
-                            title: 'hi',
+                            line_1: 'hi',
                         },
-                        path: ['products', 0],
+                        path: ['addresses', 0],
                     },
                 ],
             }
 
             const errors = get_mutation_uniqueness_errors(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
@@ -684,7 +685,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const errors = get_mutation_uniqueness_errors(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 
@@ -713,7 +714,7 @@ describe('verify_uniqueness.ts', () => {
             }
 
             const errors = get_mutation_uniqueness_errors(
-                orma_schema,
+                global_test_schema,
                 mutation_pieces_by_entity
             )
 

@@ -1,6 +1,7 @@
+import { GlobalTestMutation, GlobalTestSchema } from '../../helpers/tests/global_test_schema'
 import { as_orma_schema } from '../../schema/introspector'
-import { GetFields, GetFieldType, GetParentEdges } from '../schema_helper_types'
-import { FieldType, OrmaMutation } from './mutation_types'
+import { GetAllEdges, GetParentEdges } from '../schema/schema_helper_types'
+import { ForeignKeyFieldsObj, OrmaMutation } from './mutation_types'
 
 const test_schema = as_orma_schema({
     $entities: {
@@ -164,5 +165,13 @@ const tests = () => {
         //         images: []
         //     }]
         // }
+    }
+    {
+        // respects operation cascading
+        const t: ForeignKeyFieldsObj<GlobalTestSchema, 'posts', GetAllEdges<GlobalTestSchema, 'posts'>> = {
+            comments: [{
+                
+            }]
+        }
     }
 }

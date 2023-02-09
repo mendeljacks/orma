@@ -1,15 +1,19 @@
 import { XOR } from '../helper_types'
 import {
+    DeepReadonly,
     FieldSchemaPropEq,
     FilterFieldsBySchemaProp,
+    GetAllEdges,
     GetAllEntities,
+    GetFieldNotNull,
     GetFields,
+    GetFieldsByRequired,
     GetFieldType,
     GetParentEdges,
 } from '../schema/schema_helper_types'
 import { OrmaSchema } from '../schema/schema_types'
 
-export type OrmaMutation<Schema extends OrmaSchema> =
+export type OrmaMutation<Schema extends OrmaSchema> = DeepReadonly<
     | {
           [Entity in GetAllEntities<Schema>]?: MutationRecord<
               Schema,
@@ -28,6 +32,7 @@ export type OrmaMutation<Schema extends OrmaSchema> =
       } & {
           $operation: Operation
       })
+>
 
 type MutationRecord<
     Schema extends OrmaSchema,
@@ -35,12 +40,7 @@ type MutationRecord<
     RequireOperation extends boolean
 > = FieldsObj<Schema, Entity> &
     OperationObj<RequireOperation> &
-    ForeignKeyFieldsObj<
-        Schema,
-        Entity,
-        GetParentEdges<Schema, Entity>,
-        RequireOperation
-    >
+    ForeignKeyFieldsObj<Schema, Entity, GetAllEdges<Schema, Entity>>
 
 type OperationObj<RequireOperation extends boolean> =
     RequireOperation extends true
@@ -58,40 +58,34 @@ type FieldsObj<
     Entity extends GetAllEntities<Schema>
 > = {
     // baseline for regular props
-    [Field in GetFields<Schema, Entity>]?: FieldType<Schema, Entity, Field>
-} & {
-    // required props have to be given
-    [Field in FilterFieldsBySchemaProp<
-        Schema,
-        Entity,
-        'nullable',
-        // TODO: check if this works after switching from 'required' to 'nullable', since its a filter not eq
-        false | undefined
-    >]: FieldType<Schema, Entity, Field>
+    [Field in GetFields<Schema, Entity>]?:
+        | FieldType<Schema, Entity, Field>
+        // primary or foreign keys can have guids
+        | (Field extends GetAllEdges<Schema, Entity>['from_field']
+              ? { $guid: string | number }
+              : never)
 }
+// & {
+//     // required props have to be given
+//     [Field in GetFieldsByRequired<Schema, Entity, true>]: FieldType<
+//         Schema,
+//         Entity,
+//         Field
+//     >
+// }
 
-type ForeignKeyFieldsObj<
+export type ForeignKeyFieldsObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
-    ParentEdges extends GetParentEdges<Schema, Entity>,
-    RequireOperation extends boolean
-> = ParentEdges extends GetParentEdges<Schema, Entity>
-    ? XOR<
-          {
-              [Field in ParentEdges['to_entity']]: FieldType<
-                  Schema,
-                  Entity,
-                  Field
-              >
-          },
-          {
-              [Field in ParentEdges['to_entity']]: MutationRecord<
-                  Schema,
-                  Field,
-                  false
-              >[]
-          }
-      >
+    AllEdges extends GetAllEdges<Schema, Entity>
+> = AllEdges extends GetAllEdges<Schema, Entity>
+    ? {
+          [Field in AllEdges['to_entity']]?: MutationRecord<
+              Schema,
+              Field,
+              false
+          >[]
+      }
     : never
 
 // type ForeignKeyFieldsObj<
@@ -119,6 +113,4 @@ type NullableField<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     Field extends GetFields<Schema, Entity>
-> = FieldSchemaPropEq<Schema, Entity, Field, 'required', true> extends true
-    ? never
-    : null | undefined
+> = GetFieldNotNull<Schema, Entity, Field> extends true ? never : null //| undefined

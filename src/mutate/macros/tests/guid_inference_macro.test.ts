@@ -1,72 +1,79 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { clone } from '../../../helpers/helpers'
-import { as_orma_schema } from '../../../query/query'
+import {
+    GlobalTestMutation,
+    GlobalTestSchema,
+    global_test_schema,
+} from '../../../helpers/tests/global_test_schema'
+import { OrmaMutation } from '../../../types/mutation/mutation_types'
 import { apply_guid_inference_macro } from '../guid_inference_macro'
 
-describe('guid_inference_macro.ts', () => {
-    const schema = as_orma_schema({
-        $entities: {
-            products: {
-                $fields: { id: { primary_key: true, not_null: true } },
-                $database_type: 'mysql',
-            },
-            images: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    product_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'product_id',
-                        to_entity: 'products',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            image_urls: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    image_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'image_id',
-                        to_entity: 'images',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                products: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'images',
-                        to_field: 'product_id',
-                    },
-                ],
-                images: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'image_urls',
-                        to_field: 'image_id',
-                    },
-                ],
-            },
-        },
-    })
+describe.only('guid_inference_macro.ts', () => {
+    // const global_test_schema = as_orma_global_test_schema({
+    //     $entities: {
+    //         products: {
+    //             $fields: { id: { primary_key: true, not_null: true } },
+    //             $database_type: 'mysql',
+    //         },
+    //         images: {
+    //             $fields: {
+    //                 id: { primary_key: true, not_null: true },
+    //                 product_id: { not_null: true },
+    //             },
+    //             $database_type: 'mysql',
+    //             $foreign_keys: [
+    //                 {
+    //                     from_field: 'product_id',
+    //                     to_entity: 'products',
+    //                     to_field: 'id',
+    //                 },
+    //             ],
+    //         },
+    //         image_urls: {
+    //             $fields: {
+    //                 id: { primary_key: true, not_null: true },
+    //                 image_id: { not_null: true },
+    //             },
+    //             $database_type: 'mysql',
+    //             $foreign_keys: [
+    //                 {
+    //                     from_field: 'image_id',
+    //                     to_entity: 'images',
+    //                     to_field: 'id',
+    //                 },
+    //             ],
+    //         },
+    //     },
+    //     $cache: {
+    //         $reversed_foreign_keys: {
+    //             products: [
+    //                 {
+    //                     from_field: 'id',
+    //                     to_entity: 'images',
+    //                     to_field: 'product_id',
+    //                 },
+    //             ],
+    //             images: [
+    //                 {
+    //                     from_field: 'id',
+    //                     to_entity: 'image_urls',
+    //                     to_field: 'image_id',
+    //                 },
+    //             ],
+    //         },
+    //     },
+    // })
 
     describe(apply_guid_inference_macro.name, () => {
-        test('adds guids to creates', () => {
+        test.only('adds guids to creates', () => {
             const mutation = {
-                products: [
+                posts: [
                     {
                         $operation: 'create',
-                        images: [
+                        id: { $guid: 1 },
+                        user_id: 1,
+                        comments: [
                             {
                                 $operation: 'create',
                             },
@@ -76,9 +83,9 @@ describe('guid_inference_macro.ts', () => {
                         ],
                     },
                 ],
-            }
+            } as const satisfies GlobalTestMutation
 
-            apply_guid_inference_macro(mutation, schema)
+            apply_guid_inference_macro(mutation, global_test_schema)
 
             // @ts-ignore
             expect(mutation.products[0].id.$guid).to.not.equal(undefined)
@@ -110,7 +117,7 @@ describe('guid_inference_macro.ts', () => {
                 ],
             }
 
-            apply_guid_inference_macro(mutation, schema)
+            apply_guid_inference_macro(mutation, global_test_schema)
 
             // should use the user supplied id in guid inference
             // @ts-ignore
@@ -132,7 +139,7 @@ describe('guid_inference_macro.ts', () => {
 
             const cloned_mutation = clone(mutation)
 
-            apply_guid_inference_macro(mutation, schema)
+            apply_guid_inference_macro(mutation, global_test_schema)
 
             // no linked guids
             //@ts-ignore
@@ -163,7 +170,7 @@ describe('guid_inference_macro.ts', () => {
 
             const cloned_mutation = clone(mutation)
 
-            apply_guid_inference_macro(mutation, schema)
+            apply_guid_inference_macro(mutation, global_test_schema)
 
             // no linked guids
             //@ts-ignore
@@ -186,7 +193,7 @@ describe('guid_inference_macro.ts', () => {
                 ],
             }
 
-            apply_guid_inference_macro(mutation, schema)
+            apply_guid_inference_macro(mutation, global_test_schema)
 
             //@ts-ignore
             expect(mutation.products[0].images[0].product_id).to.deep.equal(1)

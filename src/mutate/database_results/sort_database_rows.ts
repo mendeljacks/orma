@@ -135,7 +135,6 @@ const sort_database_rows_given_indexes = (
                 )
             ] ?? {}
 
-        const a = 1
         // if (!database_row) {
         //     throw new Error(
         //         `Could not find database row for mutation row with keys ${identifying_keys} and values ${identifying_values}`

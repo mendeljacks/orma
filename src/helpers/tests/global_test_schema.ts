@@ -1,3 +1,5 @@
+import { OrmaMutation } from '../../types/mutation/mutation_types'
+import { OrmaQuery } from '../../types/query/query_types'
 import { OrmaSchema } from '../../types/schema/schema_types'
 
 export const global_test_schema = {
@@ -12,7 +14,6 @@ export const global_test_schema = {
                 },
                 first_name: {
                     $data_type: 'varchar',
-                    $not_null: true,
                 },
                 last_name: {
                     $data_type: 'varchar',
@@ -23,11 +24,9 @@ export const global_test_schema = {
                 },
                 billing_address_id: {
                     $data_type: 'int',
-                    $not_null: true,
                 },
                 shipping_address_id: {
                     $data_type: 'int',
-                    $not_null: true,
                 },
             },
             $primary_key: {
@@ -36,6 +35,9 @@ export const global_test_schema = {
             $unique_keys: [
                 {
                     $fields: ['email'],
+                },
+                {
+                    $fields: ['first_name', 'last_name'],
                 },
             ],
             $foreign_keys: [
@@ -102,6 +104,15 @@ export const global_test_schema = {
             $primary_key: {
                 $fields: ['id'],
             },
+            $foreign_keys: [
+                {
+                    $fields: ['post_id'],
+                    $references: {
+                        $entity: 'posts',
+                        $fields: ['id'],
+                    },
+                },
+            ],
         },
         addresses: {
             $database_type: 'mysql',
@@ -114,10 +125,49 @@ export const global_test_schema = {
                 line_1: {
                     $data_type: 'varchar',
                 },
+                resource_id: {
+                    $data_type: 'varchar',
+                },
+            },
+            $unique_keys: [
+                {
+                    $fields: ['resource_id'],
+                    $name: 'resource_uq',
+                },
+            ],
+            $primary_key: {
+                $fields: ['id'],
+            },
+        },
+        categories: {
+            $database_type: 'mysql',
+            $fields: {
+                id: {
+                    $data_type: 'int',
+                    $auto_increment: true,
+                    $not_null: true,
+                },
+                label: {
+                    $data_type: 'varchar',
+                    $not_null: true,
+                },
+                resource_id: {
+                    $data_type: 'varchar',
+                },
             },
             $primary_key: {
                 $fields: ['id'],
             },
+            $unique_keys: [
+                {
+                    $name: 'label_uq',
+                    $fields: ['label'],
+                },
+                {
+                    $name: 'resource_uq',
+                    $fields: ['resource_id'],
+                },
+            ],
         },
     },
     $cache: {
@@ -151,3 +201,7 @@ export const global_test_schema = {
         },
     },
 } as const satisfies OrmaSchema
+
+export type GlobalTestSchema = typeof global_test_schema
+export type GlobalTestQuery = OrmaQuery<GlobalTestSchema>
+export type GlobalTestMutation = OrmaMutation<GlobalTestSchema>

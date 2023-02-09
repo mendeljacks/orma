@@ -210,7 +210,7 @@ export const get_primary_keys = (
     const primary_key_fields =
         orma_schema.$entities[entity_name].$primary_key?.$fields
 
-    return primary_key_fields
+    return primary_key_fields as string[]
 }
 
 /**

@@ -4,6 +4,7 @@ import { Edge } from '../../helpers/schema_helpers'
 import { mysql_to_typescript_types } from '../../schema/introspector'
 import { ForeignKeyEdge, OrmaSchema } from '../schema/schema_types'
 import { IsEqual } from '../helper_types'
+import { Schema } from 'jsonschema'
 
 export type DeepReadonly<T> = T extends (infer R)[]
     ? DeepReadonlyArray<R>
@@ -39,12 +40,60 @@ export type GetFields<
       keyof Schema['$entities'][Entity]['$fields']
     : never
 
+// get a union of fields that either are nullable or are not nullable
+export type GetFieldNotNull<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    Field extends GetFields<Schema, Entity>
+> = Schema['$entities'][Entity]['$fields'][Field]['$not_null'] extends true
+    ? true
+    : false
+
+// get a union of fields that either are nullable or are not nullable
+export type GetFieldsByRequired<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    IsRequired extends boolean
+> = GetFieldsByRequired2<Schema, Entity, GetFields<Schema, Entity>, IsRequired>
+
+type GetFieldsByRequired2<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
+    Fields extends GetFields<Schema, Entity>,
+    IsRequired extends boolean
+> = Fields extends GetFields<Schema, Entity>
+    ? GetFieldIsRequired<
+          Schema['$entities'][Entity]['$fields'][Fields],
+          Fields,
+          GetParentEdges<Schema, Entity>['from_field']
+      > extends IsRequired
+        ? Fields
+        : never
+    : never
+
+// a field is required if it is not nullable, and there is no auto_increment or default. Also foreign keys are considered
+// not required, since the logic to require them is more complicated and handled elsewhere
+export type GetFieldIsRequired<
+    FieldSchema extends OrmaFieldSchema,
+    Field extends any,
+    ForeignKeyFields extends any
+> = ForeignKeyFields extends Field
+    ? false
+    : FieldSchema['$not_null'] extends true
+    ? FieldSchema['$auto_increment'] extends true
+        ? false
+        : FieldSchema['$default'] extends OrmaFieldSchema['$default']
+        ? false
+        : true
+    : false
+
 export type GetParentEdges<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
 > = Entities extends GetAllEntities<Schema>
     ? ForeignKeyToEdge<
           Schema,
+          Entities,
           NonNullable<Schema['$entities'][Entities]['$foreign_keys']>[number]
       >
     : never
@@ -93,9 +142,16 @@ export type GetChildEdges<
 
 type ForeignKeyToEdge<
     Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>,
     ForeignKeys extends OrmaForeignKey
 > = ForeignKeys extends OrmaForeignKey
     ? {
+          from_field: ForeignKeys['$fields'][0] extends GetFields<
+              Schema,
+              Entity
+          >
+              ? ForeignKeys['$fields'][0]
+              : never
           // on to_entity included for performance reasons, since that is the only one being used by the types
           to_entity: ForeignKeys['$references']['$entity'] extends GetAllEntities<Schema>
               ? ForeignKeys['$references']['$entity']
@@ -111,12 +167,12 @@ type CacheToEdge<
           //   from_entity: Edges['from_entity'] extends GetAllEntities<Schema>
           //       ? Edges['from_entity']
           //       : never
-          //   from_field: Edges['from_field'] extends GetFields<
-          //       Schema,
-          //       GetAllEntities<Schema>
-          //   >
-          //       ? Edges['from_field']
-          //       : never
+          from_field: Edges['from_field'] extends GetFields<
+              Schema,
+              GetAllEntities<Schema>
+          >
+              ? Edges['from_field']
+              : never
           to_entity: Edges['to_entity'] extends GetAllEntities<Schema>
               ? Edges['to_entity']
               : never

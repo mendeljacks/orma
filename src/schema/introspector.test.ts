@@ -14,7 +14,7 @@ import {
     generate_orma_schema_cache,
 } from './introspector'
 
-describe.only('introspector', () => {
+describe('introspector', () => {
     test('introspect sqls are string', () => {
         const introspect_sqls = get_introspect_sqls('international', 'mysql')
 
@@ -115,7 +115,7 @@ describe.only('introspector', () => {
         })
     })
 
-    test.only('full schema test', () => {
+    test('full schema test', () => {
         const mysql_tables: MysqlTable[] = [
             {
                 table_name: 'users',
@@ -187,11 +187,11 @@ describe.only('introspector', () => {
         expect(database_schema).to.deep.equal({
             $entities: {
                 posts: {
+                    $database_type: 'mysql',
+                    $comment: 'user posts',
                     $fields: {
                         user_id: { $data_type: 'int' },
                     },
-                    $comment: 'user posts',
-                    $database_type: 'mysql',
                     $foreign_keys: [
                         {
                             $name: 'user_post_constraint',
@@ -244,6 +244,51 @@ describe.only('introspector', () => {
                 expression: null,
             },
             {
+                // different table
+                table_name: 'posts',
+                non_unique: 1,
+                index_name: 'posts_index',
+                seq_in_index: 2,
+                column_name: 'title',
+                collation: 'A',
+                sub_part: null,
+                packed: null,
+                nullable: '',
+                index_type: 'BTREE',
+                //@ts-ignore
+                comment: null,
+                index_comment: '',
+                is_visible: 'NO',
+                //@ts-ignore
+                expression: null,
+            },
+        ]
+
+        const index_schemas_by_table = generate_index_schemas(
+            mysql_indexes,
+            false
+        )
+
+        expect(index_schemas_by_table).to.deep.equal({
+            users: [
+                {
+                    $name: 'simple_index',
+                    $fields: ['id'],
+                    $comment: 'my index',
+                },
+            ],
+            posts: [
+                {
+                    $name: 'posts_index',
+                    $fields: ['title'],
+                    $invisible: true,
+                },
+            ],
+        })
+    })
+    test('generates unique key schemas', () => {
+        const mysql_indexes: MysqlIndex[] = [
+            {
                 // combo unique
                 table_name: 'users',
                 non_unique: 0,
@@ -281,58 +326,18 @@ describe.only('introspector', () => {
                 //@ts-ignore
                 expression: null,
             },
-            {
-                // different table
-                table_name: 'posts',
-                non_unique: 0,
-                index_name: 'posts_index',
-                seq_in_index: 2,
-                column_name: 'title',
-                collation: 'A',
-                sub_part: null,
-                packed: null,
-                nullable: '',
-                index_type: 'BTREE',
-                //@ts-ignore
-                comment: null,
-                index_comment: '',
-                is_visible: 'NO',
-                //@ts-ignore
-                expression: null,
-            },
         ]
 
-        const index_schemas_by_table = generate_index_schemas(mysql_indexes)
+        const index_schemas_by_table = generate_index_schemas(
+            mysql_indexes,
+            true
+        )
 
         expect(index_schemas_by_table).to.deep.equal({
             users: [
                 {
-                    index_name: 'combo_unique',
-                    is_unique: true,
-                    fields: ['last_name', 'first_name'],
-                    index_type: 'BTREE',
-                    invisible: false,
-                    collation: 'A',
-                },
-                {
-                    index_name: 'simple_index',
-                    is_unique: false,
-                    fields: ['id'],
-                    index_type: 'BTREE',
-                    invisible: false,
-                    collation: 'A',
-                    sub_part: 1,
-                    index_comment: 'my index',
-                },
-            ],
-            posts: [
-                {
-                    index_name: 'posts_index',
-                    is_unique: true,
-                    fields: ['title'],
-                    index_type: 'BTREE',
-                    invisible: true,
-                    collation: 'A',
+                    $name: 'combo_unique',
+                    $fields: ['last_name', 'first_name'],
                 },
             ],
         })

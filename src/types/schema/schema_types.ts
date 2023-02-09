@@ -33,7 +33,7 @@ type OrmaIndex = Optional<
 
 type OrmaEntitySchema = Omit<
     RegularCreateStatement,
-    '$definitions' | '$create_table' | '$if_not_exists'
+    '$definitions' | '$create_table' | '$if_not_exists' | '$temporary'
 > & {
     $database_type: SupportedDbs
     $fields: {

@@ -154,7 +154,8 @@ export const generate_database_schema = (
     mysql_indexes: MysqlIndex[],
     database_type: SupportedDbs
 ) => {
-    const index_schemas = generate_index_schemas(mysql_indexes)
+    const index_schemas = generate_index_schemas(mysql_indexes, false)
+    const unique_key_schemas = generate_index_schemas(mysql_indexes, true)
     const mysql_columns_by_table = group_by(mysql_columns, el => el.table_name)
     const mysql_foreign_keys_by_table = group_by(
         mysql_foreign_keys,
@@ -175,25 +176,39 @@ export const generate_database_schema = (
                 ?.slice()
                 ?.sort((a, b) => sort_by_prop(a, b, 'constraint_name'))
 
-            acc.$entities[mysql_table.table_name] = {
-                $comment: mysql_table.table_comment,
-                $database_type: database_type,
-                $fields: sorted_mysql_columns?.reduce((acc, mysql_column) => {
+            const $fields = sorted_mysql_columns?.reduce(
+                (acc, mysql_column) => {
                     acc[mysql_column.column_name] =
                         generate_field_schema(mysql_column)
                     return acc
-                }, {}),
+                },
+                {}
+            )
+
+            const $foreign_keys = sorted_mysql_foreign_keys?.flatMap(
+                mysql_foreign_key => {
+                    const foreign_key =
+                        generate_foreign_key_schema(mysql_foreign_key)
+                    return foreign_key ? [foreign_key] : []
+                }
+            )
+
+            const $indexes = index_schemas[mysql_table.table_name]?.sort(
+                (a, b) => sort_by_prop(a, b, '$name')
+            )
+
+            const $unique_keys = unique_key_schemas[
+                mysql_table.table_name
+            ]?.sort((a, b) => sort_by_prop(a, b, '$name'))
+
+            acc.$entities[mysql_table.table_name] = {
+                $comment: mysql_table.table_comment,
+                $database_type: database_type,
+                $fields,
                 $primary_key: generate_primary_key_schema(sorted_mysql_columns),
-                $foreign_keys: sorted_mysql_foreign_keys?.flatMap(
-                    mysql_foreign_key => {
-                        const foreign_key =
-                            generate_foreign_key_schema(mysql_foreign_key)
-                        return foreign_key ? [foreign_key] : []
-                    }
-                ),
-                $indexes: index_schemas[mysql_table.table_name]?.sort((a, b) =>
-                    sort_by_prop(a, b, '$name')
-                ),
+                ...($foreign_keys?.length && { $foreign_keys }),
+                ...($indexes?.length && { $indexes }),
+                ...($unique_keys?.length && { $unique_keys }),
             }
 
             return acc
@@ -284,7 +299,10 @@ const generate_foreign_key_schema = (mysql_foreign_key: MysqlForeignKey) => {
     }
 }
 
-export const generate_index_schemas = (mysql_indexes: MysqlIndex[]) => {
+export const generate_index_schemas = (
+    mysql_indexes: MysqlIndex[],
+    unique_indexes: boolean
+) => {
     const mysql_indexes_by_table = group_by(
         mysql_indexes,
         index => index.table_name
@@ -295,9 +313,11 @@ export const generate_index_schemas = (mysql_indexes: MysqlIndex[]) => {
         const mysql_indexes = mysql_indexes_by_table[table_name]
             .slice()
             .sort((a, b) => sort_by_prop(a, b, 'index_name'))
-            // unique indexes are either a unique constraint or a primary key.
-            // both are handled as constraints, not indexes
-            .filter(mysql_index => Number(mysql_index.non_unique) === 1)
+            .filter(mysql_index =>
+                unique_indexes
+                    ? Number(mysql_index.non_unique) === 0
+                    : Number(mysql_index.non_unique) === 1
+            )
 
         // we need to do this because mysql puts each field of an index as a separate row
         // in the indeformation schema table
@@ -348,8 +368,8 @@ const generate_index_schema = (mysql_index: MysqlIndex, fields: string[]) => {
     const orma_index_schema: OrmaIndex = {
         $name: index_name,
         $fields: fields,
-        $index: true, // TODO: figure out how mysql shows other index types like spatial or fulltext
-        ...(comment && { $comment: comment }),
+        // $index: true, // TODO: figure out how mysql shows other index types like spatial or fulltext
+        ...(index_comment && { $comment: index_comment }),
         ...(is_visible === 'NO' && { $invisible: true }),
     }
 
