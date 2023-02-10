@@ -38,6 +38,7 @@ export type FieldDefinition = {
     $index?: never
     $name: string
     $data_type: keyof typeof mysql_to_typescript_types
+    $enum_values?: string[],
     $precision?: number,
     $scale?: number
     $unsigned?: boolean

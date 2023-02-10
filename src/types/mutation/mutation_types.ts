@@ -74,8 +74,8 @@ export type ForeignKeyFieldsObj<
     Entity extends GetAllEntities<Schema>,
     AllEdges extends GetAllEdges<Schema, Entity>
 > =
-    // handles the case where AllEdges is never since there are not edges
-    never extends AllEdges
+    // handles the case where there are no edges and AllEdges is 'never'
+    AllEdges extends never
         ? {}
         : AllEdges extends GetAllEdges<Schema, Entity>
         ? {

@@ -7,18 +7,21 @@ import { IsEqual } from '../helper_types'
 import { Schema } from 'jsonschema'
 
 export type DeepReadonly<T> = T extends (infer R)[]
-    ? DeepReadonlyArray<R>
+    ? readonly DeepReadonly<R>[]
     : T extends Function
     ? T
     : T extends object
-    ? DeepReadonlyObject<T>
+    ? {
+          readonly [P in keyof T]: DeepReadonly<T[P]>
+      }
     : T
 
-export interface DeepReadonlyArray<T> extends ReadonlyArray<DeepReadonly<T>> {}
+// export interface DeepReadonlyArray<T> extends ReadonlyArray<DeepReadonly<T>> {}
 
-export type DeepReadonlyObject<T> = {
-    readonly [P in keyof T]: DeepReadonly<T[P]>
-}
+// export type DeepReadonlyObject<T> = {
+//     readonly [P in keyof T]: DeepReadonly<T[P]>
+// }
+// type T = ReadonlyArray<string[]>
 
 export type DeepMutable<T> = T extends Function
     ? T

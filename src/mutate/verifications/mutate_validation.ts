@@ -11,11 +11,9 @@ import {
     is_required_field,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import {
-    mysql_to_typescript_types,
-    OrmaSchema,
-} from '../../schema/introspector'
+import { mysql_to_typescript_types } from '../../schema/introspector'
 import { Path } from '../../types'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
 import { get_identifying_keys } from '../helpers/identifying_keys'
 import { MutationOperation } from '../mutate'
@@ -298,7 +296,7 @@ const validate_field = (
 ): OrmaError[] => {
     const field_name = last(field_path) as string
     const field_schema = get_field_schema(orma_schema, entity_name, field_name)
-    const required_data_type = field_schema.data_type
+    const required_data_type = field_schema.$data_type
 
     const required_simple_type = required_data_type
         ? mysql_to_typescript_types[required_data_type]
@@ -330,7 +328,7 @@ const validate_field = (
     }
 
     if (field_value === null) {
-        if (field_schema.not_null) {
+        if (field_schema.$not_null) {
             return [
                 {
                     message: `${entity_name} ${field_name} is non-nullable but is set to null.`,
@@ -347,7 +345,7 @@ const validate_field = (
 
     // enums only get a check that the value is in the list of allowed values, no other checks
     if (required_simple_type === 'enum') {
-        const enum_values = field_schema.enum_values ?? []
+        const enum_values = field_schema.$enum_values ?? []
         const enum_errors = enum_values.includes(field_value as any)
             ? []
             : [
@@ -384,13 +382,13 @@ const validate_field = (
 
         // cast from string / boolean
         const string_field_value = Number(field_value).toString()
-        const max_character_count = field_schema.character_count ?? Infinity
+        const max_character_count = field_schema.$precision ?? Infinity
         const given_character_count = string_field_value.length
         const length_errors =
             given_character_count > max_character_count
                 ? [
                       {
-                          message: `${entity_name} ${field_name} is ${string_field_value.length} characters long but cannot be more than ${field_schema.character_count} characters long.`,
+                          message: `${entity_name} ${field_name} is ${string_field_value.length} characters long but cannot be more than ${field_schema.$precision} characters long.`,
                           path: field_path,
                           original_data: mutation,
                           additional_info: {
@@ -441,7 +439,7 @@ const validate_field = (
             ]
         }
 
-        const max_character_count = field_schema.character_count ?? Infinity
+        const max_character_count = field_schema.$precision ?? Infinity
         const given_character_count = number_field_value
             .toString()
             .replaceAll(/[^0-9]/g, '').length
@@ -462,7 +460,7 @@ const validate_field = (
                 : []
 
         const decimal_part = number_field_value.toString().match(/\.(.*)/)?.[1]
-        const max_decimals = field_schema.decimal_places ?? Infinity
+        const max_decimals = field_schema.$scale ?? Infinity
         const given_decimals = decimal_part?.length ?? 0
 
         const decimal_errors =
@@ -481,7 +479,7 @@ const validate_field = (
                 : []
 
         const unsigned_errors =
-            field_schema.unsigned && number_field_value < 0
+            field_schema.$unsigned && number_field_value < 0
                 ? [
                       {
                           message: `${entity_name} ${field_name} is ${number_field_value} but cannot be negative.`,

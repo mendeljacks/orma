@@ -160,9 +160,16 @@ export const global_test_schema = {
                 label: {
                     $data_type: 'varchar',
                     $not_null: true,
+                    $precision: 10,
                 },
                 resource_id: {
                     $data_type: 'varchar',
+                },
+                size: {
+                    $data_type: 'decimal',
+                    $precision: 5,
+                    $scale: 2,
+                    $unsigned: true,
                 },
             },
             $primary_key: {
@@ -192,13 +199,30 @@ export const global_test_schema = {
                 },
                 main_category: {
                     $data_type: 'tinyint',
-                    $precision: 1
-                }
+                    $precision: 1,
+                },
             },
             $primary_key: {
                 $fields: ['post_id', 'category_id'],
             },
-            
+            $foreign_keys: [
+                {
+                    $name: 'post_id_fk',
+                    $fields: ['post_id'],
+                    $references: {
+                        $entity: 'posts',
+                        $fields: ['id'],
+                    },
+                },
+                {
+                    $name: 'category_id_fk',
+                    $fields: ['category_id'],
+                    $references: {
+                        $entity: 'categories',
+                        $fields: ['id'],
+                    },
+                },
+            ],
         },
     },
     $cache: {
