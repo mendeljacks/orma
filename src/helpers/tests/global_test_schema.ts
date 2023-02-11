@@ -1,3 +1,4 @@
+import { generate_orma_schema_cache } from '../../schema/introspector'
 import { OrmaMutation } from '../../types/mutation/mutation_types'
 import { OrmaQuery } from '../../types/query/query_types'
 import { OrmaSchema } from '../../types/schema/schema_types'
@@ -93,6 +94,49 @@ export const global_test_schema = {
                     $fields: ['user_id'],
                     $references: {
                         $entity: 'users',
+                        $fields: ['id'],
+                    },
+                },
+            ],
+        },
+        likes: {
+            $database_type: 'mysql',
+            $fields: {
+                id: {
+                    $data_type: 'int',
+                    $auto_increment: true,
+                    $not_null: true,
+                },
+                user_id: {
+                    $data_type: 'int',
+                    $not_null: true,
+                },
+                post_id: {
+                    $data_type: 'int',
+                    $not_null: true,
+                },
+            },
+            $primary_key: {
+                $fields: ['id'],
+            },
+            $unique_keys: [
+                {
+                    $name: 'unique_user_id_post_id',
+                    $fields: ['user_id', 'post_id'],
+                },
+            ],
+            $foreign_keys: [
+                {
+                    $fields: ['user_id'],
+                    $references: {
+                        $entity: 'users',
+                        $fields: ['id'],
+                    },
+                },
+                {
+                    $fields: ['post_id'],
+                    $references: {
+                        $entity: 'posts',
                         $fields: ['id'],
                     },
                 },
@@ -240,18 +284,12 @@ export const global_test_schema = {
                 },
             ],
             users: [
-                {
-                    from_field: 'id',
-                    to_entity: 'posts',
-                    to_field: 'user_id',
-                },
+                { from_field: 'id', to_entity: 'posts', to_field: 'user_id' },
+                { from_field: 'id', to_entity: 'likes', to_field: 'user_id' },
             ],
             posts: [
-                {
-                    from_field: 'id',
-                    to_entity: 'comments',
-                    to_field: 'post_id',
-                },
+                { from_field: 'id', to_entity: 'likes', to_field: 'post_id' },
+                { from_field: 'id', to_entity: 'comments', to_field: 'post_id' },
                 {
                     from_field: 'id',
                     to_entity: 'post_has_categories',

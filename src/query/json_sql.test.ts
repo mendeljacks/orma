@@ -197,7 +197,7 @@ describe('query', () => {
                 $definitions: [
                     {
                         $name: 'id',
-                        $data_type: ['int'],
+                        $data_type: 'int',
                         $not_null: true,
                         $auto_increment: true,
                     },
@@ -223,7 +223,7 @@ describe('query', () => {
                     {
                         $alter_operation: 'add',
                         $name: 'id',
-                        $data_type: ['int'],
+                        $data_type: 'int',
                     },
                     {
                         $alter_operation: 'drop',
@@ -233,7 +233,9 @@ describe('query', () => {
                         $alter_operation: 'modify',
                         $old_name: 'id',
                         $name: 'my_id',
-                        $data_type: ['decimal', 6, 2],
+                        $data_type: 'decimal',
+                        $precision: 6,
+                        $scale: 2
                     },
                 ],
             }
@@ -253,7 +255,7 @@ describe('query', () => {
                 $definitions: [
                     {
                         $name: 'id',
-                        $data_type: ['int'],
+                        $data_type: 'int',
                         $not_null: true,
                         $auto_increment: true,
                     },
@@ -273,12 +275,14 @@ describe('query', () => {
                 $definitions: [
                     {
                         $name: 'label1',
-                        $data_type: ['varchar', 2],
+                        $data_type: 'varchar',
+                        $precision: 2,
                         $default: '"N/A"',
                     },
                     {
                         $name: 'label2',
-                        $data_type: ['varchar', 2],
+                        $data_type: 'varchar',
+                        $precision: 2,
                         $default: {
                             $current_timestamp: true,
                         },
@@ -300,7 +304,7 @@ describe('query', () => {
                 $definitions: [
                     {
                         $name: 'updated_at',
-                        $data_type: ['timestamp'],
+                        $data_type: 'timestamp',
                         $not_null: true,
                         $default: {
                             $current_timestamp: true,

@@ -1,95 +1,34 @@
-import { describe, test } from 'mocha'
-import { apply_select_macro } from './select_macro'
 import { expect } from 'chai'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { describe, test } from 'mocha'
+import {
+    GlobalTestQuery,
+    global_test_schema,
+} from '../../helpers/tests/global_test_schema'
+import { apply_select_macro } from './select_macro'
 
 describe('select_macro', () => {
-    const orma_schema: OrmaSchema = {
-        $entities: {
-            products: {
-                $fields: { id: {}, vendor_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'vendor_id',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            vendors: { $fields: { id: {} }, $database_type: 'mysql' },
-            images: {
-                $fields: { id: {}, url: {}, product_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'product_id',
-                        to_entity: 'products',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            image_urls: {
-                $fields: { image_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'image_id',
-                        to_entity: 'images',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                vendors: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'products',
-                        to_field: 'vendor_id',
-                    },
-                ],
-                products: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'images',
-                        to_field: 'product_id',
-                    },
-                ],
-                images: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'image_urls',
-                        to_field: 'image_id',
-                    },
-                ],
-            },
-        },
-    }
-
     describe(apply_select_macro.name, () => {
         test('handles selects/handles root', () => {
             const query = {
-                products: {
+                posts: {
                     id: true,
                     my_title: 'title',
                     total_quantity: {
                         $sum: 'quantity',
                     },
                 },
-            }
+            } as const satisfies GlobalTestQuery
 
-            apply_select_macro(query, orma_schema)
+            apply_select_macro(query, global_test_schema)
 
             const goal = {
-                products: {
+                posts: {
                     $select: [
                         'id',
                         { $as: ['title', 'my_title'] },
                         { $as: [{ $sum: 'quantity' }, 'total_quantity'] },
                     ],
-                    $from: 'products',
+                    $from: 'posts',
                 },
             }
 
@@ -97,25 +36,25 @@ describe('select_macro', () => {
         })
         test('handles adding foreign keys', () => {
             const query = {
-                products: {
-                    images: { url: true },
-                    vendors: {},
+                posts: {
+                    comments: { id: true },
+                    users: {},
                 },
-            }
+            } as const satisfies GlobalTestQuery
 
-            apply_select_macro(query, orma_schema)
+            apply_select_macro(query, global_test_schema)
 
             const goal = {
-                products: {
-                    $select: ['id', 'vendor_id'],
-                    $from: 'products',
-                    images: {
-                        $select: ['url', 'product_id'],
-                        $from: 'images',
+                posts: {
+                    $select: ['id', 'user_id'],
+                    $from: 'posts',
+                    comments: {
+                        $select: ['id', 'post_id'],
+                        $from: 'comments',
                     },
-                    vendors: {
+                    users: {
                         $select: ['id'],
-                        $from: 'vendors',
+                        $from: 'users',
                     },
                 },
             }
@@ -124,21 +63,21 @@ describe('select_macro', () => {
         })
         test('adds foreign keys for renamed subquery', () => {
             const query = {
-                products: {
-                    my_images: {
-                        $from: 'images',
+                posts: {
+                    my_comments: {
+                        $from: 'comments',
                     },
                 },
-            }
+            } as const satisfies GlobalTestQuery
 
-            apply_select_macro(query, orma_schema)
+            apply_select_macro(query, global_test_schema)
             const goal = {
-                products: {
+                posts: {
                     $select: ['id'],
-                    $from: 'products',
-                    my_images: {
-                        $select: ['product_id'],
-                        $from: 'images',
+                    $from: 'posts',
+                    my_comments: {
+                        $select: ['post_id'],
+                        $from: 'comments',
                     },
                 },
             }
@@ -147,34 +86,34 @@ describe('select_macro', () => {
         })
         test("respects 'from' clause", () => {
             const query = {
-                my_products: {
+                my_posts: {
                     id: true,
-                    $from: 'products',
+                    $from: 'posts',
                 },
-            }
+            } as const satisfies GlobalTestQuery
 
-            apply_select_macro(query, orma_schema)
+            apply_select_macro(query, global_test_schema)
             const goal = {
-                my_products: {
+                my_posts: {
                     $select: ['id'],
-                    $from: 'products',
+                    $from: 'posts',
                 },
-            }
+            } as const satisfies GlobalTestQuery
 
             expect(query).to.deep.equal(goal)
         })
         test('combines with existing $select', () => {
             const query = {
-                products: {
+                posts: {
                     id: true,
                     $select: ['title'],
                 },
-            }
+            } as const satisfies GlobalTestQuery
 
-            apply_select_macro(query, orma_schema)
+            apply_select_macro(query, global_test_schema)
             const goal = {
-                products: {
-                    $from: 'products',
+                posts: {
+                    $from: 'posts',
                     $select: ['title', 'id'],
                 },
             }

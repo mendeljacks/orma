@@ -3,35 +3,15 @@ import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../helpers/tests/global_test_schema'
 import {
     get_identifying_keys,
-    get_possible_identifying_keys
+    get_possible_identifying_keys,
 } from '../identifying_keys'
 
 describe('identifying_keys.ts', () => {
-    // const global_test_schema: OrmaSchema = {
-    //     $entities: {
-    //         product_has_images: {
-    //             $fields: {
-    //                 product_id: { not_null: true },
-    //                 image_id: { not_null: true },
-    //             },
-    //             $database_type: 'mysql',
-    //             $indexes: [
-    //                 { fields: ['product_id', 'image_id'], is_unique: true },
-    //             ],
-    //         },
-    //         products: {
-    //             $fields: { id: { primary_key: true }, title: {} },
-    //             $database_type: 'mysql',
-    //             $indexes: [{ fields: ['title'], is_unique: true }],
-    //         },
-    //     },
-    // }
-
     describe(get_identifying_keys.name, () => {
         test('uses resolved $guid fields as identifying keys', () => {
             const record = {
-                product_id: { $guid: 1 },
-                image_id: { $guid: 2 },
+                user_id: { $guid: 1 },
+                post_id: { $guid: 2 },
             }
 
             const values_by_guid = {
@@ -40,13 +20,13 @@ describe('identifying_keys.ts', () => {
             }
 
             const keys = get_identifying_keys(
-                'product_has_images',
+                'likes',
                 record,
                 values_by_guid,
                 global_test_schema
             )
 
-            expect(keys).to.deep.equal(['product_id', 'image_id'])
+            expect(keys).to.deep.equal(['user_id', 'post_id'])
         })
         test('will not use fields that have null as their value', () => {
             const record = {
@@ -56,7 +36,7 @@ describe('identifying_keys.ts', () => {
             const values_by_guid = {}
 
             const keys = get_identifying_keys(
-                'products',
+                'posts',
                 record,
                 values_by_guid,
                 global_test_schema
@@ -72,7 +52,7 @@ describe('identifying_keys.ts', () => {
             const values_by_guid = {}
 
             const keys = get_identifying_keys(
-                'products',
+                'posts',
                 record,
                 values_by_guid,
                 global_test_schema
@@ -89,7 +69,7 @@ describe('identifying_keys.ts', () => {
             const values_by_guid = {}
 
             const keys = get_identifying_keys(
-                'products',
+                'posts',
                 record,
                 values_by_guid,
                 global_test_schema
@@ -100,7 +80,10 @@ describe('identifying_keys.ts', () => {
     })
     describe(get_possible_identifying_keys.name, () => {
         test('includes nullable unique keys', () => {
-            const result = get_possible_identifying_keys('products', global_test_schema)
+            const result = get_possible_identifying_keys(
+                'posts',
+                global_test_schema
+            )
             expect(result).to.deep.equal([['id'], ['title']])
         })
     })

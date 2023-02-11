@@ -1,79 +1,79 @@
 import { expect } from 'chai'
 import { validate } from 'jsonschema'
 import { describe, test } from 'mocha'
-import { as_orma_schema } from '../query'
+import { global_test_schema } from '../../helpers/tests/global_test_schema'
 import { validate_query } from './query_validation'
 
-describe('query_validation.ts', () => {
-    const orma_schema = as_orma_schema({
-        $entities: {
-            products: {
-                $fields: {
-                    id: { data_type: 'int' },
-                    vendor_id: { data_type: 'int' },
-                    name: { data_type: 'varchar' },
-                    description: { data_type: 'varchar' },
-                },
-                $database_type: 'mysql',
-                $indexes: [],
-                $foreign_keys: [
-                    {
-                        from_field: 'vendor_id',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            vendors: { $fields: { id: {} }, $database_type: 'mysql' },
-            images: {
-                $fields: { id: {}, product_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'product_id',
-                        to_entity: 'products',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            image_urls: {
-                $fields: { image_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'image_id',
-                        to_entity: 'images',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                vendors: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'products',
-                        to_field: 'vendor_id',
-                    },
-                ],
-                products: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'images',
-                        to_field: 'product_id',
-                    },
-                ],
-                images: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'image_urls',
-                        to_field: 'image_id',
-                    },
-                ],
-            },
-        },
-    })
+describe.only('query_validation.ts', () => {
+    // const global_test_schema = as_global_test_schema({
+    //     $entities: {
+    //         products: {
+    //             $fields: {
+    //                 id: { data_type: 'int' },
+    //                 vendor_id: { data_type: 'int' },
+    //                 name: { data_type: 'varchar' },
+    //                 description: { data_type: 'varchar' },
+    //             },
+    //             $database_type: 'mysql',
+    //             $indexes: [],
+    //             $foreign_keys: [
+    //                 {
+    //                     from_field: 'vendor_id',
+    //                     to_entity: 'vendors',
+    //                     to_field: 'id',
+    //                 },
+    //             ],
+    //         },
+    //         vendors: { $fields: { id: {} }, $database_type: 'mysql' },
+    //         images: {
+    //             $fields: { id: {}, product_id: {} },
+    //             $database_type: 'mysql',
+    //             $foreign_keys: [
+    //                 {
+    //                     from_field: 'product_id',
+    //                     to_entity: 'products',
+    //                     to_field: 'id',
+    //                 },
+    //             ],
+    //         },
+    //         image_urls: {
+    //             $fields: { image_id: {} },
+    //             $database_type: 'mysql',
+    //             $foreign_keys: [
+    //                 {
+    //                     from_field: 'image_id',
+    //                     to_entity: 'images',
+    //                     to_field: 'id',
+    //                 },
+    //             ],
+    //         },
+    //     },
+    //     $cache: {
+    //         $reversed_foreign_keys: {
+    //             vendors: [
+    //                 {
+    //                     from_field: 'id',
+    //                     to_entity: 'products',
+    //                     to_field: 'vendor_id',
+    //                 },
+    //             ],
+    //             products: [
+    //                 {
+    //                     from_field: 'id',
+    //                     to_entity: 'images',
+    //                     to_field: 'product_id',
+    //                 },
+    //             ],
+    //             images: [
+    //                 {
+    //                     from_field: 'id',
+    //                     to_entity: 'image_urls',
+    //                     to_field: 'image_id',
+    //                 },
+    //             ],
+    //         },
+    //     },
+    // })
 
     describe(validate_query.name, () => {
         test('requires valid $from', () => {
@@ -83,7 +83,7 @@ describe('query_validation.ts', () => {
                         $from: 'not_an_entity',
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -97,7 +97,7 @@ describe('query_validation.ts', () => {
                         $from: 'products',
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -111,7 +111,7 @@ describe('query_validation.ts', () => {
                         $from: 'products',
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -135,7 +135,7 @@ describe('query_validation.ts', () => {
                         ],
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -154,7 +154,7 @@ describe('query_validation.ts', () => {
                         ],
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -173,7 +173,7 @@ describe('query_validation.ts', () => {
                         ],
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -192,7 +192,7 @@ describe('query_validation.ts', () => {
                         ],
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -207,7 +207,7 @@ describe('query_validation.ts', () => {
                         $group_by: ['not_a_field'],
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -223,7 +223,7 @@ describe('query_validation.ts', () => {
                         $group_by: ['my_id'],
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -241,7 +241,7 @@ describe('query_validation.ts', () => {
                         $group_by: ['my_id'],
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -257,7 +257,7 @@ describe('query_validation.ts', () => {
                         $offset: 1,
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -273,7 +273,7 @@ describe('query_validation.ts', () => {
                         $offset: -1,
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -297,7 +297,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -333,7 +333,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -349,7 +349,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -368,7 +368,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -388,7 +388,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -405,7 +405,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -422,7 +422,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -445,7 +445,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -468,7 +468,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -487,7 +487,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -514,7 +514,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -544,7 +544,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -567,7 +567,7 @@ describe('query_validation.ts', () => {
                         $from: 'products',
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -587,7 +587,7 @@ describe('query_validation.ts', () => {
                         id: true,
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -607,7 +607,7 @@ describe('query_validation.ts', () => {
                         id: true,
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -633,7 +633,7 @@ describe('query_validation.ts', () => {
                         id: true,
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -650,7 +650,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -665,7 +665,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -678,7 +678,7 @@ describe('query_validation.ts', () => {
                         $where: { $or: [] },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -691,7 +691,7 @@ describe('query_validation.ts', () => {
                         $where: { $and: [] },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -709,7 +709,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -730,7 +730,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -750,7 +750,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -766,7 +766,7 @@ describe('query_validation.ts', () => {
                         $limit: 1, // limit is not an sql function, so there neeeds to be a prop e.g. id: true
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -786,7 +786,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
@@ -807,7 +807,7 @@ describe('query_validation.ts', () => {
                         },
                     },
                 },
-                orma_schema
+                global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)

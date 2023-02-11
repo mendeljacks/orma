@@ -1,82 +1,21 @@
-import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../types/schema/schema_types'
-import { apply_any_path_macro } from './any_path_macro'
 import { expect } from 'chai'
+import { describe, test } from 'mocha'
+import {
+    GlobalTestQuery,
+    global_test_schema,
+} from '../../helpers/tests/global_test_schema'
+import { apply_any_path_macro } from './any_path_macro'
 
-describe('query_macros', () => {
-    const orma_schema: OrmaSchema = {
-        $entities: {
-            products: {
-                $fields: { id: {}, vendor_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'vendor_id',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            vendors: { $fields: { id: {} }, $database_type: 'mysql' },
-            images: {
-                $fields: { id: {}, product_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'product_id',
-                        to_entity: 'products',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            image_urls: {
-                $fields: { image_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'image_id',
-                        to_entity: 'images',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                vendors: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'products',
-                        to_field: 'vendor_id',
-                    },
-                ],
-                products: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'images',
-                        to_field: 'product_id',
-                    },
-                ],
-                images: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'image_urls',
-                        to_field: 'image_id',
-                    },
-                ],
-            },
-        },
-    }
-
+describe('any_path_macro.ts', () => {
     describe(apply_any_path_macro.name, () => {
         test('multiple any clauses', () => {
             const query = {
-                products: {
+                posts: {
                     $where: {
                         $and: [
                             {
                                 $any_path: [
-                                    ['images'],
+                                    ['comments'],
                                     {
                                         $eq: ['id', 1],
                                     },
@@ -84,7 +23,7 @@ describe('query_macros', () => {
                             },
                             {
                                 $any_path: [
-                                    ['vendors'],
+                                    ['users'],
                                     {
                                         $eq: ['id', 1],
                                     },
@@ -93,20 +32,20 @@ describe('query_macros', () => {
                         ],
                     },
                 },
-            }
+            } as const satisfies GlobalTestQuery
 
-            apply_any_path_macro(query, orma_schema)
+            apply_any_path_macro(query, global_test_schema)
 
             const goal = {
-                products: {
+                posts: {
                     $where: {
                         $and: [
                             {
                                 $in: [
                                     'id',
                                     {
-                                        $select: ['product_id'],
-                                        $from: 'images',
+                                        $select: ['post_id'],
+                                        $from: 'comments',
                                         $where: {
                                             $eq: ['id', 1],
                                         },
@@ -115,10 +54,10 @@ describe('query_macros', () => {
                             },
                             {
                                 $in: [
-                                    'vendor_id',
+                                    'user_id',
                                     {
                                         $select: ['id'],
-                                        $from: 'vendors',
+                                        $from: 'users',
                                         $where: {
                                             $eq: ['id', 1],
                                         },
@@ -134,10 +73,10 @@ describe('query_macros', () => {
         })
         test('deep any path', () => {
             const query = {
-                products: {
+                users: {
                     $where: {
                         $any_path: [
-                            ['images', 'image_urls'],
+                            ['posts', 'comments'],
                             {
                                 $eq: ['id', 1],
                             },
@@ -146,22 +85,22 @@ describe('query_macros', () => {
                 },
             }
 
-            apply_any_path_macro(query, orma_schema)
+            apply_any_path_macro(query, global_test_schema)
 
             const goal = {
-                products: {
+                users: {
                     $where: {
                         $in: [
                             'id',
                             {
-                                $select: ['product_id'],
-                                $from: 'images',
+                                $select: ['user_id'],
+                                $from: 'posts',
                                 $where: {
                                     $in: [
                                         'id',
                                         {
-                                            $select: ['image_id'],
-                                            $from: 'image_urls',
+                                            $select: ['post_id'],
+                                            $from: 'comments',
                                             $where: {
                                                 $eq: ['id', 1],
                                             },
@@ -178,13 +117,13 @@ describe('query_macros', () => {
         })
         test('nested anys', () => {
             const query = {
-                products: {
+                users: {
                     $where: {
                         $any_path: [
-                            ['images'],
+                            ['posts'],
                             {
                                 $any_path: [
-                                    ['image_urls'],
+                                    ['comments'],
                                     {
                                         $eq: ['id', 1],
                                     },
@@ -195,22 +134,22 @@ describe('query_macros', () => {
                 },
             }
 
-            apply_any_path_macro(query, orma_schema)
+            apply_any_path_macro(query, global_test_schema)
 
             const goal = {
-                products: {
+                users: {
                     $where: {
                         $in: [
                             'id',
                             {
-                                $select: ['product_id'],
-                                $from: 'images',
+                                $select: ['user_id'],
+                                $from: 'posts',
                                 $where: {
                                     $in: [
                                         'id',
                                         {
-                                            $select: ['image_id'],
-                                            $from: 'image_urls',
+                                            $select: ['post_id'],
+                                            $from: 'comments',
                                             $where: {
                                                 $eq: ['id', 1],
                                             },
@@ -227,10 +166,10 @@ describe('query_macros', () => {
         })
         test('uses having', () => {
             const query = {
-                products: {
+                users: {
                     $having: {
                         $any_path: [
-                            ['images'],
+                            ['posts'],
                             {
                                 $eq: ['id', 1],
                             },
@@ -239,15 +178,15 @@ describe('query_macros', () => {
                 },
             }
 
-            apply_any_path_macro(query, orma_schema)
+            apply_any_path_macro(query, global_test_schema)
             const goal = {
-                products: {
+                users: {
                     $having: {
                         $in: [
                             'id',
                             {
-                                $select: ['product_id'],
-                                $from: 'images',
+                                $select: ['user_id'],
+                                $from: 'posts',
                                 $having: {
                                     $eq: ['id', 1],
                                 },
@@ -260,11 +199,11 @@ describe('query_macros', () => {
         })
         test('respects $from', () => {
             const query = {
-                my_products: {
-                    $from: 'products',
+                my_posts: {
+                    $from: 'posts',
                     $where: {
                         $any_path: [
-                            ['images'],
+                            ['comments'],
                             {
                                 $eq: ['id', 1],
                             },
@@ -273,16 +212,16 @@ describe('query_macros', () => {
                 },
             }
 
-            apply_any_path_macro(query, orma_schema)
+            apply_any_path_macro(query, global_test_schema)
             const goal = {
-                my_products: {
-                    $from: 'products',
+                my_posts: {
+                    $from: 'posts',
                     $where: {
                         $in: [
                             'id',
                             {
-                                $select: ['product_id'],
-                                $from: 'images',
+                                $select: ['post_id'],
+                                $from: 'comments',
                                 $where: {
                                     $eq: ['id', 1],
                                 },

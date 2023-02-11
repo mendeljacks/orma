@@ -443,13 +443,13 @@ describe('verify_uniqueness.ts', () => {
                         },
                     },
                 ],
-                addresses: [
+                categories: [
                     {
-                        path: ['addresses', 0],
+                        path: ['categories', 0],
                         record: {
                             $operation: 'update',
                             id: 13,
-                            line_1: 'hi',
+                            label: 'hi',
                         },
                     },
                 ],
@@ -462,10 +462,10 @@ describe('verify_uniqueness.ts', () => {
                         email: 'a',
                     },
                 ],
-                addresses: [
+                categories: [
                     {
                         id: 13,
-                        line_1: 'hi',
+                        label: 'hi',
                     },
                 ],
             }
@@ -476,7 +476,11 @@ describe('verify_uniqueness.ts', () => {
                 database_records_by_entity
             )
 
-            expect(errors.length).to.equal(2)
+            const paths = errors.map(error => error.path)
+            expect(paths).to.deep.equal([
+                ['users', 0],
+                ['categories', 0],
+            ])
         })
         test('does not generate an error for identifying keys on update', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
