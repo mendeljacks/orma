@@ -1,6 +1,5 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../schema/introspector'
 import {
     combine_wheres,
     get_search_records_where,
@@ -8,7 +7,7 @@ import {
     query_for_each,
 } from './query_helpers'
 
-const orma_schema: OrmaSchema = {
+const orma_schema: any = {
     $entities: {
         products: {
             $database_type: 'mysql',

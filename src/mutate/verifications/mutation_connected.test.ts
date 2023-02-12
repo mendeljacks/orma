@@ -26,7 +26,7 @@ describe('mutation_connected.ts', () => {
     const get_test_where_connected = (
         entity: string
     ): WhereConnected<GlobalTestSchema>[number] => ({
-        $entity: entity,
+        $entity: entity as any,
         $field: 'id',
         $values: [1, 2],
     })

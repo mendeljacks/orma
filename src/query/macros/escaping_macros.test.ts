@@ -3,11 +3,11 @@ import { apply_escape_macro } from './escaping_macros'
 import { expect } from 'chai'
 import { OrmaSchema } from '../../types/schema/schema_types'
 
-const orma_schema: OrmaSchema = {
+const orma_schema: any = {
     $entities: {
         products: {
             $database_type: 'mysql',
-            $fields: {}
+            $fields: {},
         },
     },
 }
@@ -32,7 +32,7 @@ describe('escaping_macros', () => {
             apply_escape_macro(query, orma_schema)
         })
         test('Can find database type $coalesce', () => {
-            const orma_schema: OrmaSchema = {
+            const orma_schema: any = {
                 $entities: {
                     places: { $database_type: 'postgres', $fields: {} },
                     reviews: { $database_type: 'postgres', $fields: {} },

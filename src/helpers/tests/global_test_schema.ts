@@ -182,11 +182,46 @@ export const global_test_schema = {
                 resource_id: {
                     $data_type: 'varchar',
                 },
+                tax_code_id: {
+                    $data_type: 'int',
+                },
             },
             $unique_keys: [
                 {
                     $fields: ['resource_id'],
                     $name: 'resource_uq',
+                },
+            ],
+            $primary_key: {
+                $fields: ['id'],
+            },
+            $foreign_keys: [
+                {
+                    $fields: ['tax_code_id'],
+                    $references: {
+                        $entity: 'tax_codes',
+                        $fields: ['id'],
+                    },
+                },
+            ],
+        },
+        tax_codes: {
+            $database_type: 'mysql',
+            $fields: {
+                id: {
+                    $data_type: 'int',
+                    $auto_increment: true,
+                    $not_null: true,
+                },
+                tax_code: {
+                    $data_type: 'enum',
+                    $enum_values: ['TAX1', 'TAX2', 'TAX3'],
+                },
+            },
+            $unique_keys: [
+                {
+                    $fields: ['tax_code'],
+                    $name: 'tax_code_uq',
                 },
             ],
             $primary_key: {
@@ -283,13 +318,24 @@ export const global_test_schema = {
                     to_field: 'shipping_address_id',
                 },
             ],
+            tax_codes: [
+                {
+                    from_field: 'id',
+                    to_entity: 'addresses',
+                    to_field: 'tax_code_id',
+                },
+            ],
             users: [
                 { from_field: 'id', to_entity: 'posts', to_field: 'user_id' },
                 { from_field: 'id', to_entity: 'likes', to_field: 'user_id' },
             ],
             posts: [
                 { from_field: 'id', to_entity: 'likes', to_field: 'post_id' },
-                { from_field: 'id', to_entity: 'comments', to_field: 'post_id' },
+                {
+                    from_field: 'id',
+                    to_entity: 'comments',
+                    to_field: 'post_id',
+                },
                 {
                     from_field: 'id',
                     to_entity: 'post_has_categories',

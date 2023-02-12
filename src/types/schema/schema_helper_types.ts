@@ -23,6 +23,8 @@ export type DeepReadonly<T> = T extends (infer R)[]
 // }
 // type T = ReadonlyArray<string[]>
 
+export type Keyword = `$${string}`
+
 export type DeepMutable<T> = T extends Function
     ? T
     : { -readonly [P in keyof T]: DeepMutable<T[P]> }

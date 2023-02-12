@@ -1,85 +1,14 @@
 import { expect } from 'chai'
-import { validate } from 'jsonschema'
 import { describe, test } from 'mocha'
 import { global_test_schema } from '../../helpers/tests/global_test_schema'
 import { validate_query } from './query_validation'
 
-describe.only('query_validation.ts', () => {
-    // const global_test_schema = as_global_test_schema({
-    //     $entities: {
-    //         products: {
-    //             $fields: {
-    //                 id: { data_type: 'int' },
-    //                 vendor_id: { data_type: 'int' },
-    //                 name: { data_type: 'varchar' },
-    //                 description: { data_type: 'varchar' },
-    //             },
-    //             $database_type: 'mysql',
-    //             $indexes: [],
-    //             $foreign_keys: [
-    //                 {
-    //                     from_field: 'vendor_id',
-    //                     to_entity: 'vendors',
-    //                     to_field: 'id',
-    //                 },
-    //             ],
-    //         },
-    //         vendors: { $fields: { id: {} }, $database_type: 'mysql' },
-    //         images: {
-    //             $fields: { id: {}, product_id: {} },
-    //             $database_type: 'mysql',
-    //             $foreign_keys: [
-    //                 {
-    //                     from_field: 'product_id',
-    //                     to_entity: 'products',
-    //                     to_field: 'id',
-    //                 },
-    //             ],
-    //         },
-    //         image_urls: {
-    //             $fields: { image_id: {} },
-    //             $database_type: 'mysql',
-    //             $foreign_keys: [
-    //                 {
-    //                     from_field: 'image_id',
-    //                     to_entity: 'images',
-    //                     to_field: 'id',
-    //                 },
-    //             ],
-    //         },
-    //     },
-    //     $cache: {
-    //         $reversed_foreign_keys: {
-    //             vendors: [
-    //                 {
-    //                     from_field: 'id',
-    //                     to_entity: 'products',
-    //                     to_field: 'vendor_id',
-    //                 },
-    //             ],
-    //             products: [
-    //                 {
-    //                     from_field: 'id',
-    //                     to_entity: 'images',
-    //                     to_field: 'product_id',
-    //                 },
-    //             ],
-    //             images: [
-    //                 {
-    //                     from_field: 'id',
-    //                     to_entity: 'image_urls',
-    //                     to_field: 'image_id',
-    //                 },
-    //             ],
-    //         },
-    //     },
-    // })
-
+describe('query_validation.ts', () => {
     describe(validate_query.name, () => {
         test('requires valid $from', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $from: 'not_an_entity',
                     },
                 },
@@ -87,45 +16,45 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', '$from']])
+            expect(paths).to.deep.equal([['posts', '$from']])
         })
         test('requires valid simple field names', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         not_a_field: true,
-                        $from: 'products',
+                        $from: 'posts',
                     },
                 },
                 global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', 'not_a_field']])
+            expect(paths).to.deep.equal([['posts', 'not_a_field']])
         })
         test('requires valid renamed field names', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: 'not_a_field',
-                        $from: 'products',
+                        $from: 'posts',
                     },
                 },
                 global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', 'id']])
+            expect(paths).to.deep.equal([['posts', 'id']])
         })
         test('allows order by', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $order_by: [
                             {
-                                $desc: 'name',
+                                $desc: 'title',
                             },
                             {
                                 $asc: {
@@ -144,9 +73,9 @@ describe.only('query_validation.ts', () => {
         test('requires valid order by expression', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $order_by: [
                             {
                                 $desc: 'not_a_field',
@@ -158,15 +87,15 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', '$order_by', 0, '$desc']])
+            expect(paths).to.deep.equal([['posts', '$order_by', 0, '$desc']])
         })
         test('allows order by to referenced aliased fields', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $select: [{ $as: ['id', 'my_id2'] }],
                         my_id: 'id',
-                        $from: 'products',
+                        $from: 'posts',
                         $order_by: [
                             { $asc: { $sum: 'my_id' } },
                             { $desc: 'my_id2' },
@@ -182,9 +111,9 @@ describe.only('query_validation.ts', () => {
         test('allows group by', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $group_by: [
                             {
                                 $sum: 'id',
@@ -201,9 +130,9 @@ describe.only('query_validation.ts', () => {
         test('requires group by has valid fields', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $group_by: ['not_a_field'],
                     },
                 },
@@ -211,15 +140,15 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', '$group_by', 0]])
+            expect(paths).to.deep.equal([['posts', '$group_by', 0]])
         })
         test('doesnt allow special characters in field alias', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $select: [{ $as: ['id', "i'd"] }],
                         "my_'id": 'id',
-                        $from: 'products',
+                        $from: 'posts',
                         $group_by: ['my_id'],
                     },
                 },
@@ -227,17 +156,14 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([
-                ['products'],
-                ['products', '$select', 0],
-            ])
+            expect(paths).to.deep.equal([['posts'], ['posts', '$select', 0]])
         })
         test('allows group by to referenced aliased fields', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         my_id: 'id',
-                        $from: 'products',
+                        $from: 'posts',
                         $group_by: ['my_id'],
                     },
                 },
@@ -250,9 +176,9 @@ describe.only('query_validation.ts', () => {
         test('allows limit and offset', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $limit: 1,
                         $offset: 1,
                     },
@@ -266,9 +192,9 @@ describe.only('query_validation.ts', () => {
         test('requires positive limit and offset', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $limit: -1,
                         $offset: -1,
                     },
@@ -278,16 +204,16 @@ describe.only('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['products', '$limit'],
-                ['products', '$offset'],
+                ['posts', '$limit'],
+                ['posts', '$offset'],
             ])
         })
         test('allows where clause $and', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $where: {
                             $and: [
                                 {
@@ -306,9 +232,9 @@ describe.only('query_validation.ts', () => {
         test('allows where clause operations', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $where: {
                             $and: [
                                 {
@@ -342,7 +268,7 @@ describe.only('query_validation.ts', () => {
         test("$eq can't have an empty object", () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
                         $where: {
                             $eq: ['id', {}],
@@ -353,16 +279,14 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([
-                ['products', '$where'],
-            ])
+            expect(paths).to.deep.equal([['posts', '$where']])
         })
         test('requires valid expression in operation', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $where: {
                             $eq: ['not_a_field', 'test'], // the value must be escaped or a field name
                         },
@@ -373,16 +297,16 @@ describe.only('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['products', '$where', '$eq', 0],
-                ['products', '$where', '$eq', 1],
+                ['posts', '$where', '$eq', 0],
+                ['posts', '$where', '$eq', 1],
             ])
         })
         test('allows where clause $in with list of values', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $where: {
                             $in: ['id', [{ $escape: 1 }, { $escape: '2' }]],
                         },
@@ -397,9 +321,9 @@ describe.only('query_validation.ts', () => {
         test('allows escape on outside of $in values', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $where: {
                             $in: ['id', { $escape: [1, 2] }],
                         },
@@ -414,9 +338,9 @@ describe.only('query_validation.ts', () => {
         test('requires an array for $in', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $where: {
                             $in: ['id', { $escape: true }],
                         },
@@ -426,20 +350,20 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', '$where']])
+            expect(paths).to.deep.equal([['posts', '$where']])
         })
         test('allows where clause $in with subquery', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $where: {
                             $in: [
-                                'vendor_id',
+                                'user_id',
                                 {
                                     $select: ['id'],
-                                    $from: 'vendors',
+                                    $from: 'users',
                                 },
                             ],
                         },
@@ -454,15 +378,15 @@ describe.only('query_validation.ts', () => {
         test('requires valid select in $in subquery', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                         $where: {
                             $in: [
-                                'vendor_id',
+                                'user_id',
                                 {
                                     $select: ['not_a_field'],
-                                    $from: 'vendors',
+                                    $from: 'users',
                                 },
                             ],
                         },
@@ -473,15 +397,15 @@ describe.only('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['products', '$where', '$in', 1, '$select', 0],
+                ['posts', '$where', '$in', 1, '$select', 0],
             ])
         })
         test('allows aliased fields in $having', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         my_id: 'id',
-                        $from: 'products',
+                        $from: 'posts',
                         $having: {
                             $eq: ['my_id', { $escape: 12 }],
                         },
@@ -496,15 +420,15 @@ describe.only('query_validation.ts', () => {
         test('requires $any_path have connected entities', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    users: {
                         id: true,
-                        $from: 'products',
+                        $from: 'users',
                         $where: {
                             $any_path: [
-                                ['image_urls'],
+                                ['comments'],
                                 {
                                     $eq: [
-                                        'image_id',
+                                        'post_id',
                                         {
                                             $escape: 12,
                                         },
@@ -519,22 +443,22 @@ describe.only('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['products', '$where', '$any_path', 0, 0],
+                ['users', '$where', '$any_path', 0, 0],
             ])
         })
         test('correctly interprets which entity the $any_path is on', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    users: {
                         id: true,
-                        $from: 'products',
+                        $from: 'users',
                         $where: {
                             $any_path: [
-                                ['images', 'image_urls'],
+                                ['posts', 'comments'],
                                 {
-                                    // vendor_id is on the products, not image_urls, so this is an error
+                                    // user_id is on posts, not comments, so this is an error
                                     $eq: [
-                                        'vendor_id',
+                                        'user_id',
                                         {
                                             $escape: 12,
                                         },
@@ -549,7 +473,7 @@ describe.only('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['products', '$where', '$any_path', 1, '$eq', 0],
+                ['users', '$where', '$any_path', 1, '$eq', 0],
             ])
         })
         test('allows $where_connected', () => {
@@ -557,14 +481,14 @@ describe.only('query_validation.ts', () => {
                 {
                     $where_connected: [
                         {
-                            $entity: 'vendors',
+                            $entity: 'users',
                             $field: 'id',
                             $values: [1, 'a'],
                         },
                     ],
-                    products: {
+                    posts: {
                         id: true,
-                        $from: 'products',
+                        $from: 'posts',
                     },
                 },
                 global_test_schema
@@ -578,12 +502,12 @@ describe.only('query_validation.ts', () => {
                 {
                     $where_connected: [
                         {
-                            $entity: 'vendors',
+                            $entity: 'users',
                             $field: 'id',
                             $values: [], // this cant be empty
                         },
                     ],
-                    products: {
+                    posts: {
                         id: true,
                     },
                 },
@@ -603,7 +527,7 @@ describe.only('query_validation.ts', () => {
                             $values: [1],
                         },
                     ],
-                    products: {
+                    posts: {
                         id: true,
                     },
                 },
@@ -618,18 +542,18 @@ describe.only('query_validation.ts', () => {
                 {
                     $where_connected: [
                         {
-                            $entity: 'vendors',
+                            $entity: 'users',
                             $field: 'id',
                             $values: [1],
                         },
                         {
                             // vendors.id appears twice
-                            $entity: 'vendors',
+                            $entity: 'users',
                             $field: 'id',
                             $values: [2],
                         },
                     ],
-                    products: {
+                    posts: {
                         id: true,
                     },
                 },
@@ -642,7 +566,7 @@ describe.only('query_validation.ts', () => {
         test('allows $distinct in aggregate functions', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         max_id: {
                             $max: {
                                 $distinct: 'id',
@@ -659,7 +583,7 @@ describe.only('query_validation.ts', () => {
         test('allows $count *', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         count: {
                             $count: '*',
                         },
@@ -674,7 +598,7 @@ describe.only('query_validation.ts', () => {
         test('requies at least one $or', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $where: { $or: [] },
                     },
                 },
@@ -682,12 +606,12 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', '$where']])
+            expect(paths).to.deep.equal([['posts', '$where']])
         })
-        test('requies at least one $and', () => {
+        test('requires at least one $and', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $where: { $and: [] },
                     },
                 },
@@ -695,15 +619,15 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products', '$where']])
+            expect(paths).to.deep.equal([['posts', '$where']])
         })
         test('allows valid $entity $field', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $where: {
                             $eq: [
-                                { $entity: 'products', $field: 'id' },
+                                { $entity: 'posts', $field: 'id' },
                                 { $escape: 1 },
                             ],
                         },
@@ -718,12 +642,12 @@ describe.only('query_validation.ts', () => {
         test('requires valid $entity name', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $where: {
                             $eq: [
                                 {
                                     $entity: 'not_an_entity',
-                                    $field: 'image_id',
+                                    $field: 'user_id',
                                 },
                                 { $escape: 1 },
                             ],
@@ -735,16 +659,16 @@ describe.only('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['products', '$where', '$eq', 0, '$entity'],
+                ['posts', '$where', '$eq', 0, '$entity'],
             ])
         })
         test('requires valid $field name', () => {
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $where: {
                             $eq: [
-                                { $entity: 'products', $field: 'image_id' },
+                                { $entity: 'posts', $field: 'post_id' },
                                 { $escape: 1 },
                             ],
                         },
@@ -755,14 +679,14 @@ describe.only('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['products', '$where', '$eq', 0, '$field'],
+                ['posts', '$where', '$eq', 0, '$field'],
             ])
         })
         test.skip('must have a data prop if there is no valid sql function', () => {
             // not necessary, but could make user experience better. Add this to js validation when there is time
             const errors = validate_query(
                 {
-                    products: {
+                    posts: {
                         $limit: 1, // limit is not an sql function, so there neeeds to be a prop e.g. id: true
                     },
                 },
@@ -770,18 +694,18 @@ describe.only('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['products']])
+            expect(paths).to.deep.equal([['posts']])
         })
         test('allows $foreign_key', () => {
             const errors = validate_query(
                 {
-                    products: {
-                        images: {
+                    posts: {
+                        comments: {
                             id: true,
-                            $foreign_key: ['product_id'], // regular nest
-                            products: {
+                            $foreign_key: ['post_id'], // regular nest
+                            posts: {
                                 id: true,
-                                $foreign_key: ['product_id'], // reverse nest
+                                $foreign_key: ['post_id'], // reverse nest
                             },
                         },
                     },
@@ -795,13 +719,13 @@ describe.only('query_validation.ts', () => {
         test('$foreign_key must be valid', () => {
             const errors = validate_query(
                 {
-                    products: {
-                        $foreign_key: ['product_id'], // wrong level, should be on images
-                        images: {
+                    posts: {
+                        $foreign_key: ['post_id'], // wrong level, should be on images
+                        comments: {
                             id: true,
-                            $foreign_key: ['vendor_id'], // wrong field, vendor_id doesnt connect images and products
+                            $foreign_key: ['user_id'], // wrong field, vendor_id doesnt connect images and products
                         },
-                        vendors: {
+                        users: {
                             id: true,
                             $foreign_key: ['id', 'id'], // two fields are invalid
                         },
@@ -812,9 +736,9 @@ describe.only('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['products', 'images', '$foreign_key', 0],
-                ['products', 'vendors', '$foreign_key'],
-                ['products', '$foreign_key', 0],
+                ['posts', 'comments', '$foreign_key', 0],
+                ['posts', 'users', '$foreign_key'],
+                ['posts', '$foreign_key', 0],
             ])
         })
     })

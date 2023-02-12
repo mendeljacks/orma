@@ -1,10 +1,9 @@
-import { escape } from 'sqlstring'
 import { orma_escape } from '../helpers/escape'
 import { deep_get, is_simple_object, last } from '../helpers/helpers'
 import { is_reserved_keyword } from '../helpers/schema_helpers'
-import { OrmaSchema } from '../schema/introspector'
 import { path_to_entity } from '../mutate/helpers/mutate_helpers'
 import { PathedRecord } from '../types'
+import { OrmaSchema } from '../types/schema/schema_types'
 
 /**
  * Returns true if the parameter is a subquery. A subquery is an object that has at least one data fetching prop
@@ -139,7 +138,8 @@ export const get_search_records_where = (
                         field,
                         orma_escape(
                             record[field],
-                            orma_schema.$entities[path_to_entity(path)].$database_type
+                            orma_schema.$entities[path_to_entity(path)]
+                                .$database_type
                         ),
                     ],
                 })),
