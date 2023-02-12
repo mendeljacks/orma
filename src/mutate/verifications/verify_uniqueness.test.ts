@@ -1,58 +1,15 @@
+import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { global_test_schema } from '../../helpers/tests/global_test_schema'
+import { MutationPiece } from '../plan/mutation_plan'
 import {
     get_database_uniqueness_errors,
     get_duplicate_record_indices,
     get_mutation_uniqueness_errors,
     get_verify_uniqueness_query,
 } from './verify_uniqueness'
-import { expect } from 'chai'
-import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
-import { global_test_schema } from '../../helpers/tests/global_test_schema'
 
 describe('verify_uniqueness.ts', () => {
-    // const global_test_schema: OrmaSchema = {
-    //     $entities: {
-    //         users: {
-    //             $fields: {
-    //                 id: { primary_key: true, not_null: true },
-    //                 first_name: { not_null: true },
-    //                 last_name: { not_null: true },
-    //                 email: { not_null: true },
-    //                 age: {},
-    //             },
-    //             $database_type: 'mysql',
-    //             $indexes: [
-    //                 {
-    //                     index_name: 'unique',
-    //                     fields: ['first_name', 'last_name'],
-    //                     is_unique: true,
-    //                 },
-    //                 {
-    //                     index_name: 'unique2',
-    //                     fields: ['email'],
-    //                     is_unique: true,
-    //                 },
-    //             ],
-    //         },
-    //         addresses: {
-    //             $fields: {
-    //                 id: { primary_key: true, not_null: true },
-    //                 line_1: { not_null: true },
-    //                 description: {},
-    //             },
-    //             $database_type: 'mysql',
-    //             $indexes: [
-    //                 {
-    //                     index_name: 'unique',
-    //                     fields: ['line_1'],
-    //                     is_unique: true,
-    //                 },
-    //             ],
-    //         },
-    //     },
-    // }
-
     describe(get_verify_uniqueness_query.name, () => {
         test('searches unique key', () => {
             const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
