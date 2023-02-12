@@ -1,9 +1,11 @@
 import { orma_query } from '../..'
-import { global_test_schema } from '../../helpers/tests/global_test_schema'
-import { as_orma_query } from '../../query/query'
+import {
+    GlobalTestQuery,
+    global_test_schema,
+} from '../../helpers/tests/global_test_schema'
 
 const t = () => {
-    const query = as_orma_query(global_test_schema, {
+    const query = {
         my_posts: {
             $from: 'posts',
             id: true,
@@ -12,10 +14,12 @@ const t = () => {
             },
             $group_by: ['id'],
         },
-    })
+    } as const satisfies GlobalTestQuery
 
-    orma_query(query, schema, async () => ({} as any)).then(result => {
-        result.my_posts[0].id
-        result.my_posts[0].comments[0].my_url
-    })
+    orma_query(query, global_test_schema, async () => ({} as any)).then(
+        result => {
+            result.my_posts[0].id
+            result.my_posts[0].comments[0].id
+        }
+    )
 }

@@ -1,14 +1,9 @@
-import {
-    GlobalTestSchema,
-    global_test_schema,
-} from '../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../helpers/tests/global_test_schema'
 import { IsEqual } from '../helper_types'
 import {
-    FilterFieldsBySchemaProp,
     GetAllEdges,
     GetAllEntities,
     GetChildEdges,
-    GetFieldIsRequired,
     GetFields,
     GetFieldsByRequired,
     GetFieldType,
@@ -52,6 +47,7 @@ import {
     type test = GetChildEdges<typeof global_test_schema, 'users'>
 
     const good1: test = {
+        from_field: 'id',
         to_entity: 'posts',
     }
 
@@ -67,6 +63,7 @@ import {
 
     // edge to child
     const good1: test = {
+        from_field: 'id',
         to_entity: 'posts',
     }
 
@@ -107,27 +104,5 @@ import {
 {
     type T = GetFieldsByRequired<typeof global_test_schema, 'posts', true>
     // ignores fields with a default and foreign keys
-    const test1: IsEqual<T, never> = true
+    const test1: IsEqual<T, 'title'> = true
 }
-
-// {
-//     // finds fields with a schema prop and value
-//     type T = FilterFieldsBySchemaProp<
-//         typeof global_test_schema,
-//         'users',
-//         'not_null',
-//         true
-//     >
-//     const expect: IsEqual<T, 'vendor_id' | 'location_id'> = true
-// }
-
-// {
-//     // returns never if no field matches
-//     type T = FilterFieldsBySchemaProp<
-//         typeof global_test_schema,
-//         'vendors',
-//         'not_null',
-//         true
-//     >
-//     const expect: IsEqual<T, never> = true
-// }

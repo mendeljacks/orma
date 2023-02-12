@@ -1,5 +1,8 @@
-import { GlobalTestQuery, GlobalTestSchema } from '../../helpers/tests/global_test_schema'
-import { OrmaQuery, SimplifiedQuery, WhereConnected } from './query_types'
+import {
+    GlobalTestQuery,
+    GlobalTestSchema,
+} from '../../helpers/tests/global_test_schema'
+import { SimplifiedQuery } from './query_types'
 
 {
     const good: GlobalTestQuery = {
