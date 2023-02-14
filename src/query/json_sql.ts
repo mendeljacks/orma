@@ -134,6 +134,11 @@ export const sql_function_definitions: {
     }
 } = {
     // aggregate functions
+    $cast_signed: {
+        ast_to_sql: args => `CAST(${args} AS SIGNED)`,
+        min_args: 1,
+        max_args: 1,
+    },
     $sum: {
         ast_to_sql: args => `SUM(${args})`,
         aggregate: true,
