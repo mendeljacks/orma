@@ -1,4 +1,7 @@
-import { GlobalTestSchema } from '../../helpers/tests/global_test_schema'
+import {
+    GlobalTestQuery,
+    GlobalTestSchema,
+} from '../../helpers/tests/global_test_schema'
 import { as_orma_schema } from '../../schema/introspector'
 import { IsEqual } from '../helper_types'
 import { GetAllEdges, GetFieldType } from '../schema/schema_helper_types'
@@ -18,7 +21,7 @@ const test = () => {
                 id: true,
                 name: true,
             },
-        })
+        } as const satisfies GlobalTestQuery)
 
         result.posts.slice()
         result.posts[0].id
@@ -34,7 +37,7 @@ const test = () => {
             posts: {
                 id: true,
             },
-        })
+        } as const satisfies GlobalTestQuery)
 
         result.posts.slice()
         result.posts[0].id
@@ -46,7 +49,7 @@ const test = () => {
             posts: {
                 my_id: 'id',
             },
-        })
+        } as const satisfies GlobalTestQuery)
 
         result.posts.slice()
         const my_id = result.posts[0].my_id
@@ -65,7 +68,7 @@ const test = () => {
                     },
                 },
             },
-        })
+        } as const satisfies GlobalTestQuery)
 
         result.posts.slice()
         result.posts[0].comments[0].posts[0].title
@@ -81,7 +84,7 @@ const test = () => {
             users: {
                 last_name: true,
             },
-        })
+        } as const satisfies GlobalTestQuery)
 
         result.posts.slice()
         result.posts[0].id = 1
