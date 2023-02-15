@@ -233,7 +233,7 @@ type FieldTypeStringToType<
     : TypeString extends 'number'
     ? number
     : TypeString extends 'boolean'
-    ? number // mysql doesnt really support booleans
+    ? number | boolean // mysql doesnt really support booleans
     : TypeString extends 'date'
     ? Date
     : any
