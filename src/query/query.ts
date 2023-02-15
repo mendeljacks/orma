@@ -1,22 +1,22 @@
 import { clone, deep_get, drop_last, last } from '../helpers/helpers'
 import { nester, NesterData } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
-import { OrmaSchema } from '../introspector/introspector'
 import { MysqlFunction } from '../mutate/mutate'
 import { generate_statement } from '../mutate/statement_generation/mutation_statements'
 import { QueryResult } from '../types/query/query_result_types'
 import { OrmaQuery } from '../types/query/query_types'
-import { DeepReadonly } from '../types/schema_types'
+import { DeepReadonly } from '../types/schema/schema_helper_types'
+import { OrmaSchema } from '../types/schema/schema_types'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
 import {
     apply_nesting_macro,
-    should_nesting_short_circuit,
+    should_nesting_short_circuit
 } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import {
     apply_where_connected_macro,
-    ConnectionEdges,
+    ConnectionEdges
 } from './macros/where_connected_macro'
 import { get_query_plan } from './query_plan'
 

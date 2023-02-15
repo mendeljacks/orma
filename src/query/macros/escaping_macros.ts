@@ -1,6 +1,6 @@
 import { orma_escape } from '../../helpers/escape'
 import { deep_for_each, deep_set, last } from '../../helpers/helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_real_entity_name } from '../query'
 import { get_any_path_context_entity } from './any_path_macro'
 

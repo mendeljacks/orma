@@ -1,67 +1,25 @@
 import { orma_query } from '../..'
-import { OrmaError } from '../../helpers/error_handling'
-import { as_orma_query } from '../../query/query'
-import { QueryResult } from './query_result_types'
-import { OrmaQuery } from './query_types'
+import {
+    GlobalTestQuery,
+    global_test_schema,
+} from '../../helpers/tests/global_test_schema'
 
 const t = () => {
-    const schema = {
-        $entities: {
-            products: {
-                $fields: { id: { data_type: 'int' } },
-                $database_type: 'mysql',
-            },
-            images: {
-                $fields: { product_id: {}, url: { data_type: 'varchar' } },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'product_id',
-                        to_entity: 'products',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                products: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'images',
-                        to_field: 'product_id',
-                    },
-                ],
-            },
-        },
-    } as const
-
-    const q = <Query extends OrmaQuery<typeof schema>>(
-        query: Query
-    ): Promise<
-        | (QueryResult<typeof schema, Query> & { $success: true })
-        | { $success: false; errors: OrmaError[] }
-    > => {
-        const a: any = ''
-        return a
-    }
-
-    const query = as_orma_query(schema, {
-        my_products: {
-            $from: 'products',
+    const query = {
+        my_posts: {
+            $from: 'posts',
             id: true,
-            images: {
-                my_url: 'url',
+            comments: {
+                id: 'post_id',
             },
-            // $order_by: [{
-            //     $asc: 'id'
-            // }],
             $group_by: ['id'],
         },
-    })
+    } as const satisfies GlobalTestQuery
 
-    orma_query(query, schema, async () => ({} as any)).then(result => {
-        result.my_products[0].id
-        result.my_products[0].images[0].my_url
-    })
+    orma_query(query, global_test_schema, async () => ({} as any)).then(
+        result => {
+            result.my_posts[0].id
+            result.my_posts[0].comments[0].id
+        }
+    )
 }

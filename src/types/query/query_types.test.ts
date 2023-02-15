@@ -1,158 +1,63 @@
-import { OrmaSchema } from '../../introspector/introspector'
-import { GetAllEntities, GetFields } from '../schema_types'
-import { OrmaQuery, SimplifiedQuery, WhereConnected } from './query_types'
-
-const getA = <K extends OrmaSchema>(a: K) => a
-
-const test_schema = getA({
-    $entities: {
-        products: {
-            $database_type: 'mysql',
-            $fields: {
-                id: {},
-                vendor_id: {},
-                location_id: {},
-            },
-            $indexes: [],
-            $foreign_keys: [
-                {
-                    from_field: 'vendor_id',
-                    to_entity: 'vendors',
-                    to_field: 'id',
-                },
-                {
-                    from_field: 'location_id',
-                    to_entity: 'locations',
-                    to_field: 'id',
-                },
-            ],
-        },
-        vendors: {
-            $database_type: 'mysql',
-            $fields: {
-                id: {},
-            },
-        },
-        images: {
-            $database_type: 'mysql',
-            $fields: {
-                id: {},
-                product_id: {},
-                url: {},
-            },
-            $foreign_keys: [
-                {
-                    from_field: 'product_id',
-                    to_entity: 'products',
-                    to_field: 'id',
-                },
-            ],
-        },
-        image_urls: {
-            $database_type: 'mysql',
-            $fields: {
-                image_id: {},
-            },
-            $foreign_keys: [
-                {
-                    from_field: 'image_id',
-                    to_entity: 'images',
-                    to_field: 'id',
-                },
-            ],
-        },
-        locations: {
-            $database_type: 'mysql',
-            $fields: {
-                id: {},
-            },
-        },
-    },
-    $cache: {
-        $reversed_foreign_keys: {
-            vendors: [{
-                from_field: 'id',
-                to_entity: 'products',
-                to_field: 'vendor_id'
-            }],
-            products: [{
-                from_field: 'id',
-                to_entity: 'images',
-                to_field: 'product_id'
-            }],
-            images: [{
-                from_field: 'id',
-                to_entity: 'image_urls',
-                to_field: 'image_id'
-            }]
-        }
-    }
-} as const)
-
-type TestSchema = typeof test_schema
+import {
+    GlobalTestQuery,
+    GlobalTestSchema,
+} from '../../helpers/tests/global_test_schema'
+import { SimplifiedQuery } from './query_types'
 
 {
-    // test fields
-    type test = OrmaQuery<TestSchema>
-
-    const good: test = {
-        products: {
-            id: 'location_id',
-            location_id: true,
-            vendor_id: {
+    const good: GlobalTestQuery = {
+        likes: {
+            id: 'post_id',
+            post_id: true,
+            user_id: {
                 $sum: 'id',
             },
         },
     }
 
-    const bad1: test = {
-        products: {
+    const bad1: GlobalTestQuery = {
+        likes: {
             // @ts-expect-error
             id: 'not_a_field',
             // @ts-expect-error
-            location_id: 0,
+            post_id: 0,
         },
     }
-
-    type T = GetAllEntities<OrmaSchema>
 }
 
 {
-    // test subqueries
-    type test = OrmaQuery<TestSchema>
-
     // known root entities
-    const good1: test = {
-        images: {
-            url: true,
+    const good1: GlobalTestQuery = {
+        posts: {
+            title: true,
         },
-        vendors: {
-            $from: 'vendors',
+        users: {
+            $from: 'users',
         },
     }
 
     // unknown root entities, has type inference based on $from
-    const good2: test = {
-        my_images: {
-            $from: 'images',
-            url: true,
+    const good2: GlobalTestQuery = {
+        my_posts: {
+            $from: 'posts',
+            title: true,
         },
     }
 
     // nested subqueries
-    const good3: OrmaQuery<TestSchema> = {
-        my_images: {
-            $from: 'images',
-            products: {
-                vendors: {
-                    products: {
+    const good3: GlobalTestQuery = {
+        my_comments: {
+            $from: 'comments',
+            posts: {
+                users: {
+                    posts: {
                         id: true,
                     },
                 },
             },
         },
-        images: {
-            products: {
+        comments: {
+            posts: {
                 id: true,
             },
         },
@@ -161,9 +66,9 @@ type TestSchema = typeof test_schema
     // orma actually doesnt allow this, since in this case a $from clause must
     // be provided, but the types allow this since I can't figure out
     // how to disallow it without ruining other parts of the type
-    const good4: test = {
-        my_images: {
-            url: true,
+    const good4: GlobalTestQuery = {
+        my_posts: {
+            title: true,
         },
     }
 
@@ -174,13 +79,13 @@ type TestSchema = typeof test_schema
     // I believe this is something to do with the way I tried it (enumerating ever
     // alphanumeric character except $) overloading the type checker with too
     // many code paths, but who knows for sure
-    const good5: test = {
-        products: {
+    const good5: GlobalTestQuery = {
+        posts: {
             $sum: 'id',
         },
     }
 
-    // searching products under the key images is disallowed on a type level.
+    // searching posts under the key images is disallowed on a type level.
     // Orma allows this, but I couldnt figure out how to be able to do this
     // and also have good intellisense (when I tried this, intellises for
     // { images: { ... }} would list every field of every entity rather than just
@@ -188,10 +93,10 @@ type TestSchema = typeof test_schema
     // then just put product fields on). So since this is an uncommon usecase,
     // if needed a user would just have to ts-ignore this (and potentially lost
     // typing on all subqueries of images)
-    const b: test = {
-        images: {
+    const b: GlobalTestQuery = {
+        comments: {
             // @ts-expect-error
-            $from: 'products',
+            $from: 'posts',
             id: true,
         },
     }
@@ -199,9 +104,9 @@ type TestSchema = typeof test_schema
 
 {
     // test pagination
-    type test = OrmaQuery<TestSchema>
+    type test = GlobalTestQuery
     const good: test = {
-        products: {
+        posts: {
             $limit: 1,
             $offset: 2,
         },
@@ -210,9 +115,8 @@ type TestSchema = typeof test_schema
 
 {
     // test group by
-    type test = OrmaQuery<TestSchema>
-    const good: test = {
-        products: {
+    const good: GlobalTestQuery = {
+        posts: {
             $group_by: [
                 'id',
                 'asdasdasd',
@@ -226,13 +130,12 @@ type TestSchema = typeof test_schema
 
 {
     // test order by
-    type test = OrmaQuery<TestSchema>
-    const good: test = {
-        products: {
+    const good: GlobalTestQuery = {
+        psots: {
             $order_by: [
                 'id',
                 {
-                    $asc: 'location_id',
+                    $asc: 'user_id',
                 },
                 {
                     $desc: 'asdasdasdsad',
@@ -242,15 +145,15 @@ type TestSchema = typeof test_schema
         },
     }
 
-    const bad1: test = {
-        products: {
-            // @ts-expect-error
+    const bad1: GlobalTestQuery = {
+        posts: {
+            // @ts-expect-error must be an array
             $order_by: 'id',
         },
     }
 
-    const bad2: test = {
-        products: {
+    const bad2: GlobalTestQuery = {
+        posts: {
             $order_by: [
                 {
                     // @ts-expect-error
@@ -263,7 +166,7 @@ type TestSchema = typeof test_schema
 
 {
     // handles where clause
-    const good: OrmaQuery<TestSchema> = {
+    const good: GlobalTestQuery = {
         products: {
             id: true,
             $where: {
@@ -275,25 +178,22 @@ type TestSchema = typeof test_schema
 
 {
     // handles $where_connected macro
-    const good: OrmaQuery<TestSchema> = {
+    const good: GlobalTestQuery = {
         $where_connected: [
             {
-                $entity: 'products',
+                $entity: 'users',
                 $field: 'id',
                 $values: [1, 'a'],
             },
         ],
     }
 
-    type T = WhereConnected<TestSchema>
-
-    const bad: OrmaQuery<TestSchema> = {
+    const bad: GlobalTestQuery = {
         $where_connected: [
             {
                 // @ts-expect-error
-                $entity: 'products',
-                // @ts-expect-error
-                $field: 'url', // this is invalid since url is not a field of products
+                $entity: 'users',
+                $field: 'post_id', // this is invalid since post_id is not a field of users
                 $values: [1, 'a'],
             },
         ],
@@ -302,22 +202,21 @@ type TestSchema = typeof test_schema
 
 {
     // Simplified query
-    const good: SimplifiedQuery<TestSchema> = {
-        products: {
+    const good: SimplifiedQuery<GlobalTestSchema> = {
+        posts: {
             id: true,
-            location_id: true,
-            vendors: {
+            user_id: true,
+            users: {
                 id: true,
             },
         },
     }
 
-    const good2: SimplifiedQuery<TestSchema> = {}
+    const good2: SimplifiedQuery<GlobalTestSchema> = {}
 
-    const bad: SimplifiedQuery<TestSchema> = {
-        products: {
-            // @ts-ignore
-            image_urls: {
+    const bad: SimplifiedQuery<GlobalTestSchema> = {
+        posts: {
+            comments: {
                 id: true,
             },
         },

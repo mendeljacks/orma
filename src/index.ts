@@ -34,7 +34,8 @@ export { path_to_entity as mutation_path_to_entity } from './mutate/helpers/muta
 export {
     orma_introspect,
     generate_orma_schema_cache,
-} from './introspector/introspector'
+} from './schema/introspector'
+export { OrmaSchema } from './types/schema/schema_types'
 
 // adapters
 export { mysql2_adapter } from './helpers/database_adapters'

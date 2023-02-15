@@ -1,13 +1,17 @@
 import { OrmaError } from '../../helpers/error_handling'
 import { orma_escape } from '../../helpers/escape'
-import { is_reserved_keyword } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import {
+    get_field_schema,
+    is_reserved_keyword,
+} from '../../helpers/schema_helpers'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { combine_wheres } from '../../query/query_helpers'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { generate_record_where_clause } from '../helpers/record_searching'
 import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
+import { json_to_sql } from '../../query/json_sql'
 
 export const get_create_ast = (
     mutation_pieces: MutationPiece[],
@@ -39,8 +43,17 @@ export const get_create_ast = (
                 field,
                 values_by_guid
             )
+
+            const value_or_default =
+                resolved_value === undefined
+                    ? // run it through the ast parser to handle function defaults like $current_timestamp
+                      json_to_sql(
+                          get_field_schema(orma_schema, entity, field).$default
+                      )
+                    : resolved_value
+
             const escaped_value = orma_escape(
-                resolved_value ?? null,
+                value_or_default ?? null,
                 orma_schema.$entities[entity].$database_type
             )
             return escaped_value

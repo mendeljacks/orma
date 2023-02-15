@@ -1,7 +1,7 @@
 import { OrmaError } from '../../helpers/error_handling'
 import { group_by } from '../../helpers/helpers'
 import { reverse_edge } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { edge_path_to_where_ins } from '../../query/macros/any_path_macro'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import {

@@ -1,6 +1,9 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../introspector/introspector'
+import {
+    GlobalTestSchema,
+    global_test_schema,
+} from '../../helpers/tests/global_test_schema'
 import {
     add_connection_edges,
     ConnectionEdges,
@@ -17,143 +20,16 @@ import {
 } from './mutation_connected'
 
 describe('mutation_connected.ts', () => {
-    const schema: OrmaSchema = {
-        $entities: {
-            vendors: {
-                $fields: { id: { primary_key: true, not_null: true } },
-                $database_type: 'mysql',
-            },
-            listings: {
-                $fields: { id: { primary_key: true, not_null: true } },
-                $database_type: 'mysql',
-            },
-            products: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    vendor_id: { not_null: true },
-                    listing_id: { not_null: true },
-                    title: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $indexes: [{ fields: ['title'], is_unique: true }],
-                $foreign_keys: [
-                    {
-                        from_field: 'vendor_id',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                    {
-                        from_field: 'listing_id',
-                        to_entity: 'listings',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            categories: {
-                $fields: { id: { not_null: true, primary_key: true } },
-                $database_type: 'mysql',
-            },
-            warehouses: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    vendor_id: { not_null: true },
-                    name: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $indexes: [{ fields: ['name'], is_unique: true }],
-                $foreign_keys: [
-                    {
-                        from_field: 'vendor_id',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            accounts: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    vendor_id1: {},
-                    vendor_id2: {},
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'vendor_id1',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                    {
-                        from_field: 'vendor_id2',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            variants: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    product_id: { not_null: true },
-                    sku: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $indexes: [{ fields: ['sku'], is_unique: true }],
-                $foreign_keys: [
-                    {
-                        from_field: 'product_id',
-                        to_entity: 'products',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                vendors: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'products',
-                        to_field: 'vendor_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'warehouses',
-                        to_field: 'vendor_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'accounts',
-                        to_field: 'vendor_id1',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'accounts',
-                        to_field: 'vendor_id2',
-                    },
-                ],
-                listings: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'products',
-                        to_field: 'listing_id',
-                    },
-                ],
-                products: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'variants',
-                        to_field: 'product_id',
-                    },
-                ],
-            },
-        },
-    }
+    const default_connection_edges =
+        get_upwards_connection_edges(global_test_schema)
 
-    const default_connection_edges = get_upwards_connection_edges(schema)
-    const vendor_where_connected: WhereConnected<OrmaSchema>[number] = {
-        $entity: 'vendors',
+    const get_test_where_connected = (
+        entity: string
+    ): WhereConnected<GlobalTestSchema>[number] => ({
+        $entity: entity as any,
         $field: 'id',
         $values: [1, 2],
-    }
+    })
 
     describe(get_mutation_connected_errors.name, () => {
         test('integration test', async () => {
@@ -172,24 +48,26 @@ describe('mutation_connected.ts', () => {
                 {
                     record: {
                         $operation: 'create',
-                        vendor_id: 2,
+                        user_id: 2,
+                        title: 'test 1',
                     },
-                    path: ['products', 0],
+                    path: ['posts', 0],
                 },
                 {
                     record: {
                         $operation: 'create',
-                        vendor_id: 5,
+                        user_id: 5,
+                        title: 'test 2',
                     },
-                    path: ['products', 1],
+                    path: ['posts', 1],
                 },
             ]
 
             const errors = await get_mutation_connected_errors(
-                schema,
+                global_test_schema,
                 default_connection_edges,
                 query_function,
-                [vendor_where_connected],
+                [get_test_where_connected('users')],
                 mutation_pieces
             )
             expect(errors.length).to.equal(1)
@@ -200,10 +78,10 @@ describe('mutation_connected.ts', () => {
             const mutation_pieces = []
 
             const errors = await get_mutation_connected_errors(
-                schema,
+                global_test_schema,
                 default_connection_edges,
                 query_function,
-                [vendor_where_connected],
+                [get_test_where_connected('users')],
                 mutation_pieces
             )
             expect(errors).to.deep.equal([])
@@ -215,41 +93,41 @@ describe('mutation_connected.ts', () => {
                 {
                     record: {
                         $operation: 'create',
-                        vendor_id: 12,
-                        title: 'hi',
+                        post_id: 1,
+                        category_id: 2,
                     },
-                    path: ['products', 0],
+                    path: ['post_has_categories', 0],
                 },
                 {
                     record: {
                         $operation: 'update',
-                        id: 1,
+                        id: 3,
                     },
-                    path: ['warehouses', 0],
+                    path: ['comments', 0],
                 },
             ]
 
             const ownership_queries = get_ownership_queries(
-                schema,
+                global_test_schema,
                 default_connection_edges,
-                [vendor_where_connected],
+                [get_test_where_connected('posts')],
                 mutation_pieces
             )
 
             expect(ownership_queries).to.deep.equal([
                 {
                     $select: ['id'],
-                    $from: 'vendors',
+                    $from: 'posts',
                     $where: {
                         $or: [
-                            { $in: ['id', [12]] },
+                            { $in: ['id', [1]] },
                             {
                                 $in: [
                                     'id',
                                     {
-                                        $select: ['vendor_id'],
-                                        $from: 'warehouses',
-                                        $where: { $eq: ['id', 1] },
+                                        $select: ['post_id'],
+                                        $from: 'comments',
+                                        $where: { $eq: ['id', 3] },
                                     },
                                 ],
                             },
@@ -266,7 +144,7 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                     },
-                    path: ['listings', 0],
+                    path: ['addresses', 0],
                 },
                 // creating does not generate a where clause here, even though there is a connection edge to products,
                 // since in the create we dont include a foreign key to anything existing in the database
@@ -274,65 +152,51 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'create',
                     },
-                    path: ['listings', 0],
+                    path: ['addresses', 0],
                 },
             ]
 
             // in this examle, we set up the connection edges so that a listing is considered connected
-            // to a vendor if one of the products connected to that listing are connected to the vendor
+            // to a user if one of the products connected to that listing are connected to the user
             const connection_edges = add_connection_edges(
                 default_connection_edges,
                 [
                     {
-                        from_entity: 'listings',
+                        from_entity: 'addresses',
                         from_field: 'id',
-                        to_entity: 'products',
-                        to_field: 'listing_id',
+                        to_entity: 'users',
+                        to_field: 'shipping_address_id',
                     },
                 ]
             )
 
             const ownership_queries = get_ownership_queries(
-                schema,
+                global_test_schema,
                 connection_edges,
-                [vendor_where_connected],
+                [get_test_where_connected('users')],
                 mutation_pieces
             )
 
             expect(ownership_queries).to.deep.equal([
                 {
                     $select: ['id'],
-                    $from: 'vendors',
+                    $from: 'users',
                     $where: {
                         // there are two almost identical clauses because the foreign key column (id in this case since
                         // it is a reverse nest) is also the identifying key. We could dedupe this in future, but I'm
                         // leaving it for now
                         $or: [
                             {
-                                $in: [
-                                    'id',
-                                    {
-                                        $select: ['vendor_id'],
-                                        $from: 'products',
-                                        $where: { $in: ['listing_id', [1]] },
-                                    },
-                                ],
+                                $in: ['shipping_address_id', [1]],
                             },
                             {
                                 $in: [
-                                    'id',
+                                    'shipping_address_id',
                                     {
-                                        $select: ['vendor_id'],
-                                        $from: 'products',
+                                        $select: ['id'],
+                                        $from: 'addresses',
                                         $where: {
-                                            $in: [
-                                                'listing_id',
-                                                {
-                                                    $select: ['id'],
-                                                    $from: 'listings',
-                                                    $where: { $eq: ['id', 1] },
-                                                },
-                                            ],
+                                            $eq: ['id', 1],
                                         },
                                     },
                                 ],
@@ -344,60 +208,65 @@ describe('mutation_connected.ts', () => {
         })
         test('handles creating a child of a reverse connected entity', () => {
             const mutation_pieces: MutationPiece[] = [
-                // in this case we expect that any vendors connected to an already existing product connected to
-                // listing 1 will show up in the connected query
+                // in this case we expect that any posts connected to an already existing post_has_category
+                // connected to category 1 will show up in the connected query, since category 2 is owned
+                // by the posts of all existing post_has_categories
                 {
                     record: {
                         $operation: 'create',
-                        listing_id: 1,
+                        post_id: 1,
+                        category_id: 2,
                     },
-                    path: ['products', 0],
+                    path: ['post_has_categories', 0],
                 },
             ]
 
-            // in this examle, we set up the connection edges so that a listing is considered connected
-            // to a vendor if one of the products connected to that listing are connected to the vendor
             const connection_edges = add_connection_edges(
                 default_connection_edges,
                 [
                     {
-                        from_entity: 'listings',
+                        from_entity: 'categories',
                         from_field: 'id',
-                        to_entity: 'products',
-                        to_field: 'listing_id',
+                        to_entity: 'post_has_categories',
+                        to_field: 'category_id',
                     },
                 ]
             )
 
             const ownership_queries = get_ownership_queries(
-                schema,
+                global_test_schema,
                 connection_edges,
-                [vendor_where_connected],
+                [get_test_where_connected('posts')],
                 mutation_pieces
             )
 
             expect(ownership_queries).to.deep.equal([
                 {
                     $select: ['id'],
-                    $from: 'vendors',
+                    $from: 'posts',
                     $where: {
-                        $in: [
-                            'id',
+                        $or: [
+                            { $in: ['id', [1]] },
                             {
-                                $select: ['vendor_id'],
-                                $from: 'products',
-                                $where: {
-                                    $in: [
-                                        'listing_id',
-                                        {
-                                            $select: ['id'],
-                                            $from: 'listings',
-                                            $where: {
-                                                $in: ['id', [1]],
-                                            },
+                                $in: [
+                                    'id',
+                                    {
+                                        $select: ['post_id'],
+                                        $from: 'post_has_categories',
+                                        $where: {
+                                            $in: [
+                                                'category_id',
+                                                {
+                                                    $select: ['id'],
+                                                    $from: 'categories',
+                                                    $where: {
+                                                        $in: ['id', [2]],
+                                                    },
+                                                },
+                                            ],
                                         },
-                                    ],
-                                },
+                                    },
+                                ],
                             },
                         ],
                     },
@@ -417,9 +286,9 @@ describe('mutation_connected.ts', () => {
             const connection_edges: ConnectionEdges = {}
 
             const ownership_queries = get_ownership_queries(
-                schema,
+                global_test_schema,
                 connection_edges,
-                [vendor_where_connected],
+                [get_test_where_connected('users')],
                 mutation_pieces
             )
 
@@ -427,21 +296,21 @@ describe('mutation_connected.ts', () => {
         })
         test('ignores $guids', () => {
             const mutation_pieces: MutationPiece[] = [
-                // in this case we expect that any vendors connected to an already existing product connected to
+                // in this case we expect that any users connected to an already existing product connected to
                 // listing 1 will show up in the connected query
                 {
                     record: {
                         $operation: 'create',
-                        vendor_id: { $guid: 2 },
+                        user_id: { $guid: 2 },
                     },
                     path: ['products', 0],
                 },
             ]
 
             const ownership_queries = get_ownership_queries(
-                schema,
+                global_test_schema,
                 default_connection_edges,
-                [vendor_where_connected],
+                [get_test_where_connected('users')],
                 mutation_pieces
             )
 
@@ -457,16 +326,16 @@ describe('mutation_connected.ts', () => {
                         id: 12,
                         title: 'hi',
                     },
-                    path: ['products', 0],
+                    path: ['posts', 0],
                 },
             ]
 
             const wheres = get_primary_key_wheres(
-                schema,
+                global_test_schema,
                 default_connection_edges,
-                vendor_where_connected,
+                get_test_where_connected('users'),
                 mutation_pieces,
-                'products'
+                'posts'
             )
 
             expect(wheres).to.deep.equal([
@@ -474,8 +343,8 @@ describe('mutation_connected.ts', () => {
                     $in: [
                         'id',
                         {
-                            $select: ['vendor_id'],
-                            $from: 'products',
+                            $select: ['user_id'],
+                            $from: 'posts',
                             $where: { $eq: ['id', 12] },
                         },
                     ],
@@ -489,16 +358,34 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                     },
-                    path: ['accounts', 0],
+                    path: ['users', 0],
                 },
             ]
 
+            // const connection_edges = add_connection_edges(
+            //     default_connection_edges,
+            //     [
+            //         {
+            //             from_entity: 'addresses',
+            //             from_field: 'id',
+            //             to_entity: 'users',
+            //             to_field: 'shipping_address_id',
+            //         },
+            //         {
+            //             from_entity: 'addresses',
+            //             from_field: 'id',
+            //             to_entity: 'users',
+            //             to_field: 'billing_address_id',
+            //         },
+            //     ]
+            // )
+
             const wheres = get_primary_key_wheres(
-                schema,
+                global_test_schema,
                 default_connection_edges,
-                vendor_where_connected,
+                get_test_where_connected('addresses'),
                 mutation_pieces,
-                'accounts'
+                'users'
             )
 
             expect(wheres).to.deep.equal([
@@ -506,8 +393,8 @@ describe('mutation_connected.ts', () => {
                     $in: [
                         'id',
                         {
-                            $select: ['vendor_id1'],
-                            $from: 'accounts',
+                            $select: ['billing_address_id'],
+                            $from: 'users',
                             $where: { $eq: ['id', 1] },
                         },
                     ],
@@ -516,8 +403,8 @@ describe('mutation_connected.ts', () => {
                     $in: [
                         'id',
                         {
-                            $select: ['vendor_id2'],
-                            $from: 'accounts',
+                            $select: ['shipping_address_id'],
+                            $from: 'users',
                             $where: { $eq: ['id', 1] },
                         },
                     ],
@@ -529,16 +416,16 @@ describe('mutation_connected.ts', () => {
                 {
                     record: {
                         $operation: 'create',
-                        vendor_id: 12,
+                        user_id: 12,
                     },
                     path: ['products', 0],
                 },
             ]
 
             const wheres = get_primary_key_wheres(
-                schema,
+                global_test_schema,
                 default_connection_edges,
-                vendor_where_connected,
+                get_test_where_connected('users'),
                 mutation_pieces,
                 'products'
             )
@@ -551,23 +438,23 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        vendor_id: 12,
+                        user_id: 12,
                     },
-                    path: ['products', 0],
+                    path: ['posts', 0],
                 },
             ]
 
-            // categories and products are not connected, so there is no edge paths
+            // categories and posts are not connected, so there is no edge paths
             const wheres = get_primary_key_wheres(
-                schema,
+                global_test_schema,
                 default_connection_edges,
                 {
                     $entity: 'categories',
                     $field: 'id',
-                    $values: [1]
+                    $values: [1],
                 },
                 mutation_pieces,
-                'products'
+                'posts'
             )
 
             expect(wheres).to.deep.equal([])
@@ -580,26 +467,26 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 1,
-                        vendor_id: 12,
+                        user_id: 12,
                         title: 'hi',
                     },
-                    path: ['products', 0],
+                    path: ['posts', 0],
                 },
                 {
                     record: {
                         $operation: 'create',
-                        vendor_id: 13,
+                        user_id: 13,
                         title: 'hi',
                     },
-                    path: ['products', 1],
+                    path: ['posts', 1],
                 },
             ]
 
             const wheres = get_foreign_key_wheres(
                 default_connection_edges,
-                vendor_where_connected,
+                get_test_where_connected('users'),
                 mutation_pieces,
-                'products'
+                'posts'
             )
 
             expect(wheres).to.deep.equal([
@@ -614,26 +501,24 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        product_id: 11,
-                        sku: 'test1',
+                        post_id: 11,
                     },
-                    path: ['variants', 0],
+                    path: ['comments', 0],
                 },
                 {
                     record: {
                         $operation: 'create',
-                        product_id: 12,
-                        sku: 'test2',
+                        post_id: 12,
                     },
-                    path: ['variants', 1],
+                    path: ['comments', 1],
                 },
             ]
 
             const wheres = get_foreign_key_wheres(
                 default_connection_edges,
-                vendor_where_connected,
+                get_test_where_connected('users'),
                 mutation_pieces,
-                'variants'
+                'comments'
             )
 
             expect(wheres).to.deep.equal([
@@ -641,8 +526,8 @@ describe('mutation_connected.ts', () => {
                     $in: [
                         'id',
                         {
-                            $select: ['vendor_id'],
-                            $from: 'products',
+                            $select: ['user_id'],
+                            $from: 'posts',
                             $where: {
                                 $in: ['id', [11, 12]],
                             },
@@ -658,15 +543,15 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                     },
-                    path: ['variants', 0],
+                    path: ['comments', 0],
                 },
             ]
 
             const wheres = get_foreign_key_wheres(
                 default_connection_edges,
-                vendor_where_connected,
+                get_test_where_connected('users'),
                 mutation_pieces,
-                'variants'
+                'comments'
             )
 
             expect(wheres).to.deep.equal([])
@@ -693,7 +578,7 @@ describe('mutation_connected.ts', () => {
 
 product_id is 1, which is not your product
 
-product_id is not an edge, but products.vendor_id is
+product_id is not an edge, but products.user_id is
 
 TODO: disallow updates / deletes without an identiftying key, even if there are guids that can be used,
 to prevent the above bug.

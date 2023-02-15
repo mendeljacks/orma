@@ -1,163 +1,63 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { clone } from '../../helpers/helpers'
-import { OrmaSchema } from '../../introspector/introspector'
-import { WhereConnected } from '../../types/query/query_types'
-import { as_orma_schema } from '../query'
+import { global_test_schema } from '../../helpers/tests/global_test_schema'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import {
     apply_where_connected_macro,
-    get_edge_paths_by_destination,
     get_upwards_connection_edges,
     restrict_where_connected,
 } from './where_connected_macro'
 
 describe('where_connected_macro.ts', () => {
-    const schema = as_orma_schema({
-        $entities: {
-            grandparents: {
-                $fields: { id: { not_null: true } },
-                $database_type: 'mysql',
-            },
-            nullable_entity: {
-                $fields: {
-                    id: { not_null: true },
-                    grandparent_id: {},
-                    parent_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
-                    {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            parents: {
-                $fields: {
-                    id: { not_null: true },
-                    grandparent_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            parents_2: {
-                $fields: {
-                    id: { not_null: true },
-                    grandparent_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            children: {
-                $fields: {
-                    id: { not_null: true },
-                    parent_id: { not_null: true },
-                    parents_2_id: { not_null: true },
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'parent_id',
-                        to_entity: 'parents_1',
-                        to_field: 'id',
-                    },
-                    {
-                        from_field: 'parents_2_id',
-                        to_entity: 'parents_2',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                grandparents: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'nullable_entity',
-                        to_field: 'grandparent_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'parents',
-                        to_field: 'grandparent_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'parents_2',
-                        to_field: 'grandparent_id',
-                    },
-                ],
-                parents: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'children',
-                        to_field: 'parent_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'nullable_entity',
-                        to_field: 'parent_id',
-                    },
-                ],
-                parents_2: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'children',
-                        to_field: 'parents_2_id',
-                    },
-                ],
-            },
-        },
-    })
-
     describe(get_upwards_connection_edges.name, () => {
         test('handles multiple entities', () => {
             const schema: OrmaSchema = {
                 $entities: {
                     grandparents: {
-                        $fields: { id: {} },
+                        $fields: { id: { $data_type: 'int' } },
                         $database_type: 'mysql',
+                        $primary_key: {
+                            $fields: ['id'],
+                        },
                     },
                     parents: {
-                        $fields: { id: {}, grandparent_id: {} },
+                        $fields: {
+                            id: { $data_type: 'int' },
+                            grandparent_id: { $data_type: 'int' },
+                        },
                         $database_type: 'mysql',
                         $foreign_keys: [
                             {
-                                from_field: 'grandparent_id',
-                                to_entity: 'grandparents',
-                                to_field: 'id',
+                                $fields: ['grandparent_id'],
+                                $references: {
+                                    $entity: 'grandparents',
+                                    $fields: ['id'],
+                                },
                             },
                         ],
+                        $primary_key: {
+                            $fields: ['id'],
+                        },
                     },
                     children: {
-                        $fields: { id: {}, parent_id: {} },
+                        $fields: {
+                            id: { $data_type: 'int' },
+                            parent_id: { $data_type: 'int' },
+                        },
                         $database_type: 'mysql',
                         $foreign_keys: [
                             {
-                                from_field: 'parent_id',
-                                to_entity: 'parents',
-                                to_field: 'id',
+                                $fields: ['parent_id'],
+                                $references: {
+                                    $entity: 'parents',
+                                    $fields: ['id'],
+                                },
                             },
                         ],
+                        $primary_key: {
+                            $fields: ['id'],
+                        },
                     },
                 },
                 $cache: {
@@ -204,23 +104,46 @@ describe('where_connected_macro.ts', () => {
         test('handles multiple edges', () => {
             const schema: OrmaSchema = {
                 $entities: {
-                    parents: { $fields: { id: {} }, $database_type: 'mysql' },
-                    parents_2: { $fields: { id: {} }, $database_type: 'mysql' },
+                    parents: {
+                        $fields: { id: { $data_type: 'int' } },
+                        $database_type: 'mysql',
+                        $primary_key: {
+                            $fields: ['id'],
+                        },
+                    },
+                    parents_2: {
+                        $fields: { id: { $data_type: 'int' } },
+                        $database_type: 'mysql',
+                        $primary_key: {
+                            $fields: ['id'],
+                        },
+                    },
                     children: {
-                        $fields: { id: {}, parent_id: {}, parents_2_id: {} },
+                        $fields: {
+                            id: { $data_type: 'int' },
+                            parent_id: { $data_type: 'int' },
+                            parents_2_id: { $data_type: 'int' },
+                        },
                         $database_type: 'mysql',
                         $foreign_keys: [
                             {
-                                from_field: 'parent_id',
-                                to_entity: 'parents',
-                                to_field: 'id',
+                                $fields: ['parent_id'],
+                                $references: {
+                                    $entity: 'parents',
+                                    $fields: ['id'],
+                                },
                             },
                             {
-                                from_field: 'parents_2_id',
-                                to_entity: 'parents_2',
-                                to_field: 'id',
+                                $fields: ['parents_2_id'],
+                                $references: {
+                                    $entity: 'parents_2',
+                                    $fields: ['id'],
+                                },
                             },
                         ],
+                        $primary_key: {
+                            $fields: ['id'],
+                        },
                     },
                 },
                 $cache: {
@@ -266,15 +189,23 @@ describe('where_connected_macro.ts', () => {
             const schema: OrmaSchema = {
                 $entities: {
                     entity: {
-                        $fields: { id: {}, entity_id: {} },
+                        $fields: {
+                            id: { $data_type: 'int' },
+                            entity_id: { $data_type: 'int' },
+                        },
                         $database_type: 'mysql',
                         $foreign_keys: [
                             {
-                                from_field: 'entity_id',
-                                to_entity: 'entity',
-                                to_field: 'id',
+                                $fields: ['entity_id'],
+                                $references: {
+                                    $entity: 'entity',
+                                    $fields: ['id'],
+                                },
                             },
                         ],
+                        $primary_key: {
+                            $fields: ['id'],
+                        },
                     },
                 },
                 $cache: {
@@ -300,46 +231,46 @@ describe('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'grandparents',
+                        $entity: 'users',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                children: {
+                comments: {
                     id: true,
                 },
             }
 
-            apply_where_connected_macro(schema, query, {
-                children: [
+            apply_where_connected_macro(global_test_schema, query, {
+                comments: [
                     {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
+                        from_field: 'post_id',
+                        to_entity: 'posts',
                         to_field: 'id',
                     },
                 ],
-                parents: [
+                posts: [
                     {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
+                        from_field: 'user_id',
+                        to_entity: 'users',
                         to_field: 'id',
                     },
                 ],
             })
 
             // @ts-ignore
-            expect(query.children.$where).to.deep.equal({
+            expect(query.comments.$where).to.deep.equal({
                 $in: [
-                    'parent_id',
+                    'post_id',
                     {
                         $select: ['id'],
-                        $from: 'parents',
+                        $from: 'posts',
                         $where: {
                             $in: [
-                                'grandparent_id',
+                                'user_id',
                                 {
                                     $select: ['id'],
-                                    $from: 'grandparents',
+                                    $from: 'users',
                                     $where: {
                                         $in: ['id', [1, 2]],
                                     },
@@ -354,81 +285,65 @@ describe('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'grandparents',
+                        $entity: 'users',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                children: {
+                likes: {
                     id: true,
                 },
             }
 
-            apply_where_connected_macro(schema, query, {
-                children: [
+            apply_where_connected_macro(global_test_schema, query, {
+                likes: [
                     {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
+                        from_field: 'post_id',
+                        to_entity: 'posts',
                         to_field: 'id',
                     },
                     {
-                        from_field: 'parents_2_id',
-                        to_entity: 'parents_2',
-                        to_field: 'id',
-                    },
-                ],
-                parents: [
-                    {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
+                        from_field: 'user_id',
+                        to_entity: 'users',
                         to_field: 'id',
                     },
                 ],
-                parents_2: [
+                posts: [
                     {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
+                        from_field: 'user_id',
+                        to_entity: 'users',
                         to_field: 'id',
                     },
                 ],
             })
 
             // @ts-ignore
-            expect(query.children.$where).to.deep.equal({
+            expect(query.likes.$where).to.deep.equal({
                 $or: [
                     {
                         $in: [
-                            'parent_id',
+                            'user_id',
                             {
                                 $select: ['id'],
-                                $from: 'parents',
+                                $from: 'users',
                                 $where: {
-                                    $in: [
-                                        'grandparent_id',
-                                        {
-                                            $select: ['id'],
-                                            $from: 'grandparents',
-                                            $where: {
-                                                $in: ['id', [1, 2]],
-                                            },
-                                        },
-                                    ],
+                                    $in: ['id', [1, 2]],
                                 },
                             },
                         ],
                     },
                     {
                         $in: [
-                            'parents_2_id',
+                            'post_id',
                             {
                                 $select: ['id'],
-                                $from: 'parents_2',
+                                $from: 'posts',
                                 $where: {
                                     $in: [
-                                        'grandparent_id',
+                                        'user_id',
                                         {
                                             $select: ['id'],
-                                            $from: 'grandparents',
+                                            $from: 'users',
                                             $where: {
                                                 $in: ['id', [1, 2]],
                                             },
@@ -445,12 +360,12 @@ describe('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'parents',
+                        $entity: 'users',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                children: {
+                posts: {
                     id: true,
                     $where: {
                         $eq: ['id', 13],
@@ -460,28 +375,28 @@ describe('where_connected_macro.ts', () => {
 
             // notice we are using backwards nesting here, this is supported for example if the user specified
             // some backwards parent -> child connections to add to the child -> parent ones generated by orma
-            apply_where_connected_macro(schema, query, {
-                children: [
+            apply_where_connected_macro(global_test_schema, query, {
+                posts: [
                     {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
+                        from_field: 'user_id',
+                        to_entity: 'users',
                         to_field: 'id',
                     },
                 ],
             })
 
             // @ts-ignore
-            expect(query.children.$where).to.deep.equal({
+            expect(query.posts.$where).to.deep.equal({
                 $and: [
                     {
                         $eq: ['id', 13],
                     },
                     {
                         $in: [
-                            'parent_id',
+                            'user_id',
                             {
                                 $select: ['id'],
-                                $from: 'parents',
+                                $from: 'users',
                                 $where: {
                                     $in: ['id', [1, 2]],
                                 },
@@ -495,21 +410,21 @@ describe('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'grandparents',
+                        $entity: 'users',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                children: {
+                comments: {
                     id: true,
                     $where: {
                         and: [
                             {
                                 $in: [
-                                    'parent_id',
+                                    'post_id',
                                     {
                                         $select: ['id'],
-                                        $from: 'parents',
+                                        $from: 'posts',
                                     },
                                 ],
                             },
@@ -518,23 +433,23 @@ describe('where_connected_macro.ts', () => {
                 },
             }
 
-            apply_where_connected_macro(schema, query, {
-                parents: [
+            apply_where_connected_macro(global_test_schema, query, {
+                posts: [
                     {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
+                        from_field: 'user_id',
+                        to_entity: 'users',
                         to_field: 'id',
                     },
                 ],
             })
 
             // @ts-ignore
-            expect(query.children.$where.and[0].$in[1].$where).to.deep.equal({
+            expect(query.comments.$where.and[0].$in[1].$where).to.deep.equal({
                 $in: [
-                    'grandparent_id',
+                    'user_id',
                     {
                         $select: ['id'],
-                        $from: 'grandparents',
+                        $from: 'users',
                         $where: {
                             $in: ['id', [1, 2]],
                         },
@@ -563,7 +478,7 @@ describe('where_connected_macro.ts', () => {
 
             // notice we are using backwards nesting here, this is supported for example if the user specified
             // some backwards parent -> child connections to add to the child -> parent ones generated by orma
-            apply_where_connected_macro(schema, query, {
+            apply_where_connected_macro(global_test_schema, query, {
                 children: [
                     {
                         from_field: 'parent_id',
@@ -589,22 +504,22 @@ describe('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'parents',
+                        $entity: 'users',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                parents: {
+                users: {
                     id: true,
                 },
             }
 
             // notice we are using backwards nesting here, this is supported for example if the user specified
             // some backwards parent -> child connections to add to the child -> parent ones generated by orma
-            apply_where_connected_macro(schema, query, {})
+            apply_where_connected_macro(global_test_schema, query, {})
 
             // @ts-ignore
-            expect(query.parents.$where).to.deep.equal({
+            expect(query.users.$where).to.deep.equal({
                 $in: ['id', [1, 2]],
             })
         })
@@ -612,35 +527,35 @@ describe('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'grandparents',
+                        $entity: 'addresses',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                nullable_entity: {
+                users: {
                     id: true,
                 },
             }
 
-            apply_where_connected_macro(schema, query, {
-                nullable_entity: [
+            apply_where_connected_macro(global_test_schema, query, {
+                users: [
                     {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
+                        from_field: 'billing_address_id',
+                        to_entity: 'addresses',
                         to_field: 'id',
                     },
-                ]
+                ],
             })
 
             // @ts-ignore
-            expect(query.nullable_entity.$where).to.deep.equal({
+            expect(query.users.$where).to.deep.equal({
                 $or: [
                     {
                         $in: [
-                            'grandparent_id',
+                            'billing_address_id',
                             {
                                 $select: ['id'],
-                                $from: 'grandparents',
+                                $from: 'addresses',
                                 $where: { $in: ['id', [1, 2]] },
                             },
                         ],
@@ -648,83 +563,92 @@ describe('where_connected_macro.ts', () => {
                     {
                         $not: {
                             $in: [
-                                'grandparent_id',
+                                'billing_address_id',
                                 {
                                     $select: ['id'],
-                                    $from: 'grandparents'
+                                    $from: 'addresses',
                                 },
                             ],
-                        }
-                    }
+                        },
+                    },
                 ],
             })
         })
         test('handles nullable and non-nullable foreign keys together', () => {
+            const schema: OrmaSchema = {
+                ...global_test_schema,
+                $entities: {
+                    ...global_test_schema.$entities,
+                    likes: {
+                        ...global_test_schema.$entities.likes,
+                        $fields: {
+                            ...global_test_schema.$entities.likes.$fields,
+                            user_id: { $data_type: 'int' }, // make nullable
+                        },
+                    },
+                },
+            }
+
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'grandparents',
+                        $entity: 'users',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                nullable_entity: {
+                likes: {
                     id: true,
                 },
             }
 
             apply_where_connected_macro(schema, query, {
-                nullable_entity: [
+                likes: [
                     {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
+                        from_field: 'user_id',
+                        to_entity: 'users',
                         to_field: 'id',
                     },
                     {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
+                        from_field: 'post_id',
+                        to_entity: 'posts',
                         to_field: 'id',
                     },
                 ],
-                parents: [
+                posts: [
                     {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
-                    {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
+                        from_field: 'user_id',
+                        to_entity: 'users',
                         to_field: 'id',
                     },
                 ],
             })
 
             // @ts-ignore
-            expect(query.nullable_entity.$where).to.deep.equal({
+            expect(query.likes.$where).to.deep.equal({
                 $or: [
                     {
                         $in: [
-                            'grandparent_id',
+                            'user_id',
                             {
                                 $select: ['id'],
-                                $from: 'grandparents',
+                                $from: 'users',
                                 $where: { $in: ['id', [1, 2]] },
                             },
                         ],
                     },
                     {
                         $in: [
-                            'parent_id',
+                            'post_id',
                             {
                                 $select: ['id'],
-                                $from: 'parents',
+                                $from: 'posts',
                                 $where: {
                                     $in: [
-                                        'grandparent_id',
+                                        'user_id',
                                         {
                                             $select: ['id'],
-                                            $from: 'grandparents',
+                                            $from: 'users',
                                             $where: { $in: ['id', [1, 2]] },
                                         },
                                     ],
@@ -739,24 +663,24 @@ describe('where_connected_macro.ts', () => {
             const query = {
                 $where_connected: [
                     {
-                        $entity: 'grandparents',
+                        $entity: 'users',
                         $field: 'id',
                         $values: [1, 2],
                     },
                 ],
-                children: {
+                posts: {
                     id: true,
                 },
             }
 
-            apply_where_connected_macro(schema, query, {})
+            apply_where_connected_macro(global_test_schema, query, {})
 
             // @ts-ignore
-            expect(query.children.$where).to.equal(undefined)
+            expect(query.posts.$where).to.equal(undefined)
         })
         test('handles no $where_connected', () => {
             const query = {}
-            apply_where_connected_macro(schema, query, {})
+            apply_where_connected_macro(global_test_schema, query, {})
             expect(query).to.deep.equal({})
         })
     })
@@ -764,7 +688,7 @@ describe('where_connected_macro.ts', () => {
         test('defaults to the restriction', () => {
             const query = {}
             const restrictions = [
-                { $entity: 'parents', $field: 'id', $values: [1, 2] },
+                { $entity: 'posts', $field: 'id', $values: [1, 2] },
             ]
             const errors = restrict_where_connected(query, restrictions)
 
@@ -775,11 +699,11 @@ describe('where_connected_macro.ts', () => {
         test('generates an error if values are not in the restriction', () => {
             const query = {
                 $where_connected: [
-                    { $entity: 'parents', $field: 'id', $values: [1, 3] },
+                    { $entity: 'posts', $field: 'id', $values: [1, 3] },
                 ],
             }
             const restrictions = [
-                { $entity: 'parents', $field: 'id', $values: [1, 2] },
+                { $entity: 'posts', $field: 'id', $values: [1, 2] },
             ]
             const input_query = clone(query)
             const errors = restrict_where_connected(input_query, restrictions)
@@ -792,19 +716,19 @@ describe('where_connected_macro.ts', () => {
                 $where_connected: [
                     {
                         // this one is ignored since the $field is different to the restriction
-                        $entity: 'parents',
-                        $field: 'grandparent_id',
+                        $entity: 'posts',
+                        $field: 'user_id',
                         $values: [5],
                     },
                     {
-                        $entity: 'parents',
+                        $entity: 'posts',
                         $field: 'id',
                         $values: [1],
                     },
                 ],
             }
             const restrictions = [
-                { $entity: 'parents', $field: 'id', $values: [1, 2] },
+                { $entity: 'posts', $field: 'id', $values: [1, 2] },
             ]
             const input_query = clone(query)
             const errors = restrict_where_connected(input_query, restrictions)

@@ -1,117 +1,27 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../../introspector/introspector'
+import { global_test_schema } from '../../../helpers/tests/global_test_schema'
 import {
     get_mutation_plan,
-    MutationBatch,
-    MutationPiece,
     MutationPlan,
     run_mutation_plan,
 } from '../mutation_plan'
 
 describe('mutation_plan.ts', () => {
-    const orma_schema: OrmaSchema = {
-        $entities: {
-            grandparents: {
-                $fields: { id: { primary_key: true }, quantity: {} },
-                $database_type: 'mysql',
-            },
-            parents: {
-                $fields: {
-                    id: { primary_key: true },
-                    unique1: {},
-                    unique2: {},
-                    quantity: {},
-                    grandparent_id: {},
-                },
-                $database_type: 'mysql',
-                $indexes: [
-                    { index_name: 'primary', fields: ['id'], is_unique: true },
-                    {
-                        index_name: 'unique1',
-                        fields: ['unique1'],
-                        is_unique: true,
-                    },
-                    {
-                        index_name: 'unique2',
-                        fields: ['unique2'],
-                        is_unique: true,
-                    },
-                ],
-                $foreign_keys: [
-                    {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            children: {
-                $fields: {
-                    id1: { primary_key: true },
-                    id2: { primary_key: true },
-                    parent_id: {},
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            step_children: {
-                $fields: { id: { primary_key: true }, parent_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                grandparents: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'parents',
-                        to_field: 'grandparent_id',
-                    },
-                ],
-                parents: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'children',
-                        to_field: 'parent_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'step_children',
-                        to_field: 'parent_id',
-                    },
-                ],
-            },
-        },
-    }
-
     describe(get_mutation_plan.name, () => {
         test('handles simple mutation', () => {
             const mutation = {
-                parents: [
+                users: [
                     {
                         id: { $guid: 1 },
                         $operation: 'create',
-                        children: [
+                        posts: [
                             {
-                                parent_id: { $guid: 1 },
+                                user_id: { $guid: 1 },
                                 $operation: 'create',
                             },
                             {
-                                parent_id: { $guid: 1 },
+                                user_id: { $guid: 1 },
                                 $operation: 'create',
                             },
                         ],
@@ -119,18 +29,18 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
-                    { record: mutation.parents[0], path: ['parents', 0] },
+                    { record: mutation.users[0], path: ['users', 0] },
                     {
-                        record: mutation.parents[0].children[0],
-                        path: ['parents', 0, 'children', 0],
+                        record: mutation.users[0].posts[0],
+                        path: ['users', 0, 'posts', 0],
                     },
                     {
-                        record: mutation.parents[0].children[1],
-                        path: ['parents', 0, 'children', 1],
+                        record: mutation.users[0].posts[1],
+                        path: ['users', 0, 'posts', 1],
                     },
                 ],
                 mutation_batches: [
@@ -143,38 +53,38 @@ describe('mutation_plan.ts', () => {
         })
         test('handles foreign keys that are provided by the user', () => {
             const mutation = {
-                parents: [
+                users: [
                     {
                         $operation: 'create',
                         id: 2,
-                        children: [
+                        posts: [
                             {
-                                parent_id: 2,
+                                user_id: 2,
                                 $operation: 'create',
                             },
                         ],
                     },
                 ],
-                children: [
+                posts: [
                     {
                         $operation: 'create',
-                        parent_id: 2,
+                        user_id: 2,
                     },
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
-                    { record: mutation.parents[0], path: ['parents', 0] },
+                    { record: mutation.users[0], path: ['users', 0] },
                     {
-                        record: mutation.parents[0].children[0],
-                        path: ['parents', 0, 'children', 0],
+                        record: mutation.users[0].posts[0],
+                        path: ['users', 0, 'posts', 0],
                     },
                     {
-                        record: mutation.children[0],
-                        path: ['children', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                 ],
                 mutation_batches: [
@@ -187,7 +97,7 @@ describe('mutation_plan.ts', () => {
         })
         // test('respects operation precedence', () => {
         //     const mutation = {
-        //         parents: [
+        //         users: [
         //             {
         //                 $operation: 'delete',
         //             },
@@ -200,24 +110,24 @@ describe('mutation_plan.ts', () => {
         //         ],
         //     }
 
-        //     const mutate_plan = get_mutate_plan(mutation, orma_schema)
+        //     const mutate_plan = get_mutate_plan(mutation, global_test_schema)
 
         //     const goal = [
         //         [
         //             {
         //                 operation: 'delete',
-        //                 paths: [['parents', 0]],
-        //                 route: ['parents'],
+        //                 paths: [['users', 0]],
+        //                 route: ['users'],
         //             },
         //             {
         //                 operation: 'update',
-        //                 paths: [['parents', 1]],
-        //                 route: ['parents'],
+        //                 paths: [['users', 1]],
+        //                 route: ['users'],
         //             },
         //             {
         //                 operation: 'create',
-        //                 paths: [['parents', 2]],
-        //                 route: ['parents'],
+        //                 paths: [['users', 2]],
+        //                 route: ['users'],
         //             },
         //         ],
         //     ]
@@ -226,29 +136,29 @@ describe('mutation_plan.ts', () => {
         // })
         test('respects topological ordering for updated foreign keys', () => {
             const mutation = {
-                parents: [
+                users: [
                     {
                         id: 2,
                         $operation: 'create',
                     },
                 ],
-                children: [
+                posts: [
                     {
                         id: 1,
-                        parent_id: 2,
+                        user_id: 2,
                         $operation: 'update',
                     },
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
-                    { record: mutation.parents[0], path: ['parents', 0] },
+                    { record: mutation.users[0], path: ['users', 0] },
                     {
-                        record: mutation.children[0],
-                        path: ['children', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                 ],
                 mutation_batches: [
@@ -261,7 +171,7 @@ describe('mutation_plan.ts', () => {
         })
         test('does regular updates simultaneously', () => {
             const mutation = {
-                parents: [
+                users: [
                     {
                         id: 2,
                         $operation: 'update',
@@ -271,7 +181,7 @@ describe('mutation_plan.ts', () => {
                         $operation: 'update',
                     },
                 ],
-                children: [
+                posts: [
                     {
                         id: 2,
                         $operation: 'update',
@@ -279,16 +189,16 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             // update order is not guaranteed
             const goal = {
                 mutation_pieces: [
-                    { record: mutation.parents[0], path: ['parents', 0] },
-                    { record: mutation.parents[1], path: ['parents', 1] },
+                    { record: mutation.users[0], path: ['users', 0] },
+                    { record: mutation.users[1], path: ['users', 1] },
                     {
-                        record: mutation.children[0],
-                        path: ['children', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                 ],
                 mutation_batches: [{ start_index: 0, end_index: 3 }],
@@ -298,13 +208,13 @@ describe('mutation_plan.ts', () => {
         })
         test('respects existing $guids', () => {
             const mutation = {
-                parents: [
+                users: [
                     {
                         id: { $guid: 2 },
                         $operation: 'create',
-                        children: [
+                        posts: [
                             {
-                                parent_id: { $guid: 2 },
+                                user_id: { $guid: 2 },
                                 $operation: 'create',
                             },
                         ],
@@ -312,14 +222,14 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
-                    { record: mutation.parents[0], path: ['parents', 0] },
+                    { record: mutation.users[0], path: ['users', 0] },
                     {
-                        record: mutation.parents[0].children[0],
-                        path: ['parents', 0, 'children', 0],
+                        record: mutation.users[0].posts[0],
+                        path: ['users', 0, 'posts', 0],
                     },
                 ],
                 mutation_batches: [
@@ -332,13 +242,13 @@ describe('mutation_plan.ts', () => {
         })
         test('respects topological ordering for delete', () => {
             const mutation = {
-                parents: [
+                users: [
                     {
                         id: { $guid: 1 },
                         $operation: 'delete',
-                        children: [
+                        posts: [
                             {
-                                parent_id: { $guid: 1 },
+                                user_id: { $guid: 1 },
                                 $operation: 'delete',
                             },
                         ],
@@ -346,15 +256,15 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
                     {
-                        record: mutation.parents[0].children[0],
-                        path: ['parents', 0, 'children', 0],
+                        record: mutation.users[0].posts[0],
+                        path: ['users', 0, 'posts', 0],
                     },
-                    { record: mutation.parents[0], path: ['parents', 0] },
+                    { record: mutation.users[0], path: ['users', 0] },
                 ],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
@@ -366,18 +276,18 @@ describe('mutation_plan.ts', () => {
         })
         test('handles mixed operation requests', () => {
             const mutation = {
-                grandparents: [
+                users: [
                     {
                         id: 1,
                         $operation: 'update',
-                        parents: [
+                        posts: [
                             {
                                 id: 2,
                                 $operation: 'delete',
-                                children: [
+                                comments: [
                                     {
                                         id: 3,
-                                        parent_id: 2,
+                                        post_id: 2,
                                         $operation: 'delete',
                                     },
                                 ],
@@ -387,9 +297,9 @@ describe('mutation_plan.ts', () => {
                     {
                         id: { $guid: 1 },
                         $operation: 'create',
-                        parents: [
+                        posts: [
                             {
-                                grandparent_id: { $guid: 1 },
+                                user_id: { $guid: 1 },
                                 $operation: 'create',
                             },
                         ],
@@ -397,29 +307,29 @@ describe('mutation_plan.ts', () => {
                 ],
             } as const
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
                     {
-                        record: mutation.grandparents[0],
-                        path: ['grandparents', 0],
+                        record: mutation.users[0],
+                        path: ['users', 0],
                     },
                     {
-                        record: mutation.grandparents[0].parents[0].children[0],
-                        path: ['grandparents', 0, 'parents', 0, 'children', 0],
+                        record: mutation.users[0].posts[0].comments[0],
+                        path: ['users', 0, 'posts', 0, 'comments', 0],
                     },
                     {
-                        record: mutation.grandparents[1],
-                        path: ['grandparents', 1],
+                        record: mutation.users[1],
+                        path: ['users', 1],
                     },
                     {
-                        record: mutation.grandparents[0].parents[0],
-                        path: ['grandparents', 0, 'parents', 0],
+                        record: mutation.users[0].posts[0],
+                        path: ['users', 0, 'posts', 0],
                     },
                     {
-                        record: mutation.grandparents[1].parents[0],
-                        path: ['grandparents', 1, 'parents', 0],
+                        record: mutation.users[1].posts[0],
+                        path: ['users', 1, 'posts', 0],
                     },
                 ],
                 mutation_batches: [
@@ -430,22 +340,22 @@ describe('mutation_plan.ts', () => {
 
             expect(mutate_plan).to.deep.equal(goal)
         })
-        test('handles entity with no children', () => {
+        test('handles entity with no posts', () => {
             const mutation = {
-                parents: [
+                users: [
                     {
                         $operation: 'update',
                     },
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
                     {
-                        record: mutation.parents[0],
-                        path: ['parents', 0],
+                        record: mutation.users[0],
+                        path: ['users', 0],
                     },
                 ],
                 mutation_batches: [{ start_index: 0, end_index: 1 }],
@@ -455,11 +365,11 @@ describe('mutation_plan.ts', () => {
         })
         test('handles reverse nesting', () => {
             const mutation = {
-                children: [
+                posts: [
                     {
-                        parent_id: { $guid: 1 },
+                        user_id: { $guid: 1 },
                         $operation: 'create',
-                        parents: [
+                        users: [
                             {
                                 id: { $guid: 1 },
                                 $operation: 'create',
@@ -469,17 +379,17 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
                     {
-                        record: mutation.children[0].parents[0],
-                        path: ['children', 0, 'parents', 0],
+                        record: mutation.posts[0].users[0],
+                        path: ['posts', 0, 'users', 0],
                     },
                     {
-                        record: mutation.children[0],
-                        path: ['children', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                 ],
                 mutation_batches: [
@@ -492,17 +402,17 @@ describe('mutation_plan.ts', () => {
         })
         test('handles zigzag nesting', () => {
             const mutation = {
-                children: [
+                posts: [
                     {
-                        parent_id: { $guid: 1 },
+                        user_id: { $guid: 1 },
                         $operation: 'create',
-                        parents: [
+                        users: [
                             {
                                 id: { $guid: 1 },
                                 $operation: 'create',
-                                children: [
+                                posts: [
                                     {
-                                        parent_id: { $guid: 1 },
+                                        user_id: { $guid: 1 },
                                         $operation: 'create',
                                     },
                                 ],
@@ -512,21 +422,21 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
                     {
-                        record: mutation.children[0].parents[0],
-                        path: ['children', 0, 'parents', 0],
+                        record: mutation.posts[0].users[0],
+                        path: ['posts', 0, 'users', 0],
                     },
                     {
-                        record: mutation.children[0],
-                        path: ['children', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                     {
-                        record: mutation.children[0].parents[0].children[0],
-                        path: ['children', 0, 'parents', 0, 'children', 0],
+                        record: mutation.posts[0].users[0].posts[0],
+                        path: ['posts', 0, 'users', 0, 'posts', 0],
                     },
                 ],
                 mutation_batches: [
@@ -539,12 +449,12 @@ describe('mutation_plan.ts', () => {
         })
         test('set a child foreign key while creating the parent', () => {
             const mutation = {
-                children: [
+                posts: [
                     {
                         $operation: 'update',
                         id: 1,
-                        parent_id: { $guid: 1 },
-                        parents: [
+                        user_id: { $guid: 1 },
+                        users: [
                             {
                                 id: { $guid: 1 },
                                 $operation: 'create',
@@ -554,17 +464,17 @@ describe('mutation_plan.ts', () => {
                 ],
             }
 
-            const mutate_plan = get_mutation_plan(mutation, orma_schema)
+            const mutate_plan = get_mutation_plan(mutation, global_test_schema)
 
             const goal = {
                 mutation_pieces: [
                     {
-                        record: mutation.children[0].parents[0],
-                        path: ['children', 0, 'parents', 0],
+                        record: mutation.posts[0].users[0],
+                        path: ['posts', 0, 'users', 0],
                     },
                     {
-                        record:  mutation.children[0],
-                        path: ['children', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                 ],
                 mutation_batches: [
@@ -585,21 +495,21 @@ describe('mutation_plan.ts', () => {
                             $operation: 'create',
                             id: 1,
                         },
-                        path: ['parents', 0],
+                        path: ['users', 0],
                     },
                     {
                         record: {
                             $operation: 'create',
                             id: 2,
                         },
-                        path: ['parents', 1],
+                        path: ['users', 1],
                     },
                     {
                         record: {
                             $operation: 'create',
                             id: 3,
                         },
-                        path: ['parents', 2],
+                        path: ['users', 2],
                     },
                 ],
                 mutation_batches: [

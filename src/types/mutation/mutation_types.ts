@@ -1,17 +1,17 @@
-import { OrmaSchema } from '../../introspector/introspector'
-import { XOR } from '../helper_types'
+import { GlobalTestSchema } from '../../helpers/tests/global_test_schema'
 import {
-    FieldSchemaPropEq,
-    FilterFieldsBySchemaProp,
+    DeepReadonly,
+    GetAllEdges,
     GetAllEntities,
+    GetFieldNotNull,
     GetFields,
     GetFieldType,
-    GetParentEdges,
-} from '../schema_types'
+} from '../schema/schema_helper_types'
+import { OrmaSchema } from '../schema/schema_types'
 
 export type OrmaMutation<Schema extends OrmaSchema> =
     | {
-          [Entity in GetAllEntities<Schema>]?: MutationRecord<
+          readonly [Entity in GetAllEntities<Schema>]?: readonly MutationRecord<
               Schema,
               Entity,
               // we only need to do this on the top level, since after the highest entity everything will have an operation,
@@ -20,13 +20,13 @@ export type OrmaMutation<Schema extends OrmaSchema> =
           >[]
       }
     | ({
-          [Entity in GetAllEntities<Schema>]?: MutationRecord<
+          readonly [Entity in GetAllEntities<Schema>]?: readonly MutationRecord<
               Schema,
               Entity,
               false
           >[]
       } & {
-          $operation: Operation
+          readonly $operation?: Operation
       })
 
 type MutationRecord<
@@ -35,20 +35,15 @@ type MutationRecord<
     RequireOperation extends boolean
 > = FieldsObj<Schema, Entity> &
     OperationObj<RequireOperation> &
-    ForeignKeyFieldsObj<
-        Schema,
-        Entity,
-        GetParentEdges<Schema, Entity>,
-        RequireOperation
-    >
+    ForeignKeyFieldsObj<Schema, Entity, GetAllEdges<Schema, Entity>>
 
 type OperationObj<RequireOperation extends boolean> =
     RequireOperation extends true
         ? {
-              $operation: Operation
+              readonly $operation: Operation
           }
         : {
-              $operation?: Operation
+              readonly $operation?: Operation
           }
 
 type Operation = 'create' | 'update' | 'delete'
@@ -57,54 +52,41 @@ type FieldsObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    // baseline for regular props
-    [Field in GetFields<Schema, Entity>]?: FieldType<Schema, Entity, Field>
-} & {
-    // required props have to be given
-    [Field in FilterFieldsBySchemaProp<
-        Schema,
-        Entity,
-        'nullable',
-        // TODO: check if this works after switching from 'required' to 'nullable', since its a filter not eq
-        false | undefined
-    >]: FieldType<Schema, Entity, Field>
+    readonly // baseline for regular props
+    [Field in GetFields<Schema, Entity>]?:
+        | FieldType<Schema, Entity, Field>
+        // primary or foreign keys can have guids
+        | (Field extends GetAllEdges<Schema, Entity>['from_field']
+              ? { $guid: string | number }
+              : never)
 }
 
-type ForeignKeyFieldsObj<
+// & {
+//     // required props have to be given
+//     [Field in GetFieldsByRequired<Schema, Entity, true>]: FieldType<
+//         Schema,
+//         Entity,
+//         Field
+//     >
+// }
+
+export type ForeignKeyFieldsObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
-    ParentEdges extends GetParentEdges<Schema, Entity>,
-    RequireOperation extends boolean
-> = ParentEdges extends GetParentEdges<Schema, Entity>
-    ? XOR<
-          {
-              [Field in ParentEdges['from_field']]: FieldType<
-                  Schema,
-                  Entity,
-                  Field
-              >
-          },
-          {
-              [Field in ParentEdges['to_entity']]: MutationRecord<
+    AllEdges extends GetAllEdges<Schema, Entity>
+> =
+    // handles the case where there are no edges and AllEdges is 'never'
+    AllEdges extends never
+        ? {}
+        : AllEdges extends GetAllEdges<Schema, Entity>
+        ? {
+              readonly [Field in AllEdges['to_entity']]?: readonly MutationRecord<
                   Schema,
                   Field,
                   false
               >[]
           }
-      >
-    : never
-
-// type ForeignKeyFieldsObj<
-//     Schema extends OrmaSchema,
-//     Entity extends GetAllEntities<Schema>,
-//     ParentEdges extends GetParentEdges<Schema, Entity>
-// > = UnionToIntersection<
-//     ParentEdges extends GetParentEdges<Schema, Entity>
-//         ? {
-//               [Field in ParentEdges['to_entity']]: 1
-//           }
-//         : never
-// >
+        : never
 
 export type FieldType<
     Schema extends OrmaSchema,
@@ -119,6 +101,6 @@ type NullableField<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     Field extends GetFields<Schema, Entity>
-> = FieldSchemaPropEq<Schema, Entity, Field, 'required', true> extends true
-    ? never
-    : null | undefined
+> = GetFieldNotNull<Schema, Entity, Field> extends true ? never : null //| undefined
+
+type T = FieldType<GlobalTestSchema, 'post_has_categories', 'main_category'>

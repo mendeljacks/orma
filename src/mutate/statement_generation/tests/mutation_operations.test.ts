@@ -1,6 +1,9 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../../introspector/introspector'
+import {
+    GlobalTestMutation,
+    global_test_schema,
+} from '../../../helpers/tests/global_test_schema'
 import { MutationPiece } from '../../plan/mutation_plan'
 import {
     get_create_ast,
@@ -9,116 +12,26 @@ import {
 } from '../mutation_operations'
 
 describe('mutation_operations.ts', () => {
-    const orma_schema: OrmaSchema = {
-        $entities: {
-            grandparents: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    quantity: {},
-                },
-                $database_type: 'mysql',
-            },
-            parents: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    unique1: { not_null: true },
-                    unique2: { not_null: true },
-                    quantity: {},
-                    grandparent_id: {},
-                },
-                $database_type: 'mysql',
-                $indexes: [
-                    { index_name: 'primary', fields: ['id'], is_unique: true },
-                    {
-                        index_name: 'unique1',
-                        fields: ['unique1'],
-                        is_unique: true,
-                    },
-                    {
-                        index_name: 'unique2',
-                        fields: ['unique2'],
-                        is_unique: true,
-                    },
-                ],
-                $foreign_keys: [
-                    {
-                        from_field: 'grandparent_id',
-                        to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            children: {
-                $fields: {
-                    id1: { primary_key: true, not_null: true },
-                    id2: { primary_key: true, not_null: true },
-                    parent_id: {},
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            step_children: {
-                $fields: {
-                    id: { primary_key: true, not_null: true },
-                    parent_id: {},
-                },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'parent_id',
-                        to_entity: 'parents',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                grandparents: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'parents',
-                        to_field: 'grandparent_id',
-                    },
-                ],
-                parents: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'children',
-                        to_field: 'parent_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'step_children',
-                        to_field: 'parent_id',
-                    },
-                ],
-            },
-        },
-    }
-
     describe(get_update_ast.name, () => {
         test('update by id', () => {
             const mutation_piece: MutationPiece = {
                 record: {
                     $operation: 'update',
                     id: 1,
-                    quantity: 2,
+                    views: 2,
                 },
-                path: ['grandparents', 0],
+                path: ['posts', 0],
             }
 
-            const result = get_update_ast(mutation_piece, {}, orma_schema)
+            const result = get_update_ast(
+                mutation_piece,
+                {},
+                global_test_schema
+            )
 
             const goal = {
-                $update: 'grandparents',
-                $set: [['quantity', 2]],
+                $update: 'posts',
+                $set: [['views', 2]],
                 $where: { $eq: ['id', 1] },
             }
 
@@ -126,27 +39,27 @@ describe('mutation_operations.ts', () => {
         })
         test('primary key has precedence over unique', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'update',
                         id: 1,
-                        unique1: 'john',
+                        title: 'john',
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const result = get_update_ast(
                 {
-                    record: mutation.parents[0],
-                    path: ['parents', 0],
+                    record: mutation.posts[0],
+                    path: ['posts', 0],
                 },
                 {},
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                $update: 'parents',
-                $set: [['unique1', "'john'"]],
+                $update: 'posts',
+                $set: [['title', "'john'"]],
                 $where: { $eq: ['id', 1] },
             }
 
@@ -154,50 +67,50 @@ describe('mutation_operations.ts', () => {
         })
         test('update by unique field', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'update',
-                        unique1: 'john',
-                        quantity: 5,
+                        title: 'john',
+                        views: 5,
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const result = get_update_ast(
                 {
-                    record: mutation.parents[0],
-                    path: ['parents', 0],
+                    record: mutation.posts[0],
+                    path: ['posts', 0],
                 },
                 {},
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                $update: 'parents',
-                $set: [['quantity', 5]],
-                $where: { $eq: ['unique1', "'john'"] },
+                $update: 'posts',
+                $set: [['views', 5]],
+                $where: { $eq: ['title', "'john'"] },
             }
 
             expect(result).to.deep.equal(goal)
         })
         test('throws on no identifying key', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'update',
-                        quantity: 5, // quantity is not unique, so it can't be used to update with
+                        views: 5, // views is not unique, so it can't be used to update with
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             try {
                 const result = get_update_ast(
                     {
-                        record: mutation.parents[0],
-                        path: ['parents', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                     {},
-                    orma_schema
+                    global_test_schema
                 )
                 expect('should have thrown an error').to.equal(true)
             } catch (error) {
@@ -206,59 +119,61 @@ describe('mutation_operations.ts', () => {
         })
         test('throws on multiple unique update keys', () => {
             const mutation = {
-                parents: [
+                users: [
                     {
                         $operation: 'update',
-                        unique1: 'test',
-                        unique2: 'testing',
-                        quantity: 5,
+                        // having two unique keys like this is ambiguous and throws an error
+                        email: 'a@a.com',
+                        first_name: 'john',
+                        last_name: 'smith',
+                        billing_address_id: 1,
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             try {
                 const result = get_update_ast(
                     {
-                        record: mutation.parents[0],
-                        path: ['parents', 0],
+                        record: mutation.users[0],
+                        path: ['users', 0],
                     },
                     {},
-                    orma_schema
+                    global_test_schema
                 )
                 expect('should have thrown an error').to.equal(true)
             } catch (error) {}
         })
         test('handles compound primary key', () => {
             const mutation = {
-                children: [
+                post_has_categories: [
                     {
                         $operation: 'update',
-                        id1: 4,
-                        id2: 5,
-                        parent_id: 6,
+                        post_id: 1,
+                        category_id: 2,
+                        main_category: 1,
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const result = get_update_ast(
                 {
-                    record: mutation.children[0],
-                    path: ['children', 0],
+                    record: mutation.post_has_categories[0],
+                    path: ['post_has_categories', 0],
                 },
                 {},
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                $update: 'children',
-                $set: [['parent_id', 6]],
+                $update: 'post_has_categories',
+                $set: [['main_category', 1]],
                 $where: {
                     $and: [
                         {
-                            $eq: ['id1', 4],
+                            $eq: ['post_id', 1],
                         },
                         {
-                            $eq: ['id2', 5],
+                            $eq: ['category_id', 2],
                         },
                     ],
                 },
@@ -268,14 +183,14 @@ describe('mutation_operations.ts', () => {
         })
         test('handles guid resolving for updates', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'update',
                         id: 1,
-                        grandparent_id: { $guid: 'a' },
+                        user_id: { $guid: 'a' },
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const values_by_guid = {
                 a: 12,
@@ -283,16 +198,16 @@ describe('mutation_operations.ts', () => {
 
             const result = get_update_ast(
                 {
-                    record: mutation.parents[0],
-                    path: ['parents', 0],
+                    record: mutation.posts[0],
+                    path: ['posts', 0],
                 },
                 values_by_guid,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                $update: 'parents',
-                $set: [['grandparent_id', 12]],
+                $update: 'posts',
+                $set: [['user_id', 12]],
                 $where: { $eq: ['id', 1] },
             }
 
@@ -300,23 +215,23 @@ describe('mutation_operations.ts', () => {
         })
         test('handles empty update', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'update',
                         id: 1,
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const values_by_guid = {}
 
             const result = get_update_ast(
                 {
-                    record: mutation.parents[0],
-                    path: ['parents', 0],
+                    record: mutation.posts[0],
+                    path: ['posts', 0],
                 },
                 values_by_guid,
-                orma_schema
+                global_test_schema
             )
 
             const goal = undefined
@@ -325,17 +240,17 @@ describe('mutation_operations.ts', () => {
         })
         test('doesnt allow $guid on a chosen identifying key', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'update',
                         // id would usually be chose to identify this row to update, but instead unique1 is chosen
                         // since id is a $guid
                         id: { $guid: 'a' },
-                        unique1: 1,
-                        quantity: 2,
+                        title: 'test',
+                        views: 2,
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const values_by_guid = {
                 a: 12,
@@ -344,11 +259,11 @@ describe('mutation_operations.ts', () => {
             try {
                 const result = get_update_ast(
                     {
-                        record: mutation.parents[0],
-                        path: ['parents', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                     values_by_guid,
-                    orma_schema
+                    global_test_schema
                 )
                 expect('should have been an error').to.equal(true)
             } catch (error) {}
@@ -359,7 +274,7 @@ describe('mutation_operations.ts', () => {
         // the tests that we already did with the update function
         test('batches deletes', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'delete',
                         id: 4,
@@ -369,26 +284,26 @@ describe('mutation_operations.ts', () => {
                         id: 5,
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const result = get_delete_ast(
                 [
                     {
-                        record: mutation.parents[0],
-                        path: ['parents', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                     {
-                        record: mutation.parents[1],
-                        path: ['parents', 1],
+                        record: mutation.posts[1],
+                        path: ['posts', 1],
                     },
                 ],
-                'parents',
+                'posts',
                 {},
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                $delete_from: 'parents',
+                $delete_from: 'posts',
                 $where: { $or: [{ $eq: ['id', 4] }, { $eq: ['id', 5] }] },
             }
 
@@ -398,19 +313,19 @@ describe('mutation_operations.ts', () => {
     describe(get_create_ast.name, () => {
         test('batches creates', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'create',
                         id: 1,
-                        quantity: 11,
+                        user_id: 11,
                     },
                     {
                         $operation: 'create',
-                        quantity: 22,
+                        user_id: 22,
                         id: 2,
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const values_by_guid = {
                 a: 12,
@@ -419,21 +334,21 @@ describe('mutation_operations.ts', () => {
             const result = get_create_ast(
                 [
                     {
-                        record: mutation.parents[0],
-                        path: ['parents', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                     {
-                        record: mutation.parents[1],
-                        path: ['parents', 1],
+                        record: mutation.posts[1],
+                        path: ['posts', 1],
                     },
                 ],
-                'parents',
+                'posts',
                 values_by_guid,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                $insert_into: ['parents', ['id', 'quantity']],
+                $insert_into: ['posts', ['id', 'user_id']],
                 $values: [
                     [1, 11],
                     [2, 22],
@@ -444,12 +359,12 @@ describe('mutation_operations.ts', () => {
         })
         test('handles creating empty record', () => {
             const mutation = {
-                parents: [
+                posts: [
                     {
                         $operation: 'create',
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const values_by_guid = {
                 a: 12,
@@ -458,17 +373,17 @@ describe('mutation_operations.ts', () => {
             const result = get_create_ast(
                 [
                     {
-                        record: mutation.parents[0],
-                        path: ['parents', 0],
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
                     },
                 ],
-                'parents',
+                'posts',
                 values_by_guid,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                $insert_into: ['parents', []],
+                $insert_into: ['posts', []],
                 $values: [[]],
             }
 
@@ -476,13 +391,13 @@ describe('mutation_operations.ts', () => {
         })
         test('handles guid resolving for creates', () => {
             const mutation = {
-                parents: [
+                addresses: [
                     {
                         $operation: 'create',
                         id: { $guid: 'a' },
                     },
                 ],
-            } as const
+            } as const satisfies GlobalTestMutation
 
             const values_by_guid = {
                 a: 12,
@@ -491,18 +406,68 @@ describe('mutation_operations.ts', () => {
             const result = get_create_ast(
                 [
                     {
-                        record: mutation.parents[0],
-                        path: ['parents', 0],
+                        record: mutation.addresses[0],
+                        path: ['addresses', 0],
                     },
                 ],
-                'parents',
+                'addresses',
                 values_by_guid,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                $insert_into: ['parents', ['id']],
+                $insert_into: ['addresses', ['id']],
                 $values: [[12]],
+            }
+
+            expect(result).to.deep.equal(goal)
+        })
+        test('handles adding default values', () => {
+            // in this test, views 0 added since it is the default. SQLite doesn't have a way to say
+            // 'use the default value', so orma just puts it in manually. Note that this
+            // doesn't work for auto increment, since orma doesn't know what the next
+            // auto increment number is.
+
+            const mutation = {
+                posts: [
+                    {
+                        $operation: 'create',
+                        title: 'title 1',
+                        user_id: 1,
+                        views: 1,
+                    },
+                    {
+                        $operation: 'create',
+                        title: 'title 2',
+                        user_id: 1,
+                    },
+                ],
+            } as const satisfies GlobalTestMutation
+
+            const values_by_guid = {}
+
+            const result = get_create_ast(
+                [
+                    {
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
+                    },
+                    {
+                        record: mutation.posts[1],
+                        path: ['posts', 1],
+                    },
+                ],
+                'posts',
+                values_by_guid,
+                global_test_schema
+            )
+
+            const goal = {
+                $insert_into: ['posts', ['title', 'user_id', 'views']],
+                $values: [
+                    ["'title 1'", 1, 1],
+                    ["'title 2'", 1, 0],
+                ],
             }
 
             expect(result).to.deep.equal(goal)

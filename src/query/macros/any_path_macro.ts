@@ -4,7 +4,7 @@ import {
     get_edge_path,
     get_field_is_nullable,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_real_entity_name } from '../query'
 
 /**

@@ -1,4 +1,4 @@
-import { OrmaSchema } from '../introspector/introspector'
+import { OrmaSchema } from '../types/schema/schema_types'
 import {
     replace_guids_with_values,
     save_guids,

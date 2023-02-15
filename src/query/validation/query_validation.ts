@@ -8,7 +8,7 @@ import {
     is_parent_entity,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { Path } from '../../types'
 import { OrmaQuery, WhereConnected } from '../../types/query/query_types'
 import { sql_function_definitions } from '../json_sql'

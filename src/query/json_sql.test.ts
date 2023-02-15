@@ -1,10 +1,13 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
-import { AlterStatement, CreateStatement } from '../types/schema/schema_types'
+import {
+    AlterStatement,
+    CreateStatement,
+} from '../types/schema/schema_ast_types'
 import { json_to_sql } from './json_sql'
 
-describe('query', () => {
+describe('json_sql.ts', () => {
     describe('json_to_sql', () => {
         test('joins commands', () => {
             const json = {
@@ -197,7 +200,7 @@ describe('query', () => {
                 $definitions: [
                     {
                         $name: 'id',
-                        $data_type: ['int'],
+                        $data_type: 'int',
                         $not_null: true,
                         $auto_increment: true,
                     },
@@ -210,8 +213,8 @@ describe('query', () => {
 
             const goal = format(`
                 CREATE TEMPORARY TABLE IF NOT EXISTS my_table (
-                    id INT NOT NULL AUTO INCREMENT,
-                    CONSTRAINT PRIMARY KEY (id)
+                    id INT NOT NULL AUTO_INCREMENT,
+                    PRIMARY KEY (id)
                 ) COMMENT "my table"`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -223,7 +226,7 @@ describe('query', () => {
                     {
                         $alter_operation: 'add',
                         $name: 'id',
-                        $data_type: ['int'],
+                        $data_type: 'int',
                     },
                     {
                         $alter_operation: 'drop',
@@ -233,7 +236,9 @@ describe('query', () => {
                         $alter_operation: 'modify',
                         $old_name: 'id',
                         $name: 'my_id',
-                        $data_type: ['decimal', 6, 2],
+                        $data_type: 'decimal',
+                        $precision: 6,
+                        $scale: 2,
                     },
                 ],
             }
@@ -253,7 +258,7 @@ describe('query', () => {
                 $definitions: [
                     {
                         $name: 'id',
-                        $data_type: ['int'],
+                        $data_type: 'int',
                         $not_null: true,
                         $auto_increment: true,
                     },
@@ -262,10 +267,67 @@ describe('query', () => {
 
             const goal = format(`
                 CREATE TABLE my_table (
-                    id INT NOT NULL AUTO INCREMENT
+                    id INT NOT NULL AUTO_INCREMENT
                 )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles enums', () => {
+            const json: CreateStatement = {
+                $create_table: 'my_table',
+                $definitions: [
+                    {
+                        $name: 'id',
+                        $data_type: 'enum',
+                        $enum_values: ['A', 'b'],
+                    },
+                ],
+            }
+
+            const goal = format(`
+                CREATE TABLE my_table (
+                    id ENUM("A", "b")
+                )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles enums for sqlite', () => {
+            const json: CreateStatement = {
+                $create_table: 'my_table',
+                $definitions: [
+                    {
+                        $name: 'id',
+                        $data_type: 'enum',
+                        $enum_values: ['A', 'b'],
+                    },
+                ],
+            }
+
+            const goal = format(`
+                CREATE TABLE my_table (
+                    id TEXT CHECK(id IN ("A", "b"))
+                )`)
+
+            expect(format(json_to_sql(json, 'sqlite'))).to.equal(goal)
+        })
+        test('handles unsigned for sqlite', () => {
+            const json: CreateStatement = {
+                $create_table: 'my_table',
+                $definitions: [
+                    {
+                        $name: 'id',
+                        $data_type: 'int',
+                        $unsigned: true,
+                    },
+                ],
+            }
+
+            const goal = format(`
+                CREATE TABLE my_table (
+                    id UNSIGNED INT
+                )`)
+
+            expect(format(json_to_sql(json, 'sqlite'))).to.equal(goal)
         })
         test('handles default', () => {
             const json: CreateStatement = {
@@ -273,12 +335,14 @@ describe('query', () => {
                 $definitions: [
                     {
                         $name: 'label1',
-                        $data_type: ['varchar', 2],
+                        $data_type: 'varchar',
+                        $precision: 2,
                         $default: '"N/A"',
                     },
                     {
                         $name: 'label2',
-                        $data_type: ['varchar', 2],
+                        $data_type: 'varchar',
+                        $precision: 2,
                         $default: {
                             $current_timestamp: true,
                         },
@@ -300,7 +364,7 @@ describe('query', () => {
                 $definitions: [
                     {
                         $name: 'updated_at',
-                        $data_type: ['timestamp'],
+                        $data_type: 'timestamp',
                         $not_null: true,
                         $default: {
                             $current_timestamp: true,
@@ -349,7 +413,7 @@ describe('query', () => {
                 $definitions: [
                     {
                         $alter_operation: 'add',
-                        $constraint: 'unique',
+                        $constraint: 'unique_key',
                         $name: 'uq_ind',
                         $fields: ['label'],
                     },
@@ -358,7 +422,7 @@ describe('query', () => {
 
             const goal = format(`
             ALTER TABLE my_table (
-                ADD CONSTRAINT uq_ind UNIQUE INDEX (label)
+                ADD CONSTRAINT uq_ind UNIQUE (label)
             )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -442,10 +506,10 @@ describe('query', () => {
 
             const goal = format(`
             ALTER TABLE my_table (
-                ADD CONSTRAINT FOREIGN KEY (parent_id) REFERENCES parents (id),
+                ADD FOREIGN KEY (parent_id) REFERENCES parents (id),
                 ADD CONSTRAINT my_foreign_key FOREIGN KEY (parent_id) REFERENCES parents (id) 
                     ON DELETE CASCADE ON UPDATE RESTRICT,
-                ADD CONSTRAINT FOREIGN KEY (parent_id) REFERENCES parents (id) 
+                ADD FOREIGN KEY (parent_id) REFERENCES parents (id) 
                     ON DELETE NO ACTION ON UPDATE SET NULL
             )`)
 

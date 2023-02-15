@@ -1,10 +1,9 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../introspector/introspector'
 import { OrmaMutation } from '../../types/mutation/mutation_types'
 import { apply_supersede_macro } from './supersede_macro'
 
-const orma_schema: OrmaSchema = {
+const orma_schema: any = {
     $entities: {
         users: {
             $fields: { id: { primary_key: true } },

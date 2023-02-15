@@ -14,7 +14,7 @@ import {
     get_parent_edges,
     is_parent_entity,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { WhereConnected } from '../../types/query/query_types'
 import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { combine_wheres, query_for_each } from '../query_helpers'

@@ -1,146 +1,38 @@
-import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../introspector/introspector'
 import { expect } from 'chai'
+import { describe, test } from 'mocha'
+import { global_test_schema } from '../../helpers/tests/global_test_schema'
 import { apply_nesting_macro } from './nesting_macro'
 
-describe('query_macros', () => {
-    const orma_schema: OrmaSchema = {
-        $entities: {
-            products: {
-                $fields: { id: {}, vendor_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'vendor_id',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            vendors: { $fields: { id: {} }, $database_type: 'mysql' },
-            payments: {
-                $fields: { id: {}, from_vendor_id: {}, to_vendor_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'from_vendor_id',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                    {
-                        from_field: 'to_vendor_id',
-                        to_entity: 'vendors',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            receipts: {
-                $fields: { id: {}, payment_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'payment_id',
-                        to_entity: 'payments',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            images: {
-                $fields: { id: {}, product_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'product_id',
-                        to_entity: 'products',
-                        to_field: 'id',
-                    },
-                ],
-            },
-            image_urls: {
-                $fields: { image_id: {} },
-                $database_type: 'mysql',
-                $foreign_keys: [
-                    {
-                        from_field: 'image_id',
-                        to_entity: 'images',
-                        to_field: 'id',
-                    },
-                ],
-            },
-        },
-        $cache: {
-            $reversed_foreign_keys: {
-                vendors: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'products',
-                        to_field: 'vendor_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'payments',
-                        to_field: 'from_vendor_id',
-                    },
-                    {
-                        from_field: 'id',
-                        to_entity: 'payments',
-                        to_field: 'to_vendor_id',
-                    },
-                ],
-                payments: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'receipts',
-                        to_field: 'payment_id',
-                    },
-                ],
-                products: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'images',
-                        to_field: 'product_id',
-                    },
-                ],
-                images: [
-                    {
-                        from_field: 'id',
-                        to_entity: 'image_urls',
-                        to_field: 'image_id',
-                    },
-                ],
-            },
-        },
-    }
-
+describe('nesting_macro.ts', () => {
     describe(apply_nesting_macro.name, () => {
         test('handles root nesting', () => {
             const query = {
-                products: {
+                posts: {
                     id: true,
-                    images: {
+                    comments: {
                         id: true,
-                        product_id: true,
+                        post_id: true,
                     },
                 },
             }
 
-            const previous_results = [[['products'], [{ id: 1 }, { id: 2 }]]]
+            const previous_results = [[['posts'], [{ id: 1 }, { id: 2 }]]]
 
             apply_nesting_macro(
                 query,
-                ['products', 'images'],
+                ['posts', 'comments'],
                 previous_results,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                products: {
+                posts: {
                     id: true,
-                    images: {
+                    comments: {
                         id: true,
-                        product_id: true,
+                        post_id: true,
                         $where: {
-                            $in: ['product_id', [1, 2]],
+                            $in: ['post_id', [1, 2]],
                         },
                     },
                 },
@@ -150,36 +42,36 @@ describe('query_macros', () => {
         })
         test('handles deep nesting', () => {
             const query = {
-                products: {
-                    images: {
-                        image_urls: {
+                users: {
+                    posts: {
+                        comments: {
                             id: true,
                         },
                     },
                 },
             }
 
-            const previous_results = [[['products'], [{ id: 1 }, { id: 2 }]]]
+            const previous_results = [[['users'], [{ id: 1 }, { id: 2 }]]]
             apply_nesting_macro(
                 query,
-                ['products', 'images', 'image_urls'],
+                ['users', 'posts', 'comments'],
                 previous_results,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                products: {
-                    images: {
-                        image_urls: {
+                users: {
+                    posts: {
+                        comments: {
                             id: true,
                             $where: {
                                 $in: [
-                                    'image_id',
+                                    'post_id',
                                     {
                                         $select: ['id'],
-                                        $from: 'images',
+                                        $from: 'posts',
                                         $where: {
-                                            $in: ['product_id', [1, 2]],
+                                            $in: ['user_id', [1, 2]],
                                         },
                                     },
                                 ],
@@ -193,34 +85,34 @@ describe('query_macros', () => {
         })
         test('handles nesting under where clause', () => {
             const query = {
-                products: {
-                    images: {
-                        // the where clause is on images, so image_urls will nest based on images
+                users: {
+                    posts: {
+                        // the where clause is on posts, so image_urls will nest based on posts
                         $where: { $gt: ['id', 0] },
-                        image_urls: {},
+                        comments: {},
                     },
                 },
             }
 
             const previous_results = [
-                [['products'], [{ id: 1 }, { id: 2 }]],
-                [['products', 'images'], [{ id: 3 }]],
+                [['users'], [{ id: 1 }, { id: 2 }]],
+                [['users', 'posts'], [{ id: 3 }]],
             ]
 
             apply_nesting_macro(
                 query,
-                ['products', 'images', 'image_urls'],
+                ['users', 'posts', 'comments'],
                 previous_results,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                products: {
-                    images: {
+                users: {
+                    posts: {
                         $where: { $gt: ['id', 0] },
-                        image_urls: {
+                        comments: {
                             $where: {
-                                $in: ['image_id', [3]],
+                                $in: ['post_id', [3]],
                             },
                         },
                     },
@@ -231,53 +123,53 @@ describe('query_macros', () => {
         })
         test('nests based on from clause', () => {
             const query = {
-                my_products: {
-                    $from: 'products',
-                    my_images: {
-                        $from: 'images',
+                my_users: {
+                    $from: 'users',
+                    my_posts: {
+                        $from: 'posts',
                         $where: { $gt: ['id', 0] },
-                        image_urls: {},
+                        comments: {},
                     },
                 },
             }
 
             const previous_results = [
-                [['my_products'], [{ id: 1 }]],
-                [['my_products', 'my_images'], [{ id: 3 }]],
+                [['my_users'], [{ id: 1 }]],
+                [['my_users', 'my_posts'], [{ id: 3 }]],
             ]
 
             apply_nesting_macro(
                 query,
-                ['my_products', 'my_images'],
+                ['my_users', 'my_posts'],
                 previous_results,
-                orma_schema
+                global_test_schema
             )
 
             apply_nesting_macro(
                 query,
-                ['my_products', 'my_images', 'image_urls'],
+                ['my_users', 'my_posts', 'comments'],
                 previous_results,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                my_products: {
-                    $from: 'products',
-                    my_images: {
-                        $from: 'images',
+                my_users: {
+                    $from: 'users',
+                    my_posts: {
+                        $from: 'posts',
                         $where: {
                             $and: [
                                 {
                                     $gt: ['id', 0],
                                 },
                                 {
-                                    $in: ['product_id', [1]],
+                                    $in: ['user_id', [1]],
                                 },
                             ],
                         },
-                        image_urls: {
+                        comments: {
                             $where: {
-                                $in: ['image_id', [3]],
+                                $in: ['post_id', [3]],
                             },
                         },
                     },
@@ -288,40 +180,40 @@ describe('query_macros', () => {
         })
         test('ignores undefined where/having clauses', () => {
             const query = {
-                products: {
-                    images: {
+                users: {
+                    posts: {
                         $where: undefined,
                         $having: undefined,
-                        image_urls: {},
+                        comments: {},
                     },
                 },
             }
 
             const previous_results = [
-                [['products'], [{ id: 1 }, { id: 2 }]],
-                [['products', 'images'], [{ id: 3 }]],
+                [['users'], [{ id: 1 }, { id: 2 }]],
+                [['users', 'posts'], [{ id: 3 }]],
             ]
             apply_nesting_macro(
                 query,
-                ['products', 'images', 'image_urls'],
+                ['users', 'posts', 'comments'],
                 previous_results,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                products: {
-                    images: {
+                users: {
+                    posts: {
                         $where: undefined,
                         $having: undefined,
-                        image_urls: {
+                        comments: {
                             $where: {
                                 $in: [
-                                    'image_id',
+                                    'post_id',
                                     {
                                         $select: ['id'],
-                                        $from: 'images',
+                                        $from: 'posts',
                                         $where: {
-                                            $in: ['product_id', [1, 2]],
+                                            $in: ['user_id', [1, 2]],
                                         },
                                     },
                                 ],
@@ -335,38 +227,43 @@ describe('query_macros', () => {
         })
         test('respects $foreign_key', () => {
             const query = {
-                vendors: {
-                    payments: {
-                        $foreign_key: ['from_vendor_id'],
-                        receipts: {
+                users: {
+                    addresses: {
+                        $foreign_key: ['billing_address_id'],
+                        tax_codes: {
                             id: true,
                         },
                     },
                 },
             }
 
-            const previous_results = [[['vendors'], [{ id: 1 }, { id: 2 }]]]
+            const previous_results = [
+                [
+                    ['users'],
+                    [{ billing_address_id: 1 }, { billing_address_id: 2 }],
+                ],
+            ]
             apply_nesting_macro(
                 query,
-                ['vendors', 'payments', 'receipts'],
+                ['users', 'addresses', 'tax_codes'],
                 previous_results,
-                orma_schema
+                global_test_schema
             )
 
             const goal = {
-                vendors: {
-                    payments: {
-                        $foreign_key: ['from_vendor_id'],
-                        receipts: {
+                users: {
+                    addresses: {
+                        $foreign_key: ['billing_address_id'],
+                        tax_codes: {
                             id: true,
                             $where: {
                                 $in: [
-                                    'payment_id',
+                                    'id',
                                     {
-                                        $select: ['id'],
-                                        $from: 'payments',
+                                        $select: ['tax_code_id'],
+                                        $from: 'addresses',
                                         $where: {
-                                            $in: ['from_vendor_id', [1, 2]],
+                                            $in: ['id', [1, 2]],
                                         },
                                     },
                                 ],

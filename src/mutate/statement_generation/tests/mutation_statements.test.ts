@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../../introspector/introspector'
+import { OrmaSchema } from '../../../types/schema/schema_types'
 import { MutationPiece } from '../../plan/mutation_plan'
 import { get_mutation_statements } from '../mutation_statements'
 
@@ -9,20 +9,26 @@ describe('mutation_statements.ts', () => {
         $entities: {
             users: {
                 $fields: {
-                    id: { primary_key: true, not_null: true },
-                    first_name: { not_null: true },
-                    last_name: { not_null: true },
-                    resource_id: { not_null: true },
+                    id: { $not_null: true, $data_type: 'int' },
+                    first_name: { $not_null: true, $data_type: 'varchar' },
+                    last_name: { $not_null: true, $data_type: 'varchar' },
+                    resource_id: { $not_null: true, $data_type: 'varchar' },
                 },
                 $database_type: 'mysql',
-                $indexes: [
-                    { fields: ['resource_id'], is_unique: true },
-                    { fields: ['first_name', 'last_name'], is_unique: true },
+                $primary_key: {
+                    $fields: ['id'],
+                },
+                $unique_keys: [
+                    { $fields: ['resource_id'] },
+                    { $fields: ['first_name', 'last_name'] },
                 ],
             },
             products: {
-                $fields: { id: { primary_key: true, not_null: true } },
+                $fields: { id: { $data_type: 'int', $not_null: true } },
                 $database_type: 'mysql',
+                $primary_key: {
+                    $fields: ['id'],
+                },
             },
         },
     }

@@ -4,7 +4,7 @@ import {
     get_direct_edge,
     reverse_edge,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../introspector/introspector'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_real_entity_name } from '../query'
 import { combine_wheres } from '../query_helpers'
 import { edge_path_to_where_ins } from './any_path_macro'
