@@ -2,10 +2,8 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import {
     GlobalTestMutation,
-    GlobalTestSchema,
     global_test_schema,
 } from '../../../helpers/tests/global_test_schema'
-import { GetAllEntities } from '../../../types/schema/schema_helper_types'
 import { MutationPiece } from '../../plan/mutation_plan'
 import {
     get_create_ast,
@@ -420,6 +418,56 @@ describe('mutation_operations.ts', () => {
             const goal = {
                 $insert_into: ['addresses', ['id']],
                 $values: [[12]],
+            }
+
+            expect(result).to.deep.equal(goal)
+        })
+        test('handles adding default values', () => {
+            // in this test, views 0 added since it is the default. SQLite doesn't have a way to say
+            // 'use the default value', so orma just puts it in manually. Note that this
+            // doesn't work for auto increment, since orma doesn't know what the next
+            // auto increment number is.
+
+            const mutation = {
+                posts: [
+                    {
+                        $operation: 'create',
+                        title: 'title 1',
+                        user_id: 1,
+                        views: 1,
+                    },
+                    {
+                        $operation: 'create',
+                        title: 'title 2',
+                        user_id: 1,
+                    },
+                ],
+            } as const satisfies GlobalTestMutation
+
+            const values_by_guid = {}
+
+            const result = get_create_ast(
+                [
+                    {
+                        record: mutation.posts[0],
+                        path: ['posts', 0],
+                    },
+                    {
+                        record: mutation.posts[1],
+                        path: ['posts', 1],
+                    },
+                ],
+                'posts',
+                values_by_guid,
+                global_test_schema
+            )
+
+            const goal = {
+                $insert_into: ['posts', ['title', 'user_id', 'views']],
+                $values: [
+                    ["'title 1'", 1, 1],
+                    ["'title 2'", 1, 0],
+                ],
             }
 
             expect(result).to.deep.equal(goal)

@@ -60,6 +60,7 @@ type FieldsObj<
               ? { $guid: string | number }
               : never)
 }
+
 // & {
 //     // required props have to be given
 //     [Field in GetFieldsByRequired<Schema, Entity, true>]: FieldType<

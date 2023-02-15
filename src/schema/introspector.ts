@@ -8,7 +8,7 @@ import { group_by, key_by, sort_by_prop } from '../helpers/helpers'
 import { MysqlFunction } from '../mutate/mutate'
 import { generate_statement } from '../mutate/statement_generation/mutation_statements'
 import { DeepMutable } from '../types/schema/schema_helper_types'
-import { OrmaSchema, SupportedDbs } from '../types/schema/schema_types'
+import { OrmaSchema, SupportedDatabases } from '../types/schema/schema_types'
 
 export const mysql_to_typescript_types = {
     bigint: 'number',
@@ -46,7 +46,7 @@ export const mysql_to_typescript_types = {
 export const orma_introspect = async (
     db: string,
     mysql_function: MysqlFunction,
-    options: { database_type: SupportedDbs }
+    options: { database_type: SupportedDatabases }
 ): Promise<OrmaSchema> => {
     const sql_strings = get_introspect_sqls(db, options.database_type)
     // @ts-ignore
@@ -85,7 +85,7 @@ export const orma_introspect = async (
  */
 export const get_introspect_sqls = (
     database_name: string,
-    database_type: SupportedDbs
+    database_type: SupportedDatabases
 ): string[] => {
     /* selects: table_name, table_comment FROM INFORMATION_SCHEMA.TABLES column_name, table_name, data_type, column_type, column_key, is_nullable, numeric_precision, numeric_scale, character_maximum_length, column_default, extra, column_comment FROM information_schema.COLUMNS  table_name, column_name, referenced_table_name, referenced_column_name, constraint_name FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE table_name, non_unique, index_name, seq_in_index, column_name, collation, sub_part, packed, nullable, index_type, comment, index_comment, is_visible, expression FROM INFORMATION_SCHEMA.STATISTICS */
 
@@ -152,7 +152,7 @@ export const generate_database_schema = (
     mysql_columns: MysqlColumn[],
     mysql_foreign_keys: MysqlForeignKey[],
     mysql_indexes: MysqlIndex[],
-    database_type: SupportedDbs
+    database_type: SupportedDatabases
 ) => {
     const index_schemas = generate_index_schemas(mysql_indexes, false)
     const unique_key_schemas = generate_index_schemas(mysql_indexes, true)
@@ -479,7 +479,7 @@ export const introspect_to_file = async (
     database_name: string,
     output_path: string,
     byo_query_fn: MysqlFunction,
-    database_type: SupportedDbs
+    database_type: SupportedDatabases
 ) => {
     const orma_schema = await orma_introspect(database_name, byo_query_fn, {
         database_type,

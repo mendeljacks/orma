@@ -2,7 +2,7 @@ import { OrmaStatement } from '../mutate/statement_generation/mutation_statement
 
 export const mysql2_adapter =
     (connection: { query: Function }) =>
-    async (statements: OrmaStatement[]): Promise<Record<string, any>[][]> => {
+    async (statements: AdapterStatements): AdapterReturn => {
         const sqls = statements.map(statement => statement.sql_string)
         if (sqls.length === 0) {
             return []
@@ -26,7 +26,7 @@ export const mysql2_adapter =
 // Setup a function which given sql strings can return an array of results
 export const pg_adapter =
     (connection: { query: Function }) =>
-    async (statements: OrmaStatement[]): Promise<Record<string, any>[][]> => {
+    async (statements: AdapterStatements): AdapterReturn => {
         const sqls = statements.map(statement => statement.sql_string)
         if (sqls.length === 0) {
             return []
@@ -41,6 +41,31 @@ export const pg_adapter =
         } else {
             return response.map(row => row.rows)
         }
+    }
+
+export const sqlite3_adapter =
+    (connection: { all: Function }) =>
+    async (statements: AdapterStatements): AdapterReturn => {
+        const sqls = statements.map(statement => statement.sql_string)
+        if (sqls.length === 0) {
+            return []
+        }
+
+        let response: Awaited<AdapterReturn> = []
+        for await (const sql of sqls) {
+            const rows = await new Promise<Record<string, any>[]>(
+                (resolve, reject) =>
+                    connection.all(sql, [], (err, rows) => {
+                        if (err) {
+                            reject(err)
+                        }
+                        resolve(rows)
+                    })
+            )
+            response.push(rows)
+        }
+
+        return response
     }
 
 // Setup a function which will be able to facilitate multiple queries to happen on a single transaction
@@ -63,3 +88,6 @@ export const postgres_promise_transaction = async (fn, pool) => {
         return Promise.reject(err)
     }
 }
+
+type AdapterReturn = Promise<Record<string, any>[][]>
+type AdapterStatements = Pick<OrmaStatement, 'sql_string'>[]

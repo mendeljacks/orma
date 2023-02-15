@@ -7,13 +7,17 @@ import {
 } from '../schema/schema_helper_types'
 
 export type OrmaQuery<Schema extends OrmaSchema> = {
-    [Entity in GetAllEntities<Schema>]?: Subquery<Schema, Entity, false>
+    readonly [Entity in GetAllEntities<Schema>]?: Subquery<
+        Schema,
+        Entity,
+        false
+    >
 } & {
-    // virtual entities cant really be $where_connected macros, but we need this due to limitations with typescript
+    readonly // virtual entities cant really be $where_connected macros, but we need this due to limitations with typescript
     [VirtualEntity in string]?:
         | Subquery<Schema, GetAllEntities<Schema>, false>
-        | WhereConnected<OrmaSchema>
-} & { $where_connected?: WhereConnected<Schema> }
+        | WhereConnected<Schema>
+} & { readonly $where_connected?: WhereConnected<Schema> }
 
 export type WhereConnected<Schema extends OrmaSchema> = WhereConnectedMapped<
     Schema,
@@ -25,10 +29,10 @@ type WhereConnectedMapped<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
 > = Entities extends GetAllEntities<Schema>
-    ? {
-          $entity: Entities
-          $field: GetFields<Schema, Entities>
-          $values: (string | number)[]
+    ? readonly {
+          readonly $entity: Entities
+          readonly $field: GetFields<Schema, Entities>
+          readonly $values: readonly (string | number)[]
       }[]
     : never
 
@@ -50,27 +54,26 @@ export type FieldObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    [Field in GetFields<Schema, Entity>]?: QueryField<Schema, Entity>
+    readonly [Field in GetFields<Schema, Entity>]?: QueryField<Schema, Entity>
 }
 
 export type SubqueryObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    [SubEntity in Pluck<GetAllEdges<Schema, Entity>, 'to_entity'>]?: Subquery<
-        Schema,
-        SubEntity,
-        false
-    >
+    readonly [SubEntity in Pluck<
+        GetAllEdges<Schema, Entity>,
+        'to_entity'
+    >]?: Subquery<Schema, SubEntity, false>
 }
 
 export type VirtualFieldObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    [VirtualFieldName in string]?:
+    readonly [VirtualFieldName in string]?:
         | object
-        | any[]
+        | readonly any[]
         | number
         | GetFields<Schema, Entity>
         //| QueryField<Schema, Entity> //VirtualField<Schema, Entity>
@@ -99,10 +102,10 @@ export type FromObj<
     RequireFrom extends boolean
 > = RequireFrom extends true
     ? {
-          $from: Entity
+          readonly $from: Entity
       }
     : {
-          $from?: Entity
+          readonly $from?: Entity
       }
 
 export type QueryField<
@@ -115,22 +118,22 @@ export type Expression<
     Entity extends GetAllEntities<Schema>
 > =
     | {
-          $sum: Expression<Schema, Entity>
+          readonly $sum: Expression<Schema, Entity>
       }
     | {
-          $min: Expression<Schema, Entity>
+          readonly $min: Expression<Schema, Entity>
       }
     | {
-          $max: Expression<Schema, Entity>
+          readonly $max: Expression<Schema, Entity>
       }
     | {
-          $coalesce: Expression<Schema, Entity>
+          readonly $coalesce: Expression<Schema, Entity>
       }
     | GetFields<Schema, Entity>
 
 export type PaginationObj = {
-    $limit?: number
-    $offset?: number
+    readonly $limit?: number
+    readonly $offset?: number
 }
 
 // any entity name
@@ -138,7 +141,7 @@ export type GroupByObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    $group_by?: GroupBy<Schema, Entity>
+    readonly $group_by?: GroupBy<Schema, Entity>
 }
 
 type FieldOrString<
@@ -155,7 +158,7 @@ export type OrderByObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    $order_by?: OrderBy<Schema, Entity>
+    readonly $order_by?: OrderBy<Schema, Entity>
 }
 
 type OrderBy<Schema extends OrmaSchema, Entity extends GetAllEntities<Schema>> =
@@ -164,21 +167,32 @@ type OrderBy<Schema extends OrmaSchema, Entity extends GetAllEntities<Schema>> =
     readonly (
         | FieldOrString<Schema, Entity>
         | Expression<Schema, Entity>
-        | { $asc: FieldOrString<Schema, Entity> | Expression<Schema, Entity> }
-        | { $desc: FieldOrString<Schema, Entity> | Expression<Schema, Entity> }
+        | {
+              readonly $asc:
+                  | FieldOrString<Schema, Entity>
+                  | Expression<Schema, Entity>
+          }
+        | {
+              readonly $desc:
+                  | FieldOrString<Schema, Entity>
+                  | Expression<Schema, Entity>
+          }
     )[]
 
 export type SimplifiedQuery<Schema extends OrmaSchema> = {
-    [Entity in GetAllEntities<Schema>]?: SimplifiedSubquery<Schema, Entity>
+    readonly [Entity in GetAllEntities<Schema>]?: SimplifiedSubquery<
+        Schema,
+        Entity
+    >
 }
 
 export type SimplifiedSubquery<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    [Field in GetFields<Schema, Entity>]?: true
+    readonly [Field in GetFields<Schema, Entity>]?: true
 } & {
-    [NestedEntity in GetAllEdges<
+    readonly [NestedEntity in GetAllEdges<
         Schema,
         Entity
     >['to_entity']]?: SimplifiedSubquery<Schema, NestedEntity>

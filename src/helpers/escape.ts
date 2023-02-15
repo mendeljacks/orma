@@ -1,12 +1,12 @@
 import { escape } from 'sqlstring'
 import * as pg_escape from 'pg-escape-browser'
-import { SupportedDbs } from '../types/schema/schema_types'
+import { SupportedDatabases } from '../types/schema/schema_types'
 
 /**
  * Small wrapper over sqlstring escape to prevent sqlstring from casting numbers into strings
  * (which it does for some reason)
  */
-export const orma_escape = (val: any, database_type: SupportedDbs) => {
+export const orma_escape = (val: any, database_type: SupportedDatabases) => {
     const escape_fn =
         database_type === 'mysql'
             ? val => escape(val, true, '+00')

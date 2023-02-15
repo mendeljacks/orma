@@ -348,3 +348,15 @@ export const is_nill = (el: any): el is null | undefined =>
 export const sort_by_prop = <T>(a: T, b: T, prop: keyof T) =>
     // @ts-ignore
     a?.[prop]?.localeCompare(b?.[prop])
+
+export const get_difference = (a: any[], b: any[]) => {
+    const b_set = new Set(b)
+    return a.filter(el => !b_set.has(el))
+}
+
+export const validate_errors = (error_results: (any[] | undefined)[]) => {
+    const errors = error_results.flatMap(errs => errs ?? [])
+    if (errors.length > 0) {
+        throw errors
+    }
+}

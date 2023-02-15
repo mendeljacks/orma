@@ -23,25 +23,23 @@
  * @module json_sql
  */
 
-import { escapeId } from 'sqlstring'
-import {
-    deep_get,
-    drop_last,
-    is_simple_object,
-    map_object,
-} from '../helpers/helpers'
-import { mysql_to_typescript_types } from '../schema/introspector'
+import { deep_get, drop_last, is_simple_object } from '../helpers/helpers'
+import { SupportedDatabases } from '../types/schema/schema_types'
 
-type expression =
+type Expression =
     | {
-          [commands: string]: expression | expression[]
+          readonly [commands: string]:
+              | Expression
+              | readonly Expression[]
+              | undefined
       }
     | primitive
 
-type primitive = string | number | Date | Array<any> | boolean | null
+type primitive = string | number | Date | Array<any> | boolean | null | undefined
 
 export const json_to_sql = (
-    expression: expression,
+    expression: Expression,
+    database_type: SupportedDatabases | undefined = undefined,
     path: any[] = [],
     original_expression: any = undefined
 ) => {
@@ -52,9 +50,10 @@ export const json_to_sql = (
     }
 
     // sql commands are ordered but json keys are not, so we have to sort the keys
+    const command_order =
+        database_type === 'sqlite' ? sqlite_command_order : sql_command_order
     const sorted_commands = Object.keys(expression).sort(
         (command1, command2) => {
-            // commands not in the ordering array will go at the beginning of the sql statement
             const i1 = command_order[command1] || -1
             const i2 = command_order[command2] || -1
             return i1 - i2
@@ -86,12 +85,14 @@ export const json_to_sql = (
                 ? args.map((arg, i) =>
                       json_to_sql(
                           arg,
+                          database_type,
                           [...path, command, i],
                           original_expression ?? expression
                       )
                   )
                 : json_to_sql(
                       args,
+                      database_type,
                       [...path, command],
                       original_expression ?? expression
                   )
@@ -99,7 +100,8 @@ export const json_to_sql = (
             return command_parser(
                 parsed_args,
                 [...path, command],
-                original_expression ?? expression
+                original_expression ?? expression,
+                database_type
             )
         })
         .filter(el => el !== '')
@@ -357,12 +359,14 @@ const sql_command_parsers = {
     // column definition commands
     $constraint: (arg, path, obj) => {
         const name = get_neighbour_field(obj, path, '$name')
-        const name_with_space = name ? ` ${name}` : ''
-        return {
-            unique: `CONSTRAINT${name_with_space} UNIQUE INDEX`,
-            primary_key: `CONSTRAINT${name_with_space} PRIMARY KEY`,
-            foreign_key: `CONSTRAINT${name_with_space} FOREIGN KEY`,
+        const constraint_type_sql = {
+            unique_key: `UNIQUE`,
+            primary_key: `PRIMARY KEY`,
+            foreign_key: `FOREIGN KEY`,
         }[arg]
+
+        const constraint_sql = name ? `CONSTRAINT ${name} ` : ''
+        return `${constraint_sql}${constraint_type_sql}`
     },
     $index: arg =>
         ({
@@ -374,33 +378,34 @@ const sql_command_parsers = {
         // for constraints, name is handled differently because it goes between CONSTRAINT
         // and the constraint type (e.g. FOREIGN KEY)
         get_neighbour_field(obj, path, '$constraint') ? '' : arg,
-    // ...map_object(mysql_to_typescript_types, ([data_type, _]) => [
-    //     `$${data_type}`,
-    //     arg =>
-    //         arg === true
-    //             ? `${data_type}` // no args
-    //             : !Array.isArray(arg)
-    //             ? `${data_type}(${arg})` // one arg
-    //             : `${data_type}(${arg.join(', ')})`, // multiple args
-    // ]),
-    $data_type: (arg, path, obj) => {
+    $data_type: (arg, path, obj, database_type) => {
         const precision = get_neighbour_field(obj, path, '$precision')
         const scale = get_neighbour_field(obj, path, '$scale')
-        const enum_values = get_neighbour_field(obj, path, '$enum_values')
+        const enum_values = get_neighbour_field(obj, path, '$enum_values')?.map(
+            el => `"${el}"`
+        )
         const data_type_args = (enum_values ?? [precision, scale])
             .filter(el => el !== undefined)
             .join(', ')
+
+        // sqlite doesnt support enums directly, so it needs to be through a CHECK constraint
+        if (database_type === 'sqlite' && arg === 'enum') {
+            const field_name = get_neighbour_field(obj, path, '$name')
+            return `TEXT CHECK(${field_name} IN (${data_type_args}))`
+        }
+
         return `${arg?.toUpperCase()}${
             data_type_args ? `(${data_type_args})` : ''
         }`
     },
+    $unsigned: arg => (arg ? 'UNSIGNED' : ''),
     $precision: arg => '',
     $scale: arg => '',
     $enum_values: arg => ``,
-    $unsigned: arg => (arg ? 'UNSIGNED' : ''),
     $not_null: arg => (arg ? 'NOT NULL' : ''),
     $default: arg => `DEFAULT ${arg}`,
-    $auto_increment: arg => (arg ? 'AUTO INCREMENT' : ''),
+    $auto_increment: (arg, path, obj, database_type) =>
+        arg && database_type !== 'sqlite' ? 'AUTO_INCREMENT' : '',
     // index
     $fields: args => `(${args.join(', ')})`,
     $invisible: arg => (arg ? `INVISIBLE` : ''),
@@ -415,8 +420,20 @@ const sql_command_parsers = {
     $no_action: arg => (arg ? `NO ACTION` : ''),
 }
 
-const command_order = Object.keys(sql_command_parsers).reduce((acc, val, i) => {
+const command_parser_keys = Object.keys(sql_command_parsers)
+const sql_command_order = command_parser_keys.reduce((acc, val, i) => {
     acc[val] = i
+    return acc
+}, {})
+
+const sqlite_command_order = command_parser_keys.reduce((acc, val, i) => {
+    if (val === '$unsigned') {
+        acc[val] = command_parser_keys.findIndex(el => el === '$data_type')
+    } else if (val === '$data_type') {
+        acc[val] = command_parser_keys.findIndex(el => el === '$unsigned')
+    } else {
+        acc[val] = i
+    }
     return acc
 }, {})
 

@@ -4,7 +4,7 @@ Orma is a JSON-based, statically typed query language for SQL databases.
 
 At its heart, Orma's mission is simple: convert a parsable, serializable and type-safe JSON syntax into SQL strings. However Orma builds on its base SQL syntax by providing other features such as validation, multi-tenancy, database introspection, declarative foreign keys and more. Put simply, Orma provides the tools to secure and simplify your database queries, while still exposing the full power of SQL.
 
-Orma currently supports MySQL and PostgreSQL.
+Orma currently supports MySQL, PostgreSQL and SQLite.
 
 ## Key Features
 
@@ -118,7 +118,7 @@ const query = {
             // or whose title starts with 'First'
             $where: {
                 $or: [{
-                    $gte: ['view', { $escape: 100 }]
+                    $gte: ['views', { $escape: 100 }]
                 }, {
                     $like: ['title', { $escape: 'First%' }]
                 }]
@@ -232,6 +232,8 @@ The generated schema will look something like this:
 //     ...
 // }
 ```
+
+> ⚠️ Introspection is not currently supported for SQLite
 
 ## Creating and editing
 Since the orma schema is a regular object, it can be hand-written or programatically modified. After any changes are made to the orma schema, its cache needs to be updated. For example to hand-write a schema:
