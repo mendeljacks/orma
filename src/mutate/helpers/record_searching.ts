@@ -46,7 +46,7 @@ export const generate_record_where_clause = (
 export const generate_record_where_clause_from_identifying_keys = (
     values_by_guid: ValuesByGuid,
     identifying_keys: string[],
-    record: MutationPiece['record']
+    record: Record<string, any>
 ) => {
     const where_clauses = identifying_keys.map(key => ({
         $eq: [

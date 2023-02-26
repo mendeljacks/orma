@@ -9,7 +9,7 @@ import {
     test_query,
 } from './integration_setup.test'
 
-describe.only('full integration test', () => {
+describe('full integration test', () => {
     integration_test_setup()
 
     test('basic a-z test', async () => {
