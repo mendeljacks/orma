@@ -242,9 +242,20 @@ const validate_expression = (
     orma_schema
 ): OrmaError[] => {
     if (typeof expression === 'string') {
-        const function_name = last(expression_path)
+        const last_path_el = last(expression_path)
+        const second_last_path_el = expression_path[expression_path.length - 2]
+
+        // could be an array, so we might need to get the function name from one layer up
+        const function_name =
+            typeof last_path_el === 'string'
+                ? last_path_el
+                : second_last_path_el
         const sql_function_definition = sql_function_definitions[function_name]
-        if (expression === '*' && sql_function_definition.allow_star === true) {
+        if (
+            (expression === '*' &&
+                sql_function_definition?.allow_star === true) ||
+            function_name === '$select'
+        ) {
             return []
         }
 
