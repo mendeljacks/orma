@@ -1,6 +1,6 @@
 import { OrmaError } from '../../helpers/error_handling'
 import { group_by } from '../../helpers/helpers'
-import { reverse_edge } from '../../helpers/schema_helpers'
+import { is_parent_entity, reverse_edge } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { edge_path_to_where_ins } from '../../query/macros/any_path_macro'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
@@ -11,10 +11,10 @@ import {
 import { combine_wheres } from '../../query/query_helpers'
 import { WhereConnected } from '../../types/query/query_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_record_where_clause } from '../helpers/record_searching'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import { generate_statement } from '../statement_generation/mutation_statements'
+import { generate_identifying_where } from '../helpers/record_searching'
 
 export const get_mutation_connected_errors = async (
     orma_schema: OrmaSchema,
@@ -133,15 +133,41 @@ export const get_primary_key_wheres = (
     mutation_pieces: MutationPiece[],
     entity: string
 ) => {
+    const reverse_connected_entities = connection_edges[entity]
+        ?.filter(edge => is_parent_entity(entity, edge.to_entity, orma_schema))
+        .map(edge => edge.to_entity)
+
     const identifying_wheres = mutation_pieces
         // creates dont get identifying wheres since they are not in the database yet
         .filter(
             ({ record }) =>
                 record.$operation === 'update' || record.$operation === 'delete'
         )
-        .flatMap(mutation_pieces => {
-            const where = generate_record_where_clause(
-                mutation_pieces,
+        .filter(({ record }) =>
+            // although $read_guids can be used as an identifying key, we can't check --------
+            record.$identifying_fields.every(
+                field => record[field].$read_guid === undefined
+            )
+        )
+        .flatMap(mutation_piece => {
+            // only updates and deletes get identifying key wheres, since only they exist in the database
+            if (mutation_piece.record.$operation === 'create') {
+                return []
+            }
+
+            /*
+            For $read_guid identifying keys, we basically have 
+            1. ????????????????????????
+            In most cases, $read_guids can be safely ignored. For regular connection edges (not reveresed ones),
+            a $read_guid identifying key will be connected since it refers to a primary key in the mutation that 
+            is connected. 
+            so 
+            it will also be connected
+            foreign key will refer to something else in the mutation  For foreign keys, they must refer to a primary key
+            in the mutation, so they must be 
+            */
+
+            const where = generate_identifying_where(
                 {}, // no values_by_guid since this is a pre middleware
                 orma_schema,
                 // force a value for now - no guid allowed (maybe change this in future when I figure out
@@ -172,21 +198,22 @@ export const get_primary_key_wheres = (
     )
 
     const edge_paths = edge_paths_obj[where_connected.$entity]
-    const primary_key_wheres = edge_paths?.map(edge_path => {
-        // reverse since we are queryng the where connected root entity and these paths are going from the
-        // current entity to the root, not the root to the current entity
-        const reversed_edge_path = edge_path
-            .slice()
-            .reverse()
-            .map(edge => reverse_edge(edge))
+    const primary_key_wheres =
+        edge_paths?.map(edge_path => {
+            // reverse since we are queryng the where connected root entity and these paths are going from the
+            // current entity to the root, not the root to the current entity
+            const reversed_edge_path = edge_path
+                .slice()
+                .reverse()
+                .map(edge => reverse_edge(edge))
 
-        const where = edge_path_to_where_ins(
-            reversed_edge_path,
-            '$where',
-            combine_wheres(identifying_wheres, '$or')
-        )
-        return where
-    }) ?? []
+            const where = edge_path_to_where_ins(
+                reversed_edge_path,
+                '$where',
+                combine_wheres(identifying_wheres, '$or')
+            )
+            return where
+        }) ?? []
 
     return primary_key_wheres
 }
@@ -287,3 +314,46 @@ const generate_ownership_errors = (
 
     return errors
 }
+
+/*
+
+delete post:
+{
+    $operation: 'delete',
+    id: 1,
+    group_id: { $write_guid: 'a' }
+} 
+
+delete group:
+{
+    $operation: 'delete',
+    id: { $read_guid: 'a' },
+} 
+
+in this case, we can't check whether the group is allowed to be deleted or not. Just because the
+post is owned, doesn't mean the group is also owned, so we have to throw an error for now (I think the
+way to handle this properly might be to do a where in to check the group is allowed, based on the post?)
+
+-- another thing, if it were
+
+
+delete group:
+{
+    $operation: 'delete',
+    id: 1
+} 
+
+delete post:
+{
+    $operation: 'delete',
+} 
+
+this would become
+{
+    $operation: 'delete',
+    group_id: 1
+} 
+
+which would delete a bunch of posts. Do some tests to figure out what happens in this case. Would it
+throw an error, since there is no unique field?
+*/

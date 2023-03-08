@@ -1,10 +1,10 @@
 import { array_equals, key_by } from '../../helpers/helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
-import {
-    get_identifying_keys,
-    get_possible_identifying_keys,
-} from '../helpers/identifying_keys'
 import { path_to_entity } from '../helpers/mutate_helpers'
+import {
+    get_identifying_fields,
+    get_possible_identifying_keys,
+} from '../macros/identifying_fields_macro'
 import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import { get_resolved_mutation_value } from '../statement_generation/mutation_operations'
@@ -53,8 +53,8 @@ const get_database_indexes_by_entity = (
         query_entities.reduce<DatabaseIndexesByEntity>(
             (acc, entity, query_index) => {
                 const possible_identifying_keys = get_possible_identifying_keys(
-                    entity,
-                    orma_schema
+                    orma_schema,
+                    entity
                 )
                 const database_rows = query_results[query_index]
                 const database_row_indexes = possible_identifying_keys.map(
@@ -103,18 +103,17 @@ const sort_database_rows_given_indexes = (
             return undefined
         }
 
-        const identifying_keys = get_identifying_keys(
+        const identifying_keys = get_identifying_fields(
+            orma_schema,
             entity,
             record,
-            values_by_guid,
-            orma_schema,
             true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
             // (unlike in an actual update, where it determines which fields are modified). We just select any key in
             // the same way as was selected for the query
         )
         const possible_identifying_keys = get_possible_identifying_keys(
-            entity,
-            orma_schema
+            orma_schema,
+            entity
         )
         const identifying_key_index = possible_identifying_keys.findIndex(
             keys => array_equals(keys, identifying_keys)
@@ -134,12 +133,6 @@ const sort_database_rows_given_indexes = (
                     )
                 )
             ] ?? {}
-
-        // if (!database_row) {
-        //     throw new Error(
-        //         `Could not find database row for mutation row with keys ${identifying_keys} and values ${identifying_values}`
-        //     )
-        // }
 
         return database_row
     })

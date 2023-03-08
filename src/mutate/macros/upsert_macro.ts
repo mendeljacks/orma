@@ -4,7 +4,7 @@ import { combine_wheres } from '../../query/query_helpers'
 import { Path } from '../../types'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_record_where_clause_from_identifying_keys } from '../helpers/record_searching'
+import { generate_identifying_where } from '../helpers/record_searching'
 import { MutationOperation, MysqlFunction } from '../mutate'
 
 export const apply_upsert_macro = async (
@@ -31,7 +31,7 @@ export const get_upsert_macro_query = (mutation_pieces: MutationPiece[]) => {
         }
 
         record.$identifying_keys?.forEach(key => (acc[entity][key] = true))
-        const where = generate_record_where_clause_from_identifying_keys(
+        const where = generate_identifying_where(
             {},
             record.$identifying_keys,
             record

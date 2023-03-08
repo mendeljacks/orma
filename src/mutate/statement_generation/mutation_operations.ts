@@ -8,10 +8,10 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { combine_wheres } from '../../query/query_helpers'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_record_where_clause } from '../helpers/record_searching'
 import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import { json_to_sql } from '../../query/json_sql'
+import { generate_identifying_where } from '../helpers/record_searching'
 
 export const get_create_ast = (
     mutation_pieces: MutationPiece[],
@@ -113,11 +113,12 @@ export const get_update_ast = (
 ) => {
     const entity = path_to_entity(mutation_piece.path)
 
-    const { identifying_keys, where } = generate_record_where_clause(
-        mutation_piece,
+    const identifying_fields = mutation_piece.record
+        .$identifying_fields as string[]
+    const where = generate_identifying_where(
         values_by_guid,
-        orma_schema,
-        false
+        identifying_fields,
+        mutation_piece.record
     )
 
     // must apply escape macro since we need valid SQL AST
@@ -125,7 +126,7 @@ export const get_update_ast = (
 
     const $set = Object.keys(mutation_piece.record)
         .map(field => {
-            if (identifying_keys.includes(field)) {
+            if (identifying_fields.includes(field)) {
                 return undefined
             }
 
@@ -162,11 +163,10 @@ export const get_delete_ast = (
     orma_schema: OrmaSchema
 ) => {
     const wheres = mutation_pieces.map(mutation_piece => {
-        const { where } = generate_record_where_clause(
-            mutation_piece,
+        const where = generate_identifying_where(
             values_by_guid,
-            orma_schema,
-            false
+            mutation_piece.record.$identifying_fields,
+            mutation_piece.record
         )
 
         // must apply escape macro since we need valid SQL AST

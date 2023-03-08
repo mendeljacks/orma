@@ -81,3 +81,15 @@ export const path_to_entity = (path: (number | string)[]) => {
         ? (path[path.length - 2] as string)
         : (last(path) as string)
 }
+
+export const for_each_guid = (
+    record: Record<string, any>,
+    callback: (key, value, guid) => any
+) => {
+    Object.entries(record).forEach(([key, value]) => {
+        const guid = value?.$guid
+        if (guid !== undefined) {
+            callback(key, value, guid)
+        }
+    })
+}

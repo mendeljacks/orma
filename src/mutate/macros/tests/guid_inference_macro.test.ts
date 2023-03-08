@@ -31,7 +31,7 @@ describe('guid_inference_macro.ts', () => {
                     lower_indices: [],
                 },
             ]
-            apply_guid_inference_macro(mutation_pieces, global_test_schema)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             // @ts-ignore
             expect(mutation_pieces[0].record.id.$guid).to.not.equal(undefined)
@@ -62,7 +62,7 @@ describe('guid_inference_macro.ts', () => {
                 },
             ]
 
-            apply_guid_inference_macro(mutation_pieces, global_test_schema)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             // should use the user supplied id in guid inference
             // @ts-ignore
@@ -96,7 +96,7 @@ describe('guid_inference_macro.ts', () => {
                 },
             ]
 
-            apply_guid_inference_macro(mutation_pieces, global_test_schema)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             // no linked guids
             //@ts-ignore
@@ -127,7 +127,7 @@ describe('guid_inference_macro.ts', () => {
                 },
             ]
 
-            apply_guid_inference_macro(mutation_pieces, global_test_schema)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             //@ts-ignore
             expect(mutation_pieces[1].record.post_id).to.equal(undefined)
@@ -147,7 +147,7 @@ describe('guid_inference_macro.ts', () => {
                 },
             ]
 
-            apply_guid_inference_macro(mutation_pieces, global_test_schema)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             //@ts-ignore
             expect(mutation_pieces[0].record.id).to.deep.equal(
