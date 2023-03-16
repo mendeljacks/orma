@@ -1,10 +1,10 @@
-import { OrmaSchema } from '../../types/schema/schema_types'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { combine_wheres } from '../../query/query_helpers'
-import { ValuesByGuid } from '../mutate'
-import { MutationPiece } from '../plan/mutation_plan'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { generate_identifying_where } from '../helpers/record_searching'
+import { GuidMap } from '../macros/guid_plan_macro'
 import { get_identifying_fields } from '../macros/identifying_fields_macro'
+import { MutationPiece } from '../plan/mutation_plan'
 
 /**
  * Generates a query which, when run, will return all the data needed to
@@ -15,7 +15,7 @@ import { get_identifying_fields } from '../macros/identifying_fields_macro'
 export const get_guid_query = (
     input_mutation_pieces: MutationPiece[],
     entity: string,
-    values_by_guid: ValuesByGuid,
+    guid_map: GuidMap,
     orma_schema: OrmaSchema
 ) => {
     // $guids are not saved for deletes
@@ -43,7 +43,7 @@ export const get_guid_query = (
 
     // get identifying keys which are needed for matching records later
     let all_identifying_fields = new Set<string>()
-    const wheres = mutation_pieces.map((mutation_piece, i) => {
+    const wheres = mutation_pieces.map((mutation_piece, piece_index) => {
         const identifying_fields = get_identifying_fields(
             orma_schema,
             entity,
@@ -54,9 +54,11 @@ export const get_guid_query = (
             true
         )
         const where = generate_identifying_where(
-            values_by_guid,
+            orma_schema,
+            guid_map,
+            mutation_pieces,
             identifying_fields,
-            mutation_piece.record
+            piece_index
         )
         identifying_fields.forEach(field => all_identifying_fields.add(field))
 

@@ -13,7 +13,7 @@ export const apply_infer_identifying_fields_macro = (
 ) => {
     mutation_pieces.forEach(mutation_peice => {
         const operation = mutation_peice.record.$operation
-        if (operation === 'update' || operation === 'delete') {
+        if (['update', 'delete', 'upsert'].includes(operation)) {
             const identifiny_fields = get_identifying_fields(
                 orma_schema,
                 path_to_entity(mutation_peice.path),
@@ -33,7 +33,7 @@ export const get_identifying_fields = (
 ) => {
     const primary_keys = get_primary_keys(entity, orma_schema)
     const can_use_primary_keys = primary_keys.every(field =>
-        can_use_field(record, field)
+        field_can_be_identifier(record, field)
     )
 
     if (can_use_primary_keys) {
@@ -43,7 +43,7 @@ export const get_identifying_fields = (
     const unique_keys = get_unique_field_groups(entity, false, orma_schema)
 
     const useable_unique_keys = unique_keys.filter(unique_key =>
-        unique_key.every(field => can_use_field(record, field))
+        unique_key.every(field => field_can_be_identifier(record, field))
     )
 
     if (allow_ambiguity || useable_unique_keys.length === 1) {
@@ -53,7 +53,10 @@ export const get_identifying_fields = (
     }
 }
 
-const can_use_field = (record: Record<string, any>, field: string) => {
+const field_can_be_identifier = (
+    record: Record<string, any>,
+    field: string
+) => {
     const value = record[field]
 
     // the field cannot be used as an identifier if it is not provided. Null also can't be used, since in
@@ -61,10 +64,10 @@ const can_use_field = (record: Record<string, any>, field: string) => {
     // uniquely identifies a record
     const is_nill = value === undefined || value === null
     // $write_guid cannot be used as an identifying field, since when the record is executed, the guid will not be
-    // in scope. It will only be fetched after the operation is done. for $read_guid however, the guid is in scope
+    // in scope. It will only be fetched after the operation is done. for read guids however, the guid is in scope
     // (it must be in order to be read from), so we can use it to identify the record.
-    const is_write_guid = value?.$write_guid !== undefined
-    return !is_nill && !is_write_guid
+    const is_read_guid = value?.$guid !== undefined && value?.$read === true
+    return !is_nill && is_read_guid
 }
 
 export const get_possible_identifying_keys = (

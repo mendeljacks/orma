@@ -13,9 +13,9 @@ import { WhereConnected } from '../../types/query/query_types'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import {
-    get_foreign_key_wheres,
+    get_foreign_key_connected_wheres,
     get_ownership_queries,
-    get_primary_key_wheres,
+    get_identifier_connected_wheres,
     get_mutation_connected_errors,
 } from './mutation_connected'
 
@@ -317,7 +317,7 @@ describe('mutation_connected.ts', () => {
             expect(ownership_queries).to.deep.equal([])
         })
     })
-    describe(get_primary_key_wheres.name, () => {
+    describe(get_identifier_connected_wheres.name, () => {
         test('tracks primary keys', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
@@ -330,7 +330,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const wheres = get_primary_key_wheres(
+            const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('users'),
@@ -380,7 +380,7 @@ describe('mutation_connected.ts', () => {
             //     ]
             // )
 
-            const wheres = get_primary_key_wheres(
+            const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('addresses'),
@@ -422,7 +422,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const wheres = get_primary_key_wheres(
+            const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('users'),
@@ -445,7 +445,7 @@ describe('mutation_connected.ts', () => {
             ]
 
             // categories and posts are not connected, so there is no edge paths
-            const wheres = get_primary_key_wheres(
+            const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
                 {
@@ -460,7 +460,7 @@ describe('mutation_connected.ts', () => {
             expect(wheres).to.deep.equal([])
         })
     })
-    describe(get_foreign_key_wheres.name, () => {
+    describe(get_foreign_key_connected_wheres.name, () => {
         test('tracks direct child foreign keys', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
@@ -482,7 +482,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const wheres = get_foreign_key_wheres(
+            const wheres = get_foreign_key_connected_wheres(
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -514,7 +514,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const wheres = get_foreign_key_wheres(
+            const wheres = get_foreign_key_connected_wheres(
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -547,7 +547,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const wheres = get_foreign_key_wheres(
+            const wheres = get_foreign_key_connected_wheres(
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,

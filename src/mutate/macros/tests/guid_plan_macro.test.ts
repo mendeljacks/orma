@@ -20,10 +20,10 @@ describe('guid_plan_macro.ts', () => {
             apply_guid_plan_macro(mutation_pieces, mutation_batches)
 
             expect(mutation_pieces).to.deep.equal([
-                { record: { id: { $write_guid: 'a' }, title: 'a' } },
-                { record: { id: { $write_guid: 'b' } } },
-                { record: { post_id: { $read_guid: 'a' } } },
-                { record: { post_id: { $read_guid: 'b' } }, views: 1 },
+                { record: { id: { $guid: 'a', $write: true }, title: 'a' } },
+                { record: { id: { $guid: 'b', $write: true } } },
+                { record: { post_id: { $guid: 'a', $read: true } } },
+                { record: { post_id: { $guid: 'b', $read: true } }, views: 1 },
             ])
         })
         test('handles multiple of the same guid', () => {
@@ -42,10 +42,10 @@ describe('guid_plan_macro.ts', () => {
             apply_guid_plan_macro(mutation_pieces, mutation_batches)
 
             expect(mutation_pieces).to.deep.equal([
-                { record: { id: { $write_guid: 'a' }, title: 'a' } },
-                { record: { id: { $write_guid: 'a' } } },
-                { record: { post_id: { $read_guid: 'a' } } },
-                { record: { post_id: { $read_guid: 'a' } }, views: 1 },
+                { record: { id: { $guid: 'a', $write: true }, title: 'a' } },
+                { record: { id: { $guid: 'a', $write: true } } },
+                { record: { post_id: { $guid: 'a', $read: true } } },
+                { record: { post_id: { $guid: 'a', $read: true } }, views: 1 },
             ])
         })
         test('handles no guids', () => {
@@ -72,8 +72,8 @@ describe('guid_plan_macro.ts', () => {
             apply_guid_plan_macro(mutation_pieces, mutation_batches)
 
             expect(mutation_pieces).to.deep.equal([
-                { record: { id: { $write_guid: '1' } } },
-                { record: { post_id: { $write_guid: 1 } } },
+                { record: { id: { $guid: '1', $write: true } } },
+                { record: { post_id: { $guid: 1 }, $write: true } },
             ])
         })
     })

@@ -1,31 +1,34 @@
 import { OrmaError } from '../../helpers/error_handling'
 import { group_by } from '../../helpers/helpers'
-import { is_parent_entity, reverse_edge } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { reverse_edge } from '../../helpers/schema_helpers'
 import { edge_path_to_where_ins } from '../../query/macros/any_path_macro'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import {
     ConnectionEdges,
-    get_edge_paths_by_destination,
+    get_edge_paths_by_destination
 } from '../../query/macros/where_connected_macro'
 import { combine_wheres } from '../../query/query_helpers'
 import { WhereConnected } from '../../types/query/query_types'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
+import { generate_identifying_where } from '../helpers/record_searching'
+import { GuidMap } from '../macros/guid_plan_macro'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import { generate_statement } from '../statement_generation/mutation_statements'
-import { generate_identifying_where } from '../helpers/record_searching'
 
 export const get_mutation_connected_errors = async (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
     mysql_function: MysqlFunction,
+    guid_map: GuidMap,
     where_connecteds: WhereConnected<OrmaSchema>,
     mutation_pieces: MutationPiece[]
 ) => {
     const ownership_queries = get_ownership_queries(
         orma_schema,
         connection_edges,
+        guid_map,
         where_connecteds,
         mutation_pieces
     )
@@ -50,6 +53,7 @@ export const get_mutation_connected_errors = async (
 export const get_ownership_queries = (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
+    guid_map: GuidMap,
     where_connecteds: WhereConnected<OrmaSchema>,
     all_mutation_pieces: MutationPiece[]
 ) => {
@@ -90,15 +94,16 @@ export const get_ownership_queries = (
         const wheres = entities.flatMap(entity => {
             const mutation_pieces = mutation_pieces_by_entity[entity]
 
-            const primary_key_wheres = get_primary_key_wheres(
+            const primary_key_wheres = get_identifier_connected_wheres(
                 orma_schema,
                 connection_edges,
+                guid_map,
                 where_connected,
                 mutation_pieces,
                 entity
             )
 
-            const foreign_key_wheres = get_foreign_key_wheres(
+            const foreign_key_wheres = get_foreign_key_connected_wheres(
                 connection_edges,
                 where_connected,
                 mutation_pieces,
@@ -126,55 +131,29 @@ export const get_ownership_queries = (
     return queries
 }
 
-export const get_primary_key_wheres = (
+export const get_identifier_connected_wheres = (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
+    guid_map: GuidMap,
     where_connected: WhereConnected<OrmaSchema>[number],
     mutation_pieces: MutationPiece[],
     entity: string
 ) => {
-    const reverse_connected_entities = connection_edges[entity]
-        ?.filter(edge => is_parent_entity(entity, edge.to_entity, orma_schema))
-        .map(edge => edge.to_entity)
-
-    const identifying_wheres = mutation_pieces
-        // creates dont get identifying wheres since they are not in the database yet
-        .filter(
-            ({ record }) =>
-                record.$operation === 'update' || record.$operation === 'delete'
-        )
-        .filter(({ record }) =>
-            // although $read_guids can be used as an identifying key, we can't check --------
-            record.$identifying_fields.every(
-                field => record[field].$read_guid === undefined
-            )
-        )
-        .flatMap(mutation_piece => {
-            // only updates and deletes get identifying key wheres, since only they exist in the database
+    const identifying_wheres = mutation_pieces.flatMap(
+        (mutation_piece, piece_index) => {
+            // this query fetches data that is in the database but not in the mutation. Because creates
+            // are not yet in the database, all data must be in scope already, so we can safely ignore them
             if (mutation_piece.record.$operation === 'create') {
                 return []
             }
 
-            /*
-            For $read_guid identifying keys, we basically have 
-            1. ????????????????????????
-            In most cases, $read_guids can be safely ignored. For regular connection edges (not reveresed ones),
-            a $read_guid identifying key will be connected since it refers to a primary key in the mutation that 
-            is connected. 
-            so 
-            it will also be connected
-            foreign key will refer to something else in the mutation  For foreign keys, they must refer to a primary key
-            in the mutation, so they must be 
-            */
-
             const where = generate_identifying_where(
-                {}, // no values_by_guid since this is a pre middleware
                 orma_schema,
-                // force a value for now - no guid allowed (maybe change this in future when I figure out
-                // what to do in this case)
-                false,
-                true
-            )?.where
+                guid_map,
+                mutation_pieces,
+                mutation_piece.record.identifying_keys,
+                piece_index
+            )
 
             if (where) {
                 // must apply escape macro since we need valid SQL AST
@@ -183,7 +162,8 @@ export const get_primary_key_wheres = (
             } else {
                 return []
             }
-        })
+        }
+    )
 
     // the first case is because if this entity is the ownership entity, then we dont need to wrap in $where $ins.
     // the second case is if there are no identifying keys (e.g. all creates or only $guids)
@@ -218,7 +198,7 @@ export const get_primary_key_wheres = (
     return primary_key_wheres
 }
 
-export const get_foreign_key_wheres = (
+export const get_foreign_key_connected_wheres = (
     connection_edges: ConnectionEdges,
     where_connected: WhereConnected<OrmaSchema>[number],
     mutation_pieces: MutationPiece[],

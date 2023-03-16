@@ -11,6 +11,7 @@ import {
     get_delete_ast,
     get_update_ast,
 } from './mutation_operations'
+import { GuidMap } from '../macros/guid_plan_macro'
 
 export type OrmaStatement = {
     ast: Record<string, any>
@@ -27,7 +28,7 @@ export type OrmaStatement = {
  */
 export const get_mutation_statements = (
     input_mutation_pieces: MutationPiece[],
-    values_by_guid: Record<any, any>,
+    guid_map: GuidMap,
     orma_schema: OrmaSchema
 ): {
     mutation_infos: OrmaStatement[]
@@ -38,13 +39,14 @@ export const get_mutation_statements = (
     const mutation_infos = Object.keys(grouped_mutation).flatMap(entity =>
         Object.keys(grouped_mutation[entity] ?? {}).flatMap(
             (operation: MutationOperation) => {
-                const group_pieces =
+                const group_indices =
                     grouped_mutation?.[entity]?.[operation] ?? []
                 return get_mutation_infos_for_group(
-                    group_pieces,
+                    input_mutation_pieces,
+                    group_indices,
                     operation,
                     entity,
-                    values_by_guid,
+                    guid_map,
                     orma_schema
                 )
             }
@@ -53,17 +55,17 @@ export const get_mutation_statements = (
 
     const query_infos: OrmaStatement[] = Object.keys(grouped_mutation).flatMap(
         entity => {
-            const create_pieces = grouped_mutation?.[entity]?.create ?? []
-            const update_pieces = grouped_mutation?.[entity]?.update ?? []
-            const group_pieces = [...create_pieces, ...update_pieces]
+            const create_indices = grouped_mutation?.[entity]?.create ?? []
+            const update_indices = grouped_mutation?.[entity]?.update ?? []
+            const group_indices = [...create_indices, ...update_indices]
             const guid_query = get_guid_query(
-                group_pieces,
+                group_indices,
                 entity,
-                values_by_guid,
+                guid_map,
                 orma_schema
             )
             return guid_query
-                ? [generate_statement(guid_query, group_pieces)]
+                ? [generate_statement(guid_query, group_indices)]
                 : []
         }
     )
@@ -72,10 +74,10 @@ export const get_mutation_statements = (
 }
 
 const get_grouped_mutation = (mutation_pieces: MutationPiece[]) => {
-    const grouped_mutation = mutation_pieces.reduce((acc, mutation_piece) => {
+    const grouped_mutation = mutation_pieces.reduce((acc, mutation_piece, piece_index) => {
         const operation = mutation_piece.record.$operation
         const entity = path_to_entity(mutation_piece.path)
-        push_path([entity, operation], mutation_piece, acc)
+        push_path([entity, operation], piece_index, acc)
         return acc
     }, {} as GroupedMutation)
 
@@ -84,34 +86,21 @@ const get_grouped_mutation = (mutation_pieces: MutationPiece[]) => {
 
 const get_mutation_infos_for_group = (
     mutation_pieces: MutationPiece[],
+    group_indices: number[],
     operation: MutationOperation,
     entity: string,
-    values_by_guid: ValuesByGuid,
+    guid_map: GuidMap,
     orma_schema: OrmaSchema
 ) => {
     let asts: (Record<any, any> | undefined)[]
     if (operation === 'create') {
-        asts = [
-            get_create_ast(
-                mutation_pieces,
-                entity,
-                values_by_guid,
-                orma_schema
-            ),
-        ]
+        asts = [get_create_ast(mutation_pieces, entity, orma_schema)]
     } else if (operation === 'update') {
-        asts = mutation_pieces.map(mutation_piece =>
-            get_update_ast(mutation_piece, values_by_guid, orma_schema)
+        asts = mutation_pieces.map((mutation_piece, piece_index) =>
+            get_update_ast(mutation_pieces, piece_index, guid_map, orma_schema)
         )
     } else if (operation === 'delete') {
-        asts = [
-            get_delete_ast(
-                mutation_pieces,
-                entity,
-                values_by_guid,
-                orma_schema
-            ),
-        ]
+        asts = [get_delete_ast(orma_schema, mutation_pieces, entity, guid_map)]
     } else {
         throw new Error(`Unrecognized $operation ${operation}`)
     }
@@ -124,7 +113,7 @@ const get_mutation_infos_for_group = (
 
 type GroupedMutation = {
     [Entity in string]?: {
-        [Operation in MutationOperation]?: MutationPiece[]
+        [Operation in MutationOperation]?: number[] // mutation piece indexes
     }
 }
 

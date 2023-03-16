@@ -28,7 +28,9 @@ export type MysqlFunction = (
 export type ValuesByGuid = Record<string | number, any>
 
 export const orma_mutate_prepare = (orma_schema: OrmaSchema, mutation) => {
+    const mutation_context = { mutation }
     const mutation_pieces = apply_nesting_mutation_macro(mutation)
+    // const guid_map = 
     apply_inherit_operations_macro(mutation_pieces, mutation.$operation)
     apply_guid_inference_macro(orma_schema, mutation_pieces)
     const mutation_plan = get_mutation_plan(orma_schema, mutation)
@@ -46,9 +48,10 @@ export const orma_mutate_run = async (
 ) => {
     const values_by_guid: ValuesByGuid = {}
 
-    await run_mutation_plan(mutation_plan, async ({ mutation_pieces }) => {
+    await run_mutation_plan(mutation_plan, async ({ mutation_batch }) => {
         const { mutation_infos, query_infos } = get_mutation_statements(
-            mutation_pieces,
+            mutation_plan.mutation_pieces,
+            mutation_batch,
             values_by_guid,
             orma_schema
         )
