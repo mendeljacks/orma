@@ -5,7 +5,7 @@ import { edge_path_to_where_ins } from '../../query/macros/any_path_macro'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import {
     ConnectionEdges,
-    get_edge_paths_by_destination
+    get_edge_paths_by_destination,
 } from '../../query/macros/where_connected_macro'
 import { combine_wheres } from '../../query/query_helpers'
 import { WhereConnected } from '../../types/query/query_types'
@@ -39,7 +39,7 @@ export const get_mutation_connected_errors = async (
 
     const ownership_results = await mysql_function(
         ownership_queries.map(ownership_query =>
-            generate_statement(ownership_query, [])
+            generate_statement(ownership_query, [], [])
         )
     )
 

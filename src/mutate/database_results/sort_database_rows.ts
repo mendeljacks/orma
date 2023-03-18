@@ -5,7 +5,6 @@ import {
     get_identifying_fields,
     get_possible_identifying_keys,
 } from '../macros/identifying_fields_macro'
-import { ValuesByGuid } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import { get_resolved_mutation_value } from '../statement_generation/mutation_operations'
 
@@ -19,7 +18,6 @@ export const sort_database_rows = (
     mutation_pieces: MutationPiece[],
     query_entities: string[],
     query_results: Record<string, any>[][],
-    values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema
 ) => {
     if (query_results.length !== query_entities.length) {
@@ -37,7 +35,6 @@ export const sort_database_rows = (
     const sorted_database_rows = sort_database_rows_given_indexes(
         mutation_pieces,
         database_indexes_by_entity,
-        values_by_guid,
         orma_schema
     )
 
@@ -92,7 +89,6 @@ const get_database_indexes_by_entity = (
 const sort_database_rows_given_indexes = (
     mutation_pieces: MutationPiece[],
     database_indexes_by_entity: DatabaseIndexesByEntity,
-    values_by_guid: ValuesByGuid,
     orma_schema: OrmaSchema
 ) => {
     const ordered_database_rows = mutation_pieces.map(({ record, path }) => {
@@ -125,11 +121,7 @@ const sort_database_rows_given_indexes = (
             database_index[
                 JSON.stringify(
                     identifying_keys.map(field =>
-                        get_resolved_mutation_value(
-                            record,
-                            field,
-                            values_by_guid
-                        )
+                        get_resolved_mutation_value(record, field)
                     )
                 )
             ] ?? {}

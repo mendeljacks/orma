@@ -43,14 +43,14 @@ export const generate_identifying_where = (
     orma_schema: OrmaSchema,
     guid_map: GuidMap,
     mutation_pieces: MutationPiece[],
-    identifying_keys: string[],
+    identifying_fields: string[],
     mutation_piece_index: number
 ) => {
     const { path, record } = mutation_pieces[mutation_piece_index]
     const entity = path_to_entity(path)
     const database_type = orma_schema.$entities[entity].$database_type
 
-    const where_clauses = identifying_keys.map(key => {
+    const where_clauses = identifying_fields.map(key => {
         const guid = record[key]?.$guid
         if (guid === undefined) {
             // if there is no guid, we just search the raw value
@@ -66,7 +66,8 @@ export const generate_identifying_where = (
                 $eq: [key, orma_escape(record[key].$resolved_value, database_type)],
             }
         } else {
-            // if there is a guid, we have to search based on where the guid writes to.
+            // if there is a guid, we have to search based on where the guid writes from. This allows
+            // us to identify records based on a read guid field.
             const write_info = guid_map.get(guid)?.write!
             const write_piece = mutation_pieces[write_info.piece_index]
             if (!write_piece.record.$identifying_fields) {

@@ -52,11 +52,6 @@ export const apply_nesting_mutation_macro = mutation => {
                     // -1 since the first element is the mutation itself that will be removed
                     higher_piece.lower_indices.push(lower_index - 1)
                 })
-
-                // we dont want child entities in the flat_mutation. This makes the flat_mutation
-                // simpler to parse e.g. when iterating over all its properties, we now know that
-                // each property is actually a field and not a nested entity
-                delete higher_piece.record[prop]
             }
         })
 

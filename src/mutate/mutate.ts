@@ -1,19 +1,11 @@
-import { apply_nesting_macro } from '../query/macros/nesting_macro'
 import { OrmaSchema } from '../types/schema/schema_types'
-import {
-    replace_guids_with_values,
-    save_guids,
-} from './database_results/guid_processing'
+import { replace_guids_with_values } from './database_results/guid_processing'
 import { sort_database_rows } from './database_results/sort_database_rows'
 import { apply_guid_inference_macro } from './macros/guid_inference_macro'
 import { apply_guid_plan_macro } from './macros/guid_plan_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
 import { apply_nesting_mutation_macro } from './macros/nesting_mutation_macro'
-import {
-    get_mutation_plan,
-    MutationPlan,
-    run_mutation_plan,
-} from './plan/mutation_plan'
+import { get_mutation_plan, run_mutation_plan } from './plan/mutation_plan'
 import {
     get_mutation_statements,
     OrmaStatement,
@@ -28,31 +20,35 @@ export type MysqlFunction = (
 export type ValuesByGuid = Record<string | number, any>
 
 export const orma_mutate_prepare = (orma_schema: OrmaSchema, mutation) => {
-    const mutation_context = { mutation }
     const mutation_pieces = apply_nesting_mutation_macro(mutation)
-    // const guid_map = 
     apply_inherit_operations_macro(mutation_pieces, mutation.$operation)
     apply_guid_inference_macro(orma_schema, mutation_pieces)
     const mutation_plan = get_mutation_plan(orma_schema, mutation)
-    apply_guid_plan_macro(mutation_plan.mutation_pieces, mutation_plan.mutation_batches)
-    
+    const guid_map = apply_guid_plan_macro(
+        mutation_pieces,
+        mutation_plan.mutation_batches
+    )
+    apply_guid_plan_macro(
+        mutation_plan.mutation_pieces,
+        mutation_plan.mutation_batches
+    )
 
-    return mutation_plan
+    return { ...mutation_plan, guid_map }
 }
 
 export const orma_mutate_run = async (
     orma_schema: OrmaSchema,
     mysql_function: MysqlFunction,
-    mutation_plan: MutationPlan,
+    mutation_plan: ReturnType<typeof orma_mutate_prepare>,
     mutation: any
 ) => {
-    const values_by_guid: ValuesByGuid = {}
+    const { guid_map, mutation_pieces } = mutation_plan
 
     await run_mutation_plan(mutation_plan, async ({ mutation_batch }) => {
         const { mutation_infos, query_infos } = get_mutation_statements(
-            mutation_plan.mutation_pieces,
+            mutation_pieces,
             mutation_batch,
-            values_by_guid,
+            guid_map,
             orma_schema
         )
 
@@ -66,14 +62,12 @@ export const orma_mutate_run = async (
                 mutation_pieces,
                 query_infos.map(el => el.ast.$from as string),
                 query_results,
-                values_by_guid,
                 orma_schema
             )
-            save_guids(values_by_guid, mutation_pieces, sorted_database_rows)
         }
     })
 
-    replace_guids_with_values(mutation, values_by_guid)
+    replace_guids_with_values(mutation_pieces, guid_map)
     return mutation
 }
 

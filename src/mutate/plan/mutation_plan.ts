@@ -8,6 +8,7 @@ import { toposort } from '../../helpers/toposort'
 import { Path } from '../../types'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
+import { GuidMap } from '../macros/guid_plan_macro'
 import { MutationOperation } from '../mutate'
 
 export const get_mutation_plan = (
@@ -173,7 +174,6 @@ export const run_mutation_plan = async (
     },
     callback: (context: {
         index: number
-        mutation_pieces: MutationPiece[]
         mutation_batch: MutationBatch
     }) => Promise<any>
 ) => {
@@ -183,15 +183,27 @@ export const run_mutation_plan = async (
         batch_index++
     ) {
         const mutation_batch = mutation_plan.mutation_batches[batch_index]
-        const batch_pieces = mutation_plan.mutation_pieces.slice(
-            mutation_batch.start_index,
-            mutation_batch.end_index
-        )
         await callback({
             index: batch_index,
-            mutation_pieces: batch_pieces,
             mutation_batch,
         })
+    }
+}
+
+export const mutation_batch_for_each = <T>(
+    mutation_pieces: T[],
+    mutation_batch: MutationBatch,
+    callback: (
+        mutation_piece: T,
+        mutation_piece_index: number
+    ) => any
+) => {
+    for (
+        let i = 0;
+        i < mutation_batch.end_index - mutation_batch.start_index;
+        i++
+    ) {
+        callback(mutation_pieces[i], i)
     }
 }
 
@@ -206,5 +218,6 @@ export type IndicesByValue = { [identifier: string]: number[] }
 
 export type MutationPlan = {
     mutation_pieces: MutationPiece[]
-    mutation_batches: MutationBatch[]
+    mutation_batches: MutationBatch[],
+    guid_map: GuidMap
 }

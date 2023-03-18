@@ -11,11 +11,11 @@ import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'
 import { sort_database_rows } from '../database_results/sort_database_rows'
-import { get_identifying_keys } from '../helpers/identifying_keys'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_record_where_clause } from '../helpers/record_searching'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
+import { generate_identifying_where } from '../helpers/record_searching'
+import { GuidMap } from '../macros/guid_plan_macro'
 
 /* 
 Description:
@@ -44,10 +44,11 @@ Notes:
 export const get_delete_verification_errors = async (
     orma_schema: OrmaSchema,
     mysql_function: MysqlFunction,
-    mutation_plan: Pick<MutationPlan, 'mutation_pieces'>
+    mutation_plan: Pick<MutationPlan, 'mutation_pieces' | 'guid_map'>
 ) => {
     const query = get_delete_verification_query(
         orma_schema,
+        mutation_plan.guid_map,
         mutation_plan.mutation_pieces
     )
     const results = await orma_query(query, orma_schema, mysql_function)
@@ -79,29 +80,28 @@ export const get_delete_mutation_pieces_by_entity = (
 
 export const get_delete_verification_query = (
     orma_schema: OrmaSchema,
+    guid_map: GuidMap,
     mutation_pieces: MutationPiece[]
 ) => {
-    const delete_pieces = mutation_pieces.filter(
-        el => el.record.$operation === 'delete'
-    )
-
-    const delete_pieces_by_entity = group_by(delete_pieces, el =>
-        mutation_path_to_entity(el.path)
+    const delete_indices_by_entity = mutation_pieces.reduce(
+        (acc, mutation_piece, i) => {
+            if (mutation_piece.record.$operation === 'delete') {
+                const entity = mutation_path_to_entity(mutation_piece.path)
+                acc[entity] = acc[entity] || []
+                acc[entity].push(i)
+            }
+            return acc
+        },
+        {} as Record<string, number[]>
     )
 
     const identifying_fields_by_entity = map_object(
-        delete_pieces_by_entity,
-        (entity, entity_mutation_pieces, i) => {
-            const identifying_keys = entity_mutation_pieces.flatMap(
-                ({ record }) =>
-                    get_identifying_keys(
-                        entity,
-                        record,
-                        {}, // since this happens before the mutation runs, the guid lookup is empty
-                        orma_schema,
-                        false // since we are dealing with delete records, the identifying keys should be unambiguous
-                    )
-            )
+        delete_indices_by_entity,
+        (entity, piece_indices) => {
+            const identifying_keys = piece_indices.flatMap(
+                piece_index =>
+                    mutation_pieces[piece_index].record.$identifying_keys
+            ) as string[]
             return [entity, new Set(identifying_keys)]
         }
     )
@@ -127,16 +127,17 @@ export const get_delete_verification_query = (
         (child_entity, edges_to_parent, i) => {
             const child_wheres = edges_to_parent.map(edge_to_parent => {
                 const parent_entity = edge_to_parent.to_entity
-                const parent_pieces = delete_pieces_by_entity[parent_entity]
 
-                const parent_wheres = parent_pieces.map(parent_piece => {
-                    const where = generate_record_where_clause(
-                        parent_piece,
-                        {},
+                const parent_wheres = delete_indices_by_entity[
+                    parent_entity
+                ].map(piece_index => {
+                    const where = generate_identifying_where(
                         orma_schema,
-                        false,
-                        true
-                    )?.where!
+                        guid_map,
+                        mutation_pieces,
+                        mutation_pieces[piece_index].record.$identifying_fields,
+                        piece_index
+                    )
 
                     return where
                 })
@@ -203,7 +204,6 @@ export const get_mutation_pieces_blocing_delete = (
         delete_pieces,
         result_entities,
         result_record_groups,
-        {},
         orma_schema
     )
 

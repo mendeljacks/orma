@@ -12,11 +12,10 @@ import {
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
-import { get_identifying_keys } from '../helpers/identifying_keys'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_record_where_clause_from_identifying_keys } from '../helpers/record_searching'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
+import { generate_identifying_where } from '../helpers/record_searching'
 
 /**
  * Generates errors when unique fields are duplicates in two cases:
@@ -76,16 +75,17 @@ export const get_unique_verification_errors = async (
  */
 export const get_verify_uniqueness_query = (
     orma_schema: OrmaSchema,
-    mutation_pieces_by_entity: Record<string, MutationPiece[]>
+    mutation_pieces: MutationPiece[],
+    piece_indices_by_entity: Record<string, number[]>
 ) => {
-    const mutation_entities = Object.keys(mutation_pieces_by_entity)
+    const mutation_entities = Object.keys(piece_indices_by_entity)
     const query = mutation_entities.reduce((acc, entity) => {
-        const mutation_pieces = mutation_pieces_by_entity[entity]
-
         // deleting a record never causes a unique constraint to be violated, so we only check creates and updates
-        const searchable_mutation_pieces = mutation_pieces.filter(
-            ({ record }) =>
-                record.$operation === 'update' || record.$operation === 'create'
+        const searchable_piece_indices = piece_indices_by_entity[entity].filter(
+            piece_index => {
+                const operation = mutation_pieces[piece_index].record.$operation
+                return ['create', 'update'].includes(operation)
+            }
         )
 
         // all unique fields
@@ -110,7 +110,11 @@ export const get_verify_uniqueness_query = (
                         !is_simple_object(record[field]) &&
                         !Array.isArray(record[field])
                 )
-                return generate_record_where_clause_from_identifying_keys(
+                return generate_identifying_where(
+                    orma_schema,
+                    guid_map,
+                    mutation_pieces,
+
                     {},
                     relevant_unique_fields,
                     record
@@ -145,6 +149,7 @@ const get_checkable_mutation_records = (
     orma_schema: OrmaSchema,
     unique_key: string[],
     mutation_pieces: MutationPiece[],
+    piece_indices: number[],
     allow_some_undefined: boolean
 ) => {
     return mutation_pieces
