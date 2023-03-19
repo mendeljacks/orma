@@ -1,5 +1,8 @@
 import { OrmaSchema } from '../types/schema/schema_types'
-import { replace_guids_with_values } from './database_results/guid_processing'
+import {
+    replace_guids_with_values,
+    save_resolved_guid_values,
+} from './database_results/guid_processing'
 import { sort_database_rows } from './database_results/sort_database_rows'
 import { apply_guid_inference_macro } from './macros/guid_inference_macro'
 import { apply_guid_plan_macro } from './macros/guid_plan_macro'
@@ -60,9 +63,16 @@ export const orma_mutate_run = async (
             const query_results = await mysql_function(query_infos)
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
+                guid_map,
+                mutation_batch,
                 query_infos.map(el => el.ast.$from as string),
                 query_results,
                 orma_schema
+            )
+            save_resolved_guid_values(
+                mutation_pieces,
+                mutation_batch,
+                sorted_database_rows
             )
         }
     })

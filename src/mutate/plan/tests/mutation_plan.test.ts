@@ -320,7 +320,10 @@ describe('mutation_plan.ts', () => {
     })
     describe(run_mutation_plan.name, () => {
         test('runs mutation plan', async () => {
-            const mutation_plan: MutationPlan = {
+            const mutation_plan: Pick<
+                MutationPlan,
+                'mutation_pieces' | 'mutation_batches'
+            > = {
                 mutation_pieces: [
                     {
                         record: {

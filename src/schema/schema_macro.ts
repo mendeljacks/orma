@@ -1,6 +1,6 @@
 import { get_difference } from '../helpers/helpers'
 import { get_all_edges } from '../helpers/schema_helpers'
-import { get_mutation_plan } from '../mutate/plan/mutation_plan'
+import { get_mutation_plan, MutationPiece } from '../mutate/plan/mutation_plan'
 import {
     ConstraintDefinition,
     FieldDefinition,
@@ -80,29 +80,31 @@ const get_sorted_create_table_statements = (
     create_statements: RegularCreateStatement[]
 ) => {
     // we make a fake mutation, which allows us to use the mutation planner to order our statements.
-    const mutation = create_statements.reduce((acc, statement, i) => {
-        const entity = statement.$create_table
-        const edges = get_all_edges(entity, final_schema)
+    const mutation_pieces: MutationPiece[] = create_statements.map(
+        (statement, i) => {
+            const entity = statement.$create_table
+            const edges = get_all_edges(entity, final_schema)
 
-        // we set all foreign key and primary keys to the value 1, since this will result in the strongest
-        // ordering when passed to the mutation planner
-        const edge_fields_obj = edges.reduce((acc, edge) => {
-            acc[edge.from_field] = 1
-            // keep track of the statement to convert the sorted mutation pieces back to statements
-            acc.$_statement_index = i
-            return acc
-        }, {} as Record<string, any>)
+            // we set all foreign key and primary keys to the value 1, since this will result in the strongest
+            // ordering when passed to the mutation planner
+            const edge_fields_obj = edges.reduce((acc, edge) => {
+                acc[edge.from_field] = 1
+                // keep track of the statement to convert the sorted mutation pieces back to statements
+                acc.$_statement_index = i
+                return acc
+            }, {} as Record<string, any>)
 
-        acc[entity] = [
-            {
-                $operation: 'create',
-                ...edge_fields_obj,
-            },
-        ]
-        return acc
-    }, {} as Record<string, any>)
+            return {
+                path: [entity, 0],
+                record: {
+                    $operation: 'create',
+                    ...edge_fields_obj,
+                },
+            }
+        }
+    )
 
-    const mutation_plan = get_mutation_plan(mutation, final_schema)
+    const mutation_plan = get_mutation_plan(final_schema, mutation_pieces)
     const sorted_statements = mutation_plan.mutation_pieces.map(
         ({ record }) => create_statements[record.$_statement_index]
     )

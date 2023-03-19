@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../helpers/tests/global_test_schema'
+import { MutationPiece } from '../../plan/mutation_plan'
 import {
     apply_infer_identifying_fields_macro,
     get_identifying_fields,
@@ -112,6 +113,48 @@ describe.only('identifying_keys.ts', () => {
             expect(mutation_pieces[0].record.$identifying_fields).to.deep.equal(
                 undefined
             )
+        })
+        test('throws on no identifying key', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    path: ['posts', 0],
+                    record: {
+                        $operation: 'update',
+                        views: 5, // views is not unique, so it can't be used to update with
+                        $identifying_fields: [],
+                    },
+                },
+            ]
+            try {
+                apply_infer_identifying_fields_macro(
+                    global_test_schema,
+                    mutation_pieces
+                )
+                expect('should have thrown an error').to.equal(true)
+            } catch (error) {
+                // error was thrown as it should be
+            }
+        })
+        test('throws on multiple unique update keys', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    path: ['users', 0],
+                    record: {
+                        $operation: 'update',
+                        billing_address_id: 1,
+                        email: 'a@a.com',
+                        first_name: 'john',
+                        last_name: 'smith',
+                    },
+                },
+            ]
+            try {
+                apply_infer_identifying_fields_macro(
+                    global_test_schema,
+                    mutation_pieces
+                )
+                expect('should have thrown an error').to.equal(true)
+            } catch (error) {}
         })
     })
     describe(get_identifying_fields.name, () => {

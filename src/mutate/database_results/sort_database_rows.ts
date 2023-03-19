@@ -1,11 +1,16 @@
 import { array_equals, key_by } from '../../helpers/helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
+import { GuidMap } from '../macros/guid_plan_macro'
 import {
     get_identifying_fields,
     get_possible_identifying_keys,
 } from '../macros/identifying_fields_macro'
-import { MutationPiece } from '../plan/mutation_plan'
+import {
+    MutationBatch,
+    MutationPiece,
+    mutation_batch_for_each,
+} from '../plan/mutation_plan'
 import { get_resolved_mutation_value } from '../statement_generation/mutation_operations'
 
 type DatabaseIndexesByEntity = {
@@ -16,6 +21,8 @@ type DatabaseIndexesByEntity = {
 
 export const sort_database_rows = (
     mutation_pieces: MutationPiece[],
+    guid_map: GuidMap,
+    mutation_batch: MutationBatch,
     query_entities: string[],
     query_results: Record<string, any>[][],
     orma_schema: OrmaSchema
@@ -34,6 +41,8 @@ export const sort_database_rows = (
 
     const sorted_database_rows = sort_database_rows_given_indexes(
         mutation_pieces,
+        guid_map,
+        mutation_batch,
         database_indexes_by_entity,
         orma_schema
     )
@@ -88,46 +97,58 @@ const get_database_indexes_by_entity = (
 
 const sort_database_rows_given_indexes = (
     mutation_pieces: MutationPiece[],
+    guid_map: GuidMap,
+    mutation_batch: MutationBatch,
     database_indexes_by_entity: DatabaseIndexesByEntity,
     orma_schema: OrmaSchema
 ) => {
-    const ordered_database_rows = mutation_pieces.map(({ record, path }) => {
-        const entity = path_to_entity(path)
+    let ordered_database_rows: Record<string, any>[] = []
+    mutation_batch_for_each(
+        mutation_pieces,
+        mutation_batch,
+        ({ record, path }) => {
+            const entity = path_to_entity(path)
 
-        // this can happen if all data is provided by the user so there is no query to get more data about this record
-        if (!database_indexes_by_entity[entity]) {
-            return undefined
-        }
+            // this can happen if all data is provided by the user so there is no query to get more data about this record
+            if (!database_indexes_by_entity[entity]) {
+                return undefined
+            }
 
-        const identifying_keys = get_identifying_fields(
-            orma_schema,
-            entity,
-            record,
-            true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
-            // (unlike in an actual update, where it determines which fields are modified). We just select any key in
-            // the same way as was selected for the query
-        )
-        const possible_identifying_keys = get_possible_identifying_keys(
-            orma_schema,
-            entity
-        )
-        const identifying_key_index = possible_identifying_keys.findIndex(
-            keys => array_equals(keys, identifying_keys)
-        )
+            const identifying_keys = get_identifying_fields(
+                orma_schema,
+                entity,
+                record,
+                true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
+                // (unlike in an actual update, where it determines which fields are modified). We just select any key in
+                // the same way as was selected for the query
+            )
+            const possible_identifying_keys = get_possible_identifying_keys(
+                orma_schema,
+                entity
+            )
+            const identifying_key_index = possible_identifying_keys.findIndex(
+                keys => array_equals(keys, identifying_keys)
+            )
 
-        const database_index =
-            database_indexes_by_entity[entity][identifying_key_index]
-        const database_row =
-            database_index[
-                JSON.stringify(
-                    identifying_keys.map(field =>
-                        get_resolved_mutation_value(record, field)
+            const database_index =
+                database_indexes_by_entity[entity][identifying_key_index]
+            const database_row =
+                database_index[
+                    JSON.stringify(
+                        identifying_keys.map(field =>
+                            get_resolved_mutation_value(
+                                mutation_pieces,
+                                guid_map,
+                                record,
+                                field
+                            )
+                        )
                     )
-                )
-            ] ?? {}
+                ] ?? {}
 
-        return database_row
-    })
+            ordered_database_rows.push(database_row)
+        }
+    )
 
     return ordered_database_rows
 }

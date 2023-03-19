@@ -46,6 +46,7 @@ describe('verify_deletes.ts', () => {
 
             const query = get_delete_verification_query(
                 global_test_schema,
+                new Map(),
                 pieces
             )
             expect({ users: query.users, posts: query.posts }).to.deep.equal({
@@ -105,6 +106,7 @@ describe('verify_deletes.ts', () => {
 
             const query = get_delete_verification_query(
                 global_test_schema,
+                new Map(),
                 pieces
             )
 
@@ -146,6 +148,7 @@ describe('verify_deletes.ts', () => {
 
             const query = get_delete_verification_query(
                 global_test_schema,
+                new Map(),
                 pieces
             )
             expect({ posts: query.posts }).to.deep.equal({

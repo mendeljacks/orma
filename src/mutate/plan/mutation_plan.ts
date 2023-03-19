@@ -193,19 +193,15 @@ export const run_mutation_plan = async (
 export const mutation_batch_for_each = <T>(
     mutation_pieces: T[],
     mutation_batch: MutationBatch,
-    callback: (
-        mutation_piece: T,
-        mutation_piece_index: number
-    ) => any
+    callback: (mutation_piece: T, mutation_piece_index: number) => any
 ) => {
-    for (
-        let i = 0;
-        i < mutation_batch.end_index - mutation_batch.start_index;
-        i++
-    ) {
+    for (let i = 0; i < get_mutation_batch_length(mutation_batch); i++) {
         callback(mutation_pieces[i], i)
     }
 }
+
+export const get_mutation_batch_length = (mutation_batch: MutationBatch) =>
+    mutation_batch.end_index - mutation_batch.start_index
 
 export type MutationPiece = {
     record: Record<string, any> & { $operation: MutationOperation }
@@ -218,6 +214,6 @@ export type IndicesByValue = { [identifier: string]: number[] }
 
 export type MutationPlan = {
     mutation_pieces: MutationPiece[]
-    mutation_batches: MutationBatch[],
+    mutation_batches: MutationBatch[]
     guid_map: GuidMap
 }

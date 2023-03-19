@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../helpers/tests/global_test_schema'
+import { apply_guid_plan_macro } from '../../macros/guid_plan_macro'
 import { MutationPiece } from '../../plan/mutation_plan'
 import { get_guid_query } from '../mutation_guid_query'
 
@@ -34,10 +35,16 @@ describe('mutation_guid_query.ts', () => {
                 },
             ]
 
+            const guid_map = apply_guid_plan_macro(mutation_pieces, [
+                { start_index: 0, end_index: 1 },
+                { start_index: 1, end_index: 2 },
+            ])
+
             const result = get_guid_query(
                 mutation_pieces,
+                [0, 1, 2],
                 'users',
-                {},
+                guid_map,
                 global_test_schema
             )
 
@@ -76,8 +83,9 @@ describe('mutation_guid_query.ts', () => {
 
             const result = get_guid_query(
                 mutation_pieces,
+                [0],
                 'users',
-                {},
+                new Map(),
                 global_test_schema
             )
 

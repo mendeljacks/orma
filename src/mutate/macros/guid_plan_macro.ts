@@ -53,41 +53,6 @@ export const apply_guid_plan_macro = (
                     // The guid was encountered in a previous batch so it is a read
                     record[field].$read = true
                     guid_map_el.reads.push(guid_info)
-
-                    // // we only need to record the batch index once, and the batch index
-                    // // might already be recorded if we encountered this guid already
-                    // // in this batch
-                    // if (last_batch !== batch_index) {
-                    //     encountered_batches.push(batch_index)
-                    // }
-
-                    // const encountered_batches =
-                    //     batch_indices_by_guid.get(guid) ?? []
-                    // const last_batch = last(encountered_batches)
-
-                    // // if this guid was not encountered yet, it is definitely a write
-                    // if (last_batch === undefined) {
-                    //     batch_indices_by_guid.set(guid, [batch_index])
-                    //     record[field] = { $write_guid: guid }
-                    // } else {
-                    //     // if the guid was only encountered in this batch (so not in any
-                    //     // previous batches), then it is a write
-                    //     if (array_equals(encountered_batches, [batch_index])) {
-                    //         record[field] = { $write_guid: guid }
-                    //     } else {
-                    //         // otherwise, the guid was encountered in a previous batch
-                    //         // so it is a read
-                    //         record[field] = { $read_guid: guid }
-                    //         batch_indices_by_guid.get(guid)?.push(batch_index)
-                    //     }
-
-                    //     // we only need to record the batch index once, and the batch index
-                    //     // might already be recorded if we encountered this guid already
-                    //     // in this batch
-                    //     if (last_batch !== batch_index) {
-                    //         encountered_batches.push(batch_index)
-                    //     }
-                    // }
                 }
             })
         }

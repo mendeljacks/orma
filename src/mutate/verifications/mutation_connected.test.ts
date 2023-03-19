@@ -67,6 +67,7 @@ describe('mutation_connected.ts', () => {
                 global_test_schema,
                 default_connection_edges,
                 query_function,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -81,6 +82,7 @@ describe('mutation_connected.ts', () => {
                 global_test_schema,
                 default_connection_edges,
                 query_function,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -110,6 +112,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 [get_test_where_connected('posts')],
                 mutation_pieces
             )
@@ -173,6 +176,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 connection_edges,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -236,6 +240,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 connection_edges,
+                new Map(),
                 [get_test_where_connected('posts')],
                 mutation_pieces
             )
@@ -288,6 +293,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 connection_edges,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -310,6 +316,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -333,6 +340,7 @@ describe('mutation_connected.ts', () => {
             const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 get_test_where_connected('users'),
                 mutation_pieces,
                 'posts'
@@ -383,6 +391,7 @@ describe('mutation_connected.ts', () => {
             const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 get_test_where_connected('addresses'),
                 mutation_pieces,
                 'users'
@@ -425,6 +434,7 @@ describe('mutation_connected.ts', () => {
             const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 get_test_where_connected('users'),
                 mutation_pieces,
                 'products'
@@ -448,6 +458,7 @@ describe('mutation_connected.ts', () => {
             const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 {
                     $entity: 'categories',
                     $field: 'id',

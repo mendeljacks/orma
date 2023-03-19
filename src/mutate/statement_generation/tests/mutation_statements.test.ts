@@ -45,6 +45,7 @@ describe('mutation_statements.ts', () => {
                         },
                     ],
                     {},
+                    new Map(),
                     {}
                 )
                 expect('should throw an error').to.equal(true)
@@ -56,7 +57,7 @@ describe('mutation_statements.ts', () => {
                     record: {
                         $operation: 'create',
                         id: 1,
-                        country_id: { $guid: 'a' },
+                        country_id: 11,
                     },
                     path: ['users', 0],
                 },
@@ -84,12 +85,10 @@ describe('mutation_statements.ts', () => {
                 },
             ]
 
-            const values_by_guid = {
-                a: 11,
-            }
             const result = get_mutation_statements(
                 mutation_pieces,
-                values_by_guid,
+                { start_index: 0, end_index: 4 },
+                new Map(),
                 orma_schema
             )
 
