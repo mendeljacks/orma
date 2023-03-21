@@ -55,7 +55,7 @@ export const generate_identifying_where = (
         if (guid === undefined) {
             // if there is no guid, we just search the raw value
             return {
-                $eq: [key, orma_escape(record[key], database_type)],
+                $eq: [key, { $escape: record[key] }],
             }
         } else if (record[key].$resolved_value !== undefined) {
             // use the resolved value if there is one. Sometimes we must use a resolved value, for
@@ -63,7 +63,7 @@ export const generate_identifying_where = (
             // generates them. Additionally, its more efficient to use a resolved value if it is already
             // in scope
             return {
-                $eq: [key, orma_escape(record[key].$resolved_value, database_type)],
+                $eq: [key, { $escape: record[key].$resolved_value }],
             }
         } else {
             // if there is a guid, we have to search based on where the guid writes from. This allows

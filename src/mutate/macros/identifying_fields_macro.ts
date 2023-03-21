@@ -66,8 +66,8 @@ const field_can_be_identifier = (
     // $write_guid cannot be used as an identifying field, since when the record is executed, the guid will not be
     // in scope. It will only be fetched after the operation is done. for read guids however, the guid is in scope
     // (it must be in order to be read from), so we can use it to identify the record.
-    const is_read_guid = value?.$guid !== undefined && value?.$read === true
-    return !is_nill && is_read_guid
+    const is_write_guid = value?.$guid !== undefined && value?.$write === true
+    return !is_nill && !is_write_guid
 }
 
 export const get_possible_identifying_keys = (

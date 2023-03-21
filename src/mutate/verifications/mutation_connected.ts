@@ -151,7 +151,7 @@ export const get_identifier_connected_wheres = (
                 orma_schema,
                 guid_map,
                 mutation_pieces,
-                mutation_piece.record.identifying_keys,
+                mutation_piece.record.$identifying_fields,
                 piece_index
             )
 

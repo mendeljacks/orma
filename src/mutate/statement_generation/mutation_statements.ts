@@ -108,13 +108,29 @@ const get_mutation_infos_for_group = (
 ) => {
     let asts: (Record<any, any> | undefined)[]
     if (operation === 'create') {
-        asts = [get_create_ast(mutation_pieces, guid_map, mutation_piece_indices, entity, orma_schema)]
+        asts = [
+            get_create_ast(
+                mutation_pieces,
+                guid_map,
+                mutation_piece_indices,
+                entity,
+                orma_schema
+            ),
+        ]
     } else if (operation === 'update') {
-        asts = mutation_pieces.map((mutation_piece, piece_index) =>
+        asts = mutation_piece_indices.map(piece_index =>
             get_update_ast(mutation_pieces, piece_index, guid_map, orma_schema)
         )
     } else if (operation === 'delete') {
-        asts = [get_delete_ast(orma_schema, mutation_pieces, entity, guid_map)]
+        asts = [
+            get_delete_ast(
+                orma_schema,
+                mutation_pieces,
+                mutation_piece_indices,
+                entity,
+                guid_map
+            ),
+        ]
     } else {
         throw new Error(`Unrecognized $operation ${operation}`)
     }

@@ -104,6 +104,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 3,
+                        $identifying_fields: ['id']
                     },
                     path: ['comments', 0],
                 },
@@ -146,6 +147,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+                        $identifying_fields: ['id']
                     },
                     path: ['addresses', 0],
                 },
@@ -332,6 +334,7 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 12,
                         title: 'hi',
+                        $identifying_fields: ['id']
                     },
                     path: ['posts', 0],
                 },
@@ -365,6 +368,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+                        $identifying_fields: ['id']
                     },
                     path: ['users', 0],
                 },
@@ -449,6 +453,7 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                         user_id: 12,
+                        $identifying_fields: ['id']
                     },
                     path: ['posts', 0],
                 },
@@ -480,6 +485,7 @@ describe('mutation_connected.ts', () => {
                         id: 1,
                         user_id: 12,
                         title: 'hi',
+                        $identifying_fields: ['id']
                     },
                     path: ['posts', 0],
                 },
@@ -513,6 +519,7 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                         post_id: 11,
+                        $identifying_fields: ['id']
                     },
                     path: ['comments', 0],
                 },
@@ -553,6 +560,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+                        $identifying_fields: ['id']
                     },
                     path: ['comments', 0],
                 },

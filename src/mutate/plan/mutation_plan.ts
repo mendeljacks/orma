@@ -192,11 +192,20 @@ export const run_mutation_plan = async (
 
 export const mutation_batch_for_each = <T>(
     mutation_pieces: T[],
-    mutation_batch: MutationBatch,
+    mutation_batch: MutationBatch | number[],
     callback: (mutation_piece: T, mutation_piece_index: number) => any
 ) => {
-    for (let i = 0; i < get_mutation_batch_length(mutation_batch); i++) {
-        callback(mutation_pieces[i], i)
+    if (Array.isArray(mutation_batch)) {
+        mutation_batch.forEach(mutation_piece_index => {
+            callback(
+                mutation_pieces[mutation_piece_index],
+                mutation_piece_index
+            )
+        })
+    } else {
+        for (let i = 0; i < get_mutation_batch_length(mutation_batch); i++) {
+            callback(mutation_pieces[i], i)
+        }
     }
 }
 

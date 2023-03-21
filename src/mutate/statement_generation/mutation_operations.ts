@@ -39,7 +39,8 @@ export const get_create_ast = (
         return acc
     }, new Set() as Set<string>)
 
-    const values = mutation_pieces.map((mutation_piece, i) => {
+    const values = piece_indices.map(piece_index => {
+        const mutation_piece = mutation_pieces[piece_index]
         const record_values = [...fields].flatMap(field => {
             const resolved_value = get_resolved_mutation_value_if_field(
                 mutation_pieces,
@@ -85,7 +86,7 @@ const get_resolved_mutation_value_if_field = (
     if (
         is_submutation(record, field) ||
         is_reserved_keyword(field) ||
-        record[field].$write
+        record[field]?.$write
     ) {
         return undefined
     }
@@ -177,11 +178,12 @@ export const get_update_ast = (
 export const get_delete_ast = (
     orma_schema: OrmaSchema,
     mutation_pieces: MutationPiece[],
+    piece_indices: number[],
     entity: string,
     guid_map: GuidMap
 ) => {
-    const wheres = mutation_pieces.map((mutation_piece, piece_index) => {
-        const identifying_fields = mutation_piece.record
+    const wheres = piece_indices.map(piece_index => {
+        const identifying_fields = mutation_pieces[piece_index].record
             .$identifying_fields as string[]
         const where = generate_identifying_where(
             orma_schema,

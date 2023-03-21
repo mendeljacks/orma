@@ -1,6 +1,8 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
+import { group_by } from '../../helpers/helpers'
 import { global_test_schema } from '../../helpers/tests/global_test_schema'
+import { path_to_entity } from '../helpers/mutate_helpers'
 import { MutationPiece } from '../plan/mutation_plan'
 import {
     get_database_uniqueness_errors,
@@ -19,12 +21,12 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         title: 'hi',
+                        $identifying_fields: ['id'],
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                posts: [0],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const result = get_verify_uniqueness_query(
                 global_test_schema,
@@ -53,12 +55,12 @@ describe('verify_uniqueness.ts', () => {
                         first_name: 'john', // combo unique
                         last_name: 'smith', // combo unique
                         age: 20,
+                        $identifying_fields: ['id'],
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                posts: [0],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const result = get_verify_uniqueness_query(
                 global_test_schema,
@@ -104,11 +106,13 @@ describe('verify_uniqueness.ts', () => {
                     $operation: 'update',
                     id: 12,
                     title: 'hi',
+                    $identifying_fields: ['id'],
                 },
                 {
                     $operation: 'delete',
                     id: 13,
                     title: 'as',
+                    $identifying_fields: ['id'],
                 },
                 {
                     $operation: 'create',
@@ -121,9 +125,8 @@ describe('verify_uniqueness.ts', () => {
                 record: el,
             })) as MutationPiece[]
 
-            const piece_indices_by_entity: Record<string, number[]> = {
-                posts: [0, 1, 2],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const result = get_verify_uniqueness_query(
                 global_test_schema,
@@ -160,12 +163,12 @@ describe('verify_uniqueness.ts', () => {
                         // not used as a unique field since it is the identifying field and so is not being edited
                         title: 'hi',
                         views: 123,
+                        $identifying_fields: ['title'],
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                posts: [0],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const result = get_verify_uniqueness_query(
                 global_test_schema,
@@ -186,12 +189,12 @@ describe('verify_uniqueness.ts', () => {
                         // we have to fetch both first_name and last_name
                         id: 1,
                         first_name: 'john',
+                        $identifying_fields: ['id'],
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                users: [0],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const result = get_verify_uniqueness_query(
                 global_test_schema,
@@ -220,12 +223,12 @@ describe('verify_uniqueness.ts', () => {
                         id: 1,
                         first_name: 'john',
                         last_name: 'smith',
+                        $identifying_fields: ['id'],
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                users: [0],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const result = get_verify_uniqueness_query(
                 global_test_schema,
@@ -265,9 +268,8 @@ describe('verify_uniqueness.ts', () => {
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                users: [0],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const result = get_verify_uniqueness_query(
                 global_test_schema,
@@ -302,6 +304,7 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 1,
                         title: 'title 1',
+                        $identifying_fields: ['id'],
                     },
                 },
                 {
@@ -310,6 +313,7 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 2,
                         title: 'title 2',
+                        $identifying_fields: ['id'],
                     },
                 },
                 {
@@ -318,12 +322,12 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 11,
                         email: 'a@a.com',
+                        $identifying_fields: ['id'],
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                users: [0, 1, 2],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const result = get_verify_uniqueness_query(
                 global_test_schema,
@@ -414,6 +418,7 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         email: 'a',
+                        $identifying_fields: ['id'],
                     },
                 },
                 {
@@ -422,13 +427,12 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 13,
                         label: 'hi',
+                        $identifying_fields: ['id'],
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                users: [0],
-                categories: [0],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const database_records_by_entity = {
                 users: [
@@ -466,6 +470,7 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         line_1: 'a',
+                        $identifying_fields: ['id'],
                     },
                 },
                 {
@@ -477,9 +482,8 @@ describe('verify_uniqueness.ts', () => {
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                addresses: [0, 1],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const database_records_by_entity = {
                 addresses: [
@@ -508,12 +512,12 @@ describe('verify_uniqueness.ts', () => {
                         id: 12,
                         first_name: 'john',
                         last_name: 'a',
+                        $identifying_fields: ['id'],
                     },
                 },
             ]
-            const piece_indices_by_entity: Record<string, number[]> = {
-                addresses: [0, 1],
-            }
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const database_records_by_entity = {
                 users: [
@@ -535,18 +539,19 @@ describe('verify_uniqueness.ts', () => {
             expect(errors.length).to.equal(0)
         })
         test('does not generate an error for nulls', () => {
-            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                users: [
-                    {
-                        path: ['users', 0],
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                            email: null,
-                        },
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    path: ['users', 0],
+                    record: {
+                        $operation: 'update',
+                        id: 12,
+                        email: null,
+                        $identifying_fields: ['id'],
                     },
-                ],
-            }
+                },
+            ]
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const database_records_by_entity = {
                 users: [
@@ -559,25 +564,27 @@ describe('verify_uniqueness.ts', () => {
 
             const errors = get_database_uniqueness_errors(
                 global_test_schema,
-                mutation_pieces_by_entity,
+                mutation_pieces,
+                piece_indices_by_entity,
                 database_records_by_entity
             )
 
             expect(errors.length).to.equal(0)
         })
         test('does not generate an error for nulls', () => {
-            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                users: [
-                    {
-                        path: ['users', 0],
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                            email: {},
-                        },
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    path: ['users', 0],
+                    record: {
+                        $operation: 'update',
+                        id: 12,
+                        email: {},
+                        $identifying_fields: ['id'],
                     },
-                ],
-            }
+                },
+            ]
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const database_records_by_entity = {
                 users: [
@@ -590,7 +597,8 @@ describe('verify_uniqueness.ts', () => {
 
             const errors = get_database_uniqueness_errors(
                 global_test_schema,
-                mutation_pieces_by_entity,
+                mutation_pieces,
+                piece_indices_by_entity,
                 database_records_by_entity
             )
 
@@ -599,111 +607,126 @@ describe('verify_uniqueness.ts', () => {
     })
     describe(get_mutation_uniqueness_errors.name, () => {
         test('gets uniqueness errors', () => {
-            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                users: [
-                    {
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                            first_name: 'john',
-                            last_name: 'smith',
-                        },
-                        path: ['users', 0],
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 12,
+                        first_name: 'john',
+                        last_name: 'smith',
+                        $identifying_fields: ['id'],
                     },
-                    {
-                        record: {
-                            $operation: 'update',
-                            id: 13,
-                            first_name: 'john',
-                            last_name: 'doe',
-                        },
-                        path: ['users', 1],
+                    path: ['users', 0],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 13,
+                        first_name: 'john',
+                        last_name: 'doe',
+                        $identifying_fields: ['id'],
                     },
-                    {
-                        record: {
-                            $operation: 'update',
-                            id: 14,
-                            first_name: 'john',
-                            last_name: 'smith',
-                        },
-                        path: ['users', 2],
+                    path: ['users', 1],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 14,
+                        first_name: 'john',
+                        last_name: 'smith',
+                        $identifying_fields: ['id'],
                     },
-                ],
-                addresses: [
-                    {
-                        record: {
-                            $operation: 'update',
-                            id: 13,
-                            line_1: 'hi',
-                        },
-                        path: ['addresses', 0],
+                    path: ['users', 2],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 13,
+                        line_1: 'hi',
+                        $identifying_fields: ['id'],
                     },
-                ],
-            }
+                    path: ['addresses', 0],
+                },
+            ]
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const errors = get_mutation_uniqueness_errors(
                 global_test_schema,
-                mutation_pieces_by_entity
+                mutation_pieces,
+                piece_indices_by_entity
             )
 
             expect(errors.length).to.equal(2)
         })
         test('ignores same identifying keys', () => {
             // same identifying key is technically a bit ambiguous but is allowed because it wont generate an sql error
-            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                users: [
-                    {
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                        },
-                        path: ['users', 0],
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 12,
+                        $identifying_fields: ['id'],
                     },
-                    {
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                        },
-                        path: ['users', 1],
+                    path: ['users', 0],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 12,
+                        $identifying_fields: ['id'],
                     },
-                ],
-            }
+                    path: ['users', 1],
+                },
+            ]
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const errors = get_mutation_uniqueness_errors(
                 global_test_schema,
-                mutation_pieces_by_entity
+                mutation_pieces,
+                piece_indices_by_entity
             )
 
             expect(errors.length).to.equal(0)
         })
         test('ignores objects', () => {
-            const mutation_pieces_by_entity: Record<string, MutationPiece[]> = {
-                users: [
-                    {
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                            email: [{}],
-                        },
-                        path: ['users', 0],
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 12,
+                        email: [{}],
+                        $identifying_fields: ['id'],
                     },
-                    {
-                        record: {
-                            $operation: 'update',
-                            id: 12,
-                            email: [{}],
-                        },
-                        path: ['users', 1],
+                    path: ['users', 0],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 12,
+                        email: [{}],
+                        $identifying_fields: ['id'],
                     },
-                ],
-            }
+                    path: ['users', 1],
+                },
+            ]
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
 
             const errors = get_mutation_uniqueness_errors(
                 global_test_schema,
-                mutation_pieces_by_entity
+                mutation_pieces,
+                piece_indices_by_entity
             )
 
             expect(errors.length).to.equal(0)
         })
     })
 })
+
+const get_piece_indices_by_entity = (mutation_pieces: MutationPiece[]) =>
+    group_by(
+        mutation_pieces.map((_, i) => i),
+        piece_index => path_to_entity(mutation_pieces[piece_index].path)
+    )

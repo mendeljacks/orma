@@ -240,6 +240,7 @@ describe('mutation_operations.ts', () => {
             const result = get_delete_ast(
                 global_test_schema,
                 mutation_pieces,
+                mutation_pieces.map((_, i) => i),
                 'posts',
                 new Map()
             )
@@ -307,15 +308,6 @@ describe('mutation_operations.ts', () => {
             expect(result).to.deep.equal(goal)
         })
         test('handles guid resolving for creates', () => {
-            const mutation = {
-                addresses: [
-                    {
-                        $operation: 'create',
-                        id: { $guid: 'a' },
-                    },
-                ],
-            } as const satisfies GlobalTestMutation
-
             const mutation_pieces: MutationPiece[] = [
                 {
                     path: ['users', 0],
@@ -345,14 +337,14 @@ describe('mutation_operations.ts', () => {
             const result = get_create_ast(
                 mutation_pieces,
                 guid_map,
-                [0, 1],
+                [1],
                 'posts',
                 global_test_schema
             )
 
             const goal = {
-                $insert_into: ['addresses', ['id']],
-                $values: [[12]],
+                $insert_into: ['posts', ['title', 'user_id']],
+                $values: [["'test'", 12]],
             }
 
             expect(result).to.deep.equal(goal)

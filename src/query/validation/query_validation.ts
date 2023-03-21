@@ -251,11 +251,11 @@ const validate_expression = (
                 ? last_path_el
                 : second_last_path_el
         const sql_function_definition = sql_function_definitions[function_name]
-        if (
-            (expression === '*' &&
-                sql_function_definition?.allow_star === true) ||
+
+        const can_have_star =
+            sql_function_definition?.allow_star === true ||
             function_name === '$select'
-        ) {
+        if (expression === '*' && can_have_star) {
             return []
         }
 

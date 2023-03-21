@@ -9,7 +9,7 @@ import {
     InferIdentifyingFieldsInput,
 } from '../identifying_fields_macro'
 
-describe.only('identifying_keys.ts', () => {
+describe('identifying_keys.ts', () => {
     describe(apply_infer_identifying_fields_macro.name, () => {
         test('uses resolved $guid fields as identifying keys', () => {
             const mutation_pieces: InferIdentifyingFieldsInput = [

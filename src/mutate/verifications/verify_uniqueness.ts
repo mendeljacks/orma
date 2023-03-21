@@ -243,7 +243,9 @@ export const get_database_uniqueness_errors = (
                     const database_record =
                         database_records[database_record_index]
                     const mutation_piece =
-                        mutation_pieces[mutation_record_index]
+                        mutation_pieces[
+                            checkable_piece_indices[mutation_record_index]
+                        ]
 
                     const values = field_group.map(el => database_record[el])
 
@@ -300,7 +302,7 @@ export const get_mutation_uniqueness_errors = (
             )
 
             const relevant_records = checkable_piece_indices.map(
-                piece_index => mutation_pieces[piece_index]
+                piece_index => mutation_pieces[piece_index].record
             )
 
             const duplicate_indices = get_duplicate_record_indices(
@@ -317,18 +319,15 @@ export const get_mutation_uniqueness_errors = (
 
             const duplicate_errors = real_duplicate_indices.flatMap(
                 ([record_index1, record_index2]) => {
-                    const pathed_record1 = relevant_records[record_index1]
+                    const piece1 =
+                        mutation_pieces[checkable_piece_indices[record_index1]]
 
-                    const pathed_record2 = relevant_records[record_index2]
+                    const piece2 =
+                        mutation_pieces[checkable_piece_indices[record_index2]]
 
-                    const values = field_group.map(
-                        el => pathed_record1.record[el]
-                    )
+                    const values = field_group.map(el => piece1.record[el])
 
-                    const errors: OrmaError[] = [
-                        pathed_record1,
-                        pathed_record2,
-                    ].map(record => {
+                    const errors: OrmaError[] = [piece1, piece2].map(record => {
                         return {
                             message: `Record is not unique. Fields ${field_group
                                 .map(el => JSON.stringify(el))

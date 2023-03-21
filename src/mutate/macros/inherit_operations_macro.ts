@@ -38,6 +38,7 @@ const propagate_operation = (
 ) => {
     const piece = mutation_pieces[index]
     const operation = piece.record.$operation
+    processed_indices.delete(index)
     if (operation === undefined) {
         const higher_index = piece.higher_index
         const use_root_operation = higher_index === undefined && root_operation
@@ -51,7 +52,6 @@ const propagate_operation = (
               )
 
         piece.record.$operation = higher_operation
-        processed_indices.delete(index)
         return higher_operation
     } else {
         return operation

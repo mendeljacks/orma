@@ -55,6 +55,7 @@ export const get_delete_verification_errors = async (
     const blocking_pieces = get_mutation_pieces_blocing_delete(
         orma_schema,
         mutation_plan.mutation_pieces,
+        mutation_plan.guid_map,
         results
     )
     const errors = get_delete_errors_from_blocking_rows(
@@ -100,7 +101,7 @@ export const get_delete_verification_query = (
         (entity, piece_indices) => {
             const identifying_keys = piece_indices.flatMap(
                 piece_index =>
-                    mutation_pieces[piece_index].record.$identifying_keys
+                    mutation_pieces[piece_index].record.$identifying_fields
             ) as string[]
             return [entity, new Set(identifying_keys)]
         }
@@ -191,17 +192,20 @@ const get_result_id_string = (
 export const get_mutation_pieces_blocing_delete = (
     orma_schema: OrmaSchema,
     mutation_pieces: MutationPiece[],
+    guid_map: GuidMap,
     results: Record<string, Record<string, any>[]>
 ) => {
-    const delete_pieces = mutation_pieces.filter(
-        el => el.record.$operation === 'delete'
+    const delete_indices = mutation_pieces.flatMap((mutation_piece, i) =>
+        mutation_piece.record.$operation === 'delete' ? [i] : []
     )
 
     const result_entities = Object.keys(results)
     const result_record_groups = result_entities.map(entity => results[entity])
 
     const matched_results = sort_database_rows(
-        delete_pieces,
+        mutation_pieces,
+        guid_map,
+        delete_indices,
         result_entities,
         result_record_groups,
         orma_schema
@@ -215,7 +219,7 @@ export const get_mutation_pieces_blocing_delete = (
 
             const id_string = get_result_id_string(
                 orma_schema,
-                path_to_entity(delete_pieces[i].path),
+                path_to_entity(mutation_pieces[delete_indices[i]].path),
                 matched_result
             )
             acc.add(id_string)

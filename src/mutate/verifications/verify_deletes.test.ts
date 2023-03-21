@@ -32,15 +32,27 @@ describe('verify_deletes.ts', () => {
             const pieces: MutationPiece[] = [
                 {
                     path: ['users', 0],
-                    record: { $operation: 'delete', id: 1 },
+                    record: {
+                        $operation: 'delete',
+                        id: 1,
+                        $identifying_fields: ['id'],
+                    },
                 },
                 {
                     path: ['users', 1],
-                    record: { $operation: 'delete', id: 2 },
+                    record: {
+                        $operation: 'delete',
+                        id: 2,
+                        $identifying_fields: ['id'],
+                    },
                 },
                 {
                     path: ['addresses', 0],
-                    record: { $operation: 'delete', id: 5 },
+                    record: {
+                        $operation: 'delete',
+                        id: 5,
+                        $identifying_fields: ['id'],
+                    },
                 },
             ]
 
@@ -92,15 +104,27 @@ describe('verify_deletes.ts', () => {
             const pieces: MutationPiece[] = [
                 {
                     path: ['users', 0],
-                    record: { $operation: 'delete', id: 1 },
+                    record: {
+                        $operation: 'delete',
+                        id: 1,
+                        $identifying_fields: ['id'],
+                    },
                 },
                 {
                     path: ['posts', 0],
-                    record: { $operation: 'delete', id: 11 },
+                    record: {
+                        $operation: 'delete',
+                        id: 11,
+                        $identifying_fields: ['id'],
+                    },
                 },
                 {
                     path: ['comments', 0],
-                    record: { $operation: 'delete', id: 111 },
+                    record: {
+                        $operation: 'delete',
+                        id: 111,
+                        $identifying_fields: ['id'],
+                    },
                 },
             ]
 
@@ -142,6 +166,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         $operation: 'delete',
                         email: 'test@test.com',
+                        $identifying_fields: ['email'],
                     },
                 },
             ]
@@ -178,6 +203,7 @@ describe('verify_deletes.ts', () => {
             const blocking_pieces = get_mutation_pieces_blocing_delete(
                 global_test_schema,
                 mutation_pieces,
+                new Map(),
                 results
             )
             expect(blocking_pieces).to.deep.equal([
@@ -209,6 +235,7 @@ describe('verify_deletes.ts', () => {
             const blocking_pieces = get_mutation_pieces_blocing_delete(
                 global_test_schema,
                 mutation_pieces,
+                new Map(),
                 results
             )
             expect(blocking_pieces).to.deep.equal([
@@ -229,11 +256,19 @@ describe('verify_deletes.ts', () => {
         test('skips results already deleted in the mutation as deletes', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
-                    record: { id: 2, $operation: 'update' },
+                    record: {
+                        id: 2,
+                        $operation: 'update',
+                        $identifying_fields: ['id'],
+                    },
                     path: ['users', 0],
                 },
                 {
-                    record: { id: 1, $operation: 'delete' },
+                    record: {
+                        id: 1,
+                        $operation: 'delete',
+                        $identifying_fields: ['id'],
+                    },
                     path: ['users', 1],
                 },
             ]
@@ -252,6 +287,7 @@ describe('verify_deletes.ts', () => {
             const blocking_pieces = get_mutation_pieces_blocing_delete(
                 global_test_schema,
                 mutation_pieces,
+                new Map(),
                 results
             )
             expect(blocking_pieces).to.deep.equal([
@@ -264,7 +300,11 @@ describe('verify_deletes.ts', () => {
         test('handles deletes by unique field', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
-                    record: { email: 'test@test.com', $operation: 'delete' },
+                    record: {
+                        email: 'test@test.com',
+                        $operation: 'delete',
+                        $identifying_fields: ['email'],
+                    },
                     path: ['users', 0],
                 },
                 {
@@ -272,6 +312,7 @@ describe('verify_deletes.ts', () => {
                         id: 2,
                         email: 'best@test.com',
                         $operation: 'delete',
+                        $identifying_fields: ['email'] 
                     },
                     path: ['users', 1],
                 },
@@ -293,6 +334,7 @@ describe('verify_deletes.ts', () => {
             const blocking_pieces = get_mutation_pieces_blocing_delete(
                 global_test_schema,
                 mutation_pieces,
+                new Map(),
                 results
             )
             expect(blocking_pieces).to.deep.equal([])

@@ -22,7 +22,7 @@ type DatabaseIndexesByEntity = {
 export const sort_database_rows = (
     mutation_pieces: MutationPiece[],
     guid_map: GuidMap,
-    mutation_batch: MutationBatch,
+    mutation_batch: MutationBatch | number[],
     query_entities: string[],
     query_results: Record<string, any>[][],
     orma_schema: OrmaSchema
@@ -98,7 +98,7 @@ const get_database_indexes_by_entity = (
 const sort_database_rows_given_indexes = (
     mutation_pieces: MutationPiece[],
     guid_map: GuidMap,
-    mutation_batch: MutationBatch,
+    mutation_batch: MutationBatch | number[],
     database_indexes_by_entity: DatabaseIndexesByEntity,
     orma_schema: OrmaSchema
 ) => {
