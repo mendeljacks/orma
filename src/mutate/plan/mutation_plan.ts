@@ -1,20 +1,20 @@
 import { last } from '../../helpers/helpers'
 import {
-    Edge,
     get_all_edges,
     get_child_edges,
     get_parent_edges,
 } from '../../helpers/schema_helpers'
 import { toposort } from '../../helpers/toposort'
-import { OrmaSchema } from '../../types/schema/schema_types'
 import { Path } from '../../types'
-import {
-    mutation_entity_deep_for_each,
-    path_to_entity,
-} from '../helpers/mutate_helpers'
+import { OrmaSchema } from '../../types/schema/schema_types'
+import { path_to_entity } from '../helpers/mutate_helpers'
+import { GuidMap } from '../macros/guid_plan_macro'
 import { MutationOperation } from '../mutate'
 
-export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
+export const get_mutation_plan = (
+    orma_schema: OrmaSchema,
+    mutation_pieces: MutationPiece[]
+) => {
     /*
     This function is an algorithm that wont make sense without an explanation. The idea is to generate a mutate plan
     which provides 2 things:
@@ -28,11 +28,10 @@ export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
         3. for a row to be deleted, any children must be processed first
 
     Algorithm idea:
-        1. propagate operations by copying them to all lower records (where this doesnt overwrite user provided data)
-        2. infer $guids for creates and deletes that are adjacent in the json object. $guids are how the mutation
-           plan will then determine which records are parents and children of each other.
-        3. generate a toposort graph which encodes the relationships for all records in the mutation
-        4. toposort the graph and use this to sort the mutation pieces and generate mutation batches
+        1. generate a toposort graph which encodes the relationships for all records in the mutation.
+           Relationships are created by matching foreign key / primary keys, these can be either
+           regular values or $guids
+        2. toposort the graph and use this to sort the mutation pieces and generate mutation batches
 
     The effect will be that different sets of dependent records will form disconnected subgraphs. Running toposort on 
     the final graph will create a plan which preserves relative order within one subgraph, but does not guarantee 
@@ -41,17 +40,7 @@ export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
     frees up a value for a unique column which is created in the same request (now we would have to reject the request 
     since we cant guarantee the delete will be run first).
 */
-    const mutation_pieces = flatten_mutation(mutation)
-    const fk_paths_by_value = get_fk_paths_by_value(
-        mutation_pieces,
-        orma_schema
-    )
-
-    const toposort_graph = generate_mutation_toposort_graph(
-        mutation_pieces,
-        fk_paths_by_value,
-        orma_schema
-    )
+    const toposort_graph = generate_toposort_graph(orma_schema, mutation_pieces)
     const toposort_results = toposort(toposort_graph)
 
     const mutation_plan = sort_mutation_pieces(
@@ -62,21 +51,13 @@ export const get_mutation_plan = (mutation, orma_schema: OrmaSchema) => {
     return mutation_plan
 }
 
-export const flatten_mutation = mutation => {
-    let flat_mutation: MutationPiece[] = []
-    mutation_entity_deep_for_each(mutation, (record: MutationPiece['record'], path, entity) => {
-        flat_mutation.push({ record, path })
-    })
-    return flat_mutation
-}
-
-const get_fk_paths_by_value = (
-    flat_mutation: MutationPiece[],
-    orma_schema: OrmaSchema
+const get_fk_indices_by_value = (
+    orma_schema: OrmaSchema,
+    flat_mutation: MutationPiece[]
 ) => {
     // this should actually be all the paths to any guid, but right now guids are only enabled for foreign keys
     // so it is more efficient to pick out the foreign keys than to check every column for guids
-    let fk_paths_by_value: PathsByGuid = {}
+    let fk_indices_by_value: IndicesByValue = {}
 
     flat_mutation.forEach(({ record, path }, record_index) => {
         const entity = path_to_entity(path)
@@ -86,99 +67,84 @@ const get_fk_paths_by_value = (
         from_fields.forEach(from_field => {
             const value = record[from_field]
             if (value !== undefined) {
-                const value_string = JSON.stringify(value)
-                if (!fk_paths_by_value[value_string]) {
-                    fk_paths_by_value[value_string] = []
+                const value_string = get_value_identifier(
+                    entity,
+                    from_field,
+                    value
+                )
+
+                if (!fk_indices_by_value[value_string]) {
+                    fk_indices_by_value[value_string] = []
                 }
-                fk_paths_by_value[value_string].push([record_index, from_field])
+                fk_indices_by_value[value_string].push(record_index)
             }
         })
     })
 
-    return fk_paths_by_value
+    return fk_indices_by_value
 }
 
-const generate_mutation_toposort_graph = (
-    mutation_pieces: MutationPiece[],
-    fk_paths_by_value: Record<any, any>,
-    orma_schema: OrmaSchema
+const generate_toposort_graph = (
+    orma_schema: OrmaSchema,
+    mutation_pieces: MutationPiece[]
 ) => {
-    // toposort graph is generated by taking dependencies of creates and deletes. Every individual record in the
-    // mutation will end up in the graph (even if they might not have any graph children)
-    type ToposortGraph = { [parent_index: number]: number[] }
+    const fk_indices_by_value = get_fk_indices_by_value(
+        orma_schema,
+        mutation_pieces
+    )
 
     const toposort_graph = mutation_pieces.reduce(
-        (acc, mutation_piece, toposort_parent_index) => {
-            const parent_record = mutation_piece.record
+        (acc, mutation_piece, piece_index) => {
             const entity = path_to_entity(mutation_piece.path)
+            const operation = mutation_piece.record.$operation
 
-            const operation = parent_record.$operation
+            // these are the graph child indices that define the ordering of the
+            // toposort - parents in the toposort graph must come before children
+            let child_indices: number[] = []
 
-            // deletes are processed in reverse, so we must flip the ordering in that case
-            const child_edges =
-                operation === 'create' || operation === 'update'
-                    ? get_child_edges(entity, orma_schema)
-                    : operation === 'delete'
+            // - creates / updates are executed parent-first, since for creates, the child must be
+            //      created after the parent, and for updates the parent (which has the primary key) is assumed
+            //      to not change, while the child (which has the foreign key) does change, so the parent writes
+            //      the $guid while the child read the $guid
+            // - deletes are executed child-first, since a parent can only be deleted once its children
+            //      are also deleted
+            const edges_to_children =
+                operation === 'delete'
                     ? get_parent_edges(entity, orma_schema)
-                    : []
+                    : get_child_edges(entity, orma_schema)
 
-            // for each possible child edge based on the foreign keys, we only take ones that are in the mutation
-            // (we check the fk_paths_by_value map for this)
-            const child_indices = child_edges.flatMap(child_edge => {
-                return get_toposort_child_indices(
-                    mutation_pieces,
-                    parent_record,
-                    child_edge,
-                    fk_paths_by_value
+            edges_to_children.forEach(edge_to_child => {
+                const value_identifier = get_value_identifier(
+                    edge_to_child.to_entity,
+                    edge_to_child.to_field,
+                    mutation_piece.record[edge_to_child.from_field]
                 )
+                const connected_indices = fk_indices_by_value[
+                    value_identifier
+                ]?.filter(el => el !== piece_index)
+
+                connected_indices?.forEach(i => child_indices.push(i))
             })
 
-            // if there are no toposort child indices, this will be an empty array but we still need to set it
-            // so that all records end up in the toposort results
-            acc[toposort_parent_index] = child_indices
+            acc[piece_index] = child_indices
 
             return acc
         },
-        {} as ToposortGraph
+        {} as Record<number, number[]>
     )
 
     return toposort_graph
 }
 
-const get_toposort_child_indices = (
-    mutation_pieces: MutationPiece[],
-    parent_record: Record<string, any>,
-    edge_to_child: Edge,
-    fk_paths_by_value: PathsByGuid
-) => {
-    const parent_value = parent_record[edge_to_child.from_field]
-    // there may be no paths if there are no children in the mutation, so we default to []
-    const all_child_paths =
-        fk_paths_by_value[JSON.stringify(parent_value)] ?? []
-
-    // take the foreign key paths that match the child edge we are looking for
-    const child_paths = all_child_paths.filter(child_path => {
-        const mutation_piece = mutation_pieces[child_path[0]]
-        const child_entity = path_to_entity(mutation_piece.path)
-        const child_field = child_path[1]
-        return (
-            child_entity === edge_to_child.to_entity &&
-            child_field === edge_to_child.to_field
-        )
-    })
-
-    return child_paths.map(el => el[0])
-}
-
 /**
  * Sorts mutation pieces in the order they will be executed and also gives batches that say what to run in parallel
  */
-const sort_mutation_pieces = (
-    unsorted_mutation_pieces: MutationPiece[],
+const sort_mutation_pieces = <T extends unknown>(
+    unsorted_mutation_pieces: T[],
     toposort_results: ReturnType<typeof toposort>
 ) => {
     let mutation_batches: { start_index: number; end_index }[] = []
-    let mutation_pieces: MutationPiece[] = []
+    let mutation_pieces: T[] = []
 
     toposort_results.forEach(toposort_tier => {
         toposort_tier.forEach(index => {
@@ -196,16 +162,10 @@ const sort_mutation_pieces = (
     return { mutation_pieces, mutation_batches }
 }
 
-export type MutationPiece = { record: Record<string, any> & { $operation: MutationOperation }; path: Path }
-
-export type MutationBatch = { start_index: number; end_index: number }
-
-export type PathsByGuid = { [stringified_value: string]: [number, string][] }
-
-export type MutationPlan = {
-    mutation_pieces: MutationPiece[]
-    mutation_batches: MutationBatch[]
-}
+const get_value_identifier = (entity: string, field: string, value: any) =>
+    value?.$guid === undefined
+        ? JSON.stringify([entity, field, value])
+        : JSON.stringify(value?.$guid)
 
 export const run_mutation_plan = async (
     mutation_plan: {
@@ -214,7 +174,6 @@ export const run_mutation_plan = async (
     },
     callback: (context: {
         index: number
-        mutation_pieces: MutationPiece[]
         mutation_batch: MutationBatch
     }) => Promise<any>
 ) => {
@@ -224,14 +183,46 @@ export const run_mutation_plan = async (
         batch_index++
     ) {
         const mutation_batch = mutation_plan.mutation_batches[batch_index]
-        const batch_pieces = mutation_plan.mutation_pieces.slice(
-            mutation_batch.start_index,
-            mutation_batch.end_index
-        )
         await callback({
             index: batch_index,
-            mutation_pieces: batch_pieces,
             mutation_batch,
         })
     }
+}
+
+export const mutation_batch_for_each = <T>(
+    mutation_pieces: T[],
+    mutation_batch: MutationBatch | number[],
+    callback: (mutation_piece: T, mutation_piece_index: number) => any
+) => {
+    if (Array.isArray(mutation_batch)) {
+        mutation_batch.forEach(mutation_piece_index => {
+            callback(
+                mutation_pieces[mutation_piece_index],
+                mutation_piece_index
+            )
+        })
+    } else {
+        for (let i = 0; i < get_mutation_batch_length(mutation_batch); i++) {
+            callback(mutation_pieces[i], i)
+        }
+    }
+}
+
+export const get_mutation_batch_length = (mutation_batch: MutationBatch) =>
+    mutation_batch.end_index - mutation_batch.start_index
+
+export type MutationPiece = {
+    record: Record<string, any> & { $operation: MutationOperation }
+    path: Path
+}
+
+export type MutationBatch = { start_index: number; end_index: number }
+
+export type IndicesByValue = { [identifier: string]: number[] }
+
+export type MutationPlan = {
+    mutation_pieces: MutationPiece[]
+    mutation_batches: MutationBatch[]
+    guid_map: GuidMap
 }

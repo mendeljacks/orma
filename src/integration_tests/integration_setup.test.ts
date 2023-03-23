@@ -108,6 +108,7 @@ export const test_mutate = async (
             global_test_schema,
             connection_edges,
             sqlite3_adapter(db),
+            mutation_plan.guid_map,
             where_connecteds,
             mutation_plan.mutation_pieces
         ),

@@ -1,4 +1,5 @@
 import { Path } from '../../types'
+import { is_submutation } from '../helpers/mutate_helpers'
 
 /**
  * MUTATES THE INPUT. Flattens a nested mutation into a flat list of mutation pieces. Keeps track of
@@ -33,7 +34,7 @@ export const apply_nesting_mutation_macro = mutation => {
         // array implies lower records (as opposed to a field value or a $guid). This is the current way
         // it works in mutations, but could change at some point if we allow nesting parents with objects directly
         Object.keys(higher_piece.record).forEach(prop => {
-            if (Array.isArray(higher_piece.record[prop])) {
+            if (is_submutation(higher_piece.record, prop)) {
                 higher_piece.record[prop].forEach((lower_record, i) => {
                     // add the lower record to the flat mutation, then link the higher and lower records
                     // via their higher_index and lower_indices props
@@ -52,11 +53,6 @@ export const apply_nesting_mutation_macro = mutation => {
                     // -1 since the first element is the mutation itself that will be removed
                     higher_piece.lower_indices.push(lower_index - 1)
                 })
-
-                // we dont want child entities in the flat_mutation. This makes the flat_mutation
-                // simpler to parse e.g. when iterating over all its properties, we now know that
-                // each property is actually a field and not a nested entity
-                delete higher_piece.record[prop]
             }
         })
 
@@ -70,7 +66,9 @@ export const apply_nesting_mutation_macro = mutation => {
 }
 
 export type NestingMutationOutput = {
-    record: Record<string, any> & { $operation: 'create' | 'update' | 'delete' | 'upsert'}
+    record: Record<string, any> & {
+        $operation: 'create' | 'update' | 'delete' | 'upsert'
+    }
     path: Path
     higher_index?: number
     lower_indices: number[]

@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../helpers/tests/global_test_schema'
+import { apply_guid_plan_macro } from '../../macros/guid_plan_macro'
 import { MutationPiece } from '../../plan/mutation_plan'
 import { sort_database_rows } from '../sort_database_rows'
 
@@ -8,7 +9,14 @@ describe('guid_processing.ts', () => {
     describe(sort_database_rows.name, () => {
         test('throws if not enough mysql results', () => {
             try {
-                sort_database_rows([], [], [], {}, global_test_schema)
+                sort_database_rows(
+                    [],
+                    new Map(),
+                    { start_index: 0, end_index: 0 },
+                    [],
+                    [],
+                    global_test_schema
+                )
                 expect('should throw an error').to.equal(true)
             } catch (error) {}
         })
@@ -44,11 +52,16 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
+            const guid_map = apply_guid_plan_macro(mutation_pieces, [
+                { start_index: 0, end_index: 2 },
+            ])
+
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
+                guid_map,
+                { start_index: 0, end_index: 2 },
                 ['categories'],
                 query_results,
-                {},
                 global_test_schema
             )
 
@@ -97,11 +110,16 @@ describe('guid_processing.ts', () => {
                 ],
             ]
 
+            const guid_map = apply_guid_plan_macro(mutation_pieces, [
+                { start_index: 0, end_index: 2 },
+            ])
+
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
+                guid_map,
+                { start_index: 0, end_index: 2 },
                 ['categories', 'users'],
                 query_results,
-                {},
                 global_test_schema
             )
 
@@ -132,7 +150,7 @@ describe('guid_processing.ts', () => {
                         first_name: 'john',
                         last_name: 'doe',
                     },
-                    path: ['users', 0],
+                    path: ['users', 1],
                 },
             ]
             const query_results = [
@@ -152,9 +170,10 @@ describe('guid_processing.ts', () => {
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
+                new Map(),
+                { start_index: 0, end_index: 2 },
                 ['users'],
                 query_results,
-                {},
                 global_test_schema
             )
 
@@ -202,9 +221,10 @@ describe('guid_processing.ts', () => {
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
+                new Map(),
+                { start_index: 0, end_index: 2 },
                 ['addresses'],
                 query_results,
-                {},
                 global_test_schema
             )
 
@@ -245,9 +265,10 @@ describe('guid_processing.ts', () => {
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
+                new Map(),
+                { start_index: 0, end_index: 1 },
                 ['categories'],
                 query_results,
-                {},
                 global_test_schema
             )
 
@@ -278,9 +299,10 @@ describe('guid_processing.ts', () => {
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
+                new Map(),
+                { start_index: 0, end_index: 1 },
                 [],
                 query_results,
-                {},
                 global_test_schema
             )
 
@@ -320,9 +342,10 @@ describe('guid_processing.ts', () => {
 
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
+                new Map(),
+                { start_index: 0, end_index: 2 },
                 ['categories'],
                 query_results,
-                {},
                 global_test_schema
             )
 

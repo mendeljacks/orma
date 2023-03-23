@@ -595,6 +595,20 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
+        test('allows $select *', () => {
+            const errors = validate_query(
+                {
+                    posts: {
+                        id: true,
+                        $select: ['*'],
+                    },
+                },
+                global_test_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
         test('requies at least one $or', () => {
             const errors = validate_query(
                 {

@@ -4,29 +4,32 @@ import {
     get_field_schema,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { json_to_sql } from '../../query/json_sql'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { combine_wheres } from '../../query/query_helpers'
-import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_record_where_clause } from '../helpers/record_searching'
-import { ValuesByGuid } from '../mutate'
+import { OrmaSchema } from '../../types/schema/schema_types'
+import { is_submutation, path_to_entity } from '../helpers/mutate_helpers'
+import { generate_identifying_where } from '../helpers/record_searching'
+import { GuidMap } from '../macros/guid_plan_macro'
 import { MutationPiece } from '../plan/mutation_plan'
-import { json_to_sql } from '../../query/json_sql'
 
 export const get_create_ast = (
     mutation_pieces: MutationPiece[],
+    guid_map: GuidMap,
+    piece_indices: number[],
     entity: string,
-    values_by_guid: Record<any, any>,
     orma_schema: OrmaSchema
 ) => {
     // get insert keys by combining the keys from all records
-    const fields = mutation_pieces.reduce((acc, mutation_piece, i) => {
+    const fields = piece_indices.reduce((acc, piece_index) => {
+        const mutation_piece = mutation_pieces[piece_index]
         Object.keys(mutation_piece.record).forEach(field => {
             // filter lower tables and keywords such as $operation from the sql
             const resolved_value = get_resolved_mutation_value_if_field(
+                mutation_pieces,
+                guid_map,
                 mutation_piece.record,
-                field,
-                values_by_guid
+                field
             )
             if (resolved_value !== undefined) {
                 acc.add(field)
@@ -36,12 +39,14 @@ export const get_create_ast = (
         return acc
     }, new Set() as Set<string>)
 
-    const values = mutation_pieces.map((mutation_piece, i) => {
+    const values = piece_indices.map(piece_index => {
+        const mutation_piece = mutation_pieces[piece_index]
         const record_values = [...fields].flatMap(field => {
             const resolved_value = get_resolved_mutation_value_if_field(
+                mutation_pieces,
+                guid_map,
                 mutation_piece.record,
-                field,
-                values_by_guid
+                field
             )
 
             const value_or_default =
@@ -71,35 +76,44 @@ export const get_create_ast = (
 }
 
 const get_resolved_mutation_value_if_field = (
+    mutation_pieces: MutationPiece[],
+    guid_map: GuidMap,
     record: Record<string, any>,
-    field: string,
-    values_by_guid: Record<any, any>
+    field: string
 ) => {
-    // dont process submutations or keywords such as $operation
-    if (Array.isArray(record[field]) || is_reserved_keyword(field)) {
+    // dont process submutations, keywords such as $operation, or $write guids since
+    // the resolved value is not yet in scope
+    if (
+        is_submutation(record, field) ||
+        is_reserved_keyword(field) ||
+        record[field]?.$write
+    ) {
         return undefined
     }
 
     const resolved_value = get_resolved_mutation_value(
+        mutation_pieces,
+        guid_map,
         record,
-        field,
-        values_by_guid
+        field
     )
     return resolved_value?.$guid === undefined ? resolved_value : undefined
 }
 
 export const get_resolved_mutation_value = (
+    mutation_pieces: MutationPiece[],
+    guid_map: GuidMap,
     record: Record<string, any>,
-    field: string,
-    values_by_guid: Record<any, any>
+    field: string
 ) => {
     const value = record[field]
 
     const has_guid = value?.$guid !== undefined
-    if (has_guid) {
-        const guid_value = values_by_guid[value.$guid]
-        // return the { $guid } object if there is nothing in the values_by_guid
-        const resolved_value = guid_value === undefined ? value : guid_value
+    if (has_guid && value?.$read) {
+        const { piece_index, field } = guid_map.get(value.$guid)!.write
+        const resolved_value =
+            mutation_pieces[piece_index].record[field].$resolved_value
+
         return resolved_value
     } else {
         return value
@@ -107,17 +121,22 @@ export const get_resolved_mutation_value = (
 }
 
 export const get_update_ast = (
-    mutation_piece: MutationPiece,
-    values_by_guid: Record<any, any>,
+    mutation_pieces: MutationPiece[],
+    mutation_piece_index: number,
+    guid_map: GuidMap,
     orma_schema: OrmaSchema
 ) => {
+    const mutation_piece = mutation_pieces[mutation_piece_index]
     const entity = path_to_entity(mutation_piece.path)
 
-    const { identifying_keys, where } = generate_record_where_clause(
-        mutation_piece,
-        values_by_guid,
+    const identifying_fields = mutation_piece.record
+        .$identifying_fields as string[]
+    const where = generate_identifying_where(
         orma_schema,
-        false
+        guid_map,
+        mutation_pieces,
+        identifying_fields,
+        mutation_piece_index
     )
 
     // must apply escape macro since we need valid SQL AST
@@ -125,14 +144,15 @@ export const get_update_ast = (
 
     const $set = Object.keys(mutation_piece.record)
         .map(field => {
-            if (identifying_keys.includes(field)) {
+            if (identifying_fields.includes(field)) {
                 return undefined
             }
 
             const resolved_value = get_resolved_mutation_value_if_field(
+                mutation_pieces,
+                guid_map,
                 mutation_piece.record,
-                field,
-                values_by_guid
+                field
             )
             if (resolved_value === undefined) {
                 return undefined
@@ -156,17 +176,21 @@ export const get_update_ast = (
 }
 
 export const get_delete_ast = (
+    orma_schema: OrmaSchema,
     mutation_pieces: MutationPiece[],
+    piece_indices: number[],
     entity: string,
-    values_by_guid: ValuesByGuid,
-    orma_schema: OrmaSchema
+    guid_map: GuidMap
 ) => {
-    const wheres = mutation_pieces.map(mutation_piece => {
-        const { where } = generate_record_where_clause(
-            mutation_piece,
-            values_by_guid,
+    const wheres = piece_indices.map(piece_index => {
+        const identifying_fields = mutation_pieces[piece_index].record
+            .$identifying_fields as string[]
+        const where = generate_identifying_where(
             orma_schema,
-            false
+            guid_map,
+            mutation_pieces,
+            identifying_fields,
+            piece_index
         )
 
         // must apply escape macro since we need valid SQL AST

@@ -12,6 +12,7 @@ describe('mutation_statements.ts', () => {
                     id: { $not_null: true, $data_type: 'int' },
                     first_name: { $not_null: true, $data_type: 'varchar' },
                     last_name: { $not_null: true, $data_type: 'varchar' },
+                    country_id: { $not_null: true, $data_type: 'int' },
                     resource_id: { $not_null: true, $data_type: 'varchar' },
                 },
                 $database_type: 'mysql',
@@ -45,6 +46,7 @@ describe('mutation_statements.ts', () => {
                         },
                     ],
                     {},
+                    new Map(),
                     {}
                 )
                 expect('should throw an error').to.equal(true)
@@ -56,7 +58,7 @@ describe('mutation_statements.ts', () => {
                     record: {
                         $operation: 'create',
                         id: 1,
-                        country_id: { $guid: 'a' },
+                        country_id: 11,
                     },
                     path: ['users', 0],
                 },
@@ -65,6 +67,7 @@ describe('mutation_statements.ts', () => {
                         $operation: 'update',
                         id: 1,
                         first_name: 'john',
+                        $identifying_fields: ['id'],
                     },
                     path: ['users', 1],
                 },
@@ -72,6 +75,7 @@ describe('mutation_statements.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 1,
+                        $identifying_fields: ['id'],
                     },
                     path: ['products', 0],
                 },
@@ -84,12 +88,10 @@ describe('mutation_statements.ts', () => {
                 },
             ]
 
-            const values_by_guid = {
-                a: 11,
-            }
             const result = get_mutation_statements(
                 mutation_pieces,
-                values_by_guid,
+                { start_index: 0, end_index: 4 },
+                new Map(),
                 orma_schema
             )
 
@@ -151,41 +153,7 @@ describe('mutation_statements.ts', () => {
                         sql_string: 'DELETE FROM products WHERE (id) = (1)',
                     },
                 ],
-                query_infos: [
-                    {
-                        ast: {
-                            $select: ['country_id', 'id'],
-                            $from: 'users',
-                            $where: {
-                                $or: [
-                                    {
-                                        $eq: ['id', 1],
-                                    },
-                                    {
-                                        $eq: ['id', 1],
-                                    },
-                                    {
-                                        $eq: ['id', 1],
-                                    },
-                                ],
-                            },
-                        },
-                        operation: 'query',
-                        entity: 'users',
-                        records: [
-                            mutation_pieces[0].record,
-                            mutation_pieces[3].record,
-                            mutation_pieces[1].record,
-                        ],
-                        paths: [
-                            mutation_pieces[0].path,
-                            mutation_pieces[3].path,
-                            mutation_pieces[1].path,
-                        ],
-                        sql_string:
-                            'SELECT country_id, id FROM users WHERE ((id) = (1)) OR ((id) = (1)) OR ((id) = (1))',
-                    },
-                ],
+                query_infos: [],
             }
 
             expect(result).to.deep.equal(goal)

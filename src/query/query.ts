@@ -143,7 +143,7 @@ export const orma_query = async <
             subqueries.length > 0
                 ? await query_function(
                       subqueries.map(subquery =>
-                          generate_statement(subquery, [])
+                          generate_statement(subquery, [], [])
                       )
                   )
                 : []
