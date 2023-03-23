@@ -98,4 +98,7 @@ describe('full integration test', () => {
             ],
         })
     })
+    test.skip(
+        'updates a post in category without providing both unique keys (gets from nesting in a post)'
+    )
 })

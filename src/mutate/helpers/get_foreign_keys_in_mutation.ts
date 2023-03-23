@@ -1,7 +1,7 @@
 import { deep_get, drop_last } from '../../helpers/helpers'
 import { get_direct_edge, is_parent_entity } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
-import { path_to_entity } from './mutate_helpers'
+import { is_submutation, path_to_entity } from './mutate_helpers'
 
 /**
  * Gets all the foreign key edges for a specific location in a mutation. Returned edges will be all edges from
@@ -19,7 +19,7 @@ export const get_foreign_keys_in_mutation = (
     // Some of these might by parents and some might be children.
     const above_path = drop_last(2, record_path)
     const below_paths = Object.keys(record)
-        .filter(key => Array.isArray(record[key]))
+        .filter(key => is_submutation(record, key))
         .map(key => [...record_path, key, 0])
     const all_paths = [above_path, ...below_paths]
 

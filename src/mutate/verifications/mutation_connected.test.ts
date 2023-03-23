@@ -13,9 +13,9 @@ import { WhereConnected } from '../../types/query/query_types'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_plan'
 import {
-    get_foreign_key_wheres,
+    get_foreign_key_connected_wheres,
     get_ownership_queries,
-    get_primary_key_wheres,
+    get_identifier_connected_wheres,
     get_mutation_connected_errors,
 } from './mutation_connected'
 
@@ -67,6 +67,7 @@ describe('mutation_connected.ts', () => {
                 global_test_schema,
                 default_connection_edges,
                 query_function,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -81,6 +82,7 @@ describe('mutation_connected.ts', () => {
                 global_test_schema,
                 default_connection_edges,
                 query_function,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -102,6 +104,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 3,
+                        $identifying_fields: ['id']
                     },
                     path: ['comments', 0],
                 },
@@ -110,6 +113,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 [get_test_where_connected('posts')],
                 mutation_pieces
             )
@@ -143,6 +147,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+                        $identifying_fields: ['id']
                     },
                     path: ['addresses', 0],
                 },
@@ -173,6 +178,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 connection_edges,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -236,6 +242,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 connection_edges,
+                new Map(),
                 [get_test_where_connected('posts')],
                 mutation_pieces
             )
@@ -288,6 +295,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 connection_edges,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -310,6 +318,7 @@ describe('mutation_connected.ts', () => {
             const ownership_queries = get_ownership_queries(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 [get_test_where_connected('users')],
                 mutation_pieces
             )
@@ -317,7 +326,7 @@ describe('mutation_connected.ts', () => {
             expect(ownership_queries).to.deep.equal([])
         })
     })
-    describe(get_primary_key_wheres.name, () => {
+    describe(get_identifier_connected_wheres.name, () => {
         test('tracks primary keys', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
@@ -325,14 +334,16 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 12,
                         title: 'hi',
+                        $identifying_fields: ['id']
                     },
                     path: ['posts', 0],
                 },
             ]
 
-            const wheres = get_primary_key_wheres(
+            const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 get_test_where_connected('users'),
                 mutation_pieces,
                 'posts'
@@ -357,6 +368,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+                        $identifying_fields: ['id']
                     },
                     path: ['users', 0],
                 },
@@ -380,9 +392,10 @@ describe('mutation_connected.ts', () => {
             //     ]
             // )
 
-            const wheres = get_primary_key_wheres(
+            const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 get_test_where_connected('addresses'),
                 mutation_pieces,
                 'users'
@@ -422,9 +435,10 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const wheres = get_primary_key_wheres(
+            const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 get_test_where_connected('users'),
                 mutation_pieces,
                 'products'
@@ -439,15 +453,17 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                         user_id: 12,
+                        $identifying_fields: ['id']
                     },
                     path: ['posts', 0],
                 },
             ]
 
             // categories and posts are not connected, so there is no edge paths
-            const wheres = get_primary_key_wheres(
+            const wheres = get_identifier_connected_wheres(
                 global_test_schema,
                 default_connection_edges,
+                new Map(),
                 {
                     $entity: 'categories',
                     $field: 'id',
@@ -460,7 +476,7 @@ describe('mutation_connected.ts', () => {
             expect(wheres).to.deep.equal([])
         })
     })
-    describe(get_foreign_key_wheres.name, () => {
+    describe(get_foreign_key_connected_wheres.name, () => {
         test('tracks direct child foreign keys', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
@@ -469,6 +485,7 @@ describe('mutation_connected.ts', () => {
                         id: 1,
                         user_id: 12,
                         title: 'hi',
+                        $identifying_fields: ['id']
                     },
                     path: ['posts', 0],
                 },
@@ -482,7 +499,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const wheres = get_foreign_key_wheres(
+            const wheres = get_foreign_key_connected_wheres(
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -502,6 +519,7 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                         post_id: 11,
+                        $identifying_fields: ['id']
                     },
                     path: ['comments', 0],
                 },
@@ -514,7 +532,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const wheres = get_foreign_key_wheres(
+            const wheres = get_foreign_key_connected_wheres(
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -542,12 +560,13 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+                        $identifying_fields: ['id']
                     },
                     path: ['comments', 0],
                 },
             ]
 
-            const wheres = get_foreign_key_wheres(
+            const wheres = get_foreign_key_connected_wheres(
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,

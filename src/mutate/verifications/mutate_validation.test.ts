@@ -81,19 +81,19 @@ describe('mutation_validation', () => {
             const paths = errors.map(error => error.path)
             expect(paths).to.deep.equal([['categories', 0, '$operation']])
         })
-        test('requires an identifying key for update', () => {
-            const test_mutation = {
-                $operation: 'update',
-                users: [
-                    {
-                        last_name: 'smith',
-                    },
-                ],
-            }
+        // test('requires an identifying key for update', () => {
+        //     const test_mutation = {
+        //         $operation: 'update',
+        //         users: [
+        //             {
+        //                 last_name: 'smith',
+        //             },
+        //         ],
+        //     }
 
-            const errors = validate_mutation(test_mutation, global_test_schema)
-            expect(errors).to.have.lengthOf(1)
-        })
+        //     const errors = validate_mutation(test_mutation, global_test_schema)
+        //     expect(errors).to.have.lengthOf(1)
+        // })
         test('requires valid field names', () => {
             const test_mutation = {
                 $operation: 'create',

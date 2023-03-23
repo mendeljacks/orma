@@ -28,8 +28,8 @@ const get_id = hexoid(36)
  *  value        | ignore        | ignore            | ignore
  */
 export const apply_guid_inference_macro = (
-    mutation_pieces: NestingMutationOutput,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    mutation_pieces: NestingMutationOutput
 ) => {
     mutation_pieces.forEach(child_mutation_piece => {
         const connected_mutation_pieces = [

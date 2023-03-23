@@ -1,23 +1,33 @@
-import { mutation_entity_deep_for_each } from '../helpers/mutate_helpers'
-import { ValuesByGuid } from '../mutate'
-import { MutationPiece } from '../plan/mutation_plan'
+import { GuidMap } from '../macros/guid_plan_macro'
+import {
+    get_mutation_batch_length,
+    MutationBatch,
+    MutationPiece,
+} from '../plan/mutation_plan'
 
-/**
- * Saves guid values into the provided index. Database rows should be in the same order as the mutation rows.
- * Will mutate the input values_by_guid
- */
-export const save_guids = (
-    values_by_guid: ValuesByGuid,
+export const save_resolved_guid_values = (
     mutation_pieces: MutationPiece[],
-    sorted_database_rows: (Record<string, any> | undefined)[]
+    mutation_batch: MutationBatch,
+    sorted_database_rows: Record<string, any>[]
 ) => {
-    mutation_pieces.forEach((mutation_piece, mutation_piece_index) => {
-        Object.keys(mutation_piece.record).forEach(field => {
-            const guid = mutation_piece.record[field]?.$guid
-            const db_value = sorted_database_rows?.[mutation_piece_index]?.[field]
+    if (
+        get_mutation_batch_length(mutation_batch) !==
+        sorted_database_rows.length
+    ) {
+        throw new Error(
+            'Mutation batch should be the same length as sorted db rows. Something went very wrong.'
+        )
+    }
 
-            if (guid !== undefined && db_value !== undefined) {
-                values_by_guid[guid] = db_value
+    sorted_database_rows.forEach((database_row, database_row_index) => {
+        // database rows should be sorted in the same order as the mutation pieces in this batch,
+        // which is why adding the indices like this works
+        const piece_index = mutation_batch.start_index + database_row_index
+        const { record } = mutation_pieces[piece_index]
+        Object.keys(record).forEach(prop => {
+            const value = record[prop]
+            if (value?.$guid !== undefined && value.$write) {
+                value.$resolved_value = database_row[prop]
             }
         })
     })
@@ -27,16 +37,17 @@ export const save_guids = (
  * MUTATES THE INPUT MUTATION
  */
 export const replace_guids_with_values = (
-    mutation: any,
-    values_by_guid: ValuesByGuid
+    mutation_pieces: MutationPiece[],
+    guid_map: GuidMap
 ) => {
-    mutation_entity_deep_for_each(mutation, (record, path) => {
-        Object.keys(record).forEach(field => {
-            const guid = record[field]?.$guid
-            if (guid !== undefined) {
-                const guid_value = values_by_guid[guid]
-                record[field] = guid_value
-            }
+    for (const guid of guid_map.keys()) {
+        const write = guid_map.get(guid)!.write
+        const write_record = mutation_pieces[write.piece_index].record
+        const write_value = write_record[write.field].$resolved_value
+
+        guid_map.get(guid)!.reads.forEach(read => {
+            const read_record = mutation_pieces[read.piece_index].record
+            read_record[read.field] = write_value
         })
-    })
+    }
 }

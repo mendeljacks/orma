@@ -36,4 +36,15 @@ Algorithm idea:
     upserts, then the upsert converts to an update. Otherwise, it turns into a create.
 3. Keep track of each entity + identifying key that is created in an object or set for quick lookup.
 
+
+-- identifying records
+order - identify by provided name
+    order item  - identify by variant id and order id
+                - identify if the row exists by searching where the order_item_id is connected
+                    to an order with the name of the guid linked order, and the item_id is connected to an item
+                    with given sku
+                - if the linked order / item is an update or delete, it is searchable because it has an identifying key.
+                - if it is a create, then the guid could resolve to anything, so we cant identify the row.
+                  In that case we should throw an error, and the user must provide a reagular value as an
+                  identifying key instead of a guid
 */
