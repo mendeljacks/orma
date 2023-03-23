@@ -72,8 +72,8 @@ export const get_guid_query = (
     const $where = combine_wheres(wheres, '$or')
 
     // guid fields are needed for foreign key propagation while identifying keys are just needed to match up
-    // database rows with mutation rows later on
-    const fields = [...guid_fields, ...all_identifying_fields]
+    // database rows with mutation rows later on. Unique fields so they only appear once in select
+    const fields = [...new Set([...guid_fields, ...all_identifying_fields])]
     if (guid_fields.size === 0) {
         return undefined // can happen if there are no guids in the mutation
     }

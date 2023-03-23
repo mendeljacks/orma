@@ -22,6 +22,7 @@ export const get_mutation_diff = (original, modified) => {
     if (
         is_primitive(modified) ||
         modified?.$guid !== undefined ||
+        // this catches the case where $identifying_key is provided (since the identifying key is an array of strings)
         typeof modified?.[0] === 'string'
     ) {
         return modified

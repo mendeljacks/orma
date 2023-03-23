@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import {
     GlobalTestMutation,
     global_test_schema,
-} from '../../../helpers/tests/global_test_schema'
+} from '../../../test_data/global_test_schema'
 import { apply_guid_plan_macro } from '../../macros/guid_plan_macro'
 import { MutationPiece } from '../../plan/mutation_plan'
 import {
@@ -47,7 +47,7 @@ describe('mutation_operations.ts', () => {
                 {
                     path: ['posts', 0],
                     record: {
-                        $identifying_fields: ['title'],
+                        $identifying_fields: ['id'],
                         $operation: 'update',
                         id: 1,
                         title: 'john',
@@ -99,17 +99,6 @@ describe('mutation_operations.ts', () => {
             expect(result).to.deep.equal(goal)
         })
         test('handles compound primary key', () => {
-            const mutation = {
-                post_has_categories: [
-                    {
-                        $operation: 'update',
-                        post_id: 1,
-                        category_id: 2,
-                        main_category: 1,
-                    },
-                ],
-            } as const satisfies GlobalTestMutation
-
             const mutation_pieces: MutationPiece[] = [
                 {
                     path: ['post_has_categories', 0],
@@ -118,6 +107,7 @@ describe('mutation_operations.ts', () => {
                         category_id: 2,
                         main_category: 1,
                         post_id: 1,
+                        $identifying_fields: ['post_id', 'category_id'],
                     },
                 },
             ]
@@ -177,7 +167,7 @@ describe('mutation_operations.ts', () => {
 
             const result = get_update_ast(
                 mutation_pieces,
-                0,
+                1,
                 guid_map,
                 global_test_schema
             )

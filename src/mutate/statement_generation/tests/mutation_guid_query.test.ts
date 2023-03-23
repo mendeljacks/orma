@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { global_test_schema } from '../../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../../test_data/global_test_schema'
 import { apply_guid_plan_macro } from '../../macros/guid_plan_macro'
 import { MutationPiece } from '../../plan/mutation_plan'
 import { get_guid_query } from '../mutation_guid_query'
@@ -23,6 +23,7 @@ describe('mutation_guid_query.ts', () => {
                         id: { $guid: 1 },
                         first_name: 'john',
                         last_name: 'smith',
+                        $identifying_fields: ['first_name', 'last_name'],
                     },
                     path: ['users', 0],
                 },
@@ -30,14 +31,14 @@ describe('mutation_guid_query.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 1,
+                        $identifying_fields: ['id'],
                     },
                     path: ['users', 1],
                 },
             ]
 
             const guid_map = apply_guid_plan_macro(mutation_pieces, [
-                { start_index: 0, end_index: 1 },
-                { start_index: 1, end_index: 2 },
+                { start_index: 0, end_index: 3 },
             ])
 
             const result = get_guid_query(
@@ -65,6 +66,9 @@ describe('mutation_guid_query.ts', () => {
                                     $eq: ['last_name', "'smith'"],
                                 },
                             ],
+                        },
+                        {
+                            $eq: ['id', 1],
                         },
                     ],
                 },

@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { global_test_schema } from '../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../test_data/global_test_schema'
 import { validate_query } from './query_validation'
 
 describe('query_validation.ts', () => {

@@ -63,7 +63,7 @@ const field_can_be_identifier = (
     // mysql null != null, which means that there can be many null values in a unique column, so null never
     // uniquely identifies a record
     const is_nill = value === undefined || value === null
-    // $write_guid cannot be used as an identifying field, since when the record is executed, the guid will not be
+    // $write $guid cannot be used as an identifying field, since when the record is executed, the guid will not be
     // in scope. It will only be fetched after the operation is done. for read guids however, the guid is in scope
     // (it must be in order to be read from), so we can use it to identify the record.
     const is_write_guid = value?.$guid !== undefined && value?.$write === true

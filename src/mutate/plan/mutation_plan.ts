@@ -203,7 +203,11 @@ export const mutation_batch_for_each = <T>(
             )
         })
     } else {
-        for (let i = 0; i < get_mutation_batch_length(mutation_batch); i++) {
+        for (
+            let i = mutation_batch.start_index;
+            i < mutation_batch.end_index;
+            i++
+        ) {
             callback(mutation_pieces[i], i)
         }
     }

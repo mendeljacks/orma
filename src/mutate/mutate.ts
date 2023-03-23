@@ -6,9 +6,14 @@ import {
 import { sort_database_rows } from './database_results/sort_database_rows'
 import { apply_guid_inference_macro } from './macros/guid_inference_macro'
 import { apply_guid_plan_macro } from './macros/guid_plan_macro'
+import { apply_infer_identifying_fields_macro } from './macros/identifying_fields_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
 import { apply_nesting_mutation_macro } from './macros/nesting_mutation_macro'
-import { get_mutation_plan, run_mutation_plan } from './plan/mutation_plan'
+import {
+    get_mutation_plan,
+    MutationPiece,
+    run_mutation_plan,
+} from './plan/mutation_plan'
 import {
     get_mutation_statements,
     OrmaStatement,
@@ -26,14 +31,17 @@ export const orma_mutate_prepare = (orma_schema: OrmaSchema, mutation) => {
     const mutation_pieces = apply_nesting_mutation_macro(mutation)
     apply_inherit_operations_macro(mutation_pieces, mutation.$operation)
     apply_guid_inference_macro(orma_schema, mutation_pieces)
-    const mutation_plan = get_mutation_plan(orma_schema, mutation)
-    const guid_map = apply_guid_plan_macro(
-        mutation_pieces,
-        mutation_plan.mutation_batches
+    const mutation_plan = get_mutation_plan(
+        orma_schema,
+        mutation_pieces as MutationPiece[]
     )
-    apply_guid_plan_macro(
+    const guid_map = apply_guid_plan_macro(
         mutation_plan.mutation_pieces,
         mutation_plan.mutation_batches
+    )
+    apply_infer_identifying_fields_macro(
+        orma_schema,
+        mutation_plan.mutation_pieces
     )
 
     return { ...mutation_plan, guid_map }

@@ -213,6 +213,7 @@ describe('diff_mutation.ts', () => {
         const update_obj = get_mutation_diff(original, modified)
 
         expect(update_obj).to.deep.equal({
+            $operation: 'update',
             images: [
                 {
                     id: 1,

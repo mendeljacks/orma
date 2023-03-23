@@ -102,7 +102,7 @@ const sort_database_rows_given_indexes = (
     database_indexes_by_entity: DatabaseIndexesByEntity,
     orma_schema: OrmaSchema
 ) => {
-    let ordered_database_rows: Record<string, any>[] = []
+    let ordered_database_rows: (Record<string, any> | undefined)[] = []
     mutation_batch_for_each(
         mutation_pieces,
         mutation_batch,
@@ -111,7 +111,8 @@ const sort_database_rows_given_indexes = (
 
             // this can happen if all data is provided by the user so there is no query to get more data about this record
             if (!database_indexes_by_entity[entity]) {
-                return undefined
+                ordered_database_rows.push(undefined)
+                return
             }
 
             const identifying_keys = get_identifying_fields(

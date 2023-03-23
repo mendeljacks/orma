@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import {
     GlobalTestMutation,
     global_test_schema,
-} from '../../helpers/tests/global_test_schema'
+} from '../../test_data/global_test_schema'
 import { validate_mutation } from './mutate_validation'
 
 describe('mutation_validation', () => {

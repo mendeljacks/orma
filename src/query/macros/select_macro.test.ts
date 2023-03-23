@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import {
     GlobalTestQuery,
     global_test_schema,
-} from '../../helpers/tests/global_test_schema'
+} from '../../test_data/global_test_schema'
 import { apply_select_macro } from './select_macro'
 
 describe('select_macro', () => {

@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { clone } from '../../helpers/helpers'
-import { global_test_schema } from '../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../test_data/global_test_schema'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import {
     apply_where_connected_macro,

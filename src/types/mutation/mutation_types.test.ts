@@ -1,4 +1,4 @@
-import { GlobalTestMutation } from '../../helpers/tests/global_test_schema'
+import { GlobalTestMutation } from '../../test_data/global_test_schema'
 
 const tests = () => {
     {

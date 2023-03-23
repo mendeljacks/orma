@@ -73,7 +73,7 @@ describe('guid_plan_macro.ts', () => {
 
             expect(mutation_pieces).to.deep.equal([
                 { record: { id: { $guid: '1', $write: true } } },
-                { record: { post_id: { $guid: 1 }, $write: true } },
+                { record: { post_id: { $guid: 1, $write: true } } },
             ])
         })
     })

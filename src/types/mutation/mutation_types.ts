@@ -1,4 +1,4 @@
-import { GlobalTestSchema } from '../../helpers/tests/global_test_schema'
+import { GlobalTestSchema } from '../../test_data/global_test_schema'
 import {
     DeepReadonly,
     GetAllEdges,

@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import {
     GlobalTestMutation,
     global_test_schema
-} from '../../../helpers/tests/global_test_schema'
+} from '../../../test_data/global_test_schema'
 import { apply_guid_inference_macro } from '../guid_inference_macro'
 import {
     NestingMutationOutput

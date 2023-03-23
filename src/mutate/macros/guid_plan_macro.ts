@@ -62,7 +62,7 @@ export const apply_guid_plan_macro = (
 }
 
 export type GuidMap = Map<
-    any,
+    string | number,
     {
         write: { piece_index: number; batch_index: number; field: string }
         reads: { piece_index: number; batch_index: number; field: string }[]

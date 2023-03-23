@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { global_test_schema } from '../helpers/tests/global_test_schema'
+import { global_test_schema } from '../test_data/global_test_schema'
 import { orma_nester } from './query'
 
 describe('query.ts', () => {

@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { global_test_schema } from '../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../test_data/global_test_schema'
 import { PathedRecord } from '../../types'
 import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
 import {

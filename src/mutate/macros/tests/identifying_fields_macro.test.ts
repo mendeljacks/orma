@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { global_test_schema } from '../../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../../test_data/global_test_schema'
 import { MutationPiece } from '../../plan/mutation_plan'
 import {
     apply_infer_identifying_fields_macro,
@@ -72,12 +72,12 @@ describe('identifying_keys.ts', () => {
                 ['title']
             )
         })
-        test('ignores $write_guid fields', () => {
+        test('ignores $write $guid fields', () => {
             const mutation_pieces: InferIdentifyingFieldsInput = [
                 {
                     record: {
                         $operation: 'update',
-                        id: { $write_guid: '1234' },
+                        id: { $guid: '1234', $write: true },
                         title: 'test',
                     },
                     path: ['posts', 0],

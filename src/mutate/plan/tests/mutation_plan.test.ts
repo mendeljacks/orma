@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { global_test_schema } from '../../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../../test_data/global_test_schema'
 import { apply_nesting_mutation_macro } from '../../macros/nesting_mutation_macro'
 import {
     get_mutation_plan,
@@ -358,16 +358,11 @@ describe('mutation_plan.ts', () => {
                 if (i === 0) {
                     expect(context).to.deep.equal({
                         index: 0,
-                        mutation_pieces: [mutation_plan.mutation_pieces[0]],
                         mutation_batch: mutation_plan.mutation_batches[0],
                     })
                 } else {
                     expect(context).to.deep.equal({
                         index: 1,
-                        mutation_pieces: [
-                            mutation_plan.mutation_pieces[1],
-                            mutation_plan.mutation_pieces[2],
-                        ],
                         mutation_batch: mutation_plan.mutation_batches[1],
                     })
                 }

@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import {
     GlobalTestSchema,
     global_test_schema,
-} from '../../helpers/tests/global_test_schema'
+} from '../../test_data/global_test_schema'
 import {
     add_connection_edges,
     ConnectionEdges,

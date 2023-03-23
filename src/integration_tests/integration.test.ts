@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { clone } from '../helpers/helpers'
-import { GlobalTestQuery } from '../helpers/tests/global_test_schema'
+import { GlobalTestQuery } from '../test_data/global_test_schema'
 import { get_mutation_diff } from '../mutate/diff/diff_mutation'
 import {
     integration_test_setup,
@@ -101,4 +101,10 @@ describe('full integration test', () => {
     test.skip(
         'updates a post in category without providing both unique keys (gets from nesting in a post)'
     )
+    test.skip('handles multiple top level props')
+    test.skip('handles manual guid + raw value linking')
+    test.skip('handles diamond graph deletes')
+    test.skip('handles renesting via id only updates')
+    test.skip('handles upsert with linking tables')
+    test.skip('allows $identifying_fields override')
 })

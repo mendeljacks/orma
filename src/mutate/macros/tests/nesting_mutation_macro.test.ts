@@ -29,24 +29,24 @@ describe('nesting_mutation_macro.ts', () => {
             const result = apply_nesting_mutation_macro(mutation)
             expect(result).to.deep.equal([
                 {
-                    record: { $operation: 'update', id: 1, email: 'a@a.com' },
+                    record: mutation.users[0],
                     path: ['users', 0],
                     lower_indices: [1, 2],
                 },
                 {
-                    record: { $operation: 'create', title: 'Test' },
+                    record: mutation.users[0].posts[0],
                     path: ['users', 0, 'posts', 0],
                     higher_index: 0,
                     lower_indices: [3],
                 },
                 {
-                    record: { id: 1, title: 'Test 2' },
+                    record: mutation.users[0].posts[1],
                     path: ['users', 0, 'posts', 1],
                     higher_index: 0,
                     lower_indices: [],
                 },
                 {
-                    record: {},
+                    record: mutation.users[0].posts[0].comments[0],
                     path: ['users', 0, 'posts', 0, 'comments', 0],
                     higher_index: 1,
                     lower_indices: [],

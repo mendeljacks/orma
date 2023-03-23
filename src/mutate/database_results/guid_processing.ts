@@ -8,7 +8,7 @@ import {
 export const save_resolved_guid_values = (
     mutation_pieces: MutationPiece[],
     mutation_batch: MutationBatch,
-    sorted_database_rows: Record<string, any>[]
+    sorted_database_rows: (Record<string, any> | undefined)[]
 ) => {
     if (
         get_mutation_batch_length(mutation_batch) !==
@@ -27,7 +27,7 @@ export const save_resolved_guid_values = (
         Object.keys(record).forEach(prop => {
             const value = record[prop]
             if (value?.$guid !== undefined && value.$write) {
-                value.$resolved_value = database_row[prop]
+                value.$resolved_value = database_row?.[prop]
             }
         })
     })
@@ -49,5 +49,7 @@ export const replace_guids_with_values = (
             const read_record = mutation_pieces[read.piece_index].record
             read_record[read.field] = write_value
         })
+
+        write_record[write.field] = write_value
     }
 }

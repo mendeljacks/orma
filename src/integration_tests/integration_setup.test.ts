@@ -6,9 +6,8 @@ import { validate_errors } from '../helpers/helpers'
 import {
     GlobalTestMutation,
     GlobalTestSchema,
-    global_test_hydration,
     global_test_schema,
-} from '../helpers/tests/global_test_schema'
+} from '../test_data/global_test_schema'
 import { orma_mutate_prepare, orma_mutate_run } from '../mutate/mutate'
 import { validate_mutation } from '../mutate/verifications/mutate_validation'
 import { get_mutation_connected_errors } from '../mutate/verifications/mutation_connected'
@@ -21,6 +20,7 @@ import { orma_query } from '../query/query'
 import { validate_query } from '../query/validation/query_validation'
 import { get_schema_diff } from '../schema/schema_macro'
 import { WhereConnected } from '../types/query/query_types'
+import { global_test_hydration } from '../test_data/global_test_hydration'
 
 let db: sqlite3.Database
 
@@ -101,9 +101,9 @@ export const test_mutate = async (
     mutation: GlobalTestMutation,
     where_connecteds: WhereConnected<GlobalTestSchema> = []
 ) => {
+    validate_errors([validate_mutation(mutation, global_test_schema)])
     const mutation_plan = orma_mutate_prepare(global_test_schema, mutation)
     validate_errors([
-        validate_mutation(mutation, global_test_schema),
         await get_mutation_connected_errors(
             global_test_schema,
             connection_edges,

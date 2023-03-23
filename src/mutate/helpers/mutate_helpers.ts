@@ -54,7 +54,5 @@ export const for_each_guid = (
     })
 }
 
-export const is_submutation = (
-    record: Record<string, any>,
-    field: string
-) => Array.isArray(record) && !is_reserved_keyword(field)
+export const is_submutation = (record: Record<string, any>, field: string) =>
+    Array.isArray(record[field]) && !is_reserved_keyword(field)

@@ -1,4 +1,3 @@
-import { orma_escape } from '../../helpers/escape'
 import { combine_wheres } from '../../query/query_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { GuidMap } from '../macros/guid_plan_macro'
@@ -48,7 +47,6 @@ export const generate_identifying_where = (
 ) => {
     const { path, record } = mutation_pieces[mutation_piece_index]
     const entity = path_to_entity(path)
-    const database_type = orma_schema.$entities[entity].$database_type
 
     const where_clauses = identifying_fields.map(key => {
         const guid = record[key]?.$guid
