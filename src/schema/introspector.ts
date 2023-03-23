@@ -458,9 +458,11 @@ export type MysqlForeignKey = {
 type OrmaIndex = NonNullable<
     OrmaSchemaMutable['$entities'][string]['$indexes']
 >[number]
+
 type OrmaField = NonNullable<
     OrmaSchemaMutable['$entities'][string]['$fields']
 >[string]
+
 type OrmaSchemaCache = NonNullable<OrmaSchemaMutable['$cache']>
 
 export const as_orma_schema = t => t
