@@ -9,6 +9,7 @@ import { apply_guid_plan_macro } from './macros/guid_plan_macro'
 import { apply_infer_identifying_fields_macro } from './macros/identifying_fields_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
 import { apply_nesting_mutation_macro } from './macros/nesting_mutation_macro'
+import { apply_upsert_macro } from './macros/upsert_macro'
 import {
     get_mutation_plan,
     MutationPiece,
@@ -54,6 +55,13 @@ export const orma_mutate_run = async (
     mutation: any
 ) => {
     const { guid_map, mutation_pieces } = mutation_plan
+
+    await apply_upsert_macro(
+        orma_schema,
+        mysql_function,
+        guid_map,
+        mutation_pieces
+    )
 
     await run_mutation_plan(mutation_plan, async ({ mutation_batch }) => {
         const { mutation_infos, query_infos } = get_mutation_statements(

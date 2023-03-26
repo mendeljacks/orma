@@ -1,3 +1,145 @@
+import { expect } from 'chai'
+import { describe, test } from 'mocha'
+import { global_test_schema } from '../../../test_data/global_test_schema'
+import { Path } from '../../../types'
+import { MutationOperation } from '../../mutate'
+import { MutationBatch } from '../../plan/mutation_plan'
+import { apply_guid_plan_macro } from '../guid_plan_macro'
+import { get_upsert_macro_query } from '../upsert_macro'
+
+describe('upsert_macro.ts', () => {
+    describe(get_upsert_macro_query.name, () => {
+        test('handles multiple rows', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'upsert',
+                        id: 1,
+                        email: 'a@a.com',
+                        $identifying_fields: ['id'],
+                    },
+                    path: ['users', 0],
+                },
+                {
+                    record: {
+                        $operation: 'upsert',
+                        id: 2,
+                        email: 'char@coal.com',
+                        $identifying_fields: ['id'],
+                    },
+                    path: ['users', 1],
+                },
+            ]
+
+            const result = get_upsert_macro_query(
+                global_test_schema,
+                new Map(),
+                mutation_pieces
+            )
+
+            expect(result).to.deep.equal({
+                users: {
+                    id: true,
+                    $where: {
+                        $or: [
+                            {
+                                $eq: ['id', { $escape: 1 }],
+                            },
+                            {
+                                $eq: ['id', { $escape: 2 }],
+                            },
+                        ],
+                    },
+                },
+            })
+        })
+        test('handles guids', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'upsert',
+                        id: { $guid: 'a' },
+                        email: 'char@coal.com',
+                        $identifying_fields: ['email'],
+                    },
+                    path: ['users', 0],
+                },
+                {
+                    record: {
+                        $operation: 'upsert',
+                        // this is a reference to the user above, so it should resolve to user_id 3
+                        user_id: { $guid: 'a' },
+                        post_id: 1,
+                        $identifying_fields: ['user_id', 'post_id'],
+                    },
+                    path: ['likes', 0],
+                },
+            ]
+
+            const mutation_batches: MutationBatch[] = [
+                { start_index: 0, end_index: 1 },
+                { start_index: 1, end_index: 2 },
+            ]
+            const guid_map = apply_guid_plan_macro(
+                mutation_pieces,
+                mutation_batches
+            )
+
+            const result = get_upsert_macro_query(
+                global_test_schema,
+                guid_map,
+                mutation_pieces
+            )
+
+            expect(result).to.deep.equal({
+                users: {
+                    email: true,
+                    $where: { $eq: ['email', { $escape: 'char@coal.com' }] },
+                    id: true,
+                },
+                likes: {
+                    user_id: true,
+                    post_id: true,
+                    $where: {
+                        $and: [
+                            {
+                                $in: [
+                                    'user_id',
+                                    {
+                                        $select: ['id'],
+                                        $from: 'users',
+                                        $where: {
+                                            $eq: [
+                                                'email',
+                                                { $escape: 'char@coal.com' },
+                                            ],
+                                        },
+                                    },
+                                ],
+                            },
+                            { $eq: ['post_id', { $escape: 1 }] },
+                        ],
+                    },
+                },
+            })
+        })
+    })
+})
+
+type MutationPiece = {
+    record: Record<string, any> &
+        (
+            | {
+                  $operation: 'upsert'
+                  $identifying_fields: string[]
+              }
+            | {
+                  $operation: MutationOperation
+              }
+        )
+    path: Path
+}
+
 /*
 
 Use cases:

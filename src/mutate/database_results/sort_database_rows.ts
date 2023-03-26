@@ -11,7 +11,6 @@ import {
     MutationPiece,
     mutation_batch_for_each,
 } from '../plan/mutation_plan'
-import { get_resolved_mutation_value } from '../statement_generation/mutation_operations'
 
 type DatabaseIndexesByEntity = {
     [Entity: string]: {
@@ -106,50 +105,77 @@ const sort_database_rows_given_indexes = (
     mutation_batch_for_each(
         mutation_pieces,
         mutation_batch,
-        ({ record, path }) => {
-            const entity = path_to_entity(path)
-
-            // this can happen if all data is provided by the user so there is no query to get more data about this record
-            if (!database_indexes_by_entity[entity]) {
-                ordered_database_rows.push(undefined)
-                return
-            }
-
-            const identifying_keys = get_identifying_fields(
+        ({ record, path }, mutation_piece_index) => {
+            const database_row = get_database_row_for_mutation_piece(
+                mutation_pieces,
+                guid_map,
+                database_indexes_by_entity,
                 orma_schema,
-                entity,
-                record,
-                true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
-                // (unlike in an actual update, where it determines which fields are modified). We just select any key in
-                // the same way as was selected for the query
+                mutation_piece_index
             )
-            const possible_identifying_keys = get_possible_identifying_keys(
-                orma_schema,
-                entity
-            )
-            const identifying_key_index = possible_identifying_keys.findIndex(
-                keys => array_equals(keys, identifying_keys)
-            )
-
-            const database_index =
-                database_indexes_by_entity[entity][identifying_key_index]
-            const database_row =
-                database_index[
-                    JSON.stringify(
-                        identifying_keys.map(field =>
-                            get_resolved_mutation_value(
-                                mutation_pieces,
-                                guid_map,
-                                record,
-                                field
-                            )
-                        )
-                    )
-                ] ?? {}
-
             ordered_database_rows.push(database_row)
         }
     )
 
     return ordered_database_rows
+}
+
+const get_database_row_for_mutation_piece = (
+    mutation_pieces: MutationPiece[],
+    guid_map: GuidMap,
+    database_indexes_by_entity: DatabaseIndexesByEntity,
+    orma_schema: OrmaSchema,
+    mutation_piece_index: number
+) => {
+    const { record, path } = mutation_pieces[mutation_piece_index]
+    const entity = path_to_entity(path)
+
+    // this can happen if all data is provided by the user so there is no query to get more data about this record
+    if (!database_indexes_by_entity[entity]) {
+        return undefined
+    }
+
+    const identifying_keys = get_identifying_fields(
+        orma_schema,
+        entity,
+        record,
+        true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
+        // (unlike in an actual update, where it determines which fields are modified). We just select any key in
+        // the same way as was selected for the query
+    )
+    const possible_identifying_keys = get_possible_identifying_keys(
+        orma_schema,
+        entity
+    )
+    const identifying_key_index = possible_identifying_keys.findIndex(keys =>
+        array_equals(keys, identifying_keys)
+    )
+
+    const identifying_values = identifying_keys.map(field => {
+        const value = record[field]
+
+        const has_guid = value?.$guid !== undefined
+        if (has_guid && value?.$read) {
+            const { piece_index, field } = guid_map.get(value.$guid)!.write
+            const write_database_row = get_database_row_for_mutation_piece(
+                mutation_pieces,
+                guid_map,
+                database_indexes_by_entity,
+                orma_schema,
+                piece_index
+            )
+            const resolved_value = write_database_row?.[field]
+
+            return resolved_value
+        } else {
+            return value
+        }
+    })
+
+    const database_index =
+        database_indexes_by_entity[entity][identifying_key_index]
+    const database_row =
+        database_index[JSON.stringify(identifying_values)] ?? {}
+
+    return database_row
 }

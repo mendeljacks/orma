@@ -24,7 +24,7 @@ describe('nesting_mutation_macro.ts', () => {
                         ],
                     },
                 ],
-            }
+            } as const
 
             const result = apply_nesting_mutation_macro(mutation)
             expect(result).to.deep.equal([

@@ -46,7 +46,6 @@ export const generate_identifying_where = (
     mutation_piece_index: number
 ) => {
     const { path, record } = mutation_pieces[mutation_piece_index]
-    const entity = path_to_entity(path)
 
     const where_clauses = identifying_fields.map(key => {
         const guid = record[key]?.$guid
@@ -68,6 +67,19 @@ export const generate_identifying_where = (
             // us to identify records based on a read guid field.
             const write_info = guid_map.get(guid)?.write!
             const write_piece = mutation_pieces[write_info.piece_index]
+
+            // case 1: the write guid already has a resolved value, use that.
+            const write_resolved_value =
+                write_piece.record[write_info.field]?.$resolved_value
+            if (write_resolved_value !== undefined) {
+                return {
+                    $eq: [key, { $escape: write_resolved_value }],
+                }
+            }
+
+            // case 2: the write guid has a guid, but it has not been resolved yet. This means that
+            // we need to do a db-side search for the value. Note, this should never happen for creates
+            // since create records do not exist in the db yet
             if (!write_piece.record.$identifying_fields) {
                 throw new Error(
                     `Identifying guid '${guid}' for field '${key}' resolved to a record that could not be identified (maybe it is not yet in the database, or does not have an unambiguous identifier such as a primary key). Try using a hardcoded ${key}.`

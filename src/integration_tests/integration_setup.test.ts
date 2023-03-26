@@ -123,7 +123,7 @@ export const test_mutate = async (
     return res
 }
 
-export const test_query = async (query: Record<string, any>) => {
+export const test_query = async <T extends Record<string, any>>(query: T) => {
     validate_errors([validate_query(query, global_test_schema)])
     const res = await orma_query(
         query,

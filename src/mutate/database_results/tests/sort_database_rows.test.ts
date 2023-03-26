@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../test_data/global_test_schema'
 import { apply_guid_plan_macro } from '../../macros/guid_plan_macro'
-import { MutationPiece } from '../../plan/mutation_plan'
+import { MutationBatch, MutationPiece } from '../../plan/mutation_plan'
 import { sort_database_rows } from '../sort_database_rows'
 
 describe('guid_processing.ts', () => {
@@ -361,6 +361,68 @@ describe('guid_processing.ts', () => {
                 },
             ])
         })
-        test.skip('works with guids as the identifying keys')
+        test('works with guids as the identifying keys', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        id: { $guid: 'a' },
+                        email: 'char@coal.com',
+                        $identifying_fields: ['email'],
+                    },
+                    path: ['users', 0],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        // this is a reference to the user above, so it should resolve to user_id 3
+                        user_id: { $guid: 'a' },
+                        post_id: 1,
+                        $identifying_fields: ['user_id', 'post_id'],
+                    },
+                    path: ['likes', 0],
+                },
+            ]
+
+            const mutation_batches: MutationBatch[] = [
+                { start_index: 0, end_index: 1 },
+                { start_index: 1, end_index: 2 },
+            ]
+            const guid_map = apply_guid_plan_macro(
+                mutation_pieces,
+                mutation_batches
+            )
+
+            const query_results = [
+                [
+                    {
+                        user_id: 3,
+                        post_id: 1,
+                    },
+                ],
+                [
+                    {
+                        id: 3,
+                        email: 'char@coal.com',
+                    },
+                ],
+            ]
+
+            const sorted_database_rows = sort_database_rows(
+                mutation_pieces,
+                guid_map,
+                mutation_batches[1],
+                ['likes', 'users'],
+                query_results,
+                global_test_schema
+            )
+
+            expect(sorted_database_rows).to.deep.equal([
+                {
+                    user_id: 3,
+                    post_id: 1,
+                },
+            ])
+        })
     })
 })

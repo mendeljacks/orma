@@ -41,17 +41,6 @@ export const get_real_entity_name = (
     return subquery.$from ?? last_path_item
 }
 
-export const having_to_json_sql = (
-    query: any,
-    subquery_path: string[],
-    orma_schema: OrmaSchema
-) => {
-    const subquery = deep_get(subquery_path, query)
-    const $having = subquery.$having
-
-    return $having
-}
-
 export const orma_nester = (
     results: [string[], Record<string, unknown>[]][],
     query,

@@ -53,4 +53,11 @@ export const global_test_hydration = {
             post_id: 3,
         },
     ],
+    addresses: [
+        {
+            id: 1,
+            line_1: '1 Road st',
+            resource_id: '1',
+        },
+    ],
 } as const satisfies GlobalTestMutation

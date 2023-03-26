@@ -46,7 +46,7 @@ type OperationObj<RequireOperation extends boolean> =
               readonly $operation?: Operation
           }
 
-type Operation = 'create' | 'update' | 'delete'
+type Operation = 'create' | 'update' | 'delete' | 'upsert'
 
 type FieldsObj<
     Schema extends OrmaSchema,

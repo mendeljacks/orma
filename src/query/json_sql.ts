@@ -35,7 +35,14 @@ type Expression =
       }
     | primitive
 
-type primitive = string | number | Date | Array<any> | boolean | null | undefined
+type primitive =
+    | string
+    | number
+    | Date
+    | Array<any>
+    | boolean
+    | null
+    | undefined
 
 export const json_to_sql = (
     expression: Expression,
@@ -397,6 +404,12 @@ const sql_command_parsers = {
         if (database_type === 'sqlite' && arg === 'enum') {
             const field_name = get_neighbour_field(obj, path, '$name')
             return `TEXT CHECK(${field_name} IN (${data_type_args}))`
+        }
+
+        // sqlite actually allows INT as a type, but then primary key
+        // auto increment breaks, so we use INTEGER instead
+        if (database_type === 'sqlite' && arg === 'int') {
+            return `INTEGER ${data_type_args ? `(${data_type_args})` : ''}`
         }
 
         return `${arg?.toUpperCase()}${

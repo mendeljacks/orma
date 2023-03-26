@@ -22,7 +22,13 @@ export const mutate_validation_schema = {
     properties: {
         $operation: {
             type: 'string',
-            enum: ['create', 'update', 'delete'],
+            enum: ['create', 'update', 'delete', 'upsert'],
+        },
+        $identifying_fields: {
+            type: 'array',
+            items: {
+                type: 'string',
+            },
         },
     },
     additionalProperties: {
@@ -32,7 +38,7 @@ export const mutate_validation_schema = {
             properties: {
                 $operation: {
                     type: 'string',
-                    enum: ['create', 'update', 'delete'],
+                    enum: ['create', 'update', 'delete', 'upsert'],
                 },
             },
             additionalProperties: {
