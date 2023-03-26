@@ -196,8 +196,8 @@ export const is_parent_entity = (
     entity2: string,
     orma_schema: OrmaSchema
 ) => {
-    const edges = get_child_edges(entity1, orma_schema)
-    return edges.some(edge => edge.to_entity === entity2)
+    const child_edges = orma_schema.$cache?.$reversed_foreign_keys?.[entity1]
+    return child_edges?.some(edge => edge.to_entity === entity2)
 }
 
 /**

@@ -1,4 +1,4 @@
-import { global_test_schema } from '../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../test_data/global_test_schema'
 import { IsEqual } from '../helper_types'
 import {
     GetAllEdges,

@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { global_test_schema } from '../../helpers/tests/global_test_schema'
+import { global_test_schema } from '../../test_data/global_test_schema'
 import { validate_query } from './query_validation'
 
 describe('query_validation.ts', () => {
@@ -587,6 +587,20 @@ describe('query_validation.ts', () => {
                         count: {
                             $count: '*',
                         },
+                    },
+                },
+                global_test_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
+        test('allows $select *', () => {
+            const errors = validate_query(
+                {
+                    posts: {
+                        id: true,
+                        $select: ['*'],
                     },
                 },
                 global_test_schema

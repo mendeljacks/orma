@@ -15,7 +15,6 @@ import { mysql_to_typescript_types } from '../../schema/introspector'
 import { Path } from '../../types'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
-import { get_identifying_keys } from '../helpers/identifying_keys'
 import { MutationOperation } from '../mutate'
 
 export const mutate_validation_schema = {
@@ -23,7 +22,13 @@ export const mutate_validation_schema = {
     properties: {
         $operation: {
             type: 'string',
-            enum: ['create', 'update', 'delete'],
+            enum: ['create', 'update', 'delete', 'upsert'],
+        },
+        $identifying_fields: {
+            type: 'array',
+            items: {
+                type: 'string',
+            },
         },
     },
     additionalProperties: {
@@ -33,7 +38,7 @@ export const mutate_validation_schema = {
             properties: {
                 $operation: {
                     type: 'string',
-                    enum: ['create', 'update', 'delete'],
+                    enum: ['create', 'update', 'delete', 'upsert'],
                 },
             },
             additionalProperties: {
@@ -149,13 +154,13 @@ const validate_mutation_record = (
             operation,
             orma_schema
         ),
-        ...validate_identifying_keys(
-            mutation,
-            record_path,
-            record,
-            operation,
-            orma_schema
-        ),
+        // ...validate_identifying_keys(
+        //     mutation,
+        //     record_path,
+        //     record,
+        //     operation,
+        //     orma_schema
+        // ),
         // ...validate_operation_nesting(
         //     mutation,
         //     record_path,
@@ -642,39 +647,39 @@ const validate_required_fields = (
 //     return operation_nesting_errors
 // }
 
-const validate_identifying_keys = (
-    mutation: any,
-    record_path: any,
-    record: any,
-    operation: any,
-    orma_schema: OrmaSchema
-) => {
-    let identifying_key_errors: OrmaError[] = []
-    if (operation === 'update' || operation === 'delete') {
-        const entity_name = get_ancestor_name_from_path(record_path, 0)
-        if (!entity_name) {
-            throw new Error('No entity name found')
-        }
-        const identifying_keys = get_identifying_keys(
-            entity_name,
-            record,
-            {},
-            orma_schema
-        )
+// const validate_identifying_keys = (
+//     mutation: any,
+//     record_path: any,
+//     record: any,
+//     operation: any,
+//     orma_schema: OrmaSchema
+// ) => {
+//     let identifying_key_errors: OrmaError[] = []
+//     if (operation === 'update' || operation === 'delete') {
+//         const entity_name = get_ancestor_name_from_path(record_path, 0)
+//         if (!entity_name) {
+//             throw new Error('No entity name found')
+//         }
+//         const identifying_keys = get_identifying_keys(
+//             entity_name,
+//             record,
+//             {},
+//             orma_schema
+//         )
 
-        if (identifying_keys.length === 0) {
-            identifying_key_errors = [
-                {
-                    message: `Could not find primary keys or unique keys in record to ${record.$operation}.`,
-                    path: record_path,
-                    original_data: mutation,
-                    // stack_trace: new Error().stack,
-                    additional_info: {
-                        identifying_columns: identifying_keys ?? 'none',
-                    },
-                },
-            ]
-        }
-    }
-    return identifying_key_errors
-}
+//         if (identifying_keys.length === 0) {
+//             identifying_key_errors = [
+//                 {
+//                     message: `Could not find primary keys or unique keys in record to ${record.$operation}.`,
+//                     path: record_path,
+//                     original_data: mutation,
+//                     // stack_trace: new Error().stack,
+//                     additional_info: {
+//                         identifying_columns: identifying_keys ?? 'none',
+//                     },
+//                 },
+//             ]
+//         }
+//     }
+//     return identifying_key_errors
+// }

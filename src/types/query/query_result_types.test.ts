@@ -1,7 +1,7 @@
 import {
     GlobalTestQuery,
     GlobalTestSchema,
-} from '../../helpers/tests/global_test_schema'
+} from '../../test_data/global_test_schema'
 import { as_orma_schema } from '../../schema/introspector'
 import { IsEqual } from '../helper_types'
 import { GetAllEdges, GetFieldType } from '../schema/schema_helper_types'

@@ -2,7 +2,7 @@ import { orma_query } from '../..'
 import {
     GlobalTestQuery,
     global_test_schema,
-} from '../../helpers/tests/global_test_schema'
+} from '../../test_data/global_test_schema'
 
 const t = () => {
     const query = {

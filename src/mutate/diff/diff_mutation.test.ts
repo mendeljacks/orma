@@ -201,4 +201,26 @@ describe('diff_mutation.ts', () => {
             ],
         })
     })
+    test('ignores $identifying_fields', () => {
+        const original = {
+            images: [{ id: 1 }],
+        }
+        const modified = {
+            images: [
+                { id: 1, $identifying_fields: ['id'], $operation: 'update' },
+            ],
+        }
+        const update_obj = get_mutation_diff(original, modified)
+
+        expect(update_obj).to.deep.equal({
+            $operation: 'update',
+            images: [
+                {
+                    id: 1,
+                    $identifying_fields: ['id'],
+                    $operation: 'update',
+                },
+            ],
+        })
+    })
 })

@@ -1,71 +1,74 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { clone } from '../../../helpers/helpers'
 import {
     GlobalTestMutation,
-    global_test_schema,
-} from '../../../helpers/tests/global_test_schema'
+    global_test_schema
+} from '../../../test_data/global_test_schema'
 import { apply_guid_inference_macro } from '../guid_inference_macro'
+import {
+    NestingMutationOutput
+} from '../nesting_mutation_macro'
 
 describe('guid_inference_macro.ts', () => {
     describe(apply_guid_inference_macro.name, () => {
         test('adds guids to creates', () => {
-            const mutation = {
-                posts: [
-                    {
-                        $operation: 'create',
-                        user_id: 1,
-                        comments: [
-                            {
-                                $operation: 'create',
-                            },
-                            {
-                                $operation: 'create',
-                            },
-                        ],
-                    },
-                ],
-            } as const satisfies GlobalTestMutation
-
-            apply_guid_inference_macro(mutation, global_test_schema)
+            const mutation_pieces: NestingMutationOutput = [
+                {
+                    record: { $operation: 'create', user_id: 1 },
+                    path: ['posts', 0],
+                    lower_indices: [1, 2],
+                },
+                {
+                    record: { $operation: 'create' },
+                    path: ['posts', 0, 'comments', 0],
+                    higher_index: 0,
+                    lower_indices: [],
+                },
+                {
+                    record: { $operation: 'create' },
+                    path: ['posts', 0, 'comments', 1],
+                    higher_index: 0,
+                    lower_indices: [],
+                },
+            ]
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             // @ts-ignore
-            expect(mutation.posts[0].id.$guid).to.not.equal(undefined)
+            expect(mutation_pieces[0].record.id.$guid).to.not.equal(undefined)
             // @ts-ignore
-            expect(mutation.posts[0].id.$guid).to.equal(
+            expect(mutation_pieces[0].record.id.$guid).to.equal(
                 // @ts-ignore
-                mutation.posts[0].comments[0].post_id.$guid
+                mutation_pieces[1].record.post_id.$guid
             )
 
             // @ts-ignore
-            expect(mutation.posts[0].id.$guid).to.equal(
+            expect(mutation_pieces[0].record.id.$guid).to.equal(
                 // @ts-ignore
-                mutation.posts[0].comments[1].post_id.$guid
+                mutation_pieces[2].record.post_id.$guid
             )
         })
         test('adds guids for deletes', () => {
-            const mutation = {
-                comments: [
-                    {
-                        id: 1,
-                        $operation: 'delete',
-                        posts: [
-                            {
-                                id: 2,
-                                $operation: 'delete',
-                            },
-                        ],
-                    },
-                ],
-            } as const satisfies GlobalTestMutation
+            const mutation_pieces: NestingMutationOutput = [
+                {
+                    record: { id: 1, $operation: 'delete' },
+                    path: ['comments', 0],
+                    lower_indices: [1],
+                },
+                {
+                    record: { id: 2, $operation: 'delete' },
+                    path: ['comments', 0, 'posts', 0],
+                    higher_index: 0,
+                    lower_indices: [],
+                },
+            ]
 
-            apply_guid_inference_macro(mutation, global_test_schema)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             // should use the user supplied id in guid inference
             // @ts-ignore
-            expect(mutation.comments[0].post_id).to.equal(2)
+            expect(mutation_pieces[0].record.post_id).to.equal(2)
         })
-        test('ignores nested updates', () => {
+        test('propagates through nested updates', () => {
             const mutation = {
                 posts: [
                     {
@@ -79,66 +82,77 @@ describe('guid_inference_macro.ts', () => {
                 ],
             } as const satisfies GlobalTestMutation
 
-            const cloned_mutation = clone(mutation)
+            const mutation_pieces: NestingMutationOutput = [
+                {
+                    record: { $operation: 'update' },
+                    path: ['posts', 0],
+                    lower_indices: [1],
+                },
+                {
+                    record: { $operation: 'update' },
+                    path: ['posts', 0, 'comments', 0],
+                    higher_index: 0,
+                    lower_indices: [],
+                },
+            ]
 
-            apply_guid_inference_macro(mutation, global_test_schema)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             // no linked guids
             //@ts-ignore
-            expect(cloned_mutation.posts[0].comments[0].psot_id).to.equal(
-                undefined
+            expect(mutation_pieces[0].record.id).to.deep.equal(
+                mutation_pieces[1].record.post_id
             )
         })
         test('ignores parent -> child -> parent ambiguous nesting', () => {
-            const mutation = {
-                posts: [
-                    {
-                        $operation: 'create',
-                        comments: [
-                            {
-                                // this is an ambiguous nesting, since we dont know which product
-                                // (the higher or the lower one) should be the parent. So we do nothing.
-                                $operation: 'create',
-                                posts: [
-                                    {
-                                        $operation: 'create',
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            } as const satisfies GlobalTestMutation
+            const mutation_pieces: NestingMutationOutput = [
+                {
+                    record: { $operation: 'create' },
+                    path: ['posts', 0],
+                    lower_indices: [1],
+                },
+                {
+                    record: { $operation: 'create' },
+                    // this is an ambiguous nesting, since we dont know which product
+                    // (the higher or the lower one) should be the parent. So we do nothing.
+                    path: ['posts', 0, 'comments', 0],
+                    higher_index: 0,
+                    lower_indices: [2],
+                },
+                {
+                    record: { $operation: 'create' },
+                    path: ['posts', 0, 'comments', 0, 'posts', 0],
+                    higher_index: 1,
+                    lower_indices: [],
+                },
+            ]
 
-            const cloned_mutation = clone(mutation)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
-            apply_guid_inference_macro(mutation, global_test_schema)
-
-            // no linked guids
             //@ts-ignore
-            expect(cloned_mutation.posts[0].comments[0].post_id).to.equal(
-                undefined
-            )
+            expect(mutation_pieces[1].record.post_id).to.equal(undefined)
         })
         test('handles create nested under update', () => {
-            const mutation = {
-                posts: [
-                    {
-                        $operation: 'update',
-                        id: 1,
-                        comments: [
-                            {
-                                $operation: 'create',
-                            },
-                        ],
-                    },
-                ],
-            } as const satisfies GlobalTestMutation
+            const mutation_pieces: NestingMutationOutput = [
+                {
+                    record: { $operation: 'update', id: 1 },
+                    path: ['posts', 0],
+                    lower_indices: [1],
+                },
+                {
+                    record: { $operation: 'create' },
+                    path: ['posts', 0, 'comments', 0],
+                    higher_index: 0,
+                    lower_indices: [],
+                },
+            ]
 
-            apply_guid_inference_macro(mutation, global_test_schema)
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
             //@ts-ignore
-            expect(mutation.posts[0].comments[0].post_id).to.deep.equal(1)
+            expect(mutation_pieces[0].record.id).to.deep.equal(
+                mutation_pieces[1].record.post_id
+            )
         })
     })
     //TODO: add a test where a guid is provided in the id column, and the foreign key should then use the provided guid, not generate its own

@@ -1,5 +1,6 @@
 import { deep_equal, has_prop } from '../../helpers/helpers'
 import { lir_join } from '../../helpers/lir_join'
+import { is_reserved_keyword } from '../../helpers/schema_helpers'
 
 const is_array = el => Array.isArray(el)
 const is_object = el =>
@@ -18,7 +19,12 @@ export const get_mutation_diff = (original, modified) => {
         return get_mutation_diff(original, empty_subtables)
     }
 
-    if (is_primitive(modified) || modified?.$guid !== undefined) {
+    if (
+        is_primitive(modified) ||
+        modified?.$guid !== undefined ||
+        // this catches the case where $identifying_key is provided (since the identifying key is an array of strings)
+        typeof modified?.[0] === 'string'
+    ) {
         return modified
     }
     if (!is_object(original) && is_object(modified)) {
@@ -94,7 +100,10 @@ export const get_mutation_diff = (original, modified) => {
                 if (modified.id !== undefined) {
                     update_obj['id'] = modified.id
                 }
-                update_obj[key] = get_mutation_diff(original_value, modified_value)
+                update_obj[key] = get_mutation_diff(
+                    original_value,
+                    modified_value
+                )
             }
         }
         for (let i = 0; i < original_columns.length; i++) {

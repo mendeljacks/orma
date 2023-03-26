@@ -7,12 +7,8 @@ import {
     is_parent_entity,
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
-import {
-    get_connected_mutation_pieces,
-    mutation_entity_deep_for_each,
-    path_to_entity,
-} from '../helpers/mutate_helpers'
-import { MutationPiece } from '../plan/mutation_plan'
+import { path_to_entity } from '../helpers/mutate_helpers'
+import { NestingMutationOutput } from './nesting_mutation_macro'
 
 // 1000 ids / sec needs 21 billion years for 1% chance of collision
 // https://alex7kom.github.io/nano-nanoid-cc/?alphabet=0123456789abcdef&size=36&speed=1000&speedUnit=second
@@ -32,21 +28,23 @@ const get_id = hexoid(36)
  *  value        | ignore        | ignore            | ignore
  */
 export const apply_guid_inference_macro = (
-    mutation,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    mutation_pieces: NestingMutationOutput
 ) => {
-    mutation_entity_deep_for_each(
-        mutation,
-        (child_record, child_path, child_entity) => {
-            const child_mutation_piece: MutationPiece = {
-                // @ts-ignore
-                record: child_record,
-                path: child_path,
-            }
-            const all_parent_mutation_pieces = get_connected_mutation_pieces(
-                mutation,
-                child_mutation_piece
-            ).filter(mutation_piece => {
+    mutation_pieces.forEach(child_mutation_piece => {
+        const connected_mutation_pieces = [
+            ...(child_mutation_piece.higher_index !== undefined
+                ? [mutation_pieces[child_mutation_piece.higher_index]]
+                : []),
+            ...child_mutation_piece.lower_indices.map(
+                lower_index => mutation_pieces[lower_index]
+            ),
+        ]
+
+        const child_entity = path_to_entity(child_mutation_piece.path)
+        const child_record = child_mutation_piece.record
+        const all_parent_mutation_pieces = connected_mutation_pieces.filter(
+            mutation_piece => {
                 const parent_entity = path_to_entity(mutation_piece.path)
                 const is_parent = is_parent_entity(
                     parent_entity,
@@ -54,78 +52,66 @@ export const apply_guid_inference_macro = (
                     orma_schema
                 )
                 return is_parent
-            })
+            }
+        )
 
-            const parent_mutation_pieces_by_entity = group_by(
-                all_parent_mutation_pieces,
-                mutation_piece => path_to_entity(mutation_piece.path)
+        const parent_mutation_pieces_by_entity = group_by(
+            all_parent_mutation_pieces,
+            mutation_piece => path_to_entity(mutation_piece.path)
+        )
+
+        Object.keys(parent_mutation_pieces_by_entity).forEach(parent_entity => {
+            const parent_mutation_pieces =
+                parent_mutation_pieces_by_entity[parent_entity]
+
+            const edges_to_child = get_direct_edges(
+                parent_entity,
+                child_entity,
+                orma_schema
             )
 
-            Object.keys(parent_mutation_pieces_by_entity).forEach(
-                parent_entity => {
-                    const parent_mutation_pieces =
-                        parent_mutation_pieces_by_entity[parent_entity]
+            if (!can_apply_inference(parent_mutation_pieces, edges_to_child)) {
+                return
+            }
 
-                    const edges_to_child = get_direct_edges(
-                        parent_entity,
-                        child_entity,
-                        orma_schema
-                    )
+            // we now know that there is only one edge and mutation piece for this entity
+            const edge_to_child = edges_to_child[0]
+            const { record: parent_record, path: parent_path } =
+                parent_mutation_pieces[0]
 
-                    if (
-                        !can_apply_inference(
-                            parent_mutation_pieces,
-                            edges_to_child
-                        )
-                    ) {
-                        return
-                    }
+            const guid_obj = { $guid: get_id() }
 
-                    // we now know that there is only one edge and mutation piece for this entity
-                    const edge_to_child = edges_to_child[0]
-                    const { record: parent_record, path: parent_path } =
-                        parent_mutation_pieces[0]
+            if (
+                !should_apply_inference(
+                    parent_record,
+                    child_record,
+                    edge_to_child
+                )
+            ) {
+                return
+            }
 
-                    const guid_obj = { $guid: get_id() }
+            infer_guid(parent_record, child_record, edge_to_child, guid_obj)
+        })
 
-                    if (
-                        !should_apply_inference(
-                            parent_record,
-                            child_record,
-                            edge_to_child
-                        )
-                    ) {
-                        return
-                    }
-
-                    infer_guid(
-                        parent_record,
-                        child_record,
-                        edge_to_child,
-                        guid_obj
-                    )
-                }
-            )
-
-            // if the primary keys dont have $guids or values yet, add a $guid. This $guid wont connect to any
-            // foreign key, it will only be used to add the primary keys to the mutation later on. We want this
-            // because it is usefull to guarantee that the primary keys are in scope when processing the mutation
-            // results
-            const primary_keys = get_primary_keys(child_entity, orma_schema)
-            primary_keys.forEach(key => {
-                if (child_record[key] === undefined) {
-                    child_record[key] = { $guid: get_id() }
-                }
-            })
-        }
-    )
+        // if the primary keys dont have $guids or values yet, add a $guid. This $guid wont connect to any
+        // foreign key, it will only be used to add the primary keys to the mutation later on. We want this
+        // because it is usefull to guarantee that the primary keys are in scope when processing the mutation
+        // results
+        const primary_keys = get_primary_keys(child_entity, orma_schema)
+        primary_keys.forEach(key => {
+            if (child_record[key] === undefined) {
+                child_record[key] = { $guid: get_id() }
+            }
+        })
+    })
 }
 
 /**
  * Checks that guids can be inferred unambiguously
  */
 const can_apply_inference = (
-    parent_mutation_pieces: MutationPiece[],
+    parent_mutation_pieces: NestingMutationOutput,
     edges_to_child: Edge[]
 ) => {
     // this is an unsupported usecase if the user doesn't supply their own guids.
@@ -148,21 +134,46 @@ const should_apply_inference = (
     child_record: Record<string, any>,
     edge_to_child: Edge
 ) => {
+    const parent_op = parent_record.$operation
+    const child_op = child_record.$operation
+
     // there could be more cases where we want to apply guid inference (what create nested under delete?)
     // but these are the ones I'm sure of for now
-    const both_creates =
-        parent_record.$operation === 'create' &&
-        child_record.$operation === 'create'
 
-    const both_deletes =
-        parent_record.$operation === 'delete' &&
-        child_record.$operation === 'delete'
+    const both_deletes = parent_op === 'delete' && child_op === 'delete'
 
-    const update_and_create =
-        parent_record.$operation === 'update' &&
-        child_record.$operation === 'create'
+    /* 
+    - nested creates is straightforward propagation, such as create a user with a post.
+    - created child and updated parent is like update a user and create a post with that user id.
+    - created parent and updated child is like creating an optional parent (i.e. nullable foreign key)
+        for an existing child. Since we do foreign key propagation, the child foreign key will be updated 
+        to point to the newly created parent 
+    - updated parent and updated child is like updating a user and updating a post nested inside the user.
+        in this case, the post's user id will be updated to point at the updated user. This can also be useful
+        because the guid means you can update a child by part of a combo unique key, assuming the other part
+        is filled in by the guid. For example, this mutation is valid:
+            {
+                posts: [{ 
+                    $operation: 'update',
+                    id: 1,
+                    post_has_categories: [{
+                        category_id: 1,
+                        main_category: true
+                    }]
+                }]
+            }
+        even though category_id is not a unique key on its own, because there is a guid on post_id, only
+        providing category_id is enough to identify the post_has_category
+    - an upsert will always resolve to either a create or an update, so replacing any operation with upsert
+        in one of the previous cases, will be like replacing it with update or create, meaning all combinations
+        of create, update or upsert are accounted for.
+    */
+    const create_or_update_operations = ['create', 'update', 'upsert']
+    const both_creates_or_updates =
+        create_or_update_operations.includes(parent_op) &&
+        create_or_update_operations.includes(child_op)
 
-    const valid_operations = both_creates || both_deletes || update_and_create
+    const valid_operations = both_creates_or_updates || both_deletes
 
     // we dont do foreign key inference if the foreign key (e.g. parent_id) has something
     // provided by the user, even if the parent (e.g. id) is empty. We could propagate to the

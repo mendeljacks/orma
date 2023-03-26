@@ -324,7 +324,7 @@ describe('json_sql.ts', () => {
 
             const goal = format(`
                 CREATE TABLE my_table (
-                    id UNSIGNED INT
+                    id UNSIGNED INTEGER
                 )`)
 
             expect(format(json_to_sql(json, 'sqlite'))).to.equal(goal)

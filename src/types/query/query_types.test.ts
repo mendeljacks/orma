@@ -1,7 +1,7 @@
 import {
     GlobalTestQuery,
     GlobalTestSchema,
-} from '../../helpers/tests/global_test_schema'
+} from '../../test_data/global_test_schema'
 import { SimplifiedQuery } from './query_types'
 
 {

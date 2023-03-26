@@ -1,4 +1,4 @@
-import { GlobalTestSchema } from '../../helpers/tests/global_test_schema'
+import { GlobalTestSchema } from '../../test_data/global_test_schema'
 import {
     DeepReadonly,
     GetAllEdges,
@@ -46,7 +46,7 @@ type OperationObj<RequireOperation extends boolean> =
               readonly $operation?: Operation
           }
 
-type Operation = 'create' | 'update' | 'delete'
+type Operation = 'create' | 'update' | 'delete' | 'upsert'
 
 type FieldsObj<
     Schema extends OrmaSchema,
