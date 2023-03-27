@@ -24,12 +24,6 @@ export const mutate_validation_schema = {
             type: 'string',
             enum: ['create', 'update', 'delete', 'upsert'],
         },
-        $identifying_fields: {
-            type: 'array',
-            items: {
-                type: 'string',
-            },
-        },
     },
     additionalProperties: {
         type: 'array',
@@ -39,6 +33,12 @@ export const mutate_validation_schema = {
                 $operation: {
                     type: 'string',
                     enum: ['create', 'update', 'delete', 'upsert'],
+                },
+                $identifying_fields: {
+                    type: 'array',
+                    items: {
+                        type: 'string',
+                    },
                 },
             },
             additionalProperties: {
@@ -557,7 +557,10 @@ const validate_required_fields = (
     const errors: OrmaError[] = required_fields.flatMap(required_field => {
         // required fields are only applicable in creates, for updates (and deletes), the user never needs to
         // supply anything since required fields would already be in the database
-        if (operation === 'create' && record[required_field] === undefined) {
+        if (
+            ['create', 'upsert'].includes(operation) &&
+            record[required_field] === undefined
+        ) {
             // any foreign key that is for a connected parent record does not have to be supplied by the user since it
             // will be auto-inserted via foreign key propagation from the parent. (the parent record must be a create
             // to have a valid operation nesting, since this record is a create)
