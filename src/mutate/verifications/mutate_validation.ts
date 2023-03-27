@@ -54,6 +54,19 @@ export const mutate_validation_schema = {
                             $guid: {
                                 oneOf: [{ type: 'string' }, { type: 'number' }],
                             },
+                            $write: {
+                                type: 'boolean',
+                            },
+                            $read: {
+                                type: 'boolean',
+                            },
+                            $resolved_value: {
+                                oneOf: [
+                                    { type: 'string' },
+                                    { type: 'number' },
+                                    { type: 'null' },
+                                ],
+                            },
                         },
                         additionalProperties: false,
                     },
