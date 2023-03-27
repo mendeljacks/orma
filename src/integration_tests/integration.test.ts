@@ -177,6 +177,7 @@ describe('full integration test', () => {
             $operation: 'upsert',
             users: [
                 {
+                    id: { $guid: 'a' },
                     email: 'aa@a.com',
                     first_name: 'A',
                     likes: [
@@ -185,6 +186,7 @@ describe('full integration test', () => {
                             posts: [
                                 {
                                     title: 'First post!',
+                                    user_id: { $guid: 'a' },
                                 },
                             ],
                         },

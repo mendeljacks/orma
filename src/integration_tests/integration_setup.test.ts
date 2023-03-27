@@ -109,7 +109,7 @@ export const test_mutate = async (
     mutation: GlobalTestMutation,
     where_connecteds: WhereConnected<GlobalTestSchema> = []
 ) => {
-    // validate_errors([validate_mutation(mutation, global_test_schema)])
+    validate_errors([validate_mutation(mutation, global_test_schema)])
     const mutation_plan = orma_mutate_prepare(global_test_schema, mutation)
     validate_errors([
         await get_mutation_connected_errors(
