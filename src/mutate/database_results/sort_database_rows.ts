@@ -157,6 +157,16 @@ const get_database_row_for_mutation_piece = (
         const has_guid = value?.$guid !== undefined
         if (has_guid && value?.$read) {
             const { piece_index, field } = guid_map.get(value.$guid)!.write
+
+            // if sort_database_rows is called during mutation execution, then the resolved value will be in scope.
+            const mutation_resolved_value = mutation_pieces[piece_index].record[field]?.$resolved_value
+            if (mutation_resolved_value !== undefined) {
+                return mutation_resolved_value
+            }
+
+            // if sort_database_rows is called before the mutation runs, the resolved value is not in scope,
+            // so extra data must be fetched (the tables that the guids point to should have been fetched),
+            // so we do another lookup to get the fetched database row
             const write_database_row = get_database_row_for_mutation_piece(
                 mutation_pieces,
                 guid_map,
@@ -164,9 +174,9 @@ const get_database_row_for_mutation_piece = (
                 orma_schema,
                 piece_index
             )
-            const resolved_value = write_database_row?.[field]
+            const database_resolved_value = write_database_row?.[field]
 
-            return resolved_value
+            return database_resolved_value
         } else {
             return value
         }

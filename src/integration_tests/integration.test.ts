@@ -173,7 +173,7 @@ describe('full integration test', () => {
     })
     test('handles basic upsert', async () => {
         // here a comment is being created based on an existing user email and post title
-        await test_mutate({
+        const mutation = {
             $operation: 'upsert',
             users: [
                 {
@@ -181,6 +181,7 @@ describe('full integration test', () => {
                     first_name: 'A',
                     likes: [
                         {
+                            id: undefined,
                             posts: [
                                 {
                                     title: 'First post!',
@@ -190,7 +191,10 @@ describe('full integration test', () => {
                     ],
                 },
             ],
-        })
+        } as const
+        await test_mutate(mutation)
+
+        expect(mutation.users[0].likes[0].id).to.not.equal(undefined)
 
         const result = await test_query({
             users: {
