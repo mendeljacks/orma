@@ -20,7 +20,10 @@ export const apply_infer_identifying_fields_macro = (
                 mutation_peice.record,
                 false
             )
-            mutation_peice.record.$identifying_fields = identifiny_fields
+
+            if (mutation_peice.record.$identifying_fields === undefined) {
+                mutation_peice.record.$identifying_fields = identifiny_fields
+            }
         }
     })
 }

@@ -69,6 +69,7 @@ export const mutate_validation_schema = {
                             },
                         },
                         additionalProperties: false,
+                        required: ['$guid']
                     },
                     {
                         // ref to this bit of the subschema
