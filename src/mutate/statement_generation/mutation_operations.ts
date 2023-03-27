@@ -11,7 +11,7 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import { is_submutation, path_to_entity } from '../helpers/mutate_helpers'
 import { generate_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
-import { MutationPiece } from '../plan/mutation_plan'
+import { MutationPiece } from '../plan/mutation_batches'
 
 export const get_create_ast = (
     mutation_pieces: MutationPiece[],

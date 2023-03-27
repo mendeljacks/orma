@@ -3,7 +3,7 @@ import {
     get_mutation_batch_length,
     MutationBatch,
     MutationPiece,
-} from '../plan/mutation_plan'
+} from '../plan/mutation_batches'
 
 export const save_resolved_guid_values = (
     mutation_pieces: MutationPiece[],

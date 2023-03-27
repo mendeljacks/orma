@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../test_data/global_test_schema'
 import { Path } from '../../../types'
 import { MutationOperation } from '../../mutate'
-import { MutationBatch } from '../../plan/mutation_plan'
+import { MutationBatch } from '../../plan/mutation_batches'
 import { apply_guid_plan_macro } from '../guid_plan_macro'
 import { get_upsert_macro_query } from '../upsert_macro'
 

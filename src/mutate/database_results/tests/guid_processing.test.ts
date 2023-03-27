@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { apply_guid_plan_macro } from '../../macros/guid_plan_macro'
-import { MutationPiece } from '../../plan/mutation_plan'
+import { MutationPiece } from '../../plan/mutation_batches'
 import { replace_guids_with_values } from '../guid_processing'
 
 describe('guid_processing.ts', () => {

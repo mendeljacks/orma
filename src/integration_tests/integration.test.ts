@@ -1,16 +1,89 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
+import { sqlite3_adapter } from '../helpers/database_adapters'
 import { clone } from '../helpers/helpers'
-import { GlobalTestQuery } from '../test_data/global_test_schema'
 import { get_mutation_diff } from '../mutate/diff/diff_mutation'
+import { orma_mutate_prepare, orma_mutate_run } from '../mutate/mutate'
+import { generate_orma_schema_cache } from '../schema/introspector'
+import { GlobalTestQuery } from '../test_data/global_test_schema'
+import { OrmaSchema } from '../types/schema/schema_types'
 import {
+    close_database,
     integration_test_setup,
+    open_database,
+    remove_file,
     test_mutate,
     test_query,
 } from './integration_setup.test'
 
 describe('full integration test', () => {
     integration_test_setup()
+
+    test('Handles orma schema with no nesting', async () => {
+        const mutation = {
+            $operation: 'create',
+            users: [
+                { name: 'John', age: 25 },
+                { name: 'Jane', age: 30 },
+            ],
+        } as {
+            $operation: 'create'
+            users: {
+                name: string
+                age: number
+                user_id?: number
+            }[]
+        }
+
+        const $entities: OrmaSchema['$entities'] = {
+            users: {
+                $database_type: 'sqlite',
+                $fields: {
+                    user_id: {
+                        $data_type: 'int',
+                        $auto_increment: true,
+                        $not_null: true,
+                        $unsigned: true,
+                    },
+                    name: {
+                        $data_type: 'varchar',
+                        $not_null: true,
+                    },
+                },
+                $primary_key: {
+                    $fields: ['user_id'],
+                    $name: 'user_id_pk',
+                },
+                $unique_keys: [{ $fields: ['name'], $name: 'name_uq' }],
+            },
+        }
+        const orma_schema: OrmaSchema = {
+            $entities,
+            $cache: generate_orma_schema_cache($entities),
+        }
+
+        const mutation_plan = orma_mutate_prepare(orma_schema, mutation)
+        const database = { db: undefined, file_name: 'simple_test' }
+
+        await remove_file(database.file_name)
+        await open_database(database)
+
+        await sqlite3_adapter(database.db!)([
+            {
+                sql_string:
+                    'CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR NOT NULL, age INTEGER)',
+            },
+        ])
+        await orma_mutate_run(
+            orma_schema,
+            sqlite3_adapter(database.db!),
+            mutation_plan
+        )
+
+        await close_database(database)
+        await remove_file(database.file_name)
+        expect(mutation.users[0].user_id).to.equal(1)
+    })
 
     test('basic a-z test', async () => {
         const query = {

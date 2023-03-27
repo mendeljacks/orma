@@ -1,7 +1,7 @@
 import { combine_wheres } from '../../query/query_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { GuidMap } from '../macros/guid_plan_macro'
-import { MutationPiece } from '../plan/mutation_plan'
+import { MutationPiece } from '../plan/mutation_batches'
 import { path_to_entity } from './mutate_helpers'
 
 // export const generate_record_where_clause = (

@@ -5,7 +5,7 @@ import {
     global_test_schema,
 } from '../../../test_data/global_test_schema'
 import { apply_guid_plan_macro } from '../../macros/guid_plan_macro'
-import { MutationPiece } from '../../plan/mutation_plan'
+import { MutationPiece } from '../../plan/mutation_batches'
 import {
     get_create_ast,
     get_delete_ast,

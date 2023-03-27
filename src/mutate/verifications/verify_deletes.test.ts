@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { global_test_schema } from '../../test_data/global_test_schema'
 import { PathedRecord } from '../../types'
-import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
+import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
 import {
     get_delete_errors_from_blocking_rows,
     get_delete_verification_query,
@@ -312,7 +312,7 @@ describe('verify_deletes.ts', () => {
                         id: 2,
                         email: 'best@test.com',
                         $operation: 'delete',
-                        $identifying_fields: ['email'] 
+                        $identifying_fields: ['email'],
                     },
                     path: ['users', 1],
                 },

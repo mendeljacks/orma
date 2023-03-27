@@ -13,7 +13,7 @@ import { PathedRecord } from '../../types'
 import { sort_database_rows } from '../database_results/sort_database_rows'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { MysqlFunction } from '../mutate'
-import { MutationPiece, MutationPlan } from '../plan/mutation_plan'
+import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
 import { generate_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
 

@@ -11,10 +11,14 @@ import { path_to_entity } from '../helpers/mutate_helpers'
 import { GuidMap } from '../macros/guid_plan_macro'
 import { MutationOperation } from '../mutate'
 
-export const get_mutation_plan = (
+type MutationBatchObject = {
+    mutation_pieces: MutationPiece[]
+    mutation_batches: MutationBatch[]
+}
+export const get_mutation_batches = (
     orma_schema: OrmaSchema,
     mutation_pieces: MutationPiece[]
-) => {
+): MutationBatchObject => {
     /*
     This function is an algorithm that wont make sense without an explanation. The idea is to generate a mutate plan
     which provides 2 things:

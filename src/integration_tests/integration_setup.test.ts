@@ -22,38 +22,46 @@ import { get_schema_diff } from '../schema/schema_macro'
 import { WhereConnected } from '../types/query/query_types'
 import { global_test_hydration } from '../test_data/global_test_hydration'
 
-let db: sqlite3.Database
+type TestDatabase = {
+    db: sqlite3.Database | undefined
+    file_name: string
+}
+let test_database: TestDatabase = {
+    db: undefined,
+    file_name: 'test_database',
+}
 
-const data_name = 'test_database'
 const checkpoint_name = 'test_database_checkpoint'
 
-const clear_database_files = () => {
-    if (existsSync(data_name)) {
-        unlinkSync(data_name)
-    }
-
-    if (existsSync(checkpoint_name)) {
-        unlinkSync(checkpoint_name)
+export const remove_file = (file_name: string) => {
+    if (existsSync(file_name)) {
+        unlinkSync(file_name)
     }
 }
 
-const open_database = async () =>
+const clear_database_files = () => {
+    remove_file(test_database.file_name)
+    remove_file(checkpoint_name)
+}
+
+export const open_database = async (test_database: TestDatabase) =>
     new Promise<void>(
         (accept, reject) =>
-            (db = new sqlite3.Database(data_name, e =>
-                e ? reject() : accept()
+            (test_database.db = new sqlite3.Database(
+                test_database.file_name,
+                e => (e ? reject() : accept())
             ))
     )
 
-const close_db = async () =>
+export const close_database = async (test_database: TestDatabase) =>
     new Promise<void>((resolve, reject) =>
-        db.close(err => (err ? reject(err) : resolve()))
+        test_database.db?.close(err => (err ? reject(err) : resolve()))
     )
 
 export const integration_test_setup = () => {
     before(async () => {
         clear_database_files()
-        await open_database()
+        await open_database(test_database)
 
         const schema_diff = get_schema_diff(
             { $entities: {} },
@@ -62,19 +70,19 @@ export const integration_test_setup = () => {
         const statements = schema_diff.map(ast => ({
             sql_string: json_to_sql(ast, 'sqlite'),
         }))
-        await sqlite3_adapter(db)(statements)
+        await sqlite3_adapter(test_database.db!)(statements)
         await test_mutate(global_test_hydration)
-        copyFileSync(data_name, checkpoint_name)
+        copyFileSync(test_database.file_name, checkpoint_name)
     })
 
     beforeEach(async () => {
-        await close_db()
-        copyFileSync(checkpoint_name, data_name)
-        await open_database()
+        await close_database(test_database)
+        copyFileSync(checkpoint_name, test_database.file_name)
+        await open_database(test_database)
     })
 
     after(async () => {
-        await close_db()
+        await close_database(test_database)
         clear_database_files()
     })
 }
@@ -107,7 +115,7 @@ export const test_mutate = async (
         await get_mutation_connected_errors(
             global_test_schema,
             connection_edges,
-            sqlite3_adapter(db),
+            sqlite3_adapter(test_database.db!),
             mutation_plan.guid_map,
             where_connecteds,
             mutation_plan.mutation_pieces
@@ -116,9 +124,8 @@ export const test_mutate = async (
 
     const res = await orma_mutate_run(
         global_test_schema,
-        sqlite3_adapter(db),
-        mutation_plan,
-        mutation
+        sqlite3_adapter(test_database.db!),
+        mutation_plan
     )
     return res
 }
@@ -128,7 +135,7 @@ export const test_query = async <T extends Record<string, any>>(query: T) => {
     const res = await orma_query(
         query,
         global_test_schema,
-        sqlite3_adapter(db),
+        sqlite3_adapter(test_database.db!),
         connection_edges
     )
     return res

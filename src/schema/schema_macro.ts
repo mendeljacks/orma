@@ -1,6 +1,9 @@
 import { get_difference } from '../helpers/helpers'
 import { get_all_edges } from '../helpers/schema_helpers'
-import { get_mutation_plan, MutationPiece } from '../mutate/plan/mutation_plan'
+import {
+    get_mutation_batches,
+    MutationPiece,
+} from '../mutate/plan/mutation_batches'
 import {
     ConstraintDefinition,
     FieldDefinition,
@@ -104,7 +107,7 @@ const get_sorted_create_table_statements = (
         }
     )
 
-    const mutation_plan = get_mutation_plan(final_schema, mutation_pieces)
+    const mutation_plan = get_mutation_batches(final_schema, mutation_pieces)
     const sorted_statements = mutation_plan.mutation_pieces.map(
         ({ record }) => create_statements[record.$_statement_index]
     )

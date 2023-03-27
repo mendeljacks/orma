@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../test_data/global_test_schema'
 import { apply_guid_plan_macro } from '../../macros/guid_plan_macro'
-import { MutationPiece } from '../../plan/mutation_plan'
+import { MutationPiece } from '../../plan/mutation_batches'
 import { get_guid_query } from '../mutation_guid_query'
 
 describe('mutation_guid_query.ts', () => {

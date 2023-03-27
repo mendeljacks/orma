@@ -3,14 +3,14 @@ import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../test_data/global_test_schema'
 import { apply_nesting_mutation_macro } from '../../macros/nesting_mutation_macro'
 import {
-    get_mutation_plan,
+    get_mutation_batches,
     MutationPiece,
     MutationPlan,
     run_mutation_plan,
-} from '../mutation_plan'
+} from '../mutation_batches'
 
 describe('mutation_plan.ts', () => {
-    describe(get_mutation_plan.name, () => {
+    describe(get_mutation_batches.name, () => {
         test('handles simple mutation batching', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
@@ -27,7 +27,7 @@ describe('mutation_plan.ts', () => {
                 },
             ]
 
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -55,7 +55,7 @@ describe('mutation_plan.ts', () => {
                 },
             ]
 
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -78,7 +78,7 @@ describe('mutation_plan.ts', () => {
                 },
                 { record: { id: 2, $operation: 'create' }, path: ['users', 0] },
             ]
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -99,7 +99,7 @@ describe('mutation_plan.ts', () => {
                 { record: { id: 3, $operation: 'update' }, path: ['users', 1] },
                 { record: { id: 2, $operation: 'update' }, path: ['posts', 0] },
             ]
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -124,7 +124,7 @@ describe('mutation_plan.ts', () => {
                 },
             ]
 
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -150,7 +150,7 @@ describe('mutation_plan.ts', () => {
                     path: ['users', 0, 'posts', 0],
                 },
             ]
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -186,7 +186,7 @@ describe('mutation_plan.ts', () => {
                 },
             ]
 
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -212,7 +212,7 @@ describe('mutation_plan.ts', () => {
                 { record: { $operation: 'update' }, path: ['users', 0] },
             ]
 
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -236,7 +236,7 @@ describe('mutation_plan.ts', () => {
                 },
             ]
 
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -267,7 +267,7 @@ describe('mutation_plan.ts', () => {
                 },
             ]
 
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )
@@ -302,7 +302,7 @@ describe('mutation_plan.ts', () => {
                 },
             ]
 
-            const mutate_plan = get_mutation_plan(
+            const mutate_plan = get_mutation_batches(
                 global_test_schema,
                 mutation_pieces
             )

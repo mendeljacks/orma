@@ -11,10 +11,11 @@ import { apply_inherit_operations_macro } from './macros/inherit_operations_macr
 import { apply_nesting_mutation_macro } from './macros/nesting_mutation_macro'
 import { apply_upsert_macro } from './macros/upsert_macro'
 import {
-    get_mutation_plan,
+    get_mutation_batches,
     MutationPiece,
+    MutationPlan,
     run_mutation_plan,
-} from './plan/mutation_plan'
+} from './plan/mutation_batches'
 import {
     get_mutation_statements,
     OrmaStatement,
@@ -28,31 +29,33 @@ export type MysqlFunction = (
 
 export type ValuesByGuid = Record<string | number, any>
 
-export const orma_mutate_prepare = (orma_schema: OrmaSchema, mutation) => {
+export const orma_mutate_prepare = (
+    orma_schema: OrmaSchema,
+    mutation
+): MutationPlan => {
     const mutation_pieces = apply_nesting_mutation_macro(mutation)
     apply_inherit_operations_macro(mutation_pieces, mutation.$operation)
     apply_guid_inference_macro(orma_schema, mutation_pieces)
-    const mutation_plan = get_mutation_plan(
+    const mutation_batch_object = get_mutation_batches(
         orma_schema,
         mutation_pieces as MutationPiece[]
     )
     const guid_map = apply_guid_plan_macro(
-        mutation_plan.mutation_pieces,
-        mutation_plan.mutation_batches
+        mutation_batch_object.mutation_pieces,
+        mutation_batch_object.mutation_batches
     )
     apply_infer_identifying_fields_macro(
         orma_schema,
-        mutation_plan.mutation_pieces
+        mutation_batch_object.mutation_pieces
     )
 
-    return { ...mutation_plan, guid_map }
+    return { ...mutation_batch_object, guid_map }
 }
 
 export const orma_mutate_run = async (
     orma_schema: OrmaSchema,
     mysql_function: MysqlFunction,
-    mutation_plan: ReturnType<typeof orma_mutate_prepare>,
-    mutation: any
+    mutation_plan: ReturnType<typeof orma_mutate_prepare>
 ) => {
     const { guid_map, mutation_pieces } = mutation_plan
 
@@ -94,7 +97,6 @@ export const orma_mutate_run = async (
     })
 
     replace_guids_with_values(mutation_pieces, guid_map)
-    return mutation
 }
 
 export const orma_mutate = async (
@@ -106,8 +108,7 @@ export const orma_mutate = async (
     const results = await orma_mutate_run(
         orma_schema,
         mysql_function,
-        mutation_plan,
-        input_mutation
+        mutation_plan
     )
     return results
 }

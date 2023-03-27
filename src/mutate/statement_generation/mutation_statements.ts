@@ -8,7 +8,7 @@ import {
     MutationBatch,
     MutationPiece,
     mutation_batch_for_each,
-} from '../plan/mutation_plan'
+} from '../plan/mutation_batches'
 import { get_guid_query } from './mutation_guid_query'
 import {
     get_create_ast,

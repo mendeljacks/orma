@@ -8,7 +8,7 @@ import {
     MutationBatch,
     MutationPiece,
     mutation_batch_for_each,
-} from '../plan/mutation_plan'
+} from '../plan/mutation_batches'
 
 /**
  * Generates a query which, when run, will return all the data needed to

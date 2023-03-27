@@ -14,7 +14,7 @@ import { path_to_entity } from '../helpers/mutate_helpers'
 import { generate_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
 import { MysqlFunction } from '../mutate'
-import { MutationPiece } from '../plan/mutation_plan'
+import { MutationPiece } from '../plan/mutation_batches'
 import { generate_statement } from '../statement_generation/mutation_statements'
 
 export const get_mutation_connected_errors = async (

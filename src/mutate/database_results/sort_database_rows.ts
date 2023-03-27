@@ -10,7 +10,7 @@ import {
     MutationBatch,
     MutationPiece,
     mutation_batch_for_each,
-} from '../plan/mutation_plan'
+} from '../plan/mutation_batches'
 
 type DatabaseIndexesByEntity = {
     [Entity: string]: {

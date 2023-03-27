@@ -3,7 +3,7 @@ import { describe, test } from 'mocha'
 import { group_by } from '../../helpers/helpers'
 import { global_test_schema } from '../../test_data/global_test_schema'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { MutationPiece } from '../plan/mutation_plan'
+import { MutationPiece } from '../plan/mutation_batches'
 import {
     get_database_uniqueness_errors,
     get_duplicate_record_indices,

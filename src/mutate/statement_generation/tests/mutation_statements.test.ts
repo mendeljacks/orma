@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { OrmaSchema } from '../../../types/schema/schema_types'
-import { MutationPiece } from '../../plan/mutation_plan'
+import { MutationPiece } from '../../plan/mutation_batches'
 import { get_mutation_statements } from '../mutation_statements'
 
 describe('mutation_statements.ts', () => {

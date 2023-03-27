@@ -1,5 +1,5 @@
 import { PathedRecord } from '../../types'
-import { MutationPlan } from '../plan/mutation_plan'
+import { MutationPlan } from '../plan/mutation_batches'
 
 /**
  * MUTATES THE INPUT. Converts any $guid to either a read or a write, based on where
@@ -61,8 +61,9 @@ export const apply_guid_plan_macro = (
     return guid_map
 }
 
+type Guid = string | number
 export type GuidMap = Map<
-    string | number,
+    Guid,
     {
         write: { piece_index: number; batch_index: number; field: string }
         reads: { piece_index: number; batch_index: number; field: string }[]
