@@ -367,25 +367,30 @@ const validate_select = (
             : []
 
     const entity_name = get_real_entity_name(last(subquery_path), subquery)
-    const expression_errors = select.flatMap((field, i) =>
-        // for $as, the second item in the array is the alias name which is always valid by the json schema.
-        // here we just need to validate the first item as an expression.
-        field?.$as
+    const expression_errors = select.flatMap((field, i) => {
+        const field_aliases = select.flatMap((field, i2) => {
+            if (i === i2) return []
+
+            return field?.$as ? [field.$as[1]] : []
+        })
+        // for $as, the second item in the array is the alias name which is always valid if it passes
+        // the json schema. here we just need to validate the first item as an expression.
+        return field?.$as
             ? validate_expression(
                   field.$as[0],
                   [...subquery_path, '$select', i, '$as', 0],
                   entity_name,
-                  [],
+                  field_aliases,
                   orma_schema
               )
             : validate_expression(
                   field,
                   [...subquery_path, '$select', i],
                   entity_name,
-                  [],
+                  field_aliases,
                   orma_schema
               )
-    )
+    })
 
     return [...require_one_field_errors, ...expression_errors]
 }
