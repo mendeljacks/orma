@@ -54,8 +54,22 @@ export const mutate_validation_schema = {
                             $guid: {
                                 oneOf: [{ type: 'string' }, { type: 'number' }],
                             },
+                            $write: {
+                                type: 'boolean',
+                            },
+                            $read: {
+                                type: 'boolean',
+                            },
+                            $resolved_value: {
+                                oneOf: [
+                                    { type: 'string' },
+                                    { type: 'number' },
+                                    { type: 'null' },
+                                ],
+                            },
                         },
                         additionalProperties: false,
+                        required: ['$guid']
                     },
                     {
                         // ref to this bit of the subschema
@@ -299,6 +313,11 @@ const validate_field = (
     entity_name: string,
     field_value: string | number | null | boolean | { $guid: string | number }
 ): OrmaError[] => {
+    if (field_value === undefined) {
+        // undefined is like nothing is there, so it should be like the validation doesnt run
+        return []
+    }
+
     const field_name = last(field_path) as string
     const field_schema = get_field_schema(orma_schema, entity_name, field_name)
     const required_data_type = field_schema.$data_type
@@ -386,7 +405,7 @@ const validate_field = (
         }
 
         // cast from string / boolean
-        const string_field_value = Number(field_value).toString()
+        const string_field_value = field_value?.toString() ?? ''
         const max_character_count = field_schema.$precision ?? Infinity
         const given_character_count = string_field_value.length
         const length_errors =

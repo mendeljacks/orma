@@ -114,6 +114,29 @@ describe('identifying_keys.ts', () => {
                 undefined
             )
         })
+        test('respects existing $identifying_fields', () => {
+            const mutation_pieces: InferIdentifyingFieldsInput = [
+                {
+                    record: {
+                        $operation: 'users',
+                        first_name: 'john',
+                        last_name: 'smith',
+                        email: 'js@gmail.com',
+                        $identifying_fields: ['email'],
+                    },
+                    path: ['posts', 0],
+                },
+            ]
+
+            apply_infer_identifying_fields_macro(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            expect(mutation_pieces[0].record.$identifying_fields).to.deep.equal(
+                ['email']
+            )
+        })
         test('throws on no identifying key', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
