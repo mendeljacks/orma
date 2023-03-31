@@ -162,9 +162,36 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     posts: {
+                        $select: [
+                            {
+                                $as: ['id', 'my_id2'],
+                            },
+                        ],
                         my_id: 'id',
                         $from: 'posts',
-                        $group_by: ['my_id'],
+                        $group_by: ['my_id', 'my_id2'],
+                    },
+                },
+                global_test_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
+        test('allows select to reference other select fields', () => {
+            const errors = validate_query(
+                {
+                    posts: {
+                        $select: [
+                            {
+                                $as: ['id', 'my_id2'],
+                            },
+                            {
+                                $as: ['my_id2', 'my_id3'],
+                            },
+                        ],
+                        my_id: 'id',
+                        $from: 'posts',
                     },
                 },
                 global_test_schema
