@@ -526,5 +526,38 @@ describe('json_sql.ts', () => {
 
             expect(format(json_to_sql(json))).to.equal(goal)
         })
+        test('handles $inner_join', () => {
+            const json = {
+                $select: ['id'],
+                $from: 'comments',
+                $inner_join: [
+                    {
+                        $entity: 'posts',
+                        $on: {
+                            $eq: [
+                                {
+                                    $entity: 'comments',
+                                    $field: 'post_id',
+                                },
+                                {
+                                    $entity: 'posts',
+                                    $field: 'id',
+                                },
+                            ],
+                        },
+                    },
+                ],
+                $where: {
+                    $eq: ['id', 1],
+                },
+            }
+
+            const goal = format(`
+            SELECT id FROM comments 
+            INNER JOIN posts ON (comments.post_id) = (posts.id)
+            WHERE (id) = (1)`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
     })
 })

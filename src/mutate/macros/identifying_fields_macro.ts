@@ -14,7 +14,7 @@ export const apply_infer_identifying_fields_macro = (
     mutation_pieces.forEach(mutation_peice => {
         const operation = mutation_peice.record.$operation
         if (['update', 'delete', 'upsert'].includes(operation)) {
-            const identifiny_fields = get_identifying_fields(
+            const identifying_fields = get_identifying_fields(
                 orma_schema,
                 path_to_entity(mutation_peice.path),
                 mutation_peice.record,
@@ -22,7 +22,7 @@ export const apply_infer_identifying_fields_macro = (
             )
 
             if (mutation_peice.record.$identifying_fields === undefined) {
-                mutation_peice.record.$identifying_fields = identifiny_fields
+                mutation_peice.record.$identifying_fields = identifying_fields
             }
         }
     })

@@ -15,7 +15,10 @@ import { combine_wheres } from '../../query/query_helpers'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
-import { generate_identifying_where } from '../helpers/record_searching'
+import {
+    generate_identifying_where,
+    get_identifying_query_for_prefetch,
+} from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
 
 /**
@@ -85,6 +88,7 @@ export const get_verify_uniqueness_query = (
 ) => {
     const { mutation_pieces, guid_map } = mutation_plan
     const mutation_entities = Object.keys(piece_indices_by_entity)
+
     const query = mutation_entities.reduce((acc, entity) => {
         // deleting a record never causes a unique constraint to be violated, so we only check creates and updates
         const searchable_piece_indices = piece_indices_by_entity[entity].filter(
@@ -95,55 +99,46 @@ export const get_verify_uniqueness_query = (
         )
 
         // all unique fields
-        const unique_field_groups = [
+        const unique_keys = [
             get_primary_keys(entity, orma_schema),
             ...get_unique_field_groups(entity, false, orma_schema),
         ]
 
-        // generate a where clause for each unique field group for each mutation piece
-        const wheres = unique_field_groups.flatMap(unique_fields => {
-            const checkable_piece_indices = get_checkable_mutation_indices(
-                unique_fields,
-                mutation_pieces,
-                searchable_piece_indices,
-                true
-            )
+        const select_fields = unique_keys.flat()
 
-            return checkable_piece_indices.map(piece_index => {
-                const { record } = mutation_pieces[piece_index]
-                const relevant_unique_fields = unique_fields.filter(
-                    field =>
-                        record[field] !== undefined &&
-                        !is_simple_object(record[field]) &&
-                        !Array.isArray(record[field])
-                )
-                return generate_identifying_where(
-                    orma_schema,
-                    guid_map,
-                    mutation_pieces,
-                    relevant_unique_fields,
-                    piece_index
-                )
-            })
-        })
+        const entity_query = get_identifying_query_for_prefetch(
+            guid_map,
+            mutation_pieces,
+            searchable_piece_indices,
+            entity,
+            _ => select_fields,
+            ({ record }) => {
+                // use partial unique keys, since changing part of a unique key can still
+                // cause a unique constraint violation
+                const relevant_unique_fields = unique_keys
+                    .map(unique_key =>
+                        unique_key.filter(
+                            field =>
+                                record[field] !== undefined &&
+                                !is_simple_object(record[field]) &&
+                                !Array.isArray(record[field])
+                        )
+                    )
+                    .filter(
+                        key =>
+                            key.length > 0 &&
+                            !array_equals(key, record.$identifying_fields ?? [])
+                    )
 
-        const $where = combine_wheres(wheres, '$or')
-
-        if (!$where) {
-            return acc
-        }
-
-        // add relevant columns
-        acc[entity] = unique_field_groups.flat().reduce(
-            (acc, field) => {
-                acc[field] = true
-                return acc
-            },
-            {
-                $where,
+                return relevant_unique_fields
             }
         )
 
+        if (!entity_query?.$where) {
+            return acc
+        }
+
+        acc[entity] = entity_query
         return acc
     }, {})
 

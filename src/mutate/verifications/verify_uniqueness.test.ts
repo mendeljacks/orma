@@ -38,8 +38,12 @@ describe('verify_uniqueness.ts', () => {
                 posts: {
                     id: true,
                     title: true,
+                    $from: 'posts',
                     $where: {
-                        $eq: ['title', { $escape: 'hi' }],
+                        $eq: [
+                            { $entity: 'posts', $field: 'title' },
+                            { $escape: 'hi' },
+                        ],
                     },
                 },
             })
@@ -71,25 +75,35 @@ describe('verify_uniqueness.ts', () => {
             expect(result).to.deep.equal({
                 users: {
                     id: true,
+                    email: true,
                     first_name: true,
                     last_name: true,
-                    email: true,
+                    $from: 'users',
                     $where: {
                         $or: [
                             {
-                                $eq: ['email', { $escape: 'a@a.com' }],
+                                $eq: [
+                                    { $entity: 'users', $field: 'email' },
+                                    { $escape: 'a@a.com' },
+                                ],
                             },
                             {
                                 $and: [
                                     {
                                         $eq: [
-                                            'first_name',
+                                            {
+                                                $entity: 'users',
+                                                $field: 'first_name',
+                                            },
                                             { $escape: 'john' },
                                         ],
                                     },
                                     {
                                         $eq: [
-                                            'last_name',
+                                            {
+                                                $entity: 'users',
+                                                $field: 'last_name',
+                                            },
                                             { $escape: 'smith' },
                                         ],
                                     },
@@ -138,16 +152,26 @@ describe('verify_uniqueness.ts', () => {
                 posts: {
                     id: true,
                     title: true,
+                    $from: 'posts',
                     $where: {
                         $or: [
                             {
-                                $eq: ['id', { $escape: 14 }],
+                                $eq: [
+                                    { $entity: 'posts', $field: 'title' },
+                                    { $escape: 'hi' },
+                                ],
                             },
                             {
-                                $eq: ['title', { $escape: 'hi' }],
+                                $eq: [
+                                    { $entity: 'posts', $field: 'id' },
+                                    { $escape: 14 },
+                                ],
                             },
                             {
-                                $eq: ['title', { $escape: '123' }],
+                                $eq: [
+                                    { $entity: 'posts', $field: 'title' },
+                                    { $escape: '123' },
+                                ],
                             },
                         ],
                     },
@@ -208,8 +232,12 @@ describe('verify_uniqueness.ts', () => {
                     email: true,
                     first_name: true,
                     last_name: true,
+                    $from: 'users',
                     $where: {
-                        $eq: ['first_name', { $escape: 'john' }],
+                        $eq: [
+                            { $entity: 'users', $field: 'first_name' },
+                            { $escape: 'john' },
+                        ],
                     },
                 },
             })
@@ -242,13 +270,20 @@ describe('verify_uniqueness.ts', () => {
                     email: true,
                     first_name: true,
                     last_name: true,
+                    $from: 'users',
                     $where: {
                         $and: [
                             {
-                                $eq: ['first_name', { $escape: 'john' }],
+                                $eq: [
+                                    { $entity: 'users', $field: 'first_name' },
+                                    { $escape: 'john' },
+                                ],
                             },
                             {
-                                $eq: ['last_name', { $escape: 'smith' }],
+                                $eq: [
+                                    { $entity: 'users', $field: 'last_name' },
+                                    { $escape: 'smith' },
+                                ],
                             },
                         ],
                     },
@@ -283,13 +318,20 @@ describe('verify_uniqueness.ts', () => {
                     email: true,
                     first_name: true,
                     last_name: true,
+                    $from: 'users',
                     $where: {
                         $or: [
                             {
-                                $eq: ['email', { $escape: 'a@a.com' }],
+                                $eq: [
+                                    { $entity: 'users', $field: 'email' },
+                                    { $escape: 'a@a.com' },
+                                ],
                             },
                             {
-                                $eq: ['last_name', { $escape: 'smith' }],
+                                $eq: [
+                                    { $entity: 'users', $field: 'last_name' },
+                                    { $escape: 'smith' },
+                                ],
                             },
                         ],
                     },
@@ -339,13 +381,20 @@ describe('verify_uniqueness.ts', () => {
                 posts: {
                     id: true,
                     title: true,
+                    $from: 'posts',
                     $where: {
                         $or: [
                             {
-                                $eq: ['title', { $escape: 'title 1' }],
+                                $eq: [
+                                    { $entity: 'posts', $field: 'title' },
+                                    { $escape: 'title 1' },
+                                ],
                             },
                             {
-                                $eq: ['title', { $escape: 'title 2' }],
+                                $eq: [
+                                    { $entity: 'posts', $field: 'title' },
+                                    { $escape: 'title 2' },
+                                ],
                             },
                         ],
                     },
@@ -355,8 +404,12 @@ describe('verify_uniqueness.ts', () => {
                     first_name: true,
                     last_name: true,
                     email: true,
+                    $from: 'users',
                     $where: {
-                        $eq: ['email', { $escape: 'a@a.com' }],
+                        $eq: [
+                            { $entity: 'users', $field: 'email' },
+                            { $escape: 'a@a.com' },
+                        ],
                     },
                 },
             })

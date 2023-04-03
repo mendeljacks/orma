@@ -1,43 +1,154 @@
+import { deep_equal } from '../../helpers/helpers'
+import { Edge } from '../../helpers/schema_helpers'
 import { combine_wheres } from '../../query/query_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { GuidMap } from '../macros/guid_plan_macro'
 import { MutationPiece } from '../plan/mutation_batches'
 import { path_to_entity } from './mutate_helpers'
 
-// export const generate_record_where_clause = (
-//     mutation_piece: MutationPiece,
-//     values_by_guid: ValuesByGuid,
-//     orma_schema: OrmaSchema,
-//     allow_ambiguous_unique_keys: boolean = false,
-//     throw_on_no_identifying_keys: boolean = true
-// ) => {
-//     const { record, path } = mutation_piece
-//     const entity_name = path_to_entity(path)
+/**
+ * This function generates the query required to find the specified mutation
+ * pieces in the database.
+ * During prefetch (i.e. before the mutation runs), guids are not resolved yet so we need
+ * to do a database-side search for things that have a guid. The output query uses inner
+ * joins for performance reasons.
+ */
+export const get_identifying_query_for_prefetch = (
+    guid_map: GuidMap,
+    mutation_pieces: MutationPiece[],
+    mutation_piece_indices: number[],
+    entity: string,
+    get_select_fields: (
+        mutation_piece: MutationPiece,
+        piece_index: number
+    ) => string[],
+    get_identifying_keys: (
+        mutation_piece: MutationPiece,
+        piece_index: number
+    ) => string[][]
+) => {
+    let join_edges: Edge[] = []
 
-//     const identifying_keys = get_identifying_fields(
-//         entity_name,
-//         record,
-//         values_by_guid,
-//         orma_schema,
-//         allow_ambiguous_unique_keys
-//     )
+    const select_obj = mutation_piece_indices.reduce((acc, piece_index) => {
+        const select_fields = get_select_fields(
+            mutation_pieces[piece_index],
+            piece_index
+        )
+        select_fields.forEach(field => (acc[field] = true))
+        return acc
+    }, new Set<string>())
 
-//     if (throw_on_no_identifying_keys) {
-//         // throw if we cant find a unique key
-//         throw_identifying_key_errors(record.$operation, identifying_keys, path)
-//     } else if (!identifying_keys?.length) {
-//         return { identifying_keys }
-//     }
+    const ors = mutation_piece_indices.flatMap(piece_index => {
+        const identifying_keys = get_identifying_keys(
+            mutation_pieces[piece_index],
+            piece_index
+        )
+        const record_wheres = identifying_keys.map(identifying_fields =>
+            get_identifying_where_for_prefetch(
+                guid_map,
+                join_edges,
+                mutation_pieces,
+                piece_index,
+                entity,
+                identifying_fields
+            )
+        )
+        return record_wheres
+    })
 
-//     const where = generate_record_where_clause_from_identifying_keys(
-//         values_by_guid,
-//         identifying_keys,
-//         mutation_piece.record
-//     )
+    const $where = combine_wheres(ors, '$or')
 
-//     return { where, identifying_keys }
-// }
+    const $inner_join = join_edges.map(edge => ({
+        $entity: edge.to_entity,
+        $on: {
+            $eq: [
+                {
+                    $entity: edge.from_entity,
+                    $field: edge.from_field,
+                },
+                {
+                    $entity: edge.to_entity,
+                    $field: edge.to_field,
+                },
+            ],
+        },
+    }))
 
+    return {
+        ...select_obj,
+        $from: entity,
+        ...($inner_join.length && { $inner_join }),
+        $where,
+    }
+}
+
+const get_identifying_where_for_prefetch = (
+    guid_map: GuidMap,
+    join_edges: Edge[],
+    mutation_pieces: MutationPiece[],
+    piece_index: number,
+    entity: string,
+    identifying_fields: string[]
+) => {
+    const { record } = mutation_pieces[piece_index]
+    const ands = identifying_fields.map(key => {
+        const guid = record[key]?.$guid
+        if (guid === undefined) {
+            // if there is no guid, we just search the raw value
+            return {
+                $eq: [
+                    { $entity: entity, $field: key },
+                    { $escape: record[key] },
+                ],
+            }
+        } else {
+            // if there is a guid, we have to search based on where the guid writes from. This allows
+            // us to identify records based on a read guid field.
+            const write_info = guid_map.get(guid)?.write!
+            const write_piece = mutation_pieces[write_info.piece_index]
+            const write_entity = path_to_entity(write_piece.path)
+
+            // add the join edge so we know what to inner join later
+            const join_edge: Edge = {
+                from_entity: entity,
+                from_field: key,
+                to_entity: write_entity,
+                to_field: write_info.field,
+            }
+            if (!join_edges.some(edge => deep_equal(edge, join_edge))) {
+                join_edges.push(join_edge)
+            }
+
+            // if the guid is a create, or for some reason doesnt have identifying fields, it is an error,
+            // since a prefetch search on a nonexistent record is impossible
+            const write_identifying_fields =
+                write_piece.record.$identifying_fields
+            if (!write_identifying_fields) {
+                throw new Error(
+                    `Identifying guid '${guid}' for field '${key}' resolved to a record that could not be identified (maybe it is not yet in the database, or does not have an unambiguous identifier such as a primary key). Try using a hardcoded ${key}.`
+                )
+            }
+
+            return combine_wheres(
+                write_identifying_fields.map(field => ({
+                    $eq: [
+                        { $entity: write_entity, $field: field },
+                        { $escape: write_piece.record[field] },
+                    ],
+                })),
+                '$and'
+            )
+        }
+    })
+
+    return combine_wheres(ands, '$and')
+}
+
+/**
+ * This function generates a where clause that searches for a given record. It can only be used
+ * during the mutation run, since it uses the resolved guids from previous mutation batches
+ * to search for guids, instead of doing a database-lookup.
+ */
 export const generate_identifying_where = (
     orma_schema: OrmaSchema,
     guid_map: GuidMap,
@@ -45,7 +156,7 @@ export const generate_identifying_where = (
     identifying_fields: string[],
     mutation_piece_index: number
 ) => {
-    const { path, record } = mutation_pieces[mutation_piece_index]
+    const { record } = mutation_pieces[mutation_piece_index]
 
     const where_clauses = identifying_fields.map(key => {
         const guid = record[key]?.$guid

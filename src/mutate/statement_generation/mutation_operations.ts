@@ -131,7 +131,7 @@ export const get_update_ast = (
 
     const identifying_fields = mutation_piece.record
         .$identifying_fields as string[]
-    const where = generate_identifying_where(
+    const where = generate_identifying_where( 
         orma_schema,
         guid_map,
         mutation_pieces,

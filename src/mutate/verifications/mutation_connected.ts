@@ -25,7 +25,7 @@ export const get_mutation_connected_errors = async (
     where_connecteds: WhereConnected<OrmaSchema>,
     mutation_pieces: MutationPiece[]
 ) => {
-    const ownership_queries = get_ownership_queries(
+    const ownership_queries = get_ownership_queries_old(
         orma_schema,
         connection_edges,
         guid_map,
@@ -51,6 +51,52 @@ export const get_mutation_connected_errors = async (
 }
 
 export const get_ownership_queries = (
+    orma_schema: OrmaSchema,
+    connection_edges: ConnectionEdges,
+    guid_map: GuidMap,
+    where_connecteds: WhereConnected<OrmaSchema>,
+    mutation_pieces: MutationPiece[]
+) => {
+    /*
+        algorithm:
+        
+        create an inner join for all relevant connection edges
+        for each row:
+            add a where clause to the query that checks if that row is in the selected results
+            - for creates, check the id of each foreign key (assuming the foreign key is part of the connection edges)
+            - for updates / deletes, we need to find the row itself. This is done by finding the identifying fields,
+                if the identifying field is a raw value, use that. 
+                Otherwise (its a guid), look for the identifying fields of whatever the guid points at.
+                Add the entity the guid points at to the inner join. This last part would need to be recursive.
+                (maybe same logic as record searching?)
+     */
+
+    const affected_entities = mutation_pieces.reduce((acc, { path }) => {
+        const entity = path_to_entity(path)
+        acc.add(entity)
+        return acc
+    }, new Set<string>())
+    
+    const queries = where_connecteds.flatMap(where_connected => {
+        const edge_paths_by_destination = get_edge_paths_by_destination(
+            connection_edges,
+            where_connected.$entity
+        )
+
+        mutation_pieces.forEach(mutation_piece => {
+            if (mutation_piece.record.$operation === 'create') {
+                // for creates, all foreign keys are in scope, so we can safely check them based on the
+                // user mutation
+            } else {
+                // for updates and delete, foreign keys might exist in the database that are not supplied
+                // in the user mutation, so we need to find the update / delete row itself based on its
+                // identifying fields
+            }
+        })
+    })
+}
+
+export const get_ownership_queries_old = (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
     guid_map: GuidMap,

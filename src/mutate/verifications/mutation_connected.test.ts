@@ -14,7 +14,7 @@ import { MysqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_batches'
 import {
     get_foreign_key_connected_wheres,
-    get_ownership_queries,
+    get_ownership_queries_old,
     get_identifier_connected_wheres,
     get_mutation_connected_errors,
 } from './mutation_connected'
@@ -89,8 +89,8 @@ describe('mutation_connected.ts', () => {
             expect(errors).to.deep.equal([])
         })
     })
-    describe(get_ownership_queries.name, () => {
-        test('tracks multiple entities', () => {
+    describe.only(get_ownership_queries_old.name, () => {
+        test.only('tracks multiple entities', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
@@ -110,7 +110,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const ownership_queries = get_ownership_queries(
+            const ownership_queries = get_ownership_queries_old(
                 global_test_schema,
                 default_connection_edges,
                 new Map(),
@@ -120,19 +120,58 @@ describe('mutation_connected.ts', () => {
 
             expect(ownership_queries).to.deep.equal([
                 {
-                    $select: ['id'],
+                    $select: [{ $entity: 'posts', $field: 'id' }],
                     $from: 'posts',
+                    $inner_join: [
+                        {
+                            $entity: 'post_has_categories',
+                            $on: {
+                                $eq: [
+                                    {
+                                        $entity: 'posts',
+                                        $field: 'id',
+                                    },
+                                    {
+                                        $entity: 'post_has_categories',
+                                        $field: 'post_id',
+                                    },
+                                ],
+                            },
+                        },
+                        {
+                            $entity: 'comments',
+                            $on: {
+                                $eq: [
+                                    {
+                                        $entity: 'posts',
+                                        $field: 'id',
+                                    },
+                                    {
+                                        $entity: 'comments',
+                                        $field: 'post_id',
+                                    },
+                                ],
+                            },
+                        },
+                    ],
                     $where: {
                         $or: [
-                            { $in: ['id', [1]] },
                             {
                                 $in: [
-                                    'id',
                                     {
-                                        $select: ['post_id'],
-                                        $from: 'comments',
-                                        $where: { $eq: ['id', 3] },
+                                        $entity: 'post_has_categories',
+                                        $field: 'post_id',
                                     },
+                                    { $escape: [1] },
+                                ],
+                            },
+                            {
+                                $in: [
+                                    {
+                                        $entity: 'comments',
+                                        $field: 'id',
+                                    },
+                                    [3],
                                 ],
                             },
                         ],
@@ -175,7 +214,7 @@ describe('mutation_connected.ts', () => {
                 ]
             )
 
-            const ownership_queries = get_ownership_queries(
+            const ownership_queries = get_ownership_queries_old(
                 global_test_schema,
                 connection_edges,
                 new Map(),
@@ -239,7 +278,7 @@ describe('mutation_connected.ts', () => {
                 ]
             )
 
-            const ownership_queries = get_ownership_queries(
+            const ownership_queries = get_ownership_queries_old(
                 global_test_schema,
                 connection_edges,
                 new Map(),
@@ -292,7 +331,7 @@ describe('mutation_connected.ts', () => {
 
             const connection_edges: ConnectionEdges = {}
 
-            const ownership_queries = get_ownership_queries(
+            const ownership_queries = get_ownership_queries_old(
                 global_test_schema,
                 connection_edges,
                 new Map(),
@@ -315,7 +354,7 @@ describe('mutation_connected.ts', () => {
                 },
             ]
 
-            const ownership_queries = get_ownership_queries(
+            const ownership_queries = get_ownership_queries_old(
                 global_test_schema,
                 default_connection_edges,
                 new Map(),

@@ -289,6 +289,8 @@ const sql_command_parsers = {
     $entity: args => `${args}`,
     $field: args => `.${args}`,
     $from: args => `FROM ${args}`,
+    $inner_join: args => `${args.map(arg => `INNER JOIN ${arg}`).join(' ')}`,
+    $on: args => `ON ${args}`,
     $where: args => `WHERE ${args}`,
     $group_by: args => `GROUP BY ${args.join(', ')}`,
     $having: args => `HAVING ${args}`,
