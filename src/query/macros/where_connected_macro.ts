@@ -148,7 +148,10 @@ const apply_where_connected_to_subquery = (
 
             // considered connected to a specific target entity if one of the edge paths
             // are connected, or if none of the edge paths are connected
-            return combine_wheres([...is_connected_wheres, ...not_connected_wheres], '$or')
+            return combine_wheres(
+                [...is_connected_wheres, ...not_connected_wheres],
+                '$or'
+            )
         }
     )
 
@@ -260,7 +263,25 @@ const get_where_not_connected_clauses = (
 
         return [
             {
-                $not: combine_wheres(no_connected_entity_clauses, '$or'),
+                $not: {
+                    /*
+                    We need special handling for the not in clause, since nulls contaminate the entire where in.
+                    To get a feel for the weirdness, consider the following queries:
+                    
+                        SELECT 1 FROM DUAL WHERE 1 IN (2, NULL); -- returns nothing, since 1 is not in the array
+                        SELECT 1 FROM DUAL WHERE 1 NOT IN (2, NULL); -- also returns nothing?!
+                    
+                        SELECT 1 FROM DUAL WHERE NULL IN (1, 2);
+                        SELECT 1 FROM DUAL WHERE NULL NOT IN (1, 2); -- same story swapping the null and the value
+                    
+                    So we basically IN works fine, but NOT IN breaks if there is a null. A simple solution
+                    is to just coalesce the NULLs into FALSE, which gives the expected behaviour
+                    */
+                    $coalesce: [
+                        combine_wheres(no_connected_entity_clauses, '$or'),
+                        false,
+                    ],
+                },
             },
         ]
     } else {
@@ -322,12 +343,35 @@ export const get_edge_paths_by_destination = (
 
     // split edge paths by entity since we only want paths to entities that are in the $where_connected clause
     const connection_paths = edge_paths.reduce(
-        (acc, edge_path) => {
-            const target_entity = last(edge_path).to_entity
+        (acc, raw_edge_path) => {
+            const target_entity = last(raw_edge_path).to_entity
             if (!acc[target_entity]) {
                 acc[target_entity] = []
             }
-            acc[target_entity].push(edge_path)
+
+            // in an edge path, the target entity should only appear once, since target entities
+            // are always connected to themselves and only themselves. This means anything
+            // after the first instance of the target entity is redundant. This can happen
+            // in an edge path like: A -> B -> C -> B, where B is the target entity. So we
+            // would remove the B -> C and C -> B edges.
+            const first_taget_index = raw_edge_path.findIndex(
+                edge => edge.to_entity === target_entity
+            )
+            const trimmed_edge_path = raw_edge_path.slice(
+                0,
+                first_taget_index + 1
+            )
+
+            // removing part of the edge path can cause there to be duplicates, so check for that
+            const edge_path_exists =
+                acc[target_entity].find(existing_edge_path =>
+                    deep_equal(existing_edge_path, trimmed_edge_path)
+                ) !== undefined
+
+            if (!edge_path_exists) {
+                acc[target_entity].push(trimmed_edge_path)
+            }
+
             return acc
         },
         {} as {

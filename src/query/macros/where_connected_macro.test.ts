@@ -562,12 +562,73 @@ describe('where_connected_macro.ts', () => {
                     },
                     {
                         $not: {
-                            $in: [
-                                'billing_address_id',
+                            $coalesce: [
                                 {
-                                    $select: ['id'],
-                                    $from: 'addresses',
+                                    $in: [
+                                        'billing_address_id',
+                                        {
+                                            $select: ['id'],
+                                            $from: 'addresses',
+                                        },
+                                    ],
                                 },
+                                false,
+                            ],
+                        },
+                    },
+                ],
+            })
+        })
+        test('handles reversed nullable foreign keys', () => {
+            const query = {
+                $where_connected: [
+                    {
+                        $entity: 'users',
+                        $field: 'id',
+                        $values: [1, 2],
+                    },
+                ],
+                addresses: {
+                    id: true,
+                },
+            }
+
+            apply_where_connected_macro(global_test_schema, query, {
+                addresses: [
+                    {
+                        from_field: 'id',
+                        to_entity: 'users',
+                        to_field: 'billing_address_id',
+                    },
+                ],
+            })
+
+            // @ts-ignore
+            expect(query.addresses.$where).to.deep.equal({
+                $or: [
+                    {
+                        $in: [
+                            'id',
+                            {
+                                $select: ['billing_address_id'],
+                                $from: 'users',
+                                $where: { $in: ['id', [1, 2]] },
+                            },
+                        ],
+                    },
+                    {
+                        $not: {
+                            $coalesce: [
+                                {
+                                    $in: [
+                                        'id',
+                                        {
+                                            $select: ['billing_address_id'],
+                                            $from: 'users',
+                                        },
+                                    ],
+                                },
+                                false,
                             ],
                         },
                     },

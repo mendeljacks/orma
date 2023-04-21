@@ -392,6 +392,46 @@ describe('full integration test', () => {
             ],
         })
     })
+    test('handles query ownership for nullable fields', async () => {
+        await test_mutate({
+            $operation: 'create',
+            addresses: [
+                {
+                    id: 12345,
+                    line_1: 'ASD TEST',
+                },
+            ],
+        })
+
+        const query = {
+            $where_connected: [
+                {
+                    $entity: 'users',
+                    $field: 'id',
+                    $values: [1],
+                },
+            ],
+            addresses: {
+                id: true,
+                line_1: true,
+                $where: {
+                    $eq: ['id', { $escape: 12345 }],
+                },
+            },
+        } as const
+        const result = await test_query(query)
+
+        // this address is not connected to anything (e.g. billing_address_id), so it
+        // is accessible by all users and should appear in the result
+        expect(result).to.deep.equal({
+            addresses: [
+                {
+                    id: 12345,
+                    line_1: 'ASD TEST',
+                },
+            ],
+        })
+    })
     test.skip('allows $identifying_fields override')
     test.skip('handles manual guid + raw value linking')
     test.skip('handles renesting via id only updates')

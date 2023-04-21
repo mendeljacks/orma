@@ -134,7 +134,7 @@ export const json_to_sql = (
 
 export const sql_function_definitions: {
     [function_name: string]: {
-        ast_to_sql: (args: any) => string
+        ast_to_sql: (args: any, path: any) => string
         aggregate?: boolean
         allow_star?: boolean
         allow_distinct?: boolean
@@ -186,7 +186,10 @@ export const sql_function_definitions: {
     },
     // non-aggregate functions
     $coalesce: {
-        ast_to_sql: args => `COALESCE(${args.join(', ')})`,
+        ast_to_sql: (args, path) => {
+            const res = `COALESCE(${args.join(', ')})`
+            return nested_under_odd_nots(path) ? `NOT (${res})` : res
+        },
         min_args: 1,
     },
     $round: {
