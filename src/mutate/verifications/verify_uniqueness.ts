@@ -9,14 +9,13 @@ import {
     get_primary_keys,
     get_unique_field_groups,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
 import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
+import { generate_identifying_where } from '../helpers/record_searching'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
-import { generate_identifying_where } from '../helpers/record_searching'
-import { GuidMap } from '../macros/guid_plan_macro'
 
 /**
  * Generates errors when unique fields are duplicates in two cases:
@@ -236,7 +235,23 @@ export const get_database_uniqueness_errors = (
                 database_records,
                 mutation_records,
                 field_group
-            )
+            ).filter(([database_index, mutation_index]) => {
+                // noop updates happen when a unique field is being set to the value that it already is
+                // in the database. A naive check will see a duplicate, since the value in the mutation is
+                // in the database. But since they are really the same record, we want to ignore them.
+                const database_record = database_records[database_index]
+                const mutation_record = mutation_records[mutation_index]
+
+                const is_update = mutation_record.$operation === 'update'
+                const is_same_record =
+                    mutation_record?.$identifying_fields?.every(
+                        field =>
+                            database_record[field] == mutation_record[field]
+                    )
+
+                const is_noop_update = is_update && is_same_record
+                return !is_noop_update
+            })
 
             const database_duplicate_errors = database_duplicate_indices.map(
                 ([database_record_index, mutation_record_index]) => {

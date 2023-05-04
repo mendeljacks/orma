@@ -432,6 +432,55 @@ describe('full integration test', () => {
             ],
         })
     })
+    describe('unique check', () => {
+        test('throws unique check errors', async () => {
+            await test_mutate({
+                $operation: 'create',
+                posts: [
+                    {
+                        id: 12345,
+                        title: 'unique title',
+                        user_id: 1,
+                    },
+                ],
+            })
+
+            try {
+                await test_mutate({
+                    $operation: 'create',
+                    posts: [
+                        {
+                            id: 1,
+                            title: 'unique title',
+                        },
+                    ],
+                })
+                expect(undefined).to.equal('Expected an error to be thrown')
+            } catch (error) {}
+        })
+        test('allows setting unique field to itself', async () => {
+            await test_mutate({
+                $operation: 'create',
+                posts: [
+                    {
+                        id: 12345,
+                        title: 'unique title',
+                        user_id: 1,
+                    },
+                ],
+            })
+
+            await test_mutate({
+                $operation: 'update',
+                posts: [
+                    {
+                        id: 12345,
+                        title: 'unique title',
+                    },
+                ],
+            })
+        })
+    })
     test.skip('allows $identifying_fields override')
     test.skip('handles manual guid + raw value linking')
     test.skip('handles renesting via id only updates')
