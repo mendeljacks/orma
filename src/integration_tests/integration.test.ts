@@ -432,6 +432,30 @@ describe('full integration test', () => {
             ],
         })
     })
+    describe.only('unique check', () => {
+        test('allows setting unique field to itself', async () => {
+            await test_mutate({
+                $operation: 'create',
+                posts: [
+                    {
+                        id: 12345,
+                        title: 'unique title',
+                        user_id: 1,
+                    },
+                ],
+            })
+
+            await test_mutate({
+                $operation: 'update',
+                posts: [
+                    {
+                        id: 12345,
+                        title: 'unique title',
+                    },
+                ],
+            })
+        })
+    })
     test.skip('allows $identifying_fields override')
     test.skip('handles manual guid + raw value linking')
     test.skip('handles renesting via id only updates')

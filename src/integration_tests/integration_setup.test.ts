@@ -21,6 +21,7 @@ import { validate_query } from '../query/validation/query_validation'
 import { get_schema_diff } from '../schema/schema_macro'
 import { WhereConnected } from '../types/query/query_types'
 import { global_test_hydration } from '../test_data/global_test_hydration'
+import { get_unique_verification_errors } from '../mutate/verifications/verify_uniqueness'
 
 type TestDatabase = {
     db: sqlite3.Database | undefined
@@ -119,6 +120,11 @@ export const test_mutate = async (
             mutation_plan.guid_map,
             where_connecteds,
             mutation_plan.mutation_pieces
+        ),
+        await get_unique_verification_errors(
+            global_test_schema,
+            sqlite3_adapter(test_database.db!),
+            mutation_plan
         ),
     ])
 
