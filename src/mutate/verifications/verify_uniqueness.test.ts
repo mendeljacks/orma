@@ -437,13 +437,13 @@ describe('verify_uniqueness.ts', () => {
             const database_records_by_entity = {
                 users: [
                     {
-                        id: 12,
+                        id: 1,
                         email: 'a',
                     },
                 ],
                 categories: [
                     {
-                        id: 13,
+                        id: 2,
                         label: 'hi',
                     },
                 ],

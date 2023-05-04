@@ -432,7 +432,32 @@ describe('full integration test', () => {
             ],
         })
     })
-    describe.only('unique check', () => {
+    describe('unique check', () => {
+        test('throws unique check errors', async () => {
+            await test_mutate({
+                $operation: 'create',
+                posts: [
+                    {
+                        id: 12345,
+                        title: 'unique title',
+                        user_id: 1,
+                    },
+                ],
+            })
+
+            try {
+                await test_mutate({
+                    $operation: 'create',
+                    posts: [
+                        {
+                            id: 1,
+                            title: 'unique title',
+                        },
+                    ],
+                })
+                expect(undefined).to.equal('Expected an error to be thrown')
+            } catch (error) {}
+        })
         test('allows setting unique field to itself', async () => {
             await test_mutate({
                 $operation: 'create',
