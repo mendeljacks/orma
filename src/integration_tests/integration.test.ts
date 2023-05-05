@@ -480,6 +480,27 @@ describe('full integration test', () => {
                 ],
             })
         })
+        test('allows noop updates', async () => {
+            await test_mutate({
+                $operation: 'create',
+                posts: [
+                    {
+                        id: 12345,
+                        title: 'unique title',
+                        user_id: 1,
+                    },
+                ],
+            })
+
+            await test_mutate({
+                $operation: 'update',
+                posts: [
+                    {
+                        id: 12345,
+                    },
+                ],
+            })
+        })
     })
     test.skip('allows $identifying_fields override')
     test.skip('handles manual guid + raw value linking')
