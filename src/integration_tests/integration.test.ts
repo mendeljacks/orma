@@ -501,6 +501,44 @@ describe('full integration test', () => {
                 ],
             })
         })
+        test('ignores objects in part of unique key', async () => {
+            await test_mutate({
+                $operation: 'create',
+                users: [
+                    {
+                        id: 123,
+                        first_name: 'a',
+                        last_name: 'b',
+                        email: 'a@b.com',
+                    },
+                ],
+                posts: [
+                    {
+                        id: 1231,
+                        title: 'unique title',
+                        user_id: 123,
+                    },
+                ],
+            })
+
+            await test_mutate({
+                $operation: 'create',
+                users: [
+                    {
+                        $operation: 'update',
+                        id: { $guid: 1 },
+                        email: 'a@b.com',
+                    },
+                ],
+                likes: [
+                    {
+                        $operation: 'create',
+                        user_id: { $guid: 1 },
+                        post_id: 1231,
+                    },
+                ],
+            })
+        })
     })
     test.skip('allows $identifying_fields override')
     test.skip('handles manual guid + raw value linking')

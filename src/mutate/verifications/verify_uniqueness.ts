@@ -173,28 +173,22 @@ const get_checkable_mutation_indices = (
         // we still query it because changing even part of a combo unique constraint can cause a
         // constraint violation. But for the actual check once we have all the data in scope, we ignore
         // such records, since we only care about the database returned records that have all the fields
-        // present, not the original mutation record that only has some fields filled out
-        const undefined_check_function = allow_some_undefined ? 'every' : 'some'
-
-        const all_undefined = unique_key[undefined_check_function](
-            field => record[field] === undefined
-        )
-
-        // Object values are ignored and treated like undefined. Although some objects
+        // present, not the original mutation record that only has some fields filled out.
+        //
+        // Object values are also ignored and treated like undefined. Although some objects
         // (e.g. $guids ) could cause unique constraint violations, theres no easy way to check
         // if these will cause a constraint violation so we let it fall back to an
         // sql error for now
-        const has_object_value = unique_key[undefined_check_function](
+        const undefined_check_function = allow_some_undefined ? 'every' : 'some'
+
+        const undefined_or_object = unique_key[undefined_check_function](
             field =>
-                Array.isArray(record[field]) || is_simple_object(record[field])
+                record[field] === undefined ||
+                Array.isArray(record[field]) ||
+                is_simple_object(record[field])
         )
 
-        return (
-            !is_identifying_key &&
-            !has_object_value &&
-            !has_null_value &&
-            !all_undefined
-        )
+        return !is_identifying_key && !has_null_value && !undefined_or_object
     })
 }
 
