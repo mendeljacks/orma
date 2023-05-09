@@ -139,5 +139,36 @@ describe('escaping_macros', () => {
                 $eq: [1, 'NULL'],
             })
         })
+        test('works with $order_by', () => {
+            const query = {
+                products: {
+                    id: true,
+                    $order_by: [
+                        {
+                            $desc: {
+                                $if: [
+                                    {
+                                        $lte: [
+                                            'fulfill_before',
+                                            {
+                                                $escape: '10',
+                                            },
+                                        ],
+                                    },
+                                    1,
+                                    0,
+                                ],
+                            },
+                        },
+                    ],
+                },
+            } as const
+
+            apply_escape_macro(query, orma_schema)
+
+            expect(query.products.$order_by[0].$desc.$if[0]).to.deep.equal({
+                $lte: ['fulfill_before', "'10'"],
+            })
+        })
     })
 })
