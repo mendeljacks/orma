@@ -1,5 +1,5 @@
 import { deep_get, drop_last } from '../../helpers/helpers'
-import { get_direct_edge, is_parent_entity } from '../../helpers/schema_helpers'
+import { get_direct_edge, get_direct_edges, is_parent_entity } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { is_submutation, path_to_entity } from './mutate_helpers'
 
@@ -30,21 +30,16 @@ export const get_foreign_keys_in_mutation = (
             return []
         }
 
-        // assuming the thing is a parent, we need exactly one edge from the current entity to the parent
-        // (since the syntax has no way to specify which foreign key to use in that case).
-        // This function throws an error if there is not exactly one edge
-        const edge = get_direct_edge(
+        const edges = get_direct_edges(
             entity_name,
             parent_entity_name,
             orma_schema
         )
 
-        return [
-            {
-                parent_path,
-                edge,
-            },
-        ]
+        return edges.map(edge => ({
+            parent_path,
+            edge,
+        }))
     })
 
     return foreign_keys
