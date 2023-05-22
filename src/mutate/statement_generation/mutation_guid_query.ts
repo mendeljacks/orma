@@ -45,15 +45,17 @@ export const get_guid_query = (
     let all_identifying_fields = new Set<string>()
     const wheres = piece_indices.map(piece_index => {
         const record = mutation_pieces[piece_index].record
-        const identifying_fields = get_identifying_fields(
-            orma_schema,
-            entity,
-            record,
-            // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
-            // (unlike in an update, where it determines which fields are modified). We just select any key in
-            // a repeatable way so we can do row matching later
-            true
-        )
+        const identifying_fields =
+            record?.$identifying_fields ??
+            get_identifying_fields(
+                orma_schema,
+                entity,
+                record,
+                // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
+                // (unlike in an update, where it determines which fields are modified). We just select any key in
+                // a repeatable way so we can do row matching later
+                true
+            )
         const where = generate_identifying_where(
             orma_schema,
             guid_map,
