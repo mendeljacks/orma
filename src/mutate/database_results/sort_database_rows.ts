@@ -135,14 +135,19 @@ const get_database_row_for_mutation_piece = (
         return undefined
     }
 
-    const identifying_keys = get_identifying_fields(
-        orma_schema,
-        entity,
-        record,
-        true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
-        // (unlike in an actual update, where it determines which fields are modified). We just select any key in
-        // the same way as was selected for the query
-    )
+    // if identifying fields are given (like for upsert, this can be important), use those. Sometimes there
+    // wont be identifying fields (like for creates), so just figure one out since we only need it to match records,
+    // not actually change anything in the database
+    const identifying_keys =
+        record?.$identifying_fields ??
+        get_identifying_fields(
+            orma_schema,
+            entity,
+            record,
+            true // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
+            // (unlike in an actual update, where it determines which fields are modified). We just select any key in
+            // the same way as was selected for the query
+        )
     const possible_identifying_keys = get_possible_identifying_keys(
         orma_schema,
         entity
@@ -159,7 +164,8 @@ const get_database_row_for_mutation_piece = (
             const { piece_index, field } = guid_map.get(value.$guid)!.write
 
             // if sort_database_rows is called during mutation execution, then the resolved value will be in scope.
-            const mutation_resolved_value = mutation_pieces[piece_index].record[field]?.$resolved_value
+            const mutation_resolved_value =
+                mutation_pieces[piece_index].record[field]?.$resolved_value
             if (mutation_resolved_value !== undefined) {
                 return mutation_resolved_value
             }
