@@ -1,17 +1,16 @@
 import {
+    GlobalTestAliases,
     GlobalTestQuery,
     GlobalTestSchema,
 } from '../../test_data/global_test_schema'
-import { as_orma_schema } from '../../schema/introspector'
 import { IsEqual } from '../helper_types'
-import { GetAllEdges, GetFieldType } from '../schema/schema_helper_types'
-import { QueryResult } from './query_result_types'
-import { OrmaQuery } from './query_types'
+import { GetAllEdges } from '../schema/schema_helper_types'
+import { OrmaQueryResult } from './query_result_types2'
 
 const test = () => {
-    const query_response = <Query extends OrmaQuery<GlobalTestSchema>>(
+    const query_response = <Query extends GlobalTestQuery>(
         query: Query
-    ): QueryResult<GlobalTestSchema, Query> => '' as any
+    ): OrmaQueryResult<GlobalTestSchema, GlobalTestAliases, Query> => '' as any
 
     {
         // data props propagate as arrays
@@ -19,15 +18,19 @@ const test = () => {
             posts: {
                 $from: 'posts',
                 id: true,
-                name: true,
+                title: true,
             },
         } as const satisfies GlobalTestQuery)
 
-        result.posts.slice()
-        result.posts[0].id
-        result.posts[0].name
+        result?.posts?.slice()
+        result?.posts?.[0].id
+        result?.posts?.[0].title
+        // @ts-expect-error must use ?. to prop
+        result.posts[0].title
+        // @ts-expect-error invalid field
+        result?.posts?.[0].user_id
 
-        // @ts-expect-error
+        // @ts-expect-error invalid prop
         result.vendors
     }
 
@@ -39,21 +42,30 @@ const test = () => {
             },
         } as const satisfies GlobalTestQuery)
 
-        result.posts.slice()
-        result.posts[0].id
+        result?.posts?.slice()
+        result?.posts?.[0].id
     }
 
     {
         // allows prop renaming
         const result = query_response({
             posts: {
-                my_id: 'id',
+                user_id: 'title',
+                my_comments: 'id',
+                total_views: {
+                    $sum: 'views',
+                },
             },
         } as const satisfies GlobalTestQuery)
 
-        result.posts.slice()
-        const my_id = result.posts[0].my_id
-        const expect: IsEqual<typeof my_id, number> = true
+        result?.posts?.slice()
+        const user_id = result?.posts?.[0].user_id
+        const my_comments = result?.posts?.[0].my_comments
+        const total_views = result?.posts?.[0].total_views
+
+        const expect1: IsEqual<typeof user_id, string | undefined> = true
+        const expect2: IsEqual<typeof my_comments, number | undefined> = true
+        const expect3: IsEqual<typeof total_views, any> = true
     }
 
     {
@@ -70,14 +82,15 @@ const test = () => {
             },
         } as const satisfies GlobalTestQuery)
 
-        result.posts.slice()
-        result.posts[0].comments[0].posts[0].title
+        result?.posts?.slice()
+        const inner_title = result?.posts?.[0]?.comments?.[0]?.posts?.[0]?.title
+
+        const expect: IsEqual<typeof inner_title, string | undefined> = true
     }
     {
         // handles null
         const result = query_response({
             posts: {
-                id: true,
                 title: true,
                 views: true,
             },
@@ -86,14 +99,16 @@ const test = () => {
             },
         } as const satisfies GlobalTestQuery)
 
-        result.posts.slice()
-        result.posts[0].id = 1
-        //@ts-expect-error
-        result.posts[0].id = null
-        //@ts-expect-error the database cant return null, even though views has a default
+        result?.posts?.slice()
+
+        //the database cant return null, even though views has a default
         // and so doesnt have to be provided by the user in mutations
-        result.posts[0].views = null
-        result.users[0].last_name = null
+        const views = result?.posts?.[0].views
+        const last_name = result?.users?.[0].last_name
+
+        const expect1: IsEqual<typeof views, number | undefined> = true
+        const expect2: IsEqual<typeof last_name, string | null | undefined> =
+            true
     }
     {
         // excludes $ keywords
@@ -106,8 +121,20 @@ const test = () => {
             },
         })
 
-        result.posts.slice()
+        result?.posts?.slice()
         // @ts-expect-error
         result.posts[0].$where
+    }
+    {
+        // results are mutable
+        const result = query_response({
+            posts: {
+                title: true,
+            },
+        })
+
+        result.posts?.map(post => {
+            post.title = 'my cool title'
+        })
     }
 }

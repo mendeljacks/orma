@@ -10,6 +10,8 @@ export {
 } from './query/macros/where_connected_macro'
 export { Edge, reverse_edge } from './helpers/schema_helpers'
 export { combine_wheres } from './query/query_helpers'
+export { OrmaQuery } from './types/query/query_types2'
+export { OrmaQueryResult } from './types/query/query_result_types2'
 
 // mutate
 export {

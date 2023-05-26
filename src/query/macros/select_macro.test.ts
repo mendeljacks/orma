@@ -13,8 +13,8 @@ describe('select_macro', () => {
                 posts: {
                     id: true,
                     my_title: 'title',
-                    total_quantity: {
-                        $sum: 'quantity',
+                    total_views: {
+                        $sum: 'views',
                     },
                 },
             } as const satisfies GlobalTestQuery

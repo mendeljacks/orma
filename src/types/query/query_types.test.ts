@@ -2,31 +2,44 @@ import {
     GlobalTestQuery,
     GlobalTestSchema,
 } from '../../test_data/global_test_schema'
-import { SimplifiedQuery } from './query_types'
+import { SimplifiedQuery } from './query_types2'
 
 {
+    // allows fields and aliases
     const good: GlobalTestQuery = {
-        likes: {
-            id: 'post_id',
-            post_id: true,
+        posts: {
+            id: 'user_id',
+            title: true,
             user_id: {
+                $sum: 'id',
+            },
+            total_views: {
                 $sum: 'id',
             },
         },
     }
 
+    // cant give nonsensical values
     const bad1: GlobalTestQuery = {
         likes: {
             // @ts-expect-error
-            id: 'not_a_field',
+            id: 'asdasdasdasd',
             // @ts-expect-error
             post_id: 0,
+        },
+    }
+
+    // aliased field can't use true
+    const bad2: GlobalTestQuery = {
+        posts: {
+            //@ts-expect-error
+            total_views: true,
         },
     }
 }
 
 {
-    // known root entities
+    // gets entity from proeprty name
     const good1: GlobalTestQuery = {
         posts: {
             title: true,
@@ -36,7 +49,7 @@ import { SimplifiedQuery } from './query_types'
         },
     }
 
-    // unknown root entities, has type inference based on $from
+    // gets entity from $from
     const good2: GlobalTestQuery = {
         my_posts: {
             $from: 'posts',
@@ -46,11 +59,11 @@ import { SimplifiedQuery } from './query_types'
 
     // nested subqueries
     const good3: GlobalTestQuery = {
-        my_comments: {
-            $from: 'comments',
-            posts: {
-                users: {
-                    posts: {
+        my_posts: {
+            $from: 'posts',
+            users: {
+                posts: {
+                    users: {
                         id: true,
                     },
                 },
@@ -63,36 +76,16 @@ import { SimplifiedQuery } from './query_types'
         },
     }
 
-    // orma actually doesnt allow this, since in this case a $from clause must
-    // be provided, but the types allow this since I can't figure out
-    // how to disallow it without ruining other parts of the type
+    // requires $from for aliased property
     const good4: GlobalTestQuery = {
-        my_posts: {
+        //@ts-expect-error
+        billing_address: {
             title: true,
         },
     }
 
-    // orma would not allow this, since regular nested fields cant start with $,
-    // but I cant get typescript to only apply virtual fields type to strings
-    // starting with $. I tried, but that basically caused the type checker
-    // to become very unstable (ignoring types in some places but not others etc.)
-    // I believe this is something to do with the way I tried it (enumerating ever
-    // alphanumeric character except $) overloading the type checker with too
-    // many code paths, but who knows for sure
-    const good5: GlobalTestQuery = {
-        posts: {
-            $sum: 'id',
-        },
-    }
-
-    // searching posts under the key images is disallowed on a type level.
-    // Orma allows this, but I couldnt figure out how to be able to do this
-    // and also have good intellisense (when I tried this, intellises for
-    // { images: { ... }} would list every field of every entity rather than just
-    // images, since technically you could do { images: { $from: 'products' }} and
-    // then just put product fields on). So since this is an uncommon usecase,
-    // if needed a user would just have to ts-ignore this (and potentially lost
-    // typing on all subqueries of images)
+    // Although this is actually possible in orma - the $from clause takes precendence over the property name -
+    // typescript wont allow it. Anyway this is confusing so shouldnt be done in practice.
     const b: GlobalTestQuery = {
         comments: {
             // @ts-expect-error
@@ -111,17 +104,31 @@ import { SimplifiedQuery } from './query_types'
             $offset: 2,
         },
     }
+
+    const bad: test = {
+        posts: {
+            //@ts-expect-error
+            $limit: 'id',
+            //@ts-expect-error
+            $offset: { $from: 'users' },
+        },
+    }
 }
 
 {
     // test group by
     const good: GlobalTestQuery = {
         posts: {
+            total_views: {
+                $sum: 'views',
+            },
             $group_by: [
                 'id',
+                'total_views',
+                //@ts-expect-error
                 'asdasdasd',
                 {
-                    $sum: 'id',
+                    $sum: 'total_views',
                 },
             ],
         },
@@ -131,15 +138,16 @@ import { SimplifiedQuery } from './query_types'
 {
     // test order by
     const good: GlobalTestQuery = {
-        psots: {
+        posts: {
             $order_by: [
                 'id',
                 {
                     $asc: 'user_id',
                 },
                 {
-                    $desc: 'asdasdasdsad',
+                    $desc: 'total_views',
                 },
+                //@ts-expect-error
                 'asdjaskdhasjd',
             ],
         },
@@ -167,7 +175,7 @@ import { SimplifiedQuery } from './query_types'
 {
     // handles where clause
     const good: GlobalTestQuery = {
-        products: {
+        posts: {
             id: true,
             $where: {
                 $eq: ['id', { $escape: true }],

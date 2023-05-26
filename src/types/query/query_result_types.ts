@@ -28,6 +28,7 @@ export type QueryResult<
     Keyword
 >
 
+
 type GetSchemaTypeForField<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,

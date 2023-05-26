@@ -1,5 +1,5 @@
 import { OrmaMutation } from '../types/mutation/mutation_types'
-import { OrmaQuery } from '../types/query/query_types'
+import { OrmaQuery } from '../types/query/query_types2'
 import { OrmaSchema } from '../types/schema/schema_types'
 
 export const global_test_schema = {
@@ -352,6 +352,13 @@ export const global_test_schema = {
     },
 } as const satisfies OrmaSchema
 
-export type GlobalTestSchema = typeof global_test_schema
-export type GlobalTestQuery = OrmaQuery<GlobalTestSchema>
+type G = typeof global_test_schema
+export interface GlobalTestSchema extends G {}
+export interface GlobalTestAliases {
+    users: 'billing_address' | 'shipping_address'
+    posts: 'total_views' | 'my_title' | 'my_comments',
+    $root: 'my_posts'
+    
+}
+export type GlobalTestQuery = OrmaQuery<GlobalTestSchema, GlobalTestAliases>
 export type GlobalTestMutation = OrmaMutation<GlobalTestSchema>
