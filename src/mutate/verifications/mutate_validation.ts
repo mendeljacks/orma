@@ -69,7 +69,7 @@ export const mutate_validation_schema = {
                             },
                         },
                         additionalProperties: false,
-                        required: ['$guid']
+                        required: ['$guid'],
                     },
                     {
                         // ref to this bit of the subschema
@@ -596,7 +596,7 @@ const validate_required_fields = (
             if (!required_field_is_foreign_key) {
                 return [
                     {
-                        message: `The field ${required_field} is not in the mutation but it is required to create ${entity_name}.`,
+                        message: `${required_field} is required to create ${entity_name}.`,
                         path: [...record_path, required_field],
                         original_data: mutation,
                     },
