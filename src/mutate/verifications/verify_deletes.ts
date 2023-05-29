@@ -193,14 +193,16 @@ export const get_mutation_pieces_blocing_delete = (
     orma_schema: OrmaSchema,
     mutation_pieces: MutationPiece[],
     guid_map: GuidMap,
-    results: Record<string, Record<string, any>[]>
+    results: Record<string, Record<string, any>[] | undefined>
 ) => {
     const delete_indices = mutation_pieces.flatMap((mutation_piece, i) =>
         mutation_piece.record.$operation === 'delete' ? [i] : []
     )
 
     const result_entities = Object.keys(results)
-    const result_record_groups = result_entities.map(entity => results[entity])
+    const result_record_groups = result_entities
+        .map(entity => results[entity])
+        .filter((el): el is Record<string, any>[] => el !== undefined)
 
     const matched_results = sort_database_rows(
         mutation_pieces,

@@ -146,7 +146,7 @@ describe('full integration test', () => {
             ],
         })
         const modified = clone(original)
-        modified.users[0].posts[0].views = 3
+        modified!.users![0].posts![0].views = 3
 
         const mutation_diff = get_mutation_diff(original, modified)
 
@@ -331,8 +331,8 @@ describe('full integration test', () => {
         const result = await test_query(query)
 
         // check that guid linking worked properly
-        expect(result.users[0].id).to.equal(
-            result.users[0].posts[0].likes[0].user_id
+        expect(result?.users?.[0]?.id).to.equal(
+            result?.users?.[0]?.posts?.[0]?.likes?.[0]?.user_id
         )
 
         await test_mutate({

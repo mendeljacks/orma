@@ -2,7 +2,7 @@ import {
     GlobalTestQuery,
     GlobalTestSchema,
 } from '../../test_data/global_test_schema'
-import { SimplifiedQuery } from './query_types2'
+import { SimplifiedQuery } from './query_types'
 
 {
     // allows fields and aliases
@@ -201,6 +201,7 @@ import { SimplifiedQuery } from './query_types2'
             {
                 // @ts-expect-error
                 $entity: 'users',
+                // @ts-ignore
                 $field: 'post_id', // this is invalid since post_id is not a field of users
                 $values: [1, 'a'],
             },

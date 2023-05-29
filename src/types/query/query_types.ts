@@ -1,4 +1,4 @@
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { OrmaSchema } from '../schema/schema_types'
 import { Pluck } from '../helper_types'
 import {
     GetAllEdges,
@@ -6,17 +6,25 @@ import {
     GetFields,
 } from '../schema/schema_helper_types'
 
-export type OrmaQuery<Schema extends OrmaSchema> = {
-    readonly [Entity in GetAllEntities<Schema>]?: Subquery<
+export type QueryAliases<Schema extends OrmaSchema> = {
+    [Entity in GetAllEntities<Schema>]?: string
+} & { $root?: string }
+
+export type OrmaQuery<
+    Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>
+> = {
+    readonly [Entity in GetAllEntities<Schema>]?: OrmaSubquery<
         Schema,
-        Entity,
-        false
+        Aliases,
+        Entity
     >
 } & {
-    readonly // virtual entities cant really be $where_connected macros, but we need this due to limitations with typescript
-    [VirtualEntity in string]?:
-        | Subquery<Schema, GetAllEntities<Schema>, false>
-        | WhereConnected<Schema>
+    readonly [Entity in GetRootAliases<Schema, Aliases>]?: OrmaAliasedSubquery<
+        Schema,
+        Aliases,
+        GetAllEntities<Schema>
+    >
 } & { readonly $where_connected?: WhereConnected<Schema> }
 
 export type WhereConnected<Schema extends OrmaSchema> = WhereConnectedMapped<
@@ -36,148 +44,186 @@ type WhereConnectedMapped<
       }[]
     : never
 
-export type Subquery<
+export type OrmaAliasedSubquery<
     Schema extends OrmaSchema,
-    Entities extends GetAllEntities<Schema>,
-    RequireFrom extends boolean
+    Aliases extends QueryAliases<Schema>,
+    Entities extends GetAllEntities<Schema>
 > = Entities extends GetAllEntities<Schema>
-    ? FieldObj<Schema, Entities> &
-          SubqueryObj<Schema, Entities> &
-          VirtualFieldObj<Schema, Entities> &
-          FromObj<Schema, Entities, RequireFrom> &
-          PaginationObj &
-          GroupByObj<Schema, Entities> &
-          OrderByObj<Schema, Entities>
+    ? OrmaSubquery<Schema, Aliases, Entities> & {
+          readonly $from: Entities
+      }
     : never
+
+export type OrmaSubquery<
+    Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
+    Entity extends GetAllEntities<Schema>
+> = FieldObj<Schema, Aliases, Entity> &
+    SelectObj<Schema, Aliases, Entity> &
+    SubqueryObj<Schema, Aliases, Entity> &
+    AliasObj<Schema, Aliases, Entity> &
+    FromObj<Schema, Entity> &
+    PaginationObj &
+    ForeignKeyObj &
+    GroupByObj<Schema, Aliases, Entity> &
+    OrderByObj<Schema, Aliases, Entity> & { $where?: any; having?: any }
+
+export type SelectObj<
+    Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
+    Entity extends GetAllEntities<Schema>
+> = {
+    readonly $select?: readonly (
+        | GetFields<Schema, Entity>
+        | {
+              $as: [
+                  GetFields<Schema, Entity>,
+                  (
+                      | GetFields<Schema, Entity>
+                      | GetAliases<Schema, Aliases, Entity>
+                  )
+              ]
+          }
+    )[]
+}
 
 export type FieldObj<
     Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
-    readonly [Field in GetFields<Schema, Entity>]?: QueryField<Schema, Entity>
+    readonly [Field in GetFields<Schema, Entity>]?: QueryField<
+        Schema,
+        Aliases,
+        Entity
+    >
 }
+
+type AliasObj<
+    Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
+    Entity extends GetAllEntities<Schema>
+> = {
+    readonly [Field in GetAliases<Schema, Aliases, Entity>]?:
+        | QueryAliasedField<Schema, Aliases, Entity>
+        | OrmaAliasedSubquery<Schema, Aliases, GetAllEntities<Schema>>
+}
+
+export type GetRootAliases<
+    Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>
+> = Aliases['$root'] extends string ? Aliases['$root'] : never
+
+export type GetAliases<
+    Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
+    Entity extends GetAllEntities<Schema>
+> = Entity extends keyof Aliases
+    ? Aliases[Entity] extends string
+        ? Aliases[Entity]
+        : never
+    : never
+
+export type GetSubqueryProps<
+    Schema extends OrmaSchema,
+    Entity extends GetAllEntities<Schema>
+> = Pluck<GetAllEdges<Schema, Entity>, 'to_entity'>
 
 export type SubqueryObj<
     Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
-    readonly [SubEntity in Pluck<
-        GetAllEdges<Schema, Entity>,
-        'to_entity'
-    >]?: Subquery<Schema, SubEntity, false>
+    readonly [SubEntity in GetSubqueryProps<Schema, Entity>]?: OrmaSubquery<
+        Schema,
+        Aliases,
+        SubEntity
+    >
 }
-
-export type VirtualFieldObj<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
-> = {
-    readonly [VirtualFieldName in string]?:
-        | object
-        | readonly any[]
-        | number
-        | GetFields<Schema, Entity>
-        //| QueryField<Schema, Entity> //VirtualField<Schema, Entity>
-        | boolean
-        | Entity
-}
-
-// old types, had to simpify (less accurate types) to satisfy ts compiler
-// export type VirtualField<
-//     Schema extends OrmaSchema,
-//     Entity extends GetAllEntities<Schema>
-// > =
-//     // not all of these are valid in orma, but we need them because typescript will apply this virtual field type to
-//     // all other properties too, e.g. $limit: 3 or id: true
-//     | Subquery<Schema, Pluck<GetAllEdges<Schema, Entity>, 'to_entity'>, false>
-//     | QueryField<Schema, Entity>
-//     | Entity
-//     | number
-//     | GroupBy<Schema, Entity>
-//     | OrderBy<Schema, Entity>
-//     | any[] // TODO: replace this with a proper type for a $where clause. any[] is just for $eq: [] clauses
 
 export type FromObj<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    RequireFrom extends boolean
-> = RequireFrom extends true
-    ? {
-          readonly $from: Entity
-      }
-    : {
-          readonly $from?: Entity
-      }
+    Entity extends GetAllEntities<Schema>
+> = {
+    readonly $from?: Entity
+}
 
 export type QueryField<
     Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
-> = boolean | GetFields<Schema, Entity> | Expression<Schema, Entity>
+> = boolean | Expression<Schema, Aliases, Entity>
+
+type QueryAliasedField<
+    Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
+    Entity extends GetAllEntities<Schema>
+> = Expression<Schema, Aliases, Entity>
 
 export type Expression<
     Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > =
     | {
-          readonly $sum: Expression<Schema, Entity>
+          readonly $sum: Expression<Schema, Aliases, Entity>
       }
     | {
-          readonly $min: Expression<Schema, Entity>
+          readonly $min: Expression<Schema, Aliases, Entity>
       }
     | {
-          readonly $max: Expression<Schema, Entity>
+          readonly $max: Expression<Schema, Aliases, Entity>
       }
     | {
-          readonly $coalesce: Expression<Schema, Entity>
+          readonly $coalesce: Expression<Schema, Aliases, Entity>
       }
     | GetFields<Schema, Entity>
+    | GetAliases<Schema, Aliases, Entity>
 
 export type PaginationObj = {
     readonly $limit?: number
     readonly $offset?: number
 }
 
+export type ForeignKeyObj = {
+    readonly $foreign_key?: readonly string[]
+}
+
 // any entity name
 export type GroupByObj<
     Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
-    readonly $group_by?: GroupBy<Schema, Entity>
+    readonly $group_by?: readonly (
+        | FieldOrString<Schema, Aliases, Entity>
+        | Expression<Schema, Aliases, Entity>
+    )[]
 }
 
 type FieldOrString<
     Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
-> = GetFields<Schema, Entity> | (string & {})
-
-type GroupBy<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
-> = readonly (FieldOrString<Schema, Entity> | Expression<Schema, Entity>)[]
+> = GetFields<Schema, Entity> | GetAliases<Schema, Aliases, Entity>
 
 export type OrderByObj<
     Schema extends OrmaSchema,
+    Aliases extends QueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
-    readonly $order_by?: OrderBy<Schema, Entity>
-}
-
-type OrderBy<Schema extends OrmaSchema, Entity extends GetAllEntities<Schema>> =
     // using readonly allows us to do as const in the as_orma_query wrapper function which is needed to do
     // type narrowing (for some reason types arent narrowing with both schema and query params)
-    readonly (
-        | FieldOrString<Schema, Entity>
-        | Expression<Schema, Entity>
+    readonly $order_by?: readonly (
+        | Expression<Schema, Aliases, Entity>
         | {
-              readonly $asc:
-                  | FieldOrString<Schema, Entity>
-                  | Expression<Schema, Entity>
+              readonly $asc: Expression<Schema, Aliases, Entity>
           }
         | {
-              readonly $desc:
-                  | FieldOrString<Schema, Entity>
-                  | Expression<Schema, Entity>
+              readonly $desc: Expression<Schema, Aliases, Entity>
           }
     )[]
+}
 
 export type SimplifiedQuery<Schema extends OrmaSchema> = {
     readonly [Entity in GetAllEntities<Schema>]?: SimplifiedSubquery<

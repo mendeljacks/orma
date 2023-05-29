@@ -3,20 +3,20 @@ import { nester, NesterData } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
 import { MysqlFunction } from '../mutate/mutate'
 import { generate_statement } from '../mutate/statement_generation/mutation_statements'
-import { QueryResult } from '../types/query/query_result_types'
-import { OrmaQuery } from '../types/query/query_types'
+import { OrmaQueryResult } from '../types/query/query_result_types'
+import { OrmaQuery, QueryAliases } from '../types/query/query_types'
 import { DeepReadonly } from '../types/schema/schema_helper_types'
 import { OrmaSchema } from '../types/schema/schema_types'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
 import {
     apply_nesting_macro,
-    should_nesting_short_circuit
+    should_nesting_short_circuit,
 } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import {
     apply_where_connected_macro,
-    ConnectionEdges
+    ConnectionEdges,
 } from './macros/where_connected_macro'
 import { get_query_plan } from './query_plan'
 
@@ -81,13 +81,14 @@ export const orma_nester = (
 // export const orma_query = async <schema>(raw_query: validate_query<schema>, orma_schema: validate_orma_schema<schema>, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
 export const orma_query = async <
     Schema extends OrmaSchema,
-    Query extends OrmaQuery<Schema>
+    Aliases extends QueryAliases<Schema>,
+    Query extends OrmaQuery<Schema, Aliases>
 >(
     raw_query: Query,
     orma_schema_input: Schema,
     query_function: MysqlFunction,
     connection_edges: ConnectionEdges = {}
-): Promise<QueryResult<Schema, Query>> => {
+): Promise<OrmaQueryResult<Schema, Aliases, Query>> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
 
@@ -153,10 +154,10 @@ export const as_orma_schema = <Schema extends OrmaSchema>(schema: Schema) =>
 
 export const as_orma_query = <
     Schema extends OrmaSchema,
-    T extends DeepReadonly<OrmaQuery<Schema>>
+    T extends DeepReadonly<OrmaQuery<Schema, {}>>
 >(
     schema: Schema,
     query: T
 ): T => query
 
-// export const as_orma_query_result = <Schema extends OrmaSchema, Query extends OrmaQuery<Schema>>(orma_schema: Schema, query: Query): QueryResult =>
+// export const as_orma_query_result = <Schema extends OrmaSchema, Query extends OrmaQuery<Schema>>(orma_schema: Schema, query: Query): OrmaQueryResult =>

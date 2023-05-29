@@ -5,7 +5,7 @@ import {
 } from '../../test_data/global_test_schema'
 import { IsEqual } from '../helper_types'
 import { GetAllEdges } from '../schema/schema_helper_types'
-import { OrmaQueryResult } from './query_result_types2'
+import { OrmaQueryResult } from './query_result_types'
 
 const test = () => {
     const query_response = <Query extends GlobalTestQuery>(
@@ -69,6 +69,39 @@ const test = () => {
     }
 
     {
+        // allows root aliases
+        const result = query_response({
+            my_posts: {
+                $from: 'posts',
+                id: true,
+            },
+        } as const satisfies GlobalTestQuery)
+
+        result?.my_posts?.slice()
+        const id = result?.my_posts?.[0].id
+
+        const expect1: IsEqual<typeof id, number | undefined> = true
+    }
+    
+    {
+        // allows nested subquery aliases
+        const result = query_response({
+            users: {
+                billing_address: {
+                    id: true,
+                    $from: 'addresses',
+                    $foreign_key: ['billing_address_id'],
+                },
+            },
+        } as const satisfies GlobalTestQuery)
+
+        result.users?.slice()
+        const id = result.users?.[0].billing_address?.[0].id
+
+        const expect1: IsEqual<typeof id, number | undefined> = true
+    }
+
+    {
         type T = GetAllEdges<GlobalTestSchema, 'posts'>
 
         // allows nesting
@@ -83,7 +116,7 @@ const test = () => {
         } as const satisfies GlobalTestQuery)
 
         result?.posts?.slice()
-        const inner_title = result?.posts?.[0]?.comments?.[0]?.posts?.[0]?.title
+        const inner_title = result?.posts?.[0].comments?.[0].posts?.[0].title
 
         const expect: IsEqual<typeof inner_title, string | undefined> = true
     }

@@ -1,5 +1,5 @@
 import { OrmaMutation } from '../types/mutation/mutation_types'
-import { OrmaQuery } from '../types/query/query_types2'
+import { OrmaQuery } from '../types/query/query_types'
 import { OrmaSchema } from '../types/schema/schema_types'
 
 export const global_test_schema = {

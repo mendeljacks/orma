@@ -28,7 +28,7 @@ export const validate_query = (query, orma_schema: OrmaSchema) => {
 }
 
 export const validate_orma_query = async <T>(
-    query: OrmaQuery<any>,
+    query: OrmaQuery<any, any>,
     orma_schema: OrmaSchema
 ) => {
     const errors = validate_query(query, orma_schema)
