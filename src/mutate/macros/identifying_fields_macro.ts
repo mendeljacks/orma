@@ -50,7 +50,10 @@ export const get_identifying_fields = (
     )
 
     if (allow_ambiguity || useable_unique_keys.length === 1) {
-        return useable_unique_keys[0]
+        // take shortest unique keys first, for faster mysql lookup
+        return useable_unique_keys
+            .slice()
+            .sort((a, b) => a.length - b.length)[0]
     } else {
         return []
     }
