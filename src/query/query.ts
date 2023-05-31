@@ -4,7 +4,7 @@ import { get_direct_edge } from '../helpers/schema_helpers'
 import { MysqlFunction } from '../mutate/mutate'
 import { generate_statement } from '../mutate/statement_generation/mutation_statements'
 import { OrmaQueryResult } from '../types/query/query_result_types'
-import { OrmaQuery, QueryAliases } from '../types/query/query_types'
+import { OrmaQuery, OrmaQueryAliases } from '../types/query/query_types'
 import { DeepReadonly } from '../types/schema/schema_helper_types'
 import { OrmaSchema } from '../types/schema/schema_types'
 import { apply_any_path_macro } from './macros/any_path_macro'
@@ -81,7 +81,7 @@ export const orma_nester = (
 // export const orma_query = async <schema>(raw_query: validate_query<schema>, orma_schema: validate_orma_schema<schema>, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
 export const orma_query = async <
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Query extends OrmaQuery<Schema, Aliases>
 >(
     raw_query: Query,

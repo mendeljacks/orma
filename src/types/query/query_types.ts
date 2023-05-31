@@ -6,13 +6,13 @@ import {
     GetFields,
 } from '../schema/schema_helper_types'
 
-export type QueryAliases<Schema extends OrmaSchema> = {
+export type OrmaQueryAliases<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: string
 } & { $root?: string }
 
 export type OrmaQuery<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>
+    Aliases extends OrmaQueryAliases<Schema>
 > = {
     readonly [Entity in GetAllEntities<Schema>]?: OrmaSubquery<
         Schema,
@@ -46,7 +46,7 @@ type WhereConnectedMapped<
 
 export type OrmaAliasedSubquery<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entities extends GetAllEntities<Schema>
 > = Entities extends GetAllEntities<Schema>
     ? OrmaSubquery<Schema, Aliases, Entities> & {
@@ -56,7 +56,7 @@ export type OrmaAliasedSubquery<
 
 export type OrmaSubquery<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = FieldObj<Schema, Aliases, Entity> &
     SelectObj<Schema, Aliases, Entity> &
@@ -70,7 +70,7 @@ export type OrmaSubquery<
 
 export type SelectObj<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
     readonly $select?: readonly (
@@ -89,7 +89,7 @@ export type SelectObj<
 
 export type FieldObj<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
     readonly [Field in GetFields<Schema, Entity>]?: QueryField<
@@ -101,7 +101,7 @@ export type FieldObj<
 
 type AliasObj<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
     readonly [Field in GetAliases<Schema, Aliases, Entity>]?:
@@ -111,12 +111,12 @@ type AliasObj<
 
 export type GetRootAliases<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>
+    Aliases extends OrmaQueryAliases<Schema>
 > = Aliases['$root'] extends string ? Aliases['$root'] : never
 
 export type GetAliases<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = Entity extends keyof Aliases
     ? Aliases[Entity] extends string
@@ -131,7 +131,7 @@ export type GetSubqueryProps<
 
 export type SubqueryObj<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
     readonly [SubEntity in GetSubqueryProps<Schema, Entity>]?: OrmaSubquery<
@@ -150,19 +150,19 @@ export type FromObj<
 
 export type QueryField<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = boolean | Expression<Schema, Aliases, Entity>
 
 type QueryAliasedField<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = Expression<Schema, Aliases, Entity>
 
 export type Expression<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > =
     | {
@@ -192,7 +192,7 @@ export type ForeignKeyObj = {
 // any entity name
 export type GroupByObj<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
     readonly $group_by?: readonly (
@@ -203,13 +203,13 @@ export type GroupByObj<
 
 type FieldOrString<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = GetFields<Schema, Entity> | GetAliases<Schema, Aliases, Entity>
 
 export type OrderByObj<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > = {
     // using readonly allows us to do as const in the as_orma_query wrapper function which is needed to do

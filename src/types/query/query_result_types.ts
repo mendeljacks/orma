@@ -8,7 +8,7 @@ import {
     GetAliases,
     GetSubqueryProps,
     OrmaQuery,
-    QueryAliases,
+    OrmaQueryAliases,
     OrmaSubquery,
     SubqueryObj,
     GetRootAliases,
@@ -21,7 +21,7 @@ type SimplifyType<T> = T extends object
 
 export type OrmaQueryResult<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Query extends OrmaQuery<Schema, Aliases>
 > = SimplifyType<QueryResultComplex<Schema, Aliases, Query>>
 
@@ -33,7 +33,7 @@ export type OrmaQueryResult<
  */
 export type QueryResultComplex<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Query extends OrmaQuery<Schema, Aliases>
 > = {
     [Key in keyof Query &
@@ -60,7 +60,7 @@ export type QueryResultComplex<
 
 type QueryResultRow<
     Schema extends OrmaSchema,
-    Aliases extends QueryAliases<Schema>,
+    Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>,
     Subquery extends SubqueryObj<Schema, Aliases, Entity>
 > = {
