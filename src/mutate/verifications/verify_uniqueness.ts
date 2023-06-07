@@ -13,7 +13,7 @@ import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_identifying_where } from '../helpers/record_searching'
+import { get_identifying_where } from '../helpers/record_searching'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
 
@@ -108,22 +108,21 @@ export const get_verify_uniqueness_query = (
                 true
             )
 
-            return checkable_piece_indices.map(piece_index => {
-                const { record } = mutation_pieces[piece_index]
-                const relevant_unique_fields = unique_fields.filter(
-                    field =>
-                        record[field] !== undefined &&
-                        !is_simple_object(record[field]) &&
-                        !Array.isArray(record[field])
-                )
-                return generate_identifying_where(
-                    orma_schema,
-                    guid_map,
-                    mutation_pieces,
-                    relevant_unique_fields,
-                    piece_index
-                )
-            })
+            const where = get_identifying_where(
+                orma_schema,
+                guid_map,
+                mutation_pieces,
+                checkable_piece_indices,
+                // allow searching if only part of the unique key is present
+                (_, { record }) =>
+                    unique_fields.filter(
+                        field =>
+                            record[field] !== undefined &&
+                            !is_simple_object(record[field]) &&
+                            !Array.isArray(record[field])
+                    )
+            )
+            return where
         })
 
         const $where = combine_wheres(wheres, '$or')

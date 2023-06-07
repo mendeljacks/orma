@@ -88,14 +88,7 @@ describe('verify_deletes.ts', () => {
                     $select: ['id'],
                     $from: 'posts',
                     $where: generate_test_where_in('user_id', 'users', {
-                        $or: [
-                            {
-                                $eq: ['id', { $escape: 1 }],
-                            },
-                            {
-                                $eq: ['id', { $escape: 2 }],
-                            },
-                        ],
+                        $in: ['id', [{ $escape: 1 }, { $escape: 2 }]],
                     }),
                 },
             })
