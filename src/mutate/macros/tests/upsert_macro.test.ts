@@ -41,14 +41,7 @@ describe('upsert_macro.ts', () => {
                 users: {
                     id: true,
                     $where: {
-                        $or: [
-                            {
-                                $eq: ['id', { $escape: 1 }],
-                            },
-                            {
-                                $eq: ['id', { $escape: 2 }],
-                            },
-                        ],
+                        $in: ['id', [{ $escape: 1 }, { $escape: 2 }]],
                     },
                 },
             })
@@ -94,30 +87,30 @@ describe('upsert_macro.ts', () => {
             expect(result).to.deep.equal({
                 users: {
                     email: true,
-                    $where: { $eq: ['email', { $escape: 'char@coal.com' }] },
+                    $where: { $in: ['email', [{ $escape: 'char@coal.com' }]] },
                     id: true,
                 },
                 likes: {
                     user_id: true,
                     post_id: true,
                     $where: {
-                        $and: [
-                            {
-                                $in: [
-                                    'user_id',
+                        $in: [
+                            ['user_id', 'post_id'],
+                            [
+                                [
                                     {
                                         $select: ['id'],
                                         $from: 'users',
                                         $where: {
-                                            $eq: [
+                                            $in: [
                                                 'email',
-                                                { $escape: 'char@coal.com' },
+                                                [{ $escape: 'char@coal.com' }],
                                             ],
                                         },
                                     },
+                                    { $escape: 1 },
                                 ],
-                            },
-                            { $eq: ['post_id', { $escape: 1 }] },
+                            ],
                         ],
                     },
                 },

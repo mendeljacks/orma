@@ -50,6 +50,17 @@ export const json_to_sql = (
     path: any[] = [],
     original_expression: any = undefined
 ) => {
+    if (Array.isArray(expression)) {
+        return expression.map((el, i) =>
+            json_to_sql(
+                el,
+                database_type,
+                [...path, i],
+                original_expression ?? expression
+            )
+        )
+    }
+
     // strings and other non-objects are returned as-is
     const is_object = is_simple_object(expression)
     if (!is_object) {
@@ -88,21 +99,28 @@ export const json_to_sql = (
             }
 
             const args = expression[command]
-            const parsed_args = Array.isArray(args)
-                ? args.map((arg, i) =>
-                      json_to_sql(
-                          arg,
-                          database_type,
-                          [...path, command, i],
-                          original_expression ?? expression
-                      )
-                  )
-                : json_to_sql(
-                      args,
-                      database_type,
-                      [...path, command],
-                      original_expression ?? expression
-                  )
+            const parsed_args = json_to_sql(
+                args,
+                database_type,
+                [...path, command],
+                original_expression ?? expression
+            )
+
+            // Array.isArray(args)
+            //     ? args.map((arg, i) =>
+            //           json_to_sql(
+            //               arg,
+            //               database_type,
+            //               [...path, command, i],
+            //               original_expression ?? expression
+            //           )
+            //       )
+            //     : json_to_sql(
+            //           args,
+            //           database_type,
+            //           [...path, command],
+            //           original_expression ?? expression
+            //       )
 
             return command_parser(
                 parsed_args,
@@ -300,10 +318,17 @@ const sql_command_parsers = {
     $desc: args => `${args} DESC`,
     $limit: args => `LIMIT ${args}`,
     $offset: args => `OFFSET ${args}`,
-    $in: (args, path) =>
-        `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IN (${
-            args[1]
-        })`,
+    $in: (args, path) => {
+        const fields_string = Array.isArray(args[0])
+            ? `(${args[0].join(', ')})`
+            : args[0]
+        const not_string = nested_under_odd_nots(path) ? ' NOT' : ''
+        const values_string = args[1]
+            .map(val => (Array.isArray(val) ? `(${val.join(', ')})` : val))
+            .join(', ')
+
+        return `${fields_string}${not_string} IN (${values_string})`
+    },
     $and: (args, path) => {
         const res = `(${args.join(') AND (')})`
         return nested_under_odd_nots(path) ? `NOT (${res})` : res
