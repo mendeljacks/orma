@@ -10,24 +10,17 @@ export const get_identifying_where = (
     orma_schema: OrmaSchema,
     guid_map: GuidMap,
     mutation_pieces: PathedRecord[],
-    mutation_piece_indices: number[]
+    mutation_piece_indices: number[],
+    get_identifying_fields: typeof get_identifying_fields_from_record = get_identifying_fields_from_record
 ) => {
     const values_by_fields = mutation_piece_indices.reduce(
         (acc, mutation_piece_index) => {
-            const { record, path } = mutation_pieces[mutation_piece_index]
-            const entity = path_to_entity(path ?? [])
+            const mutation_piece = mutation_pieces[mutation_piece_index]
 
-            const identifying_fields: string[] =
-                record.$identifying_fields ??
-                get_identifying_fields(
-                    orma_schema,
-                    entity,
-                    record,
-                    // searching a record with no $identifying_fields is only for creates. In these cases,
-                    // we dont care if the key is ambiguous, we just want some consistent choice to fetch
-                    // things like ids from the database
-                    true
-                )
+            const identifying_fields = get_identifying_fields(
+                orma_schema,
+                mutation_piece
+            )
             const values = identifying_fields.map(field =>
                 get_search_value(
                     orma_schema,
@@ -63,11 +56,30 @@ export const get_identifying_where = (
         }
     )
 
-    // if there are no identifying fields, we return null and let the caller deal with the case,
+    // if there are no identifying fields, it will return and let the caller deal with the case,
     // for example not calling the query function at all if there is no where clause
-    const where = ors.length > 0 ? combine_wheres(ors, '$or') : null
+    const where = combine_wheres(ors, '$or')
 
     return where
+}
+
+const get_identifying_fields_from_record = (
+    orma_schema: OrmaSchema,
+    mutation_piece: PathedRecord
+): string[] => {
+    const entity = path_to_entity(mutation_piece.path ?? [])
+    return (
+        mutation_piece.record.$identifying_fields ??
+        get_identifying_fields(
+            orma_schema,
+            entity,
+            mutation_piece.record,
+            // searching a record with no $identifying_fields is only for creates. In these cases,
+            // we dont care if the key is ambiguous, we just want some consistent choice to fetch
+            // things like ids from the database
+            true
+        )
+    )
 }
 
 const get_search_value = (
@@ -207,23 +219,3 @@ export const generate_identifying_where = (
 
     return where
 }
-
-/*
-
-item: 
-{
-    $operation: 'update',
-    variant_id: { $guid: 'a'},
-    created_at: '123'
-}
-
-variant: 
-{
-    $operation: 'create',
-    id: { $guid: 'a'},
-    map: 'test'
-
-}
-
-
-*/

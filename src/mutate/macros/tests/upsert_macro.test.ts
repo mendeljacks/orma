@@ -87,29 +87,27 @@ describe('upsert_macro.ts', () => {
             expect(result).to.deep.equal({
                 users: {
                     email: true,
-                    $where: { $in: ['email', [{ $escape: 'char@coal.com' }]] },
+                    $where: { $eq: ['email', { $escape: 'char@coal.com' }] },
                     id: true,
                 },
                 likes: {
                     user_id: true,
                     post_id: true,
                     $where: {
-                        $in: [
+                        $eq: [
                             ['user_id', 'post_id'],
                             [
-                                [
-                                    {
-                                        $select: ['id'],
-                                        $from: 'users',
-                                        $where: {
-                                            $in: [
-                                                'email',
-                                                [{ $escape: 'char@coal.com' }],
-                                            ],
-                                        },
+                                {
+                                    $select: ['id'],
+                                    $from: 'users',
+                                    $where: {
+                                        $eq: [
+                                            'email',
+                                            { $escape: 'char@coal.com' },
+                                        ],
                                     },
-                                    { $escape: 1 },
-                                ],
+                                },
+                                { $escape: 1 },
                             ],
                         ],
                     },
