@@ -37,7 +37,7 @@ describe('mutation_operations.ts', () => {
             const goal = {
                 $update: 'posts',
                 $set: [['views', 2]],
-                $where: { $eq: ['id', 1] },
+                $where: { $in: ['id', [1]] },
             }
 
             expect(result).to.deep.equal(goal)
@@ -65,7 +65,7 @@ describe('mutation_operations.ts', () => {
             const goal = {
                 $update: 'posts',
                 $set: [['title', "'john'"]],
-                $where: { $eq: ['id', 1] },
+                $where: { $in: ['id', [1]] },
             }
 
             expect(result).to.deep.equal(goal)
@@ -93,7 +93,7 @@ describe('mutation_operations.ts', () => {
             const goal = {
                 $update: 'posts',
                 $set: [['views', 5]],
-                $where: { $eq: ['title', "'john'"] },
+                $where: { $in: ['title', ["'john'"]] },
             }
 
             expect(result).to.deep.equal(goal)
@@ -123,14 +123,7 @@ describe('mutation_operations.ts', () => {
                 $update: 'post_has_categories',
                 $set: [['main_category', 1]],
                 $where: {
-                    $and: [
-                        {
-                            $eq: ['post_id', 1],
-                        },
-                        {
-                            $eq: ['category_id', 2],
-                        },
-                    ],
+                    $in: [['post_id', 'category_id'], [[1, 2]]],
                 },
             }
 
@@ -175,7 +168,7 @@ describe('mutation_operations.ts', () => {
             const goal = {
                 $update: 'posts',
                 $set: [['user_id', 12]],
-                $where: { $eq: ['id', 1] },
+                $where: { $in: ['id', [1]] },
             }
 
             expect(result).to.deep.equal(goal)
@@ -237,7 +230,7 @@ describe('mutation_operations.ts', () => {
 
             const goal = {
                 $delete_from: 'posts',
-                $where: { $or: [{ $eq: ['id', 4] }, { $eq: ['id', 5] }] },
+                $where: { $or: [{ $in: ['id', [4]] }, { $in: ['id', [5]] }] },
             }
 
             expect(result).to.deep.equal(goal)

@@ -16,6 +16,9 @@ export const apply_upsert_macro = async (
     mutation_pieces: MutationPiece[]
 ) => {
     const query = get_upsert_macro_query(orma_schema, guid_map, mutation_pieces)
+    if (!query) {
+        return
+    }
     const results = await orma_query(query, orma_schema, mysql_function)
     apply_upsert_macro_given_data(
         orma_schema,
@@ -32,6 +35,10 @@ export const get_upsert_macro_query = (
 ) => {
     const { relevant_piece_indices, select_fields_by_entity } =
         get_upsert_query_data(orma_schema, guid_map, mutation_pieces)
+
+    if (relevant_piece_indices.size === 0) {
+        return undefined
+    }
 
     const piece_indices_by_entity = group_by(
         [...relevant_piece_indices],

@@ -11,7 +11,7 @@ import { combine_wheres } from '../../query/query_helpers'
 import { WhereConnected } from '../../types/query/query_types'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
-import { generate_identifying_where } from '../helpers/record_searching'
+import { get_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_batches'
@@ -139,37 +139,32 @@ export const get_identifier_connected_wheres = (
     mutation_pieces: MutationPiece[],
     entity: string
 ) => {
-    const identifying_wheres = mutation_pieces.flatMap(
+    const relevant_piece_indices = mutation_pieces.flatMap(
         (mutation_piece, piece_index) => {
             // this query fetches data that is in the database but not in the mutation. Because creates
             // are not yet in the database, all data must be in scope already, so we can safely ignore them
-            if (mutation_piece.record.$operation === 'create') {
-                return []
-            }
+            const is_create = mutation_piece.record.$operation === 'create'
 
-            const where = generate_identifying_where(
-                orma_schema,
-                guid_map,
-                mutation_pieces,
-                mutation_piece.record.$identifying_fields,
-                piece_index
-            )
-
-            if (where) {
-                // must apply escape macro since we need valid SQL AST
-                apply_escape_macro_to_query_part(orma_schema, entity, where)
-                return [where]
-            } else {
-                return []
-            }
+            return is_create ? [] : [piece_index]
         }
     )
+    const identifying_where = get_identifying_where(
+        orma_schema,
+        guid_map,
+        mutation_pieces,
+        relevant_piece_indices
+    )
+    // must apply escape macro since we need valid SQL AST
+    apply_escape_macro_to_query_part(orma_schema, entity, identifying_where)
 
-    // the first case is because if this entity is the ownership entity, then we dont need to wrap in $where $ins.
-    // the second case is if there are no identifying keys (e.g. all creates or only $guids)
-    if (entity === where_connected.$entity || identifying_wheres.length === 0) {
+    // if this entity is the ownership entity, then we dont need to wrap in $where $ins.
+    if (entity === where_connected.$entity) {
         // there might be a more elegant way to not handle this case separately, but im not sure how
-        return identifying_wheres
+        return [identifying_where]
+    }
+    // return early if there are no identifying keys (e.g. all creates or only $guids)
+    if (!identifying_where) {
+        return []
     }
 
     const edge_paths_obj = get_edge_paths_by_destination(
@@ -190,7 +185,7 @@ export const get_identifier_connected_wheres = (
             const where = edge_path_to_where_ins(
                 reversed_edge_path,
                 '$where',
-                combine_wheres(identifying_wheres, '$or')
+                identifying_where
             )
             return where
         }) ?? []

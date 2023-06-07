@@ -55,20 +55,13 @@ describe('mutation_guid_query.ts', () => {
                 $where: {
                     $or: [
                         {
-                            $eq: ['email', "'a@a.com'"],
+                            $in: ['email', ["'a@a.com'"]],
                         },
                         {
-                            $and: [
-                                {
-                                    $eq: ['first_name', "'john'"],
-                                },
-                                {
-                                    $eq: ['last_name', "'smith'"],
-                                },
-                            ],
+                            $in: [['first_name', 'last_name'], [["'john'", "'smith'"]]]
                         },
                         {
-                            $eq: ['id', 1],
+                            $in: ['id', [1]],
                         },
                     ],
                 },

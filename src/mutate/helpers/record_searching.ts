@@ -19,7 +19,15 @@ export const get_identifying_where = (
 
             const identifying_fields: string[] =
                 record.$identifying_fields ??
-                get_identifying_fields(orma_schema, entity, record, true)
+                get_identifying_fields(
+                    orma_schema,
+                    entity,
+                    record,
+                    // searching a record with no $identifying_fields is only for creates. In these cases,
+                    // we dont care if the key is ambiguous, we just want some consistent choice to fetch
+                    // things like ids from the database
+                    true
+                )
             const values = identifying_fields.map(field =>
                 get_search_value(
                     orma_schema,
@@ -44,19 +52,20 @@ export const get_identifying_where = (
 
     const ors = Object.entries(values_by_fields).map(
         ([field_string, value]) => {
+            // handle combinations of multiple or single fields / values, and use $eq if possible
+            // instead of $in. This is for simplicity of the output query and it might help
+            // sql optimization (just a guess but I wouldnt be surprised)
             const fields = JSON.parse(field_string)
-            return {
-                $in: [fields.length === 1 ? fields[0] : fields, value],
-            }
+            const field_parameter = fields.length === 1 ? fields[0] : fields
+            const value_parameter = value.length === 1 ? value[0] : value
+            const keyword = value.length === 1 ? '$eq' : '$in'
+            return { [keyword]: [field_parameter, value_parameter] }
         }
     )
 
-    // if there are no identifying fields, we want a where clause that returns no rows (as opposed to no where
-    // clause at all, which would return all rows)
-    const where =
-        ors.length > 0
-            ? combine_wheres(ors, '$or')
-            : { $eq: [{ $escape: 1 }, { $escape: 2 }] }
+    // if there are no identifying fields, we return null and let the caller deal with the case,
+    // for example not calling the query function at all if there is no where clause
+    const where = ors.length > 0 ? combine_wheres(ors, '$or') : null
 
     return where
 }
