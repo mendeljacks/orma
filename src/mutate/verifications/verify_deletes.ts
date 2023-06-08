@@ -6,16 +6,16 @@ import {
     get_primary_keys,
     reverse_edge,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
 import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
 import { PathedRecord } from '../../types'
+import { OrmaSchema } from '../../types/schema/schema_types'
 import { sort_database_rows } from '../database_results/sort_database_rows'
 import { path_to_entity } from '../helpers/mutate_helpers'
+import { get_identifying_where } from '../helpers/record_searching'
+import { GuidMap } from '../macros/guid_plan_macro'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
-import { generate_identifying_where } from '../helpers/record_searching'
-import { GuidMap } from '../macros/guid_plan_macro'
 
 /* 
 Description:
@@ -129,19 +129,12 @@ export const get_delete_verification_query = (
             const child_wheres = edges_to_parent.map(edge_to_parent => {
                 const parent_entity = edge_to_parent.to_entity
 
-                const parent_wheres = delete_indices_by_entity[
-                    parent_entity
-                ].map(piece_index => {
-                    const where = generate_identifying_where(
-                        orma_schema,
-                        guid_map,
-                        mutation_pieces,
-                        mutation_pieces[piece_index].record.$identifying_fields,
-                        piece_index
-                    )
-
-                    return where
-                })
+                const parent_where = get_identifying_where(
+                    orma_schema,
+                    guid_map,
+                    mutation_pieces,
+                    delete_indices_by_entity[parent_entity]
+                )
 
                 const child_where = {
                     $in: [
@@ -149,7 +142,7 @@ export const get_delete_verification_query = (
                         {
                             $select: [edge_to_parent.to_field],
                             $from: parent_entity,
-                            $where: combine_wheres(parent_wheres, '$or'),
+                            $where: parent_where,
                         },
                     ],
                 }

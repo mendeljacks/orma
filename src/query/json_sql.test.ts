@@ -40,7 +40,7 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('a NOT IN (1, 2)')
+            const goal = format('(a) NOT IN ((1), (2))')
 
             expect(sql).to.equal(goal)
         })
@@ -64,6 +64,34 @@ describe('json_sql.ts', () => {
 
             const sql = format(json_to_sql(json))
             const goal = format('((a) IS NOT NULL) AND ((a) IS NOT NULL)')
+
+            expect(sql).to.equal(goal)
+        })
+        test('handles tuple $eq', () => {
+            const json = {
+                $eq: [
+                    ['id', 'parent_id'],
+                    [1, 2],
+                ],
+            }
+
+            const sql = format(json_to_sql(json))
+            const goal = format('((id), (parent_id)) = ((1), (2))')
+
+            expect(sql).to.equal(goal)
+        })
+        test('unwraps tuple equality with nulls', () => {
+            const json = {
+                $not: {
+                    $eq: [
+                        ['id', 'parent_id'],
+                        [1, null],
+                    ],
+                },
+            }
+
+            const sql = format(json_to_sql(json))
+            const goal = format('((id) != (1)) AND ((parent_id) IS NOT NULL)')
 
             expect(sql).to.equal(goal)
         })
@@ -139,7 +167,26 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('a IN (1, 2)')
+            const goal = format('(a) IN ((1), (2))')
+
+            expect(sql).to.equal(goal)
+        })
+        test('handles $in with multiple fields', () => {
+            const json = {
+                $in: [
+                    ['a', 'b'],
+                    [
+                        [1, "'c'"],
+                        [{ $coalesce: ['null', 2] }, 3],
+                    ],
+                ],
+            }
+
+            const a = json_to_sql(json)
+            const sql = format(json_to_sql(json))
+            const goal = format(
+                "((a), (b)) IN (((1), ('c')), ((COALESCE(null, 2)), (3)))"
+            )
 
             expect(sql).to.equal(goal)
         })

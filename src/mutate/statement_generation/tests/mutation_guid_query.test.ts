@@ -58,14 +58,7 @@ describe('mutation_guid_query.ts', () => {
                             $eq: ['email', "'a@a.com'"],
                         },
                         {
-                            $and: [
-                                {
-                                    $eq: ['first_name', "'john'"],
-                                },
-                                {
-                                    $eq: ['last_name', "'smith'"],
-                                },
-                            ],
+                            $eq: [['first_name', 'last_name'], ["'john'", "'smith'"]]
                         },
                         {
                             $eq: ['id', 1],

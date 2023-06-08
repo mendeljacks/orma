@@ -80,19 +80,9 @@ describe('verify_uniqueness.ts', () => {
                                 $eq: ['email', { $escape: 'a@a.com' }],
                             },
                             {
-                                $and: [
-                                    {
-                                        $eq: [
-                                            'first_name',
-                                            { $escape: 'john' },
-                                        ],
-                                    },
-                                    {
-                                        $eq: [
-                                            'last_name',
-                                            { $escape: 'smith' },
-                                        ],
-                                    },
+                                $eq: [
+                                    ['first_name', 'last_name'],
+                                    [{ $escape: 'john' }, { $escape: 'smith' }],
                                 ],
                             },
                         ],
@@ -144,10 +134,10 @@ describe('verify_uniqueness.ts', () => {
                                 $eq: ['id', { $escape: 14 }],
                             },
                             {
-                                $eq: ['title', { $escape: 'hi' }],
-                            },
-                            {
-                                $eq: ['title', { $escape: '123' }],
+                                $in: [
+                                    'title',
+                                    [{ $escape: 'hi' }, { $escape: '123' }],
+                                ],
                             },
                         ],
                     },
@@ -243,13 +233,9 @@ describe('verify_uniqueness.ts', () => {
                     first_name: true,
                     last_name: true,
                     $where: {
-                        $and: [
-                            {
-                                $eq: ['first_name', { $escape: 'john' }],
-                            },
-                            {
-                                $eq: ['last_name', { $escape: 'smith' }],
-                            },
+                        $eq: [
+                            ['first_name', 'last_name'],
+                            [{ $escape: 'john' }, { $escape: 'smith' }],
                         ],
                     },
                 },
@@ -340,13 +326,9 @@ describe('verify_uniqueness.ts', () => {
                     id: true,
                     title: true,
                     $where: {
-                        $or: [
-                            {
-                                $eq: ['title', { $escape: 'title 1' }],
-                            },
-                            {
-                                $eq: ['title', { $escape: 'title 2' }],
-                            },
+                        $in: [
+                            'title',
+                            [{ $escape: 'title 1' }, { $escape: 'title 2' }],
                         ],
                     },
                 },

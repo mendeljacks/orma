@@ -6,10 +6,9 @@ import {
 } from '../../helpers/schema_helpers'
 import { json_to_sql } from '../../query/json_sql'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
-import { combine_wheres } from '../../query/query_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { is_submutation, path_to_entity } from '../helpers/mutate_helpers'
-import { generate_identifying_where } from '../helpers/record_searching'
+import { get_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
 import { MutationPiece } from '../plan/mutation_batches'
 
@@ -131,12 +130,11 @@ export const get_update_ast = (
 
     const identifying_fields = mutation_piece.record
         .$identifying_fields as string[]
-    const where = generate_identifying_where(
+    const where = get_identifying_where(
         orma_schema,
         guid_map,
         mutation_pieces,
-        identifying_fields,
-        mutation_piece_index
+        [mutation_piece_index]
     )
 
     // must apply escape macro since we need valid SQL AST
@@ -182,24 +180,14 @@ export const get_delete_ast = (
     entity: string,
     guid_map: GuidMap
 ) => {
-    const wheres = piece_indices.map(piece_index => {
-        const identifying_fields = mutation_pieces[piece_index].record
-            .$identifying_fields as string[]
-        const where = generate_identifying_where(
-            orma_schema,
-            guid_map,
-            mutation_pieces,
-            identifying_fields,
-            piece_index
-        )
-
-        // must apply escape macro since we need valid SQL AST
-        apply_escape_macro_to_query_part(orma_schema, entity, where)
-
-        return where
-    })
-
-    const $where = combine_wheres(wheres, '$or')
+    const $where = get_identifying_where(
+        orma_schema,
+        guid_map,
+        mutation_pieces,
+        piece_indices
+    )
+    // must apply escape macro since we need valid SQL AST
+    apply_escape_macro_to_query_part(orma_schema, entity, $where)
 
     const ast = {
         $delete_from: entity,

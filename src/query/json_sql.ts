@@ -50,6 +50,17 @@ export const json_to_sql = (
     path: any[] = [],
     original_expression: any = undefined
 ) => {
+    if (Array.isArray(expression)) {
+        return expression.map((el, i) =>
+            json_to_sql(
+                el,
+                database_type,
+                [...path, i],
+                original_expression ?? expression
+            )
+        )
+    }
+
     // strings and other non-objects are returned as-is
     const is_object = is_simple_object(expression)
     if (!is_object) {
@@ -88,21 +99,28 @@ export const json_to_sql = (
             }
 
             const args = expression[command]
-            const parsed_args = Array.isArray(args)
-                ? args.map((arg, i) =>
-                      json_to_sql(
-                          arg,
-                          database_type,
-                          [...path, command, i],
-                          original_expression ?? expression
-                      )
-                  )
-                : json_to_sql(
-                      args,
-                      database_type,
-                      [...path, command],
-                      original_expression ?? expression
-                  )
+            const parsed_args = json_to_sql(
+                args,
+                database_type,
+                [...path, command],
+                original_expression ?? expression
+            )
+
+            // Array.isArray(args)
+            //     ? args.map((arg, i) =>
+            //           json_to_sql(
+            //               arg,
+            //               database_type,
+            //               [...path, command, i],
+            //               original_expression ?? expression
+            //           )
+            //       )
+            //     : json_to_sql(
+            //           args,
+            //           database_type,
+            //           [...path, command],
+            //           original_expression ?? expression
+            //       )
 
             return command_parser(
                 parsed_args,
@@ -300,10 +318,24 @@ const sql_command_parsers = {
     $desc: args => `${args} DESC`,
     $limit: args => `LIMIT ${args}`,
     $offset: args => `OFFSET ${args}`,
-    $in: (args, path) =>
-        `${args[0]}${nested_under_odd_nots(path) ? ' NOT' : ''} IN (${
-            args[1]
-        })`,
+    $in: (args, path) => {
+        const [left_arg, right_arg] = args
+        const left_arg_string = Array.isArray(left_arg)
+            ? left_arg.map(val => `(${val})`).join(', ')
+            : left_arg
+        const not_string = nested_under_odd_nots(path) ? ' NOT' : ''
+        const right_arg_string = Array.isArray(right_arg)
+            ? right_arg
+                  .map(val =>
+                      Array.isArray(val)
+                          ? `(${val.map(el => `(${el})`).join(', ')})`
+                          : `(${val})`
+                  )
+                  .join(', ')
+            : right_arg
+
+        return `(${left_arg_string})${not_string} IN (${right_arg_string})`
+    },
     $and: (args, path) => {
         const res = `(${args.join(') AND (')})`
         return nested_under_odd_nots(path) ? `NOT (${res})` : res
@@ -314,14 +346,35 @@ const sql_command_parsers = {
     },
     $any: args => `ANY (${args})`,
     $all: args => `ALL (${args})`,
-    $eq: (args, path) =>
-        // handle regular null or string null
-        args[1] === null ||
-        (typeof args[1] === 'string' && args[1].toLowerCase() === 'null')
-            ? `(${args[0]}) IS${nested_under_odd_nots(path) ? ' NOT' : ''} NULL`
-            : `(${args[0]}) ${nested_under_odd_nots(path) ? '!' : ''}= (${
-                  args[1]
-              })`,
+    $eq: (args, path) => {
+        const simple_eq = (left_val, right_val) =>
+            is_sql_null(right_val)
+                ? `(${left_val}) IS${
+                      nested_under_odd_nots(path) ? ' NOT' : ''
+                  } NULL`
+                : `(${left_val}) ${
+                      nested_under_odd_nots(path) ? '!' : ''
+                  }= (${right_val})`
+
+        const [left_arg, right_arg] = args
+        // tuple equality, e.g. (id, parent_id) = (1, 2)
+        if (Array.isArray(left_arg)) {
+            // if there are any nulls, we must unwrap the eq into ands
+            // because sql equality doesnt work with nulls
+            if (left_arg.some(is_sql_null) || right_arg.some(is_sql_null)) {
+                return left_arg
+                    .map((_, i) => `(${simple_eq(left_arg[i], right_arg[i])})`)
+                    .join(' AND ')
+            } else {
+                return `(${left_arg.map(val => `(${val})`).join(', ')}) ${
+                    nested_under_odd_nots(path) ? '!' : ''
+                }= (${right_arg.map(val => `(${val})`).join(', ')})`
+            }
+        }
+
+        // reqular equality, e.g. (id) = (1)
+        return simple_eq(left_arg, right_arg)
+    },
     $gt: (args, path) =>
         `(${args[0]}) ${nested_under_odd_nots(path) ? '<=' : '>'} (${args[1]})`,
     $lt: (args, path) =>
@@ -439,6 +492,12 @@ const sql_command_parsers = {
     $cascade: arg => (arg ? `CASCADE` : ''),
     $set_null: arg => (arg ? `SET NULL` : ''),
     $no_action: arg => (arg ? `NO ACTION` : ''),
+}
+
+const is_sql_null = val => {
+    const is_regular_null = val === null
+    const is_string_null = val?.toLowerCase?.() === 'null'
+    return is_regular_null || is_string_null
 }
 
 const command_parser_keys = Object.keys(sql_command_parsers)
