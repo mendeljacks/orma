@@ -26,7 +26,7 @@ describe('select_macro', () => {
                     $select: [
                         'id',
                         { $as: ['title', 'my_title'] },
-                        { $as: [{ $sum: 'quantity' }, 'total_quantity'] },
+                        { $as: [{ $sum: 'views' }, 'total_views'] },
                     ],
                     $from: 'posts',
                 },

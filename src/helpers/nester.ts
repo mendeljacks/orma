@@ -32,10 +32,7 @@ const initialize_indexes = (data: NesterData, edges: NesterEdges) => {
     return indexes
 }
 
-const get_higher_datum_index = (
-    data: [Path, Record<string, any>[]][],
-    path_template: Path
-) => {
+const get_higher_datum_index = (data: NesterData, path_template: Path) => {
     const higher_path_template = get_higher_path(path_template)
     const data_index = data.findIndex(([check_path_template]) => {
         return array_equals(check_path_template, higher_path_template)
@@ -63,14 +60,13 @@ const get_results = (
 
         // handle nesting on to the root of the results
         if (edge === null) {
-            if (array_mode) {
-                result[set_field] = records
-            } else {
-                result[set_field] = records[0]
+            const root_value = array_mode ? records : records?.[0]
+            if (root_value !== undefined) {
+                result[set_field] = root_value
             }
 
             // add this record to the index so we can nest other stuff on it
-            records.forEach(record => add_to_index(index, record))
+            records?.forEach(record => add_to_index(index, record))
 
             return
         }
@@ -80,7 +76,7 @@ const get_results = (
 
         const higher_datum_index = get_higher_datum_index(data, path_template)
         const higher_index = indexes[higher_datum_index]
-        records.forEach(record => {
+        records?.forEach(record => {
             // for each record we want to nest, find all the higher records, i.e. those records that
             // we should nest this record on to, then nest on to each higher record. Higher records are found
             // using the index we created previously
@@ -131,7 +127,7 @@ type IndexesByField = {
     }
 }
 
-export type NesterData = [Path, Record<string, any>[]][]
+export type NesterData = [Path, Record<string, any>[] | undefined][]
 export type NesterEdges = (null | string[])[]
 
 // // old nester code ------------------------

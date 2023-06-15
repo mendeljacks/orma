@@ -72,7 +72,10 @@ export const orma_nester = (
     const data: NesterData = results.map(result => {
         const path = result[0]
         const rows = result[1]
-        return [path.flatMap(path_el => [path_el, 0]), rows] // all array nesting for now
+        return [
+            path.flatMap(path_el => [path_el, 0]),
+            rows?.length ? rows : undefined,
+        ]
     })
 
     return nester(data, edges)

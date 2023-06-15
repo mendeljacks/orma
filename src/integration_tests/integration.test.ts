@@ -540,6 +540,16 @@ describe('full integration test', () => {
             })
         })
     })
+    test('doesnt return empty arrays', async () => {
+        const res = await test_query({
+            posts: {
+                id: true,
+                $where: { $eq: [{ $escape: 1 }, { $escape: 2 }] },
+            },
+        } as const satisfies GlobalTestQuery)
+
+        expect(res.posts).to.equal(undefined)
+    })
     test.skip('allows $identifying_fields override')
     test.skip('handles manual guid + raw value linking')
     test.skip('handles renesting via id only updates')
