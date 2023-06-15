@@ -150,7 +150,7 @@ export const json_to_sql = (
 //     '$values',
 // ]
 
-export const sql_function_definitions: {
+type SqlFunctionDefinitions = {
     [function_name: string]: {
         ast_to_sql: (args: any, path: any) => string
         aggregate?: boolean
@@ -159,7 +159,8 @@ export const sql_function_definitions: {
         min_args?: number
         max_args?: number
     }
-} = {
+}
+export const sql_function_definitions = {
     // aggregate functions
     $cast_signed: {
         ast_to_sql: args => `CAST((${args}) AS SIGNED)`,
@@ -284,7 +285,7 @@ export const sql_function_definitions: {
         ast_to_sql: arg => `CURRENT_TIMESTAMP`,
         max_args: 0,
     },
-}
+} as const satisfies SqlFunctionDefinitions
 
 // note that the order of the command parsers is the same order they appear in the sql strings. this means that
 // changing the order of the command parsers can break the output sql

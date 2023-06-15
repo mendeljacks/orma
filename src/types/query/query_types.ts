@@ -5,6 +5,7 @@ import {
     GetAllEntities,
     GetFields,
 } from '../schema/schema_helper_types'
+import { sql_function_definitions } from '../../query/json_sql'
 
 export type OrmaQueryAliases<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: string
@@ -66,7 +67,10 @@ export type OrmaSubquery<
     PaginationObj &
     ForeignKeyObj &
     GroupByObj<Schema, Aliases, Entity> &
-    OrderByObj<Schema, Aliases, Entity> & { $where?: any; having?: any }
+    OrderByObj<Schema, Aliases, Entity> & {
+        readonly $where?: any
+        readonly $having?: any
+    }
 
 export type SelectObj<
     Schema extends OrmaSchema,
@@ -76,8 +80,8 @@ export type SelectObj<
     readonly $select?: readonly (
         | GetFields<Schema, Entity>
         | {
-              $as: [
-                  GetFields<Schema, Entity>,
+              readonly $as: readonly [
+                  GetFields<Schema, Entity> | object,
                   (
                       | GetFields<Schema, Entity>
                       | GetAliases<Schema, Aliases, Entity>
@@ -165,20 +169,25 @@ export type Expression<
     Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
 > =
-    | {
-          readonly $sum: Expression<Schema, Aliases, Entity>
-      }
-    | {
-          readonly $min: Expression<Schema, Aliases, Entity>
-      }
-    | {
-          readonly $max: Expression<Schema, Aliases, Entity>
-      }
-    | {
-          readonly $coalesce: Expression<Schema, Aliases, Entity>
-      }
+    | ExpressionFunction<
+          Schema,
+          Aliases,
+          Entity,
+          keyof typeof sql_function_definitions
+      >
     | GetFields<Schema, Entity>
     | GetAliases<Schema, Aliases, Entity>
+
+type ExpressionFunction<
+    Schema extends OrmaSchema,
+    Aliases extends OrmaQueryAliases<Schema>,
+    Entity extends GetAllEntities<Schema>,
+    FunctionNames extends string
+> = FunctionNames extends string
+    ? {
+          [Key in FunctionNames]: Expression<Schema, Aliases, Entity>
+      }
+    : never
 
 export type PaginationObj = {
     readonly $limit?: number
@@ -236,7 +245,7 @@ export type SimplifiedSubquery<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    readonly [Field in GetFields<Schema, Entity>]?: true
+    readonly [Field in GetFields<Schema, Entity>]?: boolean
 } & {
     readonly [NestedEntity in GetAllEdges<
         Schema,

@@ -4,10 +4,13 @@
       "module": "commonjs",
       "declaration": true,
       "outDir": "./build",
-      "strict": false,
+      "strict": true,
       "lib": ["ES2019", "DOM", "ES2021"],
       "downlevelIteration": true,
-      "strictNullChecks": true
+      "strictNullChecks": true,
+      "alwaysStrict": true,
+      "noImplicitAny": false,
+      "isolatedModules": true
     },
     "include": ["src"],
     "exclude": ["node_modules"]

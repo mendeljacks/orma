@@ -22,6 +22,7 @@ import { get_schema_diff } from '../schema/schema_macro'
 import { WhereConnected } from '../types/query/query_types'
 import { global_test_hydration } from '../test_data/global_test_hydration'
 import { get_unique_verification_errors } from '../mutate/verifications/verify_uniqueness'
+import { OrmaQueryResult } from '../types/query/query_result_types'
 
 type TestDatabase = {
     db: sqlite3.Database | undefined
@@ -136,9 +137,11 @@ export const test_mutate = async (
     return res
 }
 
-export const test_query = async <T extends Record<string, any>>(query: T) => {
+export const test_query = async <T extends Record<string, any>>(
+    query: T
+): Promise<OrmaQueryResult<GlobalTestSchema, T>> => {
     validate_errors([validate_query(query, global_test_schema)])
-    const res = await orma_query(
+    const res = await (orma_query as any)(
         query,
         global_test_schema,
         sqlite3_adapter(test_database.db!),

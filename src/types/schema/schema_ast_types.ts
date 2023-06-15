@@ -19,7 +19,10 @@ export type AlterStatement = {
     readonly $alter_table: string
     readonly $definitions: (
         | IntersectOverUnion<Definition, { readonly $alter_operation: 'add' }>
-        | (FieldDefinition & { readonly $alter_operation: 'modify'; readonly $old_name: string })
+        | (FieldDefinition & {
+              readonly $alter_operation: 'modify'
+              readonly $old_name: string
+          })
         | ({ readonly $alter_operation: 'drop' } & Pick<
               Definition,
               '$constraint' | '$index' | '$name'
@@ -87,7 +90,7 @@ export type ConstraintDefinition =
       }
 
 export type OnTrigger =
-    | { readonly $restrict: true }
-    | { readonly $cascade: true }
-    | { readonly $set_null: true }
-    | { readonly $no_action: true }
+    | { readonly $restrict: boolean }
+    | { readonly $cascade: boolean }
+    | { readonly $set_null: boolean }
+    | { readonly $no_action: boolean }

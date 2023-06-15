@@ -268,11 +268,11 @@ export const is_required_field = (
     field: string,
     schema: OrmaSchema
 ) => {
-    const field_schema = schema?.$entities?.[entity]?.$fields?.[field] ?? {}
+    const field_schema = schema?.$entities?.[entity]?.$fields?.[field]
     const is_required =
-        !!field_schema.$not_null &&
-        field_schema.$default === undefined &&
-        !field_schema.$auto_increment
+        !!field_schema?.$not_null &&
+        field_schema?.$default === undefined &&
+        !field_schema?.$auto_increment
     return is_required
 }
 

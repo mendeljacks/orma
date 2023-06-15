@@ -36,20 +36,17 @@ export const get_mutation_statements = (
     )
 
     const mutation_infos = Object.keys(grouped_mutation).flatMap(entity =>
-        Object.keys(grouped_mutation[entity] ?? {}).flatMap(
-            (operation: MutationOperation) => {
-                const group_indices =
-                    grouped_mutation?.[entity]?.[operation] ?? []
-                return get_mutation_infos_for_group(
-                    mutation_pieces,
-                    group_indices,
-                    operation,
-                    entity,
-                    guid_map,
-                    orma_schema
-                )
-            }
-        )
+        Object.keys(grouped_mutation[entity] ?? {}).flatMap(operation => {
+            const group_indices = grouped_mutation?.[entity]?.[operation] ?? []
+            return get_mutation_infos_for_group(
+                mutation_pieces,
+                group_indices,
+                operation as MutationOperation,
+                entity,
+                guid_map,
+                orma_schema
+            )
+        })
     )
 
     const query_infos: OrmaStatement[] = Object.keys(grouped_mutation).flatMap(

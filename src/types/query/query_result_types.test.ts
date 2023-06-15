@@ -10,7 +10,7 @@ import { OrmaQueryResult } from './query_result_types'
 const test = () => {
     const query_response = <Query extends GlobalTestQuery>(
         query: Query
-    ): OrmaQueryResult<GlobalTestSchema, GlobalTestAliases, Query> => '' as any
+    ): OrmaQueryResult<GlobalTestSchema, Query> => '' as any
 
     {
         // data props propagate as arrays
@@ -82,7 +82,7 @@ const test = () => {
 
         const expect1: IsEqual<typeof id, number | undefined> = true
     }
-    
+
     {
         // allows nested subquery aliases
         const result = query_response({
@@ -156,7 +156,7 @@ const test = () => {
 
         result?.posts?.slice()
         // @ts-expect-error
-        result.posts[0].$where
+        result.posts?.[0].$where
     }
     {
         // results are mutable

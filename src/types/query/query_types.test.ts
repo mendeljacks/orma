@@ -1,6 +1,8 @@
+import { as_orma_query } from '../../query/query'
 import {
     GlobalTestQuery,
     GlobalTestSchema,
+    global_test_schema,
 } from '../../test_data/global_test_schema'
 import { SimplifiedQuery } from './query_types'
 
@@ -93,6 +95,16 @@ import { SimplifiedQuery } from './query_types'
             id: true,
         },
     }
+}
+
+{
+    // test $as with subquery
+    const good = {
+        posts: {
+            id: true,
+            $select: [{ $as: [{ $select: ['id'], $from: 'posts' }, 'id'] }],
+        },
+    } as const satisfies GlobalTestQuery
 }
 
 {
@@ -230,4 +242,15 @@ import { SimplifiedQuery } from './query_types'
             },
         },
     }
+}
+
+{
+    as_orma_query(global_test_schema, {
+        posts: {
+            id: true,
+            _asdas: {
+                $from: 'users',
+            }
+        },
+    })
 }

@@ -15,7 +15,7 @@ export const type = (value: any): type_string => {
         ? 'Null'
         : value === undefined
         ? 'Undefined'
-        : Object.prototype.toString.call(value).slice(8, -1)
+        : (Object.prototype.toString.call(value).slice(8, -1) as type_string)
 }
 export const drop_last = (num: number, arr: any[]) => arr.slice(0, -num)
 export const last = <T>(array: T[]): T => array[array.length - 1]
@@ -321,7 +321,10 @@ export const has_prop = (prop, obj) => {
 /**
  * Return items in array 1 but not array 2
  */
-export const difference = <T>(array_1: readonly T[], array_2: readonly any[]) => {
+export const difference = <T>(
+    array_1: readonly T[],
+    array_2: readonly any[]
+) => {
     const array_2_set = new Set(array_2)
     return array_1.filter(el => !array_2_set.has(el))
 }

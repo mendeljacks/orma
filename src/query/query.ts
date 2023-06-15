@@ -88,7 +88,7 @@ export const orma_query = async <
     orma_schema_input: Schema,
     query_function: MysqlFunction,
     connection_edges: ConnectionEdges = {}
-): Promise<OrmaQueryResult<Schema, Aliases, Query>> => {
+): Promise<OrmaQueryResult<Schema, Query>> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
 
