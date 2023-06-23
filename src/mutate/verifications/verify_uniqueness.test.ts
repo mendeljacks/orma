@@ -704,6 +704,38 @@ describe('verify_uniqueness.ts', () => {
 
             expect(errors.length).to.equal(0)
         })
+        test('ignores deletes', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'delete',
+                        id: 12,
+                        email: 'a@a.com',
+                        $identifying_fields: ['id'],
+                    },
+                    path: ['users', 0],
+                },
+                {
+                    record: {
+                        $operation: 'delete',
+                        id: 12,
+                        email: 'a@a.com',
+                        $identifying_fields: ['id'],
+                    },
+                    path: ['users', 1],
+                },
+            ]
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
+
+            const errors = get_mutation_uniqueness_errors(
+                global_test_schema,
+                mutation_pieces,
+                piece_indices_by_entity
+            )
+
+            expect(errors.length).to.equal(0)
+        })
     })
 })
 

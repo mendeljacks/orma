@@ -157,6 +157,11 @@ const get_checkable_mutation_indices = (
     return piece_indices.filter(piece_index => {
         const { record } = mutation_pieces[piece_index]
 
+        // unique checks done make sense for deletes
+        const is_relevant_operation = ['create', 'update'].includes(
+            record.$operation
+        )
+
         // identifying keys are not actually being edited (for updates) so we dont want to
         // search for them
         const is_identifying_key =
@@ -187,7 +192,12 @@ const get_checkable_mutation_indices = (
                 is_simple_object(record[field])
         )
 
-        return !is_identifying_key && !has_null_value && !undefined_or_object
+        return (
+            is_relevant_operation &&
+            !is_identifying_key &&
+            !has_null_value &&
+            !undefined_or_object
+        )
     })
 }
 
