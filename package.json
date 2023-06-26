@@ -49,6 +49,7 @@
         "chai": "^4.3.6",
         "mocha": "^10.0.0",
         "nyc": "^15.1.0",
+        "promised-sqlite3": "^2.1.0",
         "sql-formatter": "^10.4.0",
         "sqlite3": "^5.1.4",
         "sucrase": "^3.29.0",

@@ -9,25 +9,22 @@
  * @param inner_fn Provide a function mapping (left_adjacents, inner, right_adjacents) => inner
  * @param right_fn Provide a function mapping a right list element to a right value which will match a left value
  */
-export const lir_join = (
-    left_list,
-    inner_list,
-    right_list,
-    left_fn,
-    inner_fn,
-    right_fn
+export const lir_join = <
+    LeftList extends any[],
+    InnerList extends any[],
+    RightList extends any[]
+>(
+    left_list: LeftList,
+    inner_list: InnerList,
+    right_list: RightList,
+    left_fn: (el: LeftList[number]) => any,
+    inner_fn: (
+        left_el: LeftList,
+        inner_list: InnerList,
+        right_el: RightList
+    ) => InnerList,
+    right_fn: (el: RightList[number]) => any
 ) => {
-    // Safety check called once per invocation
-    if (!Array.isArray(left_list)) throw new Error('Left list must be an array')
-    if (!Array.isArray(right_list))
-        throw new Error('Right list must be an array')
-    if (!(left_fn instanceof Function))
-        throw new Error('Left function must be a function')
-    if (!(right_fn instanceof Function))
-        throw new Error('Right function must be a function')
-    if (!(inner_fn instanceof Function))
-        throw new Error('Inner function must be a function')
-
     let memory: any = {}
 
     for (let i = 0; i < left_list.length; i++) {
@@ -45,7 +42,11 @@ export const lir_join = (
         memory[right_list_val]['right'].push(right_list_el)
     }
 
-    let output = { left: [] as any[], inner: inner_list, right: [] as any[] }
+    let output = {
+        left: [] as any[] as LeftList,
+        inner: inner_list,
+        right: [] as any[] as RightList,
+    }
     const keys = Object.keys(memory)
     for (let i = 0; i < keys.length; i++) {
         const key = keys[i]

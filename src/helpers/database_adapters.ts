@@ -1,3 +1,4 @@
+import { AsyncDatabase } from 'promised-sqlite3'
 import { OrmaStatement } from '../mutate/statement_generation/mutation_statements'
 
 export const mysql2_adapter =
@@ -62,6 +63,23 @@ export const sqlite3_adapter =
                         resolve(rows)
                     })
             )
+            response.push(rows)
+        }
+
+        return response
+    }
+
+export const promised_sqlite3_adapter =
+    (connection: Pick<AsyncDatabase, 'all'>) =>
+    async (statements: AdapterStatements): AdapterReturn => {
+        const sqls = statements.map(statement => statement.sql_string)
+        if (sqls.length === 0) {
+            return []
+        }
+
+        let response: Awaited<AdapterReturn> = []
+        for await (const sql of sqls) {
+            const rows: any[] = await connection.all(sql)
             response.push(rows)
         }
 

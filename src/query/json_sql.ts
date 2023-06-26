@@ -419,7 +419,18 @@ const sql_command_parsers = {
     // alter
     $alter_table: table_name => `ALTER TABLE ${table_name}`,
     // definitions
-    $definitions: args => (args?.length ? `(${args.join(', ')})` : ''),
+    $definitions: (args, path, obj, database_type: SupportedDatabases) => {
+        if (args?.length) {
+            const definition_string = args.join(', ')
+            // sqlite throws an error if you put () around the definition, since it
+            // doesnt support multiple definitions in the same ALTER TABLE statement
+            return database_type === 'sqlite'
+                ? definition_string
+                : `(${definition_string})`
+        } else {
+            return ''
+        }
+    },
     $alter_operation: arg => arg?.toUpperCase(),
     $old_name: (arg, path, obj) =>
         get_neighbour_field(obj, path, '$alter_operation') === 'rename'
