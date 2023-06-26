@@ -201,18 +201,21 @@ export type GetFieldType<
     Field extends GetFields<Schema, Entity>
 > = GetFieldType2<Schema['$entities'][Entity]['$fields'][Field]>
 
+// handle nullable
 type GetFieldType2<FieldSchema extends OrmaFieldSchema> =
     FieldSchema['$not_null'] extends true
-        ? FieldTypeStringToType<
-              MysqlToTypescriptTypeString<
-                  NonNullable<FieldSchema['$data_type']>
-              >
-          >
-        : FieldTypeStringToType<
-              MysqlToTypescriptTypeString<
-                  NonNullable<FieldSchema['$data_type']>
-              >
-          > | null
+        ? GetFieldType3<FieldSchema>
+        : GetFieldType3<FieldSchema> | null
+
+// handle enum
+type GetFieldType3<FieldSchema extends OrmaFieldSchema> = FieldSchema extends {
+    $data_type: 'enum'
+    $enum_values: readonly any[]
+}
+    ? FieldSchema['$enum_values'][number]
+    : FieldTypeStringToType<
+          MysqlToTypescriptTypeString<NonNullable<FieldSchema['$data_type']>>
+      >
 
 export type GetFieldSchema<
     Schema extends OrmaSchema,
@@ -224,10 +227,10 @@ export type GetFieldSchema<
 
 type MysqlToTypescriptTypeString<
     TypeString extends keyof typeof mysql_to_typescript_types
-> = typeof mysql_to_typescript_types[TypeString]
+> = (typeof mysql_to_typescript_types)[TypeString]
 
 type FieldTypeStringToType<
-    TypeString extends typeof mysql_to_typescript_types[keyof typeof mysql_to_typescript_types]
+    TypeString extends (typeof mysql_to_typescript_types)[keyof typeof mysql_to_typescript_types]
 > = TypeString extends 'string'
     ? string
     : TypeString extends 'number'
