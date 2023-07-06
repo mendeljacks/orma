@@ -1,92 +1,57 @@
-import { copyFileSync, existsSync, unlinkSync } from 'fs'
-import { before, beforeEach, describe, test } from 'mocha'
+import { before, beforeEach } from 'mocha'
 import * as sqlite3 from 'sqlite3'
 import { sqlite3_adapter } from '../helpers/database_adapters'
 import { validate_errors } from '../helpers/helpers'
-import {
-    GlobalTestMutation,
-    GlobalTestSchema,
-    global_test_schema,
-} from '../test_data/global_test_schema'
 import { orma_mutate_prepare, orma_mutate_run } from '../mutate/mutate'
 import { validate_mutation } from '../mutate/verifications/mutate_validation'
 import { get_mutation_connected_errors } from '../mutate/verifications/mutation_connected'
-import { json_to_sql } from '../query/json_sql'
+import { get_unique_verification_errors } from '../mutate/verifications/verify_uniqueness'
 import {
     add_connection_edges,
     get_upwards_connection_edges,
 } from '../query/macros/where_connected_macro'
 import { orma_query } from '../query/query'
 import { validate_query } from '../query/validation/query_validation'
-import { get_schema_diff } from '../schema/schema_macro'
-import { WhereConnected } from '../types/query/query_types'
 import { global_test_hydration } from '../test_data/global_test_hydration'
-import { get_unique_verification_errors } from '../mutate/verifications/verify_uniqueness'
+import {
+    GlobalTestMutation,
+    GlobalTestSchema,
+    global_test_schema,
+} from '../test_data/global_test_schema'
 import { OrmaQueryResult } from '../types/query/query_result_types'
+import { WhereConnected } from '../types/query/query_types'
+import {
+    reset_test_database,
+    set_up_test_database,
+    tear_down_test_database,
+} from './integration_test_helpers'
 
-type TestDatabase = {
-    db: sqlite3.Database | undefined
-    file_name: string
-}
-let test_database: TestDatabase = {
-    db: undefined,
-    file_name: 'test_database',
-}
-
-const checkpoint_name = 'test_database_checkpoint'
-
-export const remove_file = (file_name: string) => {
-    if (existsSync(file_name)) {
-        unlinkSync(file_name)
-    }
+let test_database = {
+    db: undefined as sqlite3.Database | undefined,
 }
 
-const clear_database_files = () => {
-    remove_file(test_database.file_name)
-    remove_file(checkpoint_name)
-}
+const test_database_directory = './'
 
-export const open_database = async (test_database: TestDatabase) =>
-    new Promise<void>(
-        (accept, reject) =>
-            (test_database.db = new sqlite3.Database(
-                test_database.file_name,
-                e => (e ? reject() : accept())
+before(async () => {
+    test_database.db = await set_up_test_database(
+        global_test_schema,
+        global_test_hydration,
+        test_database_directory
+    )
+})
+
+after(async () =>
+    tear_down_test_database(test_database.db, test_database_directory)
+)
+
+export const register_integration_test = () => {
+    beforeEach(
+        async () =>
+            (test_database.db = await reset_test_database(
+                test_database.db,
+                test_database_directory
             ))
     )
-
-export const close_database = async (test_database: TestDatabase) =>
-    new Promise<void>((resolve, reject) =>
-        test_database.db?.close(err => (err ? reject(err) : resolve()))
-    )
-
-export const integration_test_setup = () => {
-    before(async () => {
-        clear_database_files()
-        await open_database(test_database)
-
-        const schema_diff = get_schema_diff(
-            { $entities: {} },
-            global_test_schema
-        )
-        const statements = schema_diff.map(ast => ({
-            sql_string: json_to_sql(ast, 'sqlite'),
-        }))
-        await sqlite3_adapter(test_database.db!)(statements)
-        await test_mutate(global_test_hydration)
-        copyFileSync(test_database.file_name, checkpoint_name)
-    })
-
-    beforeEach(async () => {
-        await close_database(test_database)
-        copyFileSync(checkpoint_name, test_database.file_name)
-        await open_database(test_database)
-    })
-
-    after(async () => {
-        await close_database(test_database)
-        clear_database_files()
-    })
 }
 
 const connection_edges = add_connection_edges(
