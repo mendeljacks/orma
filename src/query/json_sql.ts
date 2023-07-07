@@ -484,7 +484,9 @@ const sql_command_parsers = {
     // index
     $fields: args => `(${args.join(', ')})`,
     $invisible: arg => (arg ? `INVISIBLE` : ''),
-    $comment: comment => `COMMENT "${comment}"`,
+    $comment: (arg, path, obj, database_type: SupportedDatabases) =>
+        // sqlite doesnt support the COMMENT keyword
+        database_type === 'sqlite' ? '' : `COMMENT "${arg}"`,
     // constraint
     $references: arg => `REFERENCES ${arg}`,
     $on_delete: arg => `ON DELETE ${arg}`,

@@ -367,6 +367,7 @@ describe('json_sql.ts', () => {
                         $unsigned: true,
                     },
                 ],
+                $comment: 'sqlite doesnt support comments',
             }
 
             const goal = format(`
