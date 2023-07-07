@@ -86,7 +86,11 @@ const get_sorted_create_table_statements = (
     const mutation_pieces: MutationPiece[] = create_statements.map(
         (statement, i) => {
             const entity = statement.$create_table
-            const edges = get_all_edges(entity, final_schema)
+            // remove self-referencing foreign keys, since they dont affect insertion order
+            // and would make this more complicated if included
+            const edges = get_all_edges(entity, final_schema).filter(
+                el => el.from_entity !== el.to_entity
+            )
 
             // we set all foreign key and primary keys to the value 1, since this will result in the strongest
             // ordering when passed to the mutation planner
