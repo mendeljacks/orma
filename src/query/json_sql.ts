@@ -434,7 +434,7 @@ const sql_command_parsers = {
             foreign_key: `FOREIGN KEY`,
         }[arg]
 
-        const constraint_sql = name ? `CONSTRAINT ${name} ` : ''
+        const constraint_sql = name ? `CONSTRAINT \`${name}\` ` : ''
         return `${constraint_sql}${constraint_type_sql}`
     },
     $index: arg =>
@@ -446,7 +446,7 @@ const sql_command_parsers = {
     $name: (arg, path, obj) =>
         // for constraints, name is handled differently because it goes between CONSTRAINT
         // and the constraint type (e.g. FOREIGN KEY)
-        get_neighbour_field(obj, path, '$constraint') ? '' : arg,
+        get_neighbour_field(obj, path, '$constraint') ? '' : `\`${arg}\``,
     $data_type: (arg, path, obj, database_type) => {
         const precision = get_neighbour_field(obj, path, '$precision')
         const scale = get_neighbour_field(obj, path, '$scale')
