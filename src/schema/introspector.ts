@@ -256,13 +256,38 @@ export const generate_field_schema = (mysql_column: MysqlColumn) => {
         ...(column_type?.match(/unsigned/) && { $unsigned: true }),
         ...(extra === 'auto_increment' && { $auto_increment: true }),
         ...((identity_generation || column_default) && {
-            $default: identity_generation || column_default,
+            $default:
+                identity_generation || parse_column_default(column_default),
         }),
         ...(is_nullable === 'NO' && { $not_null: true }),
         ...(column_comment && { $comment: column_comment }),
     }
 
     return field_schema
+}
+
+const parse_column_default = (value: any) => {
+    // Mysql doesnt properly put quotes on their default values, so we need to string parse
+    // and handle all the cases. In the Orma schema there should be no ambiguity, even though
+    // the mysql information schema does a bad job here
+
+    if (!value) {
+        return undefined
+    }
+
+    if (value?.toLowerCase?.() === 'current_timestamp') {
+        return value
+    }
+
+    if (value?.toLowerCase?.() === 'null') {
+        return null
+    }
+
+    if (!isNaN(Number(value))) {
+        return Number(value)
+    }
+
+    return `'${value}'`
 }
 
 const generate_primary_key_schema = (mysql_columns: MysqlColumn[]) => {

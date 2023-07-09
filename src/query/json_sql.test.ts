@@ -470,7 +470,7 @@ describe('json_sql.ts', () => {
 
             const goal = format(`
             ALTER TABLE my_table (
-                ADD CONSTRAINT uq_ind UNIQUE (label)
+                ADD CONSTRAINT \`uq_ind\` UNIQUE (label)
             )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -495,6 +495,21 @@ describe('json_sql.ts', () => {
 
             expect(format(json_to_sql(json))).to.equal(goal)
         })
+        test('handles CREATE INDEX syntax', () => {
+            const json = {
+                $create_index: 'my_index',
+                $on: {
+                    $entity: 'my_table',
+                    $fields: ['field1', 'field2'],
+                },
+            }
+
+            const goal = format(`
+            CREATE INDEX \`my_index\` ON my_table (field1, field2)
+            `)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
         test('handles primary key', () => {
             const json: AlterStatement = {
                 $alter_table: 'my_table',
@@ -510,7 +525,7 @@ describe('json_sql.ts', () => {
 
             const goal = format(`
             ALTER TABLE my_table (
-                ADD CONSTRAINT primary PRIMARY KEY (id)
+                ADD CONSTRAINT \`primary\` PRIMARY KEY (id)
             )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -555,7 +570,7 @@ describe('json_sql.ts', () => {
             const goal = format(`
             ALTER TABLE my_table (
                 ADD FOREIGN KEY (parent_id) REFERENCES parents (id),
-                ADD CONSTRAINT my_foreign_key FOREIGN KEY (parent_id) REFERENCES parents (id) 
+                ADD CONSTRAINT \`my_foreign_key\` FOREIGN KEY (parent_id) REFERENCES parents (id) 
                     ON DELETE CASCADE ON UPDATE RESTRICT,
                 ADD FOREIGN KEY (parent_id) REFERENCES parents (id) 
                     ON DELETE NO ACTION ON UPDATE SET NULL

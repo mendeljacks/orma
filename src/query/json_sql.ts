@@ -446,7 +446,7 @@ const sql_command_parsers = {
     $name: (arg, path, obj) =>
         // for constraints, name is handled differently because it goes between CONSTRAINT
         // and the constraint type (e.g. FOREIGN KEY)
-        get_neighbour_field(obj, path, '$constraint') ? '' : `\`${arg}\``,
+        get_neighbour_field(obj, path, '$constraint') ? '' : arg,
     $data_type: (arg, path, obj, database_type) => {
         const precision = get_neighbour_field(obj, path, '$precision')
         const scale = get_neighbour_field(obj, path, '$scale')
@@ -479,11 +479,20 @@ const sql_command_parsers = {
     $enum_values: arg => ``,
     $not_null: arg => (arg ? 'NOT NULL' : ''),
     $default: arg => `DEFAULT ${arg}`,
-    $auto_increment: (arg, path, obj, database_type) =>
-        arg && database_type !== 'sqlite' ? 'AUTO_INCREMENT' : '',
+    $auto_increment: (arg, path, obj, database_type) => {
+        if (!arg) {
+            return ''
+        }
+
+        // Sqlite needs the magic INTEGER PRIMARY KEY type to do auto incrementing,
+        // so we parse $auto_incrementing as an inline PRIMARY KEY constraint
+        return database_type === 'sqlite' ? 'PRIMARY KEY' : 'AUTO_INCREMENT'
+    },
     // index
     $fields: args => `(${args.join(', ')})`,
-    $invisible: arg => (arg ? `INVISIBLE` : ''),
+    $invisible: (arg, path, obj, database_type: SupportedDatabases) =>
+        // sqlite doesnt support invisible indexes
+        arg && database_type !== 'sqlite' ? `INVISIBLE` : '',
     $comment: (arg, path, obj, database_type: SupportedDatabases) =>
         // sqlite doesnt support the COMMENT keyword
         database_type === 'sqlite' ? '' : `COMMENT "${arg}"`,
@@ -495,6 +504,10 @@ const sql_command_parsers = {
     $cascade: arg => (arg ? `CASCADE` : ''),
     $set_null: arg => (arg ? `SET NULL` : ''),
     $no_action: arg => (arg ? `NO ACTION` : ''),
+    // this is just here for sqlite compatibility. It is purposefully not included in the types
+    // because no one should be using such a bad and inconsistent syntax
+    $create_index: arg => `CREATE INDEX \`${arg}\``,
+    $on: arg => `ON ${arg}`,
 }
 
 const is_sql_null = val => {

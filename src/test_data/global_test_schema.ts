@@ -5,7 +5,7 @@ import { OrmaSchema } from '../types/schema/schema_types'
 export const global_test_schema = {
     $entities: {
         users: {
-            $database_type: 'mysql',
+            $database_type: 'sqlite',
             $fields: {
                 id: {
                     $data_type: 'int',
@@ -58,7 +58,7 @@ export const global_test_schema = {
             ],
         },
         posts: {
-            $database_type: 'mysql',
+            $database_type: 'sqlite',
             $fields: {
                 id: {
                     $data_type: 'int',
@@ -99,7 +99,7 @@ export const global_test_schema = {
             ],
         },
         likes: {
-            $database_type: 'mysql',
+            $database_type: 'sqlite',
             $fields: {
                 id: {
                     $data_type: 'int',
@@ -142,7 +142,7 @@ export const global_test_schema = {
             ],
         },
         comments: {
-            $database_type: 'mysql',
+            $database_type: 'sqlite',
             $fields: {
                 id: {
                     $data_type: 'int',
@@ -168,7 +168,7 @@ export const global_test_schema = {
             ],
         },
         addresses: {
-            $database_type: 'mysql',
+            $database_type: 'sqlite',
             $fields: {
                 id: {
                     $data_type: 'int',
@@ -205,7 +205,7 @@ export const global_test_schema = {
             ],
         },
         tax_codes: {
-            $database_type: 'mysql',
+            $database_type: 'sqlite',
             $fields: {
                 id: {
                     $data_type: 'int',
@@ -228,7 +228,7 @@ export const global_test_schema = {
             },
         },
         categories: {
-            $database_type: 'mysql',
+            $database_type: 'sqlite',
             $fields: {
                 id: {
                     $data_type: 'int',
@@ -265,7 +265,7 @@ export const global_test_schema = {
             ],
         },
         post_has_categories: {
-            $database_type: 'mysql',
+            $database_type: 'sqlite',
             $fields: {
                 post_id: {
                     $data_type: 'int',

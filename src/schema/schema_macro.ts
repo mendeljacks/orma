@@ -1,4 +1,4 @@
-import { get_difference } from '../helpers/helpers'
+import { array_equals, get_difference } from '../helpers/helpers'
 import { get_all_edges } from '../helpers/schema_helpers'
 import {
     get_mutation_batches,
@@ -29,29 +29,46 @@ export const get_schema_diff = (
         create_entity_statements
     )
 
-    return sorted_create_statements
+    const sqlite_create_index_statements = entities_to_create.flatMap(entity =>
+        get_create_index_statements_for_sqlite(
+            entity,
+            final_schema.$entities[entity]
+        )
+    )
+
+    return [...sorted_create_statements, ...sqlite_create_index_statements]
 }
 
 const get_create_entity_statements = (
     entity_name: string,
     entity_schema: OrmaSchema['$entities'][string]
 ) => {
+    const database_type = entity_schema.$database_type
+
     const fields: FieldDefinition[] =
-        Object.keys(entity_schema.$fields).map(field_name => ({
-            $name: field_name,
-            ...entity_schema.$fields[field_name],
-        })) ?? []
+        Object.keys(entity_schema.$fields).map(field_name => {
+            const field_schema = entity_schema.$fields[field_name]
+            // For sqlite to do auto incrementing, we need the magic INTEGER PRIMARY KEY
+            // type. Having UNSIGNED or a precision like INTEGER(10) will cause it to 
+            // not auto increment.
+            if (database_type === 'sqlite' && field_schema.$auto_increment) {
+                return {
+                    $name: field_name,
+                    $data_type: 'int',
+                    $auto_increment: true
+                }
+            } else {
+                return {
+                    $name: field_name,
+                    ...field_schema,
+                }
+            }
+        }) ?? []
 
     const primary_key: ConstraintDefinition = {
         $constraint: 'primary_key',
         ...entity_schema.$primary_key,
     }
-
-    const indexes: IndexDefinition[] =
-        entity_schema?.$indexes?.map(el => ({
-            ...(el.$index ? { $index: el.$index } : { $index: true }),
-            ...el,
-        })) ?? []
 
     const unique_keys: ConstraintDefinition[] =
         entity_schema?.$unique_keys?.map(el => ({
@@ -65,17 +82,52 @@ const get_create_entity_statements = (
             ...el,
         })) ?? []
 
+    const indexes: IndexDefinition[] =
+        entity_schema?.$indexes?.map(el => ({
+            ...(el.$index ? { $index: el.$index } : { $index: true }),
+            ...el,
+        })) ?? []
+
     return {
         $create_table: entity_name,
         $comment: entity_schema.$comment,
         $definitions: [
             ...fields,
-            primary_key,
             ...unique_keys,
             ...foreign_keys,
-            ...indexes,
+            // primary key and indexes are special cases in sqlite that are handled separately
+            ...(database_type !== 'sqlite' ? [primary_key, ...indexes] : []),
         ],
     }
+}
+
+/**
+ * Unlike literally everything else like table options, fields, constraints, foreign keys etc,
+ * SQLite insists that indexes are created using a completely separate CREATE INDEX syntax.
+ * So this needs to be done separately to cover for SQLite's poor design choices.
+ */
+const get_create_index_statements_for_sqlite = (
+    entity_name: string,
+    entity_schema: OrmaSchema['$entities'][string]
+) => {
+    if (entity_schema.$database_type !== 'sqlite') {
+        // indexes handled in the create statement for non-sqlite
+        return []
+    }
+
+    const indexes: IndexDefinition[] =
+        entity_schema?.$indexes?.map(el => ({
+            ...(el.$index ? { $index: el.$index } : { $index: true }),
+            ...el,
+        })) ?? []
+
+    return indexes.map(index => ({
+        $create_index: index.$name,
+        $on: {
+            $entity: entity_name,
+            $fields: index.$fields,
+        },
+    }))
 }
 
 const get_sorted_create_table_statements = (
@@ -96,8 +148,6 @@ const get_sorted_create_table_statements = (
             // ordering when passed to the mutation planner
             const edge_fields_obj = edges.reduce((acc, edge) => {
                 acc[edge.from_field] = 1
-                // keep track of the statement to convert the sorted mutation pieces back to statements
-                acc.$_statement_index = i
                 return acc
             }, {} as Record<string, any>)
 
@@ -105,6 +155,8 @@ const get_sorted_create_table_statements = (
                 path: [entity, 0],
                 record: {
                     $operation: 'create',
+                    // keep track of the statement to convert the sorted mutation pieces back to statements
+                    $_statement_index: i,
                     ...edge_fields_obj,
                 },
             }

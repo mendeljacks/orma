@@ -27,9 +27,12 @@ export const close_sqlite_database = async (db: sqlite3.Database) =>
         db?.close(err => (err ? reject(err) : resolve()))
     )
 
+/**
+ * Call once before all tests run. Make sure the orma_schema entities have $database_type set to 'sqlite'
+ */
 export const set_up_test_database = async (
     orma_schema: OrmaSchema,
-    hydration_mutation: Record<string, any>,
+    hydration_data: Record<string, any>,
     directory_path: string
 ) => {
     clear_database_files(directory_path)
@@ -40,7 +43,11 @@ export const set_up_test_database = async (
         sql_string: json_to_sql(ast, 'sqlite'),
     }))
     await sqlite3_adapter(db)(statements)
-    await orma_mutate(hydration_mutation, sqlite3_adapter(db), orma_schema)
+    await orma_mutate(
+        { $operation: 'create', ...hydration_data },
+        sqlite3_adapter(db),
+        orma_schema
+    )
     copyFileSync(
         get_db_path(directory_path),
         get_checkpoint_path(directory_path)
