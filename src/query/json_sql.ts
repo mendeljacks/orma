@@ -307,10 +307,10 @@ const sql_command_parsers = {
 
     // DML commands
     $select: args => `SELECT ${args.join(', ')}`,
-    $as: args => `(${args[0]}) AS ${args[1]}`,
-    $entity: args => `${args}`,
-    $field: args => `.${args}`,
-    $from: args => `FROM ${args}`,
+    $as: args => `${wrap_if_subquery(args[0])} AS ${args[1]}`,
+    $entity: args => `${escape_field(args)}`,
+    $field: args => `.${escape_field(args)}`,
+    $from: args => `FROM ${escape_field(args)}`,
     $where: args => `WHERE ${args}`,
     $group_by: args => `GROUP BY ${args.join(', ')}`,
     $having: args => `HAVING ${args}`,
@@ -322,20 +322,24 @@ const sql_command_parsers = {
     $in: (args, path) => {
         const [left_arg, right_arg] = args
         const left_arg_string = Array.isArray(left_arg)
-            ? left_arg.map(val => `(${val})`).join(', ')
+            ? `(${left_arg.map(val => `${wrap_if_subquery(val)}`).join(', ')})`
             : left_arg
         const not_string = nested_under_odd_nots(path) ? ' NOT' : ''
         const right_arg_string = Array.isArray(right_arg)
             ? right_arg
                   .map(val =>
                       Array.isArray(val)
-                          ? `(${val.map(el => `(${el})`).join(', ')})`
-                          : `(${val})`
+                          ? `(${val
+                                .map(el => wrap_if_subquery(el))
+                                .join(', ')})`
+                          : wrap_if_subquery(val)
                   )
                   .join(', ')
             : right_arg
 
-        return `(${left_arg_string})${not_string} IN (${right_arg_string})`
+        return `${wrap_if_subquery(
+            left_arg_string
+        )}${not_string} IN (${right_arg_string})`
     },
     $and: (args, path) => {
         const res = `(${args.join(') AND (')})`
@@ -350,12 +354,12 @@ const sql_command_parsers = {
     $eq: (args, path) => {
         const simple_eq = (left_val, right_val) =>
             is_sql_null(right_val)
-                ? `(${left_val}) IS${
+                ? `${wrap_if_subquery(left_val)} IS${
                       nested_under_odd_nots(path) ? ' NOT' : ''
                   } NULL`
-                : `(${left_val}) ${
+                : `${wrap_if_subquery(left_val)} ${
                       nested_under_odd_nots(path) ? '!' : ''
-                  }= (${right_val})`
+                  }= ${wrap_if_subquery(right_val)}`
 
         const [left_arg, right_arg] = args
         // tuple equality, e.g. (id, parent_id) = (1, 2)
@@ -367,9 +371,11 @@ const sql_command_parsers = {
                     .map((_, i) => `(${simple_eq(left_arg[i], right_arg[i])})`)
                     .join(' AND ')
             } else {
-                return `(${left_arg.map(val => `(${val})`).join(', ')}) ${
+                return `(${left_arg
+                    .map(val => wrap_if_subquery(val))
+                    .join(', ')}) ${
                     nested_under_odd_nots(path) ? '!' : ''
-                }= (${right_arg.map(val => `(${val})`).join(', ')})`
+                }= (${right_arg.map(val => wrap_if_subquery(val)).join(', ')})`
             }
         }
 
@@ -377,13 +383,21 @@ const sql_command_parsers = {
         return simple_eq(left_arg, right_arg)
     },
     $gt: (args, path) =>
-        `(${args[0]}) ${nested_under_odd_nots(path) ? '<=' : '>'} (${args[1]})`,
+        `${wrap_if_subquery(args[0])} ${
+            nested_under_odd_nots(path) ? '<=' : '>'
+        } ${wrap_if_subquery(args[1])}`,
     $lt: (args, path) =>
-        `(${args[0]}) ${nested_under_odd_nots(path) ? '>=' : '<'} (${args[1]})`,
+        `${wrap_if_subquery(args[0])} ${
+            nested_under_odd_nots(path) ? '>=' : '<'
+        } ${wrap_if_subquery(args[1])}`,
     $gte: (args, path) =>
-        `(${args[0]}) ${nested_under_odd_nots(path) ? '<' : '>='} (${args[1]})`,
+        `${wrap_if_subquery(args[0])} ${
+            nested_under_odd_nots(path) ? '<' : '>='
+        } ${wrap_if_subquery(args[1])}`,
     $lte: (args, path) =>
-        `(${args[0]}) ${nested_under_odd_nots(path) ? '>' : '<='} (${args[1]})`,
+        `${wrap_if_subquery(args[0])} ${
+            nested_under_odd_nots(path) ? '>' : '<='
+        } ${wrap_if_subquery(args[1])}`,
     $exists: (args, path) =>
         `${nested_under_odd_nots(path) ? 'NOT ' : ''}EXISTS (${args})`,
     $like: (args, path) => {
@@ -392,9 +406,9 @@ const sql_command_parsers = {
         // return `${args[0]}${
         // nested_under_odd_nots(path) ? ' NOT' : ''
         // } LIKE '%${search_value}%'`
-        return `(${args[0]})${
+        return `${wrap_if_subquery(args[0])}${
             nested_under_odd_nots(path) ? ' NOT' : ''
-        } LIKE (${args[1]})`
+        } LIKE ${wrap_if_subquery(args[1])}`
     },
     $not: args => args, // not logic is different depending on the children, so the children handle it
 
@@ -417,7 +431,7 @@ const sql_command_parsers = {
     $temporary: _ => '',
     $like_table: table_name => `LIKE ${table_name}`,
     // alter
-    $alter_table: table_name => `ALTER TABLE ${table_name}`,
+    $alter_table: table_name => `ALTER TABLE \`${table_name}\``,
     // definitions
     $definitions: args => (args?.length ? `(${args.join(', ')})` : ''),
     $alter_operation: arg => arg?.toUpperCase(),
@@ -509,6 +523,16 @@ const sql_command_parsers = {
     $create_index: arg => `CREATE INDEX \`${arg}\``,
     $on: arg => `ON ${arg}`,
 }
+
+/**
+ * Only wrap SELECT ... statments with (), since sqlite doesnt support wrapping primitive values like
+ * numbers in (), I think its interpreting them as tuples when you do that
+ */
+const wrap_if_subquery = (val: string) =>
+    val?.startsWith?.('SELECT') ? `(${val})` : val
+
+const escape_field = val =>
+    typeof val === 'string' && !['*'].includes(val) ? `\`${val}\`` : val
 
 const is_sql_null = val => {
     const is_regular_null = val === null

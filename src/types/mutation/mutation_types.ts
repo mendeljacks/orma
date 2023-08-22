@@ -9,42 +9,23 @@ import {
 } from '../schema/schema_helper_types'
 import { OrmaSchema } from '../schema/schema_types'
 
-export type OrmaMutation<Schema extends OrmaSchema> =
-    | {
-          readonly [Entity in GetAllEntities<Schema>]?: readonly MutationRecord<
-              Schema,
-              Entity,
-              // we only need to do this on the top level, since after the highest entity everything will have an operation,
-              // either directly provided or through cascading from the highest entity
-              true
-          >[]
-      }
-    | ({
-          readonly [Entity in GetAllEntities<Schema>]?: readonly MutationRecord<
-              Schema,
-              Entity,
-              false
-          >[]
-      } & {
-          readonly $operation?: Operation
-      })
+export type OrmaMutation<Schema extends OrmaSchema> = {
+    readonly [Entity in GetAllEntities<Schema>]?: readonly MutationRecord<
+        Schema,
+        Entity
+    >[]
+} & OperationObj
 
 type MutationRecord<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    RequireOperation extends boolean
+    Entity extends GetAllEntities<Schema>
 > = FieldsObj<Schema, Entity> &
-    OperationObj<RequireOperation> &
+    OperationObj &
     ForeignKeyFieldsObj<Schema, Entity, GetAllEdges<Schema, Entity>>
 
-type OperationObj<RequireOperation extends boolean> =
-    RequireOperation extends true
-        ? {
-              readonly $operation: Operation
-          }
-        : {
-              readonly $operation?: Operation
-          }
+type OperationObj = {
+    readonly $operation?: Operation
+}
 
 type Operation = 'create' | 'update' | 'delete' | 'upsert'
 
@@ -52,8 +33,8 @@ type FieldsObj<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>
 > = {
-    readonly // baseline for regular props
-    [Field in GetFields<Schema, Entity>]?:
+    // baseline for regular props
+    readonly [Field in GetFields<Schema, Entity>]?:
         | FieldType<Schema, Entity, Field>
         // primary or foreign keys can have guids
         | (Field extends GetAllEdges<Schema, Entity>['from_field']
@@ -82,8 +63,7 @@ export type ForeignKeyFieldsObj<
         ? {
               readonly [Field in AllEdges['to_entity']]?: readonly MutationRecord<
                   Schema,
-                  Field,
-                  false
+                  Field
               >[]
           }
         : never
