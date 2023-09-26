@@ -46,4 +46,19 @@ const tests = () => {
             ],
         }
     }
+    {
+        // supports nesting with double map (not sure why, but double nested map can cause intellisense to fail)
+        const t = {
+            posts: [
+                {
+                    title: 'test',
+                    likes: [].map(el => ({
+                        posts: [].map(el => ({
+                            
+                        })),
+                    })),
+                },
+            ],
+        } as const satisfies GlobalTestMutation
+    }
 }

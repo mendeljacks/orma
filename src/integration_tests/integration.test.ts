@@ -8,16 +8,18 @@ import { generate_orma_schema_cache } from '../schema/introspector'
 import { GlobalTestQuery } from '../test_data/global_test_schema'
 import { OrmaSchema } from '../types/schema/schema_types'
 import {
-    close_database,
-    integration_test_setup,
-    open_database,
-    remove_file,
+    register_integration_test,
     test_mutate,
     test_query,
 } from './integration_setup.test'
+import { remove_file } from '../helpers/file_helpers'
+import {
+    close_sqlite_database,
+    open_sqlite_database,
+} from './integration_test_helpers'
 
 describe('full integration test', () => {
-    integration_test_setup()
+    register_integration_test()
 
     test('Handles orma schema with no nesting', async () => {
         const mutation = {
@@ -63,25 +65,21 @@ describe('full integration test', () => {
         }
 
         const mutation_plan = orma_mutate_prepare(orma_schema, mutation)
-        const database = { db: undefined, file_name: 'simple_test' }
 
-        await remove_file(database.file_name)
-        await open_database(database)
+        const db_file_name = 'simple_test'
+        await remove_file(db_file_name)
+        const db = await open_sqlite_database(db_file_name)
 
-        await sqlite3_adapter(database.db!)([
+        await sqlite3_adapter(db)([
             {
                 sql_string:
                     'CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR NOT NULL, age INTEGER)',
             },
         ])
-        await orma_mutate_run(
-            orma_schema,
-            sqlite3_adapter(database.db!),
-            mutation_plan
-        )
+        await orma_mutate_run(orma_schema, sqlite3_adapter(db), mutation_plan)
 
-        await close_database(database)
-        await remove_file(database.file_name)
+        await close_sqlite_database(db)
+        remove_file(db_file_name)
         expect(mutation.users[0].user_id).to.equal(1)
     })
 

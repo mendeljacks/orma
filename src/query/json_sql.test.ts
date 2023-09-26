@@ -16,7 +16,7 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format(`SELECT a FROM b`)
+            const goal = format(`SELECT a FROM \`b\``)
 
             expect(sql).to.equal(goal)
         })
@@ -28,7 +28,18 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('WHERE (a) = (b)')
+            const goal = format('WHERE a = b')
+
+            expect(sql).to.equal(goal)
+        })
+        test('handles selecting functions', () => {
+            const json = {
+                $select: [{ $as: ['SUM(views)', 'total_views'] }],
+                $from: 'posts',
+            }
+
+            const sql = format(json_to_sql(json))
+            const goal = format('SELECT SUM(views) AS total_views FROM \`posts\`')
 
             expect(sql).to.equal(goal)
         })
@@ -40,7 +51,7 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('(a) NOT IN ((1), (2))')
+            const goal = format('a NOT IN (1, 2)')
 
             expect(sql).to.equal(goal)
         })
@@ -63,7 +74,7 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('((a) IS NOT NULL) AND ((a) IS NOT NULL)')
+            const goal = format('(a IS NOT NULL) AND (a IS NOT NULL)')
 
             expect(sql).to.equal(goal)
         })
@@ -76,7 +87,7 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('((id), (parent_id)) = ((1), (2))')
+            const goal = format('(id, parent_id) = (1, 2)')
 
             expect(sql).to.equal(goal)
         })
@@ -91,7 +102,7 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('((id) != (1)) AND ((parent_id) IS NOT NULL)')
+            const goal = format('(id != 1) AND (parent_id IS NOT NULL)')
 
             expect(sql).to.equal(goal)
         })
@@ -143,7 +154,7 @@ describe('json_sql.ts', () => {
                 $if: [{ $eq: [1, 1] }, '"yes"', '"no"'],
             }
             const sql = format(json_to_sql(json))
-            const goal = format(`IF ((1) = (1), "yes", "no")`)
+            const goal = format(`IF (1 = 1, "yes", "no")`)
             expect(sql).to.equal(goal)
         })
         test('handles concat', () => {
@@ -167,7 +178,7 @@ describe('json_sql.ts', () => {
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('(a) IN ((1), (2))')
+            const goal = format('a IN (1, 2)')
 
             expect(sql).to.equal(goal)
         })
@@ -184,9 +195,7 @@ describe('json_sql.ts', () => {
 
             const a = json_to_sql(json)
             const sql = format(json_to_sql(json))
-            const goal = format(
-                "((a), (b)) IN (((1), ('c')), ((COALESCE(null, 2)), (3)))"
-            )
+            const goal = format("(a, b) IN ((1, 'c'), (COALESCE(null, 2), 3))")
 
             expect(sql).to.equal(goal)
         })
@@ -207,7 +216,7 @@ describe('json_sql.ts', () => {
             }
             //@ts-ignore
             const sql = format(json_to_sql(json))
-            const goal = format('items.sku')
+            const goal = format('`items`.`sku`')
 
             expect(sql).to.equal(goal)
         })
@@ -229,12 +238,12 @@ describe('json_sql.ts', () => {
 
             const goal = format(`
             HAVING
-            (SELECT
-              *
-            FROM
-              reviews
-            WHERE
-              (listing_id) = (0)) >= (4)`)
+                (SELECT
+                    *
+                FROM
+                    \`reviews\`
+                WHERE
+                    listing_id = 0) >= 4`)
 
             expect(sql).to.equal(goal)
         })
@@ -291,7 +300,7 @@ describe('json_sql.ts', () => {
             }
 
             const goal = format(`
-                ALTER TABLE my_table (
+                ALTER TABLE \`my_table\` (
                     ADD id INT,
                     DROP id,
                     MODIFY id my_id DECIMAL(6, 2)
@@ -367,6 +376,7 @@ describe('json_sql.ts', () => {
                         $unsigned: true,
                     },
                 ],
+                $comment: 'sqlite doesnt support comments',
             }
 
             const goal = format(`
@@ -448,7 +458,7 @@ describe('json_sql.ts', () => {
             }
 
             const goal = format(`
-                ALTER TABLE my_table (
+                ALTER TABLE \`my_table\` (
                     ADD INDEX invisible (label) INVISIBLE COMMENT "invis"
                 )`)
 
@@ -468,8 +478,8 @@ describe('json_sql.ts', () => {
             }
 
             const goal = format(`
-            ALTER TABLE my_table (
-                ADD CONSTRAINT uq_ind UNIQUE (label)
+            ALTER TABLE \`my_table\` (
+                ADD CONSTRAINT \`uq_ind\` UNIQUE (label)
             )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -488,9 +498,24 @@ describe('json_sql.ts', () => {
             }
 
             const goal = format(`
-            ALTER TABLE my_table (
+            ALTER TABLE \`my_table\` (
                 ADD FULLTEXT INDEX ft (size, label)
             )`)
+
+            expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('handles CREATE INDEX syntax', () => {
+            const json = {
+                $create_index: 'my_index',
+                $on: {
+                    $entity: 'my_table',
+                    $fields: ['field1', 'field2'],
+                },
+            }
+
+            const goal = format(`
+            CREATE INDEX \`my_index\` ON \`my_table\` (field1, field2)
+            `)
 
             expect(format(json_to_sql(json))).to.equal(goal)
         })
@@ -508,8 +533,8 @@ describe('json_sql.ts', () => {
             }
 
             const goal = format(`
-            ALTER TABLE my_table (
-                ADD CONSTRAINT primary PRIMARY KEY (id)
+            ALTER TABLE \`my_table\` (
+                ADD CONSTRAINT \`primary\` PRIMARY KEY (id)
             )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -552,11 +577,11 @@ describe('json_sql.ts', () => {
             }
 
             const goal = format(`
-            ALTER TABLE my_table (
-                ADD FOREIGN KEY (parent_id) REFERENCES parents (id),
-                ADD CONSTRAINT my_foreign_key FOREIGN KEY (parent_id) REFERENCES parents (id) 
+            ALTER TABLE \`my_table\` (
+                ADD FOREIGN KEY (parent_id) REFERENCES \`parents\` (id),
+                ADD CONSTRAINT \`my_foreign_key\` FOREIGN KEY (parent_id) REFERENCES \`parents\` (id) 
                     ON DELETE CASCADE ON UPDATE RESTRICT,
-                ADD FOREIGN KEY (parent_id) REFERENCES parents (id) 
+                ADD FOREIGN KEY (parent_id) REFERENCES \`parents\` (id) 
                     ON DELETE NO ACTION ON UPDATE SET NULL
             )`)
 

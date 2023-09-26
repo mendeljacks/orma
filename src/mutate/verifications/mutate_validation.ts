@@ -127,7 +127,7 @@ const validate_mutation_js = (mutation, orma_schema: OrmaSchema) => {
                     {
                         message: `Property ${key} is not a valid entity name.`,
                         path: [key],
-                        original_data: mutation,
+                        // original_data: mutation,
                     },
                 ] as OrmaError[]
             }
@@ -197,7 +197,7 @@ const validate_operation_existence = (
             ? [
                   {
                       message: `Records must have an operation or an inherited operation.`,
-                      original_data: mutation,
+                      // original_data: mutation,
                       path: [...record_path, '$operation'],
                   },
               ]
@@ -259,7 +259,7 @@ const validate_fields_and_nested_mutations = (
                         {
                             message: `Nested mutations must be an array.`,
                             path: [...record_path, key],
-                            original_data: mutation,
+                            // original_data: mutation,
                         },
                     ] as OrmaError[]
                 }
@@ -280,7 +280,7 @@ const validate_fields_and_nested_mutations = (
                         {
                             message: `Regular properties can't be arrays.`,
                             path: [...record_path, key],
-                            original_data: mutation,
+                            // original_data: mutation,
                         },
                     ] as OrmaError[]
                 }
@@ -298,7 +298,7 @@ const validate_fields_and_nested_mutations = (
                     {
                         message: `Property ${key} is not a valid connected entity or field name.`,
                         path: [...record_path, key],
-                        original_data: mutation,
+                        // original_data: mutation,
                     },
                 ] as OrmaError[]
             }
@@ -345,7 +345,7 @@ const validate_field = (
                 {
                     message: `${entity_name} ${field_name} has a $guid but is not a primary or foreign key.`,
                     path: field_path,
-                    original_data: mutation,
+                    // original_data: mutation,
                 },
             ]
         }
@@ -357,7 +357,7 @@ const validate_field = (
                 {
                     message: `${entity_name} ${field_name} is non-nullable but is set to null.`,
                     path: field_path,
-                    original_data: mutation,
+                    // original_data: mutation,
                 },
             ]
         } else {
@@ -378,7 +378,7 @@ const validate_field = (
                           ', '
                       )}.`,
                       path: field_path,
-                      original_data: mutation,
+                      // original_data: mutation,
                       additional_info: {
                           enum_values,
                       },
@@ -414,7 +414,7 @@ const validate_field = (
                       {
                           message: `${entity_name} ${field_name} is ${string_field_value.length} characters long but cannot be more than ${field_schema.$precision} characters long.`,
                           path: field_path,
-                          original_data: mutation,
+                          // original_data: mutation,
                           additional_info: {
                               given_character_count,
                               max_character_count,
@@ -448,7 +448,7 @@ const validate_field = (
                 {
                     message: `${entity_name} ${field_name} is not a valid number, boolean or number string.`,
                     path: field_path,
-                    original_data: mutation,
+                    // original_data: mutation,
                 },
             ]
         }
@@ -458,7 +458,7 @@ const validate_field = (
                 {
                     message: `${entity_name} ${field_name} is larger than ${Number.MAX_SAFE_INTEGER}, the largest allowed number.`,
                     path: field_path,
-                    original_data: mutation,
+                    // original_data: mutation,
                 },
             ]
         }
@@ -474,7 +474,7 @@ const validate_field = (
                       {
                           message: `${entity_name} ${field_name} has ${given_character_count} digits but cannot have more than ${max_character_count} digits.`,
                           path: field_path,
-                          original_data: mutation,
+                          // original_data: mutation,
                           additional_info: {
                               given_character_count,
                               max_character_count,
@@ -493,7 +493,7 @@ const validate_field = (
                       {
                           message: `${entity_name} ${field_name} has ${given_decimals} digits after the decimal point but cannot have more than ${max_decimals} digits.`,
                           path: field_path,
-                          original_data: mutation,
+                          // original_data: mutation,
                           additional_info: {
                               given_decimals,
                               max_decimals,
@@ -508,7 +508,7 @@ const validate_field = (
                       {
                           message: `${entity_name} ${field_name} is ${number_field_value} but cannot be negative.`,
                           path: field_path,
-                          original_data: mutation,
+                          // original_data: mutation,
                           additional_info: {
                               given_decimals,
                               max_decimals,
@@ -527,7 +527,7 @@ const validate_field = (
                 {
                     message: `${entity_name} ${field_name} is ${field_value} but must be one of true, false, 0, 1, '0', '1'.`,
                     path: field_path,
-                    original_data: mutation,
+                    // original_data: mutation,
                 },
             ]
         } else {
@@ -551,7 +551,7 @@ const get_type_mismatch_errors = (
         {
             message: `${entity_name} ${field_name} is a ${given_js_type} but must be a ${required_simple_type}.`,
             path: field_path,
-            original_data: mutation,
+            // original_data: mutation,
             additional_info: {
                 required_data_type,
                 given_js_type,
@@ -598,7 +598,7 @@ const validate_required_fields = (
                     {
                         message: `${required_field} is required to create ${entity_name}.`,
                         path: [...record_path, required_field],
-                        original_data: mutation,
+                        // original_data: mutation,
                     },
                 ]
             }
@@ -656,7 +656,7 @@ const validate_required_fields = (
 //         // operation_nesting_errors.push({
 //         //     message: `Invalid operation nesting. Parent ${parent_entity} has operation ${parent_operation} while child ${child_entity} has operation ${child_operation}`,
 //         //     path: [...record_path, '$operation'],
-//         //     original_data: mutation,
+//         //     // original_data: mutation,
 //         //     additional_info: {
 //         //         parent_entity,
 //         //         child_entity,
@@ -694,7 +694,7 @@ const validate_required_fields = (
 //                 {
 //                     message: `Could not find primary keys or unique keys in record to ${record.$operation}.`,
 //                     path: record_path,
-//                     original_data: mutation,
+//                     // original_data: mutation,
 //                     // stack_trace: new Error().stack,
 //                     additional_info: {
 //                         identifying_columns: identifying_keys ?? 'none',

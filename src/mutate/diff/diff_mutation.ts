@@ -1,6 +1,5 @@
 import { deep_equal, has_prop } from '../../helpers/helpers'
 import { lir_join } from '../../helpers/lir_join'
-import { is_reserved_keyword } from '../../helpers/schema_helpers'
 
 const is_array = el => Array.isArray(el)
 const is_object = el =>
@@ -47,7 +46,7 @@ export const get_mutation_diff = (original, modified) => {
 
         const { left, inner, right } = lir_join(
             original,
-            [],
+            [] as any[],
             modified,
             x => x.id,
             (l, i, r) => {

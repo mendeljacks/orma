@@ -1,5 +1,17 @@
 import { mysql_to_typescript_types } from '../../schema/introspector'
 
+
+/*
+{
+    $create_index: 'my_index',
+    $on: {
+        $entity: 'table'
+        $fields: ['f1', 'f2']
+    }
+}
+
+*/
+
 export type CreateStatement = RegularCreateStatement | CreateLikeStatement
 
 export type RegularCreateStatement = {

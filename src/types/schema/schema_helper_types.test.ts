@@ -1,4 +1,7 @@
-import { global_test_schema } from '../../test_data/global_test_schema'
+import {
+    global_test_schema,
+    GlobalTestSchema,
+} from '../../test_data/global_test_schema'
 import { IsEqual } from '../helper_types'
 import {
     GetAllEdges,
@@ -92,6 +95,14 @@ import {
     const good2: IsEqual<
         GetFieldType<typeof global_test_schema, 'users', 'last_name'>,
         string | null
+    > = true
+}
+
+{
+    // handles enum type
+    const expect: IsEqual<
+        GetFieldType<GlobalTestSchema, 'tax_codes', 'tax_code'>,
+        'TAX1' | 'TAX2' | 'TAX3' | null
     > = true
 }
 

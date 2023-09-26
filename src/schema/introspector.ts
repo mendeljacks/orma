@@ -7,6 +7,13 @@ import { group_by, sort_by_prop } from '../helpers/helpers'
 import { MysqlFunction } from '../mutate/mutate'
 import { DeepMutable } from '../types/schema/schema_helper_types'
 import { OrmaSchema, SupportedDatabases } from '../types/schema/schema_types'
+import {
+    MysqlColumn,
+    MysqlForeignKey,
+    MysqlIndex,
+    MysqlTable,
+    get_database_metadata_queries,
+} from './database_metadata'
 
 export const mysql_to_typescript_types = {
     bigint: 'number',
@@ -42,20 +49,20 @@ export const mysql_to_typescript_types = {
 } as const
 
 export const orma_introspect = async (
-    db: string,
+    schema_name: string,
     mysql_function: MysqlFunction,
     options: { database_type: SupportedDatabases }
 ): Promise<OrmaSchema> => {
-    const sql_strings = get_introspect_sqls(db, options.database_type)
-    // @ts-ignore
-    const [mysql_tables, mysql_columns, mysql_foreign_keys, mysql_indexes]: [
-        MysqlTable[],
-        MysqlColumn[],
-        MysqlForeignKey[],
-        MysqlIndex[]
-        // @ts-ignore the fact that we dont have the original asts is basically a mistake, since we should not
-        // be writing raw sql strings, but there is no strong incentive to fix it, so ts ignore for now
-    ] = await mysql_function(sql_strings.map(el => ({ sql_string: el })))
+    const queries = get_database_metadata_queries(
+        options.database_type,
+        schema_name
+    )
+    const [mysql_tables, mysql_columns, mysql_foreign_keys, mysql_indexes] =
+        (await mysql_function(
+            // @ts-ignore the fact that we dont have the original asts is basically a mistake, since we should not
+            // be writing raw sql strings, but there is no strong incentive to fix it, so ts ignore for now
+            queries.map(el => ({ sql_string: el }))
+        )) as DatabaseMetadataOutput
 
     const transform_keys_to_lower = obj =>
         Object.entries(obj).reduce((acc, val) => {
@@ -75,71 +82,6 @@ export const orma_introspect = async (
     orma_schema.$cache = $cache
 
     return orma_schema
-}
-
-/**
- * Gets a list of sql strings to collect introspector data for the given database
- * @returns [tables_sql, columns_sql, foreign_keys_sql]
- */
-export const get_introspect_sqls = (
-    database_name: string,
-    database_type: SupportedDatabases
-): string[] => {
-    /* selects: table_name, table_comment FROM INFORMATION_SCHEMA.TABLES column_name, table_name, data_type, column_type, column_key, is_nullable, numeric_precision, numeric_scale, character_maximum_length, column_default, extra, column_comment FROM information_schema.COLUMNS  table_name, column_name, referenced_table_name, referenced_column_name, constraint_name FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE table_name, non_unique, index_name, seq_in_index, column_name, collation, sub_part, packed, nullable, index_type, comment, index_comment, is_visible, expression FROM INFORMATION_SCHEMA.STATISTICS */
-
-    const tables = `SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='${database_name}'`
-    const columns =
-        database_type === 'postgres'
-            ? `SELECT * FROM INFORMATION_SCHEMA.COLUMNS  where table_schema = '${database_name}' and table_name in (
-        SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE table_schema='${database_name}'
-        )`
-            : `SELECT * FROM INFORMATION_SCHEMA.COLUMNS  WHERE table_schema = '${database_name}'`
-    const foreign_keys =
-        database_type === 'postgres'
-            ? `SELECT
-            tc.table_schema, 
-            tc.constraint_name, 
-            tc.table_name, 
-            kcu.column_name, 
-            ccu.table_schema AS foreign_table_schema,
-            ccu.table_name AS referenced_table_name,
-            ccu.column_name AS referenced_column_name 
-        FROM 
-            information_schema.table_constraints AS tc 
-            JOIN information_schema.key_column_usage AS kcu
-            ON tc.constraint_name = kcu.constraint_name
-            AND tc.table_schema = kcu.table_schema
-            JOIN information_schema.constraint_column_usage AS ccu
-            ON ccu.constraint_name = tc.constraint_name
-            AND ccu.table_schema = tc.table_schema
-        WHERE tc.constraint_type = 'FOREIGN KEY' and tc.table_schema = '${database_name}'`
-            : `SELECT * FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE REFERENCED_TABLE_SCHEMA = '${database_name}'`
-    const indexes =
-        database_type === 'postgres'
-            ? ` 
-            select 
-            pgc.conname as index_name,
-                   ccu.table_schema as table_schema,
-                   0 as non_unique,
-                   ccu.table_name,
-                   ccu.column_name,
-                   contype,
-                    pg_get_constraintdef(pgc.oid)
-            from pg_constraint pgc
-                     join pg_namespace nsp on nsp.oid = pgc.connamespace
-                     join pg_class  cls on pgc.conrelid = cls.oid
-                     left join information_schema.constraint_column_usage ccu
-                               on pgc.conname = ccu.constraint_name
-                                   and nsp.nspname = ccu.constraint_schema
-            where table_schema = '${database_name}'
-            and contype in ('p', 'u')
-            and table_name in (
-            SELECT table_name FROM INFORMATION_SCHEMA.TABLES WHERE tables.table_schema='${database_name}'
-            )`
-            : `SELECT * FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = '${database_name}'`
-    const query_strings = [tables, columns, foreign_keys, indexes]
-
-    return query_strings
 }
 
 /**
@@ -248,21 +190,54 @@ export const generate_field_schema = (mysql_column: MysqlColumn) => {
         numeric_precision ?? datetime_precision ?? character_maximum_length
 
     const field_schema: OrmaField = {
-        $data_type:
-            data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
+        $data_type: data_type
+            .toLowerCase()
+            // sqlite adds a signed indicator, and sometimes calles INT as INTEGER.
+            // these replacements make sqlite work similar to mysql
+            .replace('unsigned ', '')
+            .replace('signed ', '')
+            .replace(
+                'integer',
+                'int'
+            ) as keyof typeof mysql_to_typescript_types,
         ...(enum_values?.length && { $enum_values: enum_values }),
         ...(precision && { $precision: precision }),
         ...(numeric_scale && { $scale: numeric_scale }),
         ...(column_type?.match(/unsigned/) && { $unsigned: true }),
         ...(extra === 'auto_increment' && { $auto_increment: true }),
         ...((identity_generation || column_default) && {
-            $default: identity_generation || column_default,
+            $default:
+                identity_generation || parse_column_default(column_default),
         }),
         ...(is_nullable === 'NO' && { $not_null: true }),
         ...(column_comment && { $comment: column_comment }),
     }
 
     return field_schema
+}
+
+const parse_column_default = (value: any) => {
+    // Mysql doesnt properly put quotes on their default values, so we need to string parse
+    // and handle all the cases. In the Orma schema there should be no ambiguity, even though
+    // the mysql information schema does a bad job here
+
+    if (!value) {
+        return undefined
+    }
+
+    if (value?.toLowerCase?.() === 'current_timestamp') {
+        return value
+    }
+
+    if (value?.toLowerCase?.() === 'null') {
+        return null
+    }
+
+    if (!isNaN(Number(value))) {
+        return Number(value)
+    }
+
+    return `'${value}'`
 }
 
 const generate_primary_key_schema = (mysql_columns: MysqlColumn[]) => {
@@ -405,56 +380,6 @@ export const generate_orma_schema_cache = (
 
 type OrmaSchemaMutable = DeepMutable<OrmaSchema>
 
-export type MysqlTable = {
-    table_name: string
-    table_comment?: string
-}
-
-export type MysqlColumn = {
-    table_name: string
-    column_name: string
-    ordinal_position: number
-    column_default?: string | number
-    is_nullable?: string
-    is_identity?: 'YES' | 'NO' // postgres
-    identity_generation?: string | null // postgres
-    data_type: string
-    character_maximum_length?: number
-    numeric_precision?: number
-    numeric_scale?: number
-    column_type?: string
-    datetime_precision?: number
-    column_key?: 'PRI' | 'UNI' | 'MUL'
-    extra?: string
-    generation_expression?: string
-    column_comment?: string
-}
-
-export type MysqlIndex = {
-    table_name: string
-    non_unique: number | '0'
-    index_name: string
-    seq_in_index: number
-    column_name: string
-    collation: 'A' | 'D' | null
-    sub_part: number | null
-    packed: string | null
-    nullable: 'YES' | ''
-    index_type: string
-    comment: string
-    index_comment: string
-    is_visible: 'YES' | 'NO'
-    expression: string
-}
-
-export type MysqlForeignKey = {
-    table_name: string
-    column_name: string
-    referenced_table_name: string
-    referenced_column_name: string
-    constraint_name: string
-}
-
 type OrmaIndex = NonNullable<
     OrmaSchemaMutable['$entities'][string]['$indexes']
 >[number]
@@ -465,4 +390,9 @@ type OrmaField = NonNullable<
 
 type OrmaSchemaCache = NonNullable<OrmaSchemaMutable['$cache']>
 
-export const as_orma_schema = t => t
+type DatabaseMetadataOutput = [
+    MysqlTable[],
+    MysqlColumn[],
+    MysqlForeignKey[],
+    MysqlIndex[]
+]
