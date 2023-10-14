@@ -4,11 +4,15 @@ import { OrmaMutation } from '../types/mutation/mutation_types'
 import { OrmaQuery } from '../types/query/query_types'
 import { OrmaSchema } from '../types/schema/schema_types'
 
-export const prepopulate = async (
-    orma_query: (query: OrmaQuery<any, any>) => Promise<any>,
-    orma_mutate: (mutation: OrmaMutation<any>) => Promise<any>,
+type OrmaQueryFunction = (query: OrmaQuery<any, any>) => Promise<any>
+type OrmaMutateFunction = (mutation: OrmaMutation<any>) => Promise<any>
+
+const get_prepopulate_query = async (
+    orma_query: OrmaQueryFunction,
     orma_schema: OrmaSchema
 ) => {
+    let query = {}
+
     const table_names = get_entity_names(orma_schema)
 
     for (const table_name of table_names) {
@@ -34,21 +38,36 @@ export const prepopulate = async (
         }
 
         if (diff[table_name]?.length > 0) {
-            const create_count = diff[table_name].filter(
-                el => el.$operation === 'create'
-            ).length
-            const update_count = diff[table_name].filter(
-                el => el.$operation === 'update'
-            ).length
-            const delete_count = diff[table_name].filter(
-                el => el.$operation === 'delete'
-            ).length
+            query[table_name] = diff[table_name]
+        }
+    }
 
-            try {
-                await orma_mutate(diff)
-                // console.log(
-                //     `✏️✏️✏️ Prepopulated ${table_name} with ${create_count} new rows and ${update_count} updated rows.`
-                // )
+    return query
+}
+
+export const prepopulate = async (
+    orma_query: OrmaQueryFunction,
+    orma_mutate: OrmaMutateFunction,
+    orma_schema: OrmaSchema
+) => {
+    const prepopulate_query = await get_prepopulate_query(
+        orma_query,
+        orma_schema
+    )
+
+    try {
+        await orma_mutate(prepopulate_query)
+        Object.entries(prepopulate_query).forEach(
+            async ([table_name, rows]: any) => {
+                const create_count = rows.filter(
+                    el => el.$operation === 'create'
+                ).length
+                const update_count = rows.filter(
+                    el => el.$operation === 'update'
+                ).length
+                const delete_count = rows.filter(
+                    el => el.$operation === 'delete'
+                ).length
 
                 create_count > 0 &&
                     console.log(
@@ -62,10 +81,10 @@ export const prepopulate = async (
                     console.log(
                         `Prepopulate: ✂️ ${delete_count} rows deleted in ${table_name}`
                     )
-            } catch (error) {
-                console.error(`❌❌❌ Prepopulate failed for ${table_name}`)
-                throw error
             }
-        }
+        )
+    } catch (error) {
+        console.error(`Prepopulate: ❌ failed`)
+        throw error
     }
 }
