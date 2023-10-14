@@ -40,12 +40,28 @@ export const prepopulate = async (
             const update_count = diff[table_name].filter(
                 el => el.$operation === 'update'
             ).length
+            const delete_count = diff[table_name].filter(
+                el => el.$operation === 'delete'
+            ).length
 
             try {
                 await orma_mutate(diff)
-                console.log(
-                    `✏️✏️✏️ Prepopulated ${table_name} with ${create_count} new rows and ${update_count} updated rows.`
-                )
+                // console.log(
+                //     `✏️✏️✏️ Prepopulated ${table_name} with ${create_count} new rows and ${update_count} updated rows.`
+                // )
+
+                create_count > 0 &&
+                    console.log(
+                        `Prepopulate: 🌱 ${create_count} rows added to ${table_name}`
+                    )
+                update_count > 0 &&
+                    console.log(
+                        `Prepopulate: ✏️ ${create_count} rows update in ${table_name}`
+                    )
+                delete_count > 0 &&
+                    console.log(
+                        `Prepopulate: ✂️ ${create_count} rows deleted in ${table_name}`
+                    )
             } catch (error) {
                 console.error(
                     `❌❌❌ Prepopulate failed for ${table_name} with ${create_count} new rows and ${update_count} updated rows.`
