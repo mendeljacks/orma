@@ -1,5 +1,6 @@
 import { Edge } from '../../helpers/schema_helpers'
 import { Optional } from '../helper_types'
+import { OrmaMutation } from '../mutation/mutation_types'
 import {
     ConstraintDefinition,
     FieldDefinition,
@@ -32,11 +33,17 @@ type OrmaIndex = Optional<
     '$index'
 >
 
+type Prepopulate = {
+    supercede: boolean
+    rows: readonly Record<string, any>[] // OrmaMutation<Schema>[Entity]
+}
+
 type OrmaEntitySchema = Omit<
     RegularCreateStatement,
     '$definitions' | '$create_table' | '$if_not_exists' | '$temporary'
 > & {
     readonly $database_type: SupportedDatabases
+    readonly $prepopulate?: Prepopulate
     readonly $fields: {
         readonly [field_name: string]: Omit<
             FieldDefinition,
