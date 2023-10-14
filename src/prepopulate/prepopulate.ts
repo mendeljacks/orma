@@ -56,7 +56,7 @@ export const prepopulate = async (
                     )
                 update_count > 0 &&
                     console.log(
-                        `Prepopulate: ✏️ ${update_count} rows update in ${table_name}`
+                        `Prepopulate: ✏️ ${update_count} rows updated in ${table_name}`
                     )
                 delete_count > 0 &&
                     console.log(
