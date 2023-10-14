@@ -7,7 +7,7 @@ import { OrmaSchema } from '../types/schema/schema_types'
 type OrmaQueryFunction = (query: OrmaQuery<any, any>) => Promise<any>
 type OrmaMutateFunction = (mutation: OrmaMutation<any>) => Promise<any>
 
-const get_prepopulate_query = async (
+export const get_prepopulate_query = async (
     orma_query: OrmaQueryFunction,
     orma_schema: OrmaSchema
 ) => {
