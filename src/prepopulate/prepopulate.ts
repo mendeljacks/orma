@@ -56,16 +56,14 @@ export const prepopulate = async (
                     )
                 update_count > 0 &&
                     console.log(
-                        `Prepopulate: ✏️ ${create_count} rows update in ${table_name}`
+                        `Prepopulate: ✏️ ${update_count} rows update in ${table_name}`
                     )
                 delete_count > 0 &&
                     console.log(
-                        `Prepopulate: ✂️ ${create_count} rows deleted in ${table_name}`
+                        `Prepopulate: ✂️ ${delete_count} rows deleted in ${table_name}`
                     )
             } catch (error) {
-                console.error(
-                    `❌❌❌ Prepopulate failed for ${table_name} with ${create_count} new rows and ${update_count} updated rows.`
-                )
+                console.error(`❌❌❌ Prepopulate failed for ${table_name}`)
                 throw error
             }
         }
