@@ -35,7 +35,7 @@ export const query_for_each = (
     current_path: string[] = []
 ) => {
     const root_paths = Object.keys(query)
-        .filter(el => !is_reserved_keyword(el))
+        .filter(el => !is_reserved_keyword(el) && is_subquery(query[el]))
         .map(key => [key])
     const queue = root_paths
 
