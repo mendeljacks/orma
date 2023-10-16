@@ -1,5 +1,5 @@
 import { before, beforeEach } from 'mocha'
-import * as sqlite3 from 'sqlite3'
+import * as sqlite3 from 'promised-sqlite3'
 import { sqlite3_adapter } from '../helpers/database_adapters'
 import { validate_errors } from '../helpers/helpers'
 import { orma_mutate_prepare, orma_mutate_run } from '../mutate/mutate'
@@ -25,15 +25,17 @@ import {
     set_up_test_database,
     tear_down_test_database,
 } from './integration_test_helpers'
+import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaMutation } from '../types/mutation/mutation_types'
 
-let test_database = {
-    db: undefined as sqlite3.Database | undefined,
+export let global_test_database = {
+    db: undefined as sqlite3.AsyncDatabase | undefined,
 }
 
 const test_database_directory = './'
 
 before(async () => {
-    test_database.db = await set_up_test_database(
+    global_test_database.db = await set_up_test_database(
         global_test_schema,
         global_test_hydration,
         test_database_directory
@@ -41,14 +43,14 @@ before(async () => {
 })
 
 after(async () =>
-    tear_down_test_database(test_database.db, test_database_directory)
+    tear_down_test_database(global_test_database.db, test_database_directory)
 )
 
 export const register_integration_test = () => {
     beforeEach(
         async () =>
-            (test_database.db = await reset_test_database(
-                test_database.db,
+            (global_test_database.db = await reset_test_database(
+                global_test_database.db,
                 test_database_directory
             ))
     )
@@ -72,9 +74,9 @@ const connection_edges = add_connection_edges(
     ]
 )
 
-export const test_mutate = async (
-    mutation: GlobalTestMutation,
-    where_connecteds: WhereConnected<GlobalTestSchema> = []
+export const test_mutate = async <Schema extends OrmaSchema>(
+    mutation: OrmaMutation<Schema>,
+    where_connecteds: WhereConnected<GlobalTestSchema> = [],
 ) => {
     validate_errors([validate_mutation(mutation, global_test_schema)])
     const mutation_plan = orma_mutate_prepare(global_test_schema, mutation)
@@ -82,21 +84,21 @@ export const test_mutate = async (
         await get_mutation_connected_errors(
             global_test_schema,
             connection_edges,
-            sqlite3_adapter(test_database.db!),
+            sqlite3_adapter(global_test_database.db!),
             mutation_plan.guid_map,
             where_connecteds,
             mutation_plan.mutation_pieces
         ),
         await get_unique_verification_errors(
             global_test_schema,
-            sqlite3_adapter(test_database.db!),
+            sqlite3_adapter(global_test_database.db!),
             mutation_plan
         ),
     ])
 
     const res = await orma_mutate_run(
         global_test_schema,
-        sqlite3_adapter(test_database.db!),
+        sqlite3_adapter(global_test_database.db!),
         mutation_plan
     )
     return res
@@ -109,7 +111,7 @@ export const test_query = async <T extends Record<string, any>>(
     const res = await (orma_query as any)(
         query,
         global_test_schema,
-        sqlite3_adapter(test_database.db!),
+        sqlite3_adapter(global_test_database.db!),
         connection_edges
     )
     return res

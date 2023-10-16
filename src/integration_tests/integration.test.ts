@@ -13,10 +13,7 @@ import {
     test_query,
 } from './integration_setup.test'
 import { remove_file } from '../helpers/file_helpers'
-import {
-    close_sqlite_database,
-    open_sqlite_database,
-} from './integration_test_helpers'
+import { AsyncDatabase } from 'promised-sqlite3'
 
 describe('full integration test', () => {
     register_integration_test()
@@ -68,7 +65,7 @@ describe('full integration test', () => {
 
         const db_file_name = 'simple_test'
         await remove_file(db_file_name)
-        const db = await open_sqlite_database(db_file_name)
+        const db = await AsyncDatabase.open(db_file_name)
 
         await sqlite3_adapter(db)([
             {
@@ -78,7 +75,7 @@ describe('full integration test', () => {
         ])
         await orma_mutate_run(orma_schema, sqlite3_adapter(db), mutation_plan)
 
-        await close_sqlite_database(db)
+        await db.close()
         remove_file(db_file_name)
         expect(mutation.users[0].user_id).to.equal(1)
     })

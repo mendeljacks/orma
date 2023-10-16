@@ -4,7 +4,7 @@ import { SupportedDatabases } from '../types/schema/schema_types'
  * Gets a list of sql strings to collect introspector data for the given database
  * @returns [tables_sql, columns_sql, foreign_keys_sql]
  */
-export const get_database_metadata_queries = async (
+export const get_database_metadata_queries = (
     database_type: SupportedDatabases,
     schema_name: string
 ) => {

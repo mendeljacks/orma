@@ -5,18 +5,23 @@ import { OrmaSchema } from '../types/schema/schema_types'
 import {
     generate_field_schema,
     generate_database_schema,
-    get_introspect_sqls,
-    MysqlColumn,
-    MysqlForeignKey,
-    MysqlTable,
-    MysqlIndex,
     generate_index_schemas,
     generate_orma_schema_cache,
 } from './introspector'
+import {
+    MysqlColumn,
+    MysqlForeignKey,
+    MysqlIndex,
+    MysqlTable,
+    get_database_metadata_queries,
+} from './database_metadata'
 
 describe('introspector', () => {
     test('introspect sqls are string', () => {
-        const introspect_sqls = get_introspect_sqls('international', 'mysql')
+        const introspect_sqls = get_database_metadata_queries(
+            'mysql',
+            'international'
+        )
 
         expect(introspect_sqls.length).to.equal(4)
         expect(type(introspect_sqls[0])).to.equal('String')
