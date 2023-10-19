@@ -74,15 +74,21 @@ const connection_edges = add_connection_edges(
     ]
 )
 
-export const test_mutate = async <Schema extends OrmaSchema>(
+export const test_mutate = async (
+    mutation: GlobalTestMutation,
+    where_connecteds: WhereConnected<GlobalTestSchema> = []
+) => test_mutate_custom_schema(global_test_schema, mutation, where_connecteds)
+
+export const test_mutate_custom_schema = async <Schema extends OrmaSchema>(
+    orma_schema: Schema,
     mutation: OrmaMutation<Schema>,
-    where_connecteds: WhereConnected<GlobalTestSchema> = [],
+    where_connecteds: WhereConnected<GlobalTestSchema> = []
 ) => {
-    validate_errors([validate_mutation(mutation, global_test_schema)])
-    const mutation_plan = orma_mutate_prepare(global_test_schema, mutation)
+    validate_errors([validate_mutation(mutation, orma_schema)])
+    const mutation_plan = orma_mutate_prepare(orma_schema, mutation)
     validate_errors([
         await get_mutation_connected_errors(
-            global_test_schema,
+            orma_schema,
             connection_edges,
             sqlite3_adapter(global_test_database.db!),
             mutation_plan.guid_map,
@@ -90,14 +96,14 @@ export const test_mutate = async <Schema extends OrmaSchema>(
             mutation_plan.mutation_pieces
         ),
         await get_unique_verification_errors(
-            global_test_schema,
+            orma_schema,
             sqlite3_adapter(global_test_database.db!),
             mutation_plan
         ),
     ])
 
     const res = await orma_mutate_run(
-        global_test_schema,
+        orma_schema,
         sqlite3_adapter(global_test_database.db!),
         mutation_plan
     )

@@ -5,7 +5,7 @@ import { clone } from '../helpers/helpers'
 import { get_mutation_diff } from '../mutate/diff/diff_mutation'
 import { orma_mutate_prepare, orma_mutate_run } from '../mutate/mutate'
 import { generate_orma_schema_cache } from '../schema/introspector'
-import { GlobalTestQuery } from '../test_data/global_test_schema'
+import { GlobalTestMutation, GlobalTestQuery } from '../test_data/global_test_schema'
 import { OrmaSchema } from '../types/schema/schema_types'
 import {
     register_integration_test,
@@ -188,7 +188,7 @@ describe('full integration test', () => {
                     ],
                 },
             ],
-        } as const
+        } as const satisfies GlobalTestMutation
         await test_mutate(mutation)
 
         expect(mutation.users[0].likes[0].id).to.not.equal(undefined)
