@@ -1,6 +1,5 @@
 import { deep_equal, has_prop } from '../../helpers/helpers'
 import { lir_join } from '../../helpers/lir_join'
-import { is_reserved_keyword } from '../../helpers/schema_helpers'
 
 const is_array = el => Array.isArray(el)
 const is_object = el =>
@@ -47,7 +46,7 @@ export const get_mutation_diff = (original, modified) => {
 
         const { left, inner, right } = lir_join(
             original,
-            [],
+            [] as any[],
             modified,
             x => x.id,
             (l, i, r) => {
@@ -76,6 +75,10 @@ export const get_mutation_diff = (original, modified) => {
             ...left.map(obj => ({
                 ...get_mutation_diff(obj, null),
                 $operation: 'delete',
+                // must include obj because deletes need foreign keys so orma knows what order to delete things
+                // when two records are deleted and one has a foreign key to the other. In theory we could
+                // only spread on foreign key fields, but this function doesnt have the orma schema in scope
+                ...obj,
                 id: obj.id,
             })),
             ...inner, // Recursively made in the inner function
