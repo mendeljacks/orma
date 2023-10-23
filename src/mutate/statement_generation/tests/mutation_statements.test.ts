@@ -97,7 +97,7 @@ describe('mutation_statements.ts', () => {
 
             // the result massive because this function is intentionally badly designed. It is providing convenience
             // to the user by duplicating data, since it provides the mutation pieces, the ast (which is computed
-            // solely by the mutation peices) and the sql string (which is computed solely by the ast). Well
+            // solely by the mutation pieces) and the sql string (which is computed solely by the ast). Well
             // designed functions would just take mutation pieces and return asts, or take asts and return sql
             // strings, but such functions are harder to use and require more knowledge on what to do by
             // the user. So its like this to be as easy as possible to get orma working

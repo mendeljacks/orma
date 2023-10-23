@@ -79,7 +79,7 @@ export const reverse_edge = (edge: Edge): Edge => ({
 export const get_child_edges = (
     entity_name: string,
     orma_schema: OrmaSchema
-) => {
+): Edge[] => {
     const foreign_keys =
         orma_schema.$cache?.$reversed_foreign_keys?.[entity_name] ?? []
     const edges = foreign_keys.map(foreign_key => ({

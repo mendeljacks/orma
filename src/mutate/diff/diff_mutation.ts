@@ -76,7 +76,7 @@ export const get_mutation_diff = (original, modified) => {
                 // must include obj because deletes need foreign keys so orma knows what order to delete things
                 // when two records are deleted and one has a foreign key to the other. In theory we could
                 // only spread on foreign key fields, but this function doesnt have the orma schema in scope
-                // ...obj,
+                ...obj,
                 ...get_mutation_diff(obj, null),
                 $operation: 'delete',
                 id: obj.id,

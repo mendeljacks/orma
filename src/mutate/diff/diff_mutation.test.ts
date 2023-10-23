@@ -58,7 +58,7 @@ describe('diff_mutation.ts', () => {
             {
                 $operation: 'delete',
                 id: 1,
-                // sku: 'deleteme',
+                sku: 'deleteme',
             },
         ])
     })
