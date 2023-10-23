@@ -1,10 +1,7 @@
 import { Edge } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
-import { operation } from '../mutate'
-import {
-    MutationPiece,
-    is_field_updated_for_mutation_plan,
-} from './mutation_batches'
+import { MutationOperation, operation } from '../mutate'
+import { is_field_updated_for_mutation_plan } from './mutation_batches'
 
 /**
  * Each constraint is a case where some mutation piece has to be run before some other mutation piece.
@@ -41,6 +38,28 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
         target_filter: {
             connection_type: 'child',
             operations: ['create', 'update', 'upsert'],
+            foreign_key_filter: 'exact_match',
+        },
+    },
+    {
+        /*
+        example:
+        {
+            posts: [{ 
+                $operation: 'delete', 
+                id: 1,
+                user_id: 1,
+            }]
+            users: [{ 
+                $operation: 'delete', 
+                id: 1,
+            }],
+        }
+        */
+        source_filter: ({ record }) => ['delete'].includes(record.$operation),
+        target_filter: {
+            connection_type: 'parent',
+            operations: ['delete'],
             foreign_key_filter: 'exact_match',
         },
     },
@@ -108,28 +127,6 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
                 user_id: 1,
             }]
             users: [{ 
-                $operation: 'delete', 
-                id: 1,
-            }],
-        }
-        */
-        source_filter: ({ record }) => ['delete'].includes(record.$operation),
-        target_filter: {
-            connection_type: 'parent',
-            operations: ['delete'],
-            foreign_key_filter: 'exact_match',
-        },
-    },
-    {
-        /*
-        example:
-        {
-            posts: [{ 
-                $operation: 'delete', 
-                id: 1,
-                user_id: 1,
-            }]
-            users: [{ 
                 $operation: 'update', 
                 id: 5,
                 email: 'aa@a.com',
@@ -148,7 +145,9 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
 
 export type MutationPlanConstraint = {
     source_filter: (args: {
-        record: MutationPiece['record']
+        record: Record<string, any> & {
+            $operation: MutationOperation | 'upsert'
+        }
         orma_schema: OrmaSchema
         entity: string
         edge: Edge

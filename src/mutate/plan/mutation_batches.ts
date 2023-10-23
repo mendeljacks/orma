@@ -1,6 +1,5 @@
 import { last } from '../../helpers/helpers'
 import {
-    Edge,
     get_all_edges,
     get_child_edges,
     get_parent_edges,
@@ -11,7 +10,7 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { GuidMap } from '../macros/guid_plan_macro'
 import { get_identifying_fields } from '../macros/identifying_fields_macro'
-import { MutationOperation, operation } from '../mutate'
+import { MutationOperation } from '../mutate'
 import {
     MutationPlanConstraint,
     mutation_plan_constraints,
@@ -332,7 +331,7 @@ type FkIndex = {
 }
 
 export type MutationPiece = {
-    record: Record<string, any> & { $operation: MutationOperation | 'upsert' }
+    record: Record<string, any> & { $operation: MutationOperation }
     path: Path
 }
 
