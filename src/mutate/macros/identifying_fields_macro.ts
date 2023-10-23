@@ -11,18 +11,18 @@ export const apply_infer_identifying_fields_macro = (
     orma_schema: OrmaSchema,
     mutation_pieces: InferIdentifyingFieldsInput
 ) => {
-    mutation_pieces.forEach(mutation_peice => {
-        const operation = mutation_peice.record.$operation
+    mutation_pieces.forEach(mutation_piece => {
+        const operation = mutation_piece.record.$operation
         if (['update', 'delete', 'upsert'].includes(operation)) {
             const identifiny_fields = get_identifying_fields(
                 orma_schema,
-                path_to_entity(mutation_peice.path),
-                mutation_peice.record,
+                path_to_entity(mutation_piece.path),
+                mutation_piece.record,
                 false
             )
 
-            if (mutation_peice.record.$identifying_fields === undefined) {
-                mutation_peice.record.$identifying_fields = identifiny_fields
+            if (mutation_piece.record.$identifying_fields === undefined) {
+                mutation_piece.record.$identifying_fields = identifiny_fields
             }
         }
     })

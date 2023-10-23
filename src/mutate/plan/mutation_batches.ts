@@ -65,14 +65,14 @@ const generate_toposort_graph = (
             let child_indices: number[] = []
 
             mutation_plan_constraints.forEach(constraint => {
-                const new_peice_indices = get_constraint_results(
+                const new_piece_indices = get_constraint_results(
                     orma_schema,
                     fk_index,
                     constraint,
                     entity,
                     record
                 )
-                child_indices.push(...new_peice_indices)
+                child_indices.push(...new_piece_indices)
             })
 
             acc[piece_index] = child_indices
@@ -183,7 +183,7 @@ const get_constraint_results = (
         constraint.target_filter.connection_type === 'child'
             ? get_child_edges(entity, orma_schema)
             : get_parent_edges(entity, orma_schema)
-    const new_peice_indices = edges.flatMap(edge => {
+    const new_piece_indices = edges.flatMap(edge => {
         if (
             !constraint.source_filter({
                 orma_schema,
@@ -201,23 +201,23 @@ const get_constraint_results = (
             if (constraint.target_filter.foreign_key_filter === 'exact_match') {
                 const value = record[edge.from_field]
                 const value_string = JSON.stringify(value)
-                const new_peice_indices =
+                const new_piece_indices =
                     fk_index?.[entity_field_operation_string]?.[value_string] ??
                     []
-                return new_peice_indices
+                return new_piece_indices
             } else {
                 // any value lookup
                 const piece_indices_by_value =
                     fk_index[entity_field_operation_string] ?? {}
-                const new_peice_indices = Object.values(
+                const new_piece_indices = Object.values(
                     piece_indices_by_value
                 ).flat()
-                return new_peice_indices
+                return new_piece_indices
             }
         })
     })
 
-    return new_peice_indices
+    return new_piece_indices
 }
 
 const set_fk_index = (
