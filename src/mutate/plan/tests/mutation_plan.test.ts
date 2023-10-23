@@ -1,6 +1,9 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { global_test_schema } from '../../../test_data/global_test_schema'
+import {
+    GlobalTestMutation,
+    global_test_schema,
+} from '../../../test_data/global_test_schema'
 import { apply_nesting_mutation_macro } from '../../macros/nesting_mutation_macro'
 import {
     get_mutation_batches,
@@ -299,6 +302,229 @@ describe('mutation_plan.ts', () => {
                 {
                     record: { id: { $guid: 1 }, $operation: 'create' },
                     path: ['posts', 0, 'users', 0],
+                },
+            ]
+
+            const mutate_plan = get_mutation_batches(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            const goal = {
+                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 },
+                ],
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
+        test('can update and delete with regular nesting', () => {
+            // if updating one side of the foreign key and deleting the other side of the foreign key,
+            // the change to the child table (delete or update) has to happen before the change to the parent
+            // so either
+            // c \ p  | update | delete
+            // update | -      | c
+            // delete | c      | -
+
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        email: 'aa@a.com',
+                        id: 2, // update id by email, so this needs to happen after the delete
+                        $identifying_fields: ['email'],
+                    },
+                    path: ['users', 0],
+                },
+                {
+                    record: {
+                        $operation: 'delete',
+                        id: 1,
+                        user_id: 1,
+                    },
+                    path: ['posts', 1],
+                },
+            ]
+
+            const mutate_plan = get_mutation_batches(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            const goal = {
+                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 },
+                ],
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
+        test('handles upserts', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        //@ts-ignore
+                        $operation: 'upsert',
+                        id: 1,
+                        user_id: 2,
+                    },
+                    path: ['posts', 1],
+                },
+                {
+                    record: {
+                        //@ts-ignore
+                        $operation: 'upsert',
+                        email: 'aa@a.com',
+                        id: 2, // update id by email, so this needs to happen after the delete
+                        $identifying_fields: ['email'],
+                    },
+                    path: ['users', 0],
+                },
+            ]
+
+            const mutate_plan = get_mutation_batches(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            const goal = {
+                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 },
+                ],
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
+        test('can update and delete with reverse nesting', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'delete',
+                        id: 1,
+                    },
+                    path: ['addresses', 0],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 1,
+                        billing_address_id: null,
+                    },
+                    path: ['users', 0],
+                },
+            ]
+
+            const mutate_plan = get_mutation_batches(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            const goal = {
+                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 },
+                ],
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
+        test('can update and create with regular nesting', () => {
+            // must first update to the new id, then create using the new updated id
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'create',
+                        user_id: 2,
+                    },
+                    path: ['posts', 1],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        email: 'aa@a.com',
+                        id: 2, // update id by email, so this needs to happen first
+                        $identifying_fields: ['email'],
+                    },
+                    path: ['users', 0],
+                },
+            ]
+
+            const mutate_plan = get_mutation_batches(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            const goal = {
+                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 },
+                ],
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
+        test('can update parent and child foreign key', () => {
+            // must first update to the new id, then create using the new updated id
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        user_id: 2,
+                    },
+                    path: ['posts', 1],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        email: 'aa@a.com',
+                        id: 2, // update id by email, so this needs to happen first
+                        $identifying_fields: ['email'],
+                    },
+                    path: ['users', 0],
+                },
+            ]
+
+            const mutate_plan = get_mutation_batches(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            const goal = {
+                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 },
+                ],
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
+        test('handles updates with guids', () => {
+            // must first update to the new id, then create using the new updated id
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 1,
+                        billing_address_id: { $guid: 'a' },
+                    },
+                    path: ['users', 1],
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        email: 'aa@a.com',
+                        id: { $guid: 'a' }, // update id by email, so this needs to happen first
+                    },
+                    path: ['addresses', 0],
                 },
             ]
 

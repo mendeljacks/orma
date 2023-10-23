@@ -9,7 +9,8 @@ import { Path } from '../../types'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { GuidMap } from '../macros/guid_plan_macro'
-import { MutationOperation } from '../mutate'
+import { get_identifying_fields } from '../macros/identifying_fields_macro'
+import { MutationOperation, operation } from '../mutate'
 
 type MutationBatchObject = {
     mutation_pieces: MutationPiece[]
@@ -55,80 +56,153 @@ export const get_mutation_batches = (
     return mutation_plan
 }
 
-const get_fk_indices_by_value = (
-    orma_schema: OrmaSchema,
-    flat_mutation: MutationPiece[]
-) => {
-    // this should actually be all the paths to any guid, but right now guids are only enabled for foreign keys
-    // so it is more efficient to pick out the foreign keys than to check every column for guids
-    let fk_indices_by_value: IndicesByValue = {}
-
-    flat_mutation.forEach(({ record, path }, record_index) => {
-        const entity = path_to_entity(path)
-        const from_fields = new Set(
-            get_all_edges(entity, orma_schema).map(edge => edge.from_field)
-        )
-        from_fields.forEach(from_field => {
-            const value = record[from_field]
-            if (value !== undefined) {
-                const value_string = get_value_identifier(
-                    entity,
-                    from_field,
-                    value
-                )
-
-                if (!fk_indices_by_value[value_string]) {
-                    fk_indices_by_value[value_string] = []
-                }
-                fk_indices_by_value[value_string].push(record_index)
-            }
-        })
-    })
-
-    return fk_indices_by_value
-}
-
 const generate_toposort_graph = (
     orma_schema: OrmaSchema,
     mutation_pieces: MutationPiece[]
 ) => {
-    const fk_indices_by_value = get_fk_indices_by_value(
-        orma_schema,
-        mutation_pieces
-    )
+    const fk_index = get_fk_index(orma_schema, mutation_pieces)
 
     const toposort_graph = mutation_pieces.reduce(
         (acc, mutation_piece, piece_index) => {
             const entity = path_to_entity(mutation_piece.path)
-            const operation = mutation_piece.record.$operation
+            const operation = mutation_piece.record.$operation as
+                | MutationOperation
+                | 'upsert'
 
             // these are the graph child indices that define the ordering of the
             // toposort - parents in the toposort graph must come before children
             let child_indices: number[] = []
+            const add_child_index = el => child_indices.push(el)
 
-            // - creates / updates are executed parent-first, since for creates, the child must be
-            //      created after the parent, and for updates the parent (which has the primary key) is assumed
-            //      to not change, while the child (which has the foreign key) does change, so the parent writes
-            //      the $guid while the child read the $guid
-            // - deletes are executed child-first, since a parent can only be deleted once its children
-            //      are also deleted
-            const edges_to_children =
-                operation === 'delete'
-                    ? get_parent_edges(entity, orma_schema)
-                    : get_child_edges(entity, orma_schema)
+            const parent_edges = get_parent_edges(entity, orma_schema)
+            const child_edges = get_child_edges(entity, orma_schema)
 
-            edges_to_children.forEach(edge_to_child => {
-                const value_identifier = get_value_identifier(
-                    edge_to_child.to_entity,
-                    edge_to_child.to_field,
-                    mutation_piece.record[edge_to_child.from_field]
-                )
-                const connected_indices = fk_indices_by_value[
-                    value_identifier
-                ]?.filter(el => el !== piece_index)
+            if (operation === 'create' || operation === 'upsert') {
+                const child_operations = ['create', 'update', 'upsert'] as const
+                child_operations.forEach(child_operation => {
+                    child_edges.forEach(edge_to_child => {
+                        const own_pk_value =
+                            mutation_piece.record[edge_to_child.from_field]
+                        fk_index_lookup(
+                            fk_index,
+                            edge_to_child.to_entity,
+                            edge_to_child.to_field,
+                            child_operation,
+                            own_pk_value,
+                            add_child_index
+                        )
+                    })
+                })
+            }
+            if (operation === 'update' || operation === 'upsert') {
+                parent_edges.forEach(edge_to_parent => {
+                    fk_index_lookup_any_value(
+                        fk_index,
+                        edge_to_parent.to_entity,
+                        edge_to_parent.to_field,
+                        'delete',
+                        add_child_index
+                    )
+                })
+                child_edges.forEach(edge_to_child => {
+                    if (
+                        is_field_updated(
+                            orma_schema,
+                            entity,
+                            edge_to_child.from_field,
+                            mutation_piece.record
+                        )
+                    ) {
+                        const child_operations = [
+                            'create',
+                            'update',
+                            'upsert',
+                        ] as const
+                        child_operations.forEach(child_operation => {
+                            child_edges.forEach(edge_to_child => {
+                                const own_pk_value =
+                                    mutation_piece.record[
+                                        edge_to_child.from_field
+                                    ]
+                                fk_index_lookup(
+                                    fk_index,
+                                    edge_to_child.to_entity,
+                                    edge_to_child.to_field,
+                                    child_operation,
+                                    own_pk_value,
+                                    add_child_index
+                                )
+                            })
+                        })
+                    }
+                })
+            }
+            if (operation === 'delete') {
+                parent_edges.forEach(edge_to_parent => {
+                    const own_fk_value =
+                        mutation_piece.record[edge_to_parent.from_field]
+                    fk_index_lookup(
+                        fk_index,
+                        edge_to_parent.to_entity,
+                        edge_to_parent.to_field,
+                        'delete',
+                        own_fk_value,
+                        add_child_index
+                    )
+                    fk_index_lookup_any_value(
+                        fk_index,
+                        edge_to_parent.to_entity,
+                        edge_to_parent.to_field,
+                        'update',
+                        add_child_index
+                    )
+                    fk_index_lookup_any_value(
+                        fk_index,
+                        edge_to_parent.to_entity,
+                        edge_to_parent.to_field,
+                        'upsert',
+                        add_child_index
+                    )
+                })
+            }
 
-                connected_indices?.forEach(i => child_indices.push(i))
-            })
+            // // - creates / updates are executed parent-first, since for creates, the child must be
+            // //      created after the parent, and for updates the parent (which has the primary key) is assumed
+            // //      to not change, while the child (which has the foreign key) does change, so the parent writes
+            // //      the $guid while the child read the $guid
+            // // - deletes are executed child-first, since a parent can only be deleted once its children
+            // //      are also deleted
+            // const edges_to_children =
+            //     operation === 'delete'
+            //         ? get_parent_edges(entity, orma_schema)
+            //         : get_child_edges(entity, orma_schema)
+
+            // edges_to_children.forEach(edge_to_child => {
+            //     const value_identifier = get_value_identifier(
+            //         edge_to_child.to_entity,
+            //         edge_to_child.to_field,
+            //         mutation_piece.record[edge_to_child.from_field]
+            //     )
+            //     const connected_indices = fk_index[value_identifier]
+
+            //     connected_indices?.forEach(i => {
+            //         if (
+            //             operation === 'update' &&
+            //             mutation_pieces[i].record.$operation === 'delete'
+            //         ) {
+            //             // when the parent is an update and the child is a delete, we want the delete to
+            //             // come before the update (so you can delete the child and then update the parent to
+            //             // a different id). Not having this will also cause the toposort to try putting the
+            //             // update before the delete which will create a loop (a plan with the update before
+            //             // the delete and the delete before the update is impossible)
+            //             return
+            //         }
+
+            //         if (i !== piece_index) {
+            //             child_indices.push(i)
+            //         }
+            //     })
+            // })
 
             acc[piece_index] = child_indices
 
@@ -138,6 +212,154 @@ const generate_toposort_graph = (
     )
 
     return toposort_graph
+}
+
+const get_fk_index = (
+    orma_schema: OrmaSchema,
+    flat_mutation: MutationPiece[]
+) => {
+    // this should actually include all the paths to any guid, but right now guids are only enabled for foreign keys
+    // so it is more efficient to pick out the foreign keys than to check every column for guids
+    let fk_index: FkIndex = {}
+
+    flat_mutation.forEach(({ record, path }, record_index) => {
+        const entity = path_to_entity(path)
+        const from_fields = new Set(
+            get_all_edges(entity, orma_schema).map(edge => edge.from_field)
+        )
+        from_fields.forEach(from_field => {
+            // ignore non-updated fields since no cases require them to be checked
+            if (
+                record.$operation === 'update' &&
+                !is_field_updated(orma_schema, entity, from_field, record)
+            ) {
+                return
+            }
+            const value = record[from_field]
+            if (value !== undefined) {
+                set_fk_index(
+                    fk_index,
+                    record_index,
+                    entity,
+                    from_field,
+                    record.$operation,
+                    value
+                )
+            }
+        })
+    })
+
+    return fk_index
+}
+
+const is_field_updated = (
+    orma_schema: OrmaSchema,
+    entity: string,
+    field: string,
+    record: Record<string, any> & { $identifying_fields?: string[] }
+) => {
+    // returning false optimizes the mutation plan by excluding this field if it is being used
+    // as an identifying field or otherwise not being updated. If unsure, this should return
+    // true since that just adds more constraints to the mutation plan which might make it
+    // go slower by adding more stages, but will never result in an error. Returning false
+    // when its not supposed to might merge states that should be separate and so
+    // cause an error.
+
+    if (record[field] === undefined) {
+        return false
+    }
+
+    // since the macro that puts in $read and $write guids did not run yet, there are cases where
+    // there is an ambiguous identifying fields that will be resolved once one of them are marked
+    // as a $write guid which disqualifies that field. In this case, the identifying fields will
+    // be empty, and we just return the safe option of true from this function. If there are
+    // non-ambiguous identifying fields however, they shouldn't change after this point so its
+    // safe to rely on them to optimize the mutation plan
+    const identifying_fields =
+        record.$identifying_fields ??
+        get_identifying_fields(orma_schema, entity, record, false)
+
+    // guids (which at this stage are not marked $read or $write) could later become a write guid (which would
+    // not be a valid identifying field, and so would cause it to actually be an updated field),
+    // so we need to be safe and not optimize them out of the constraint graph
+    const identifying_fields_are_guids = identifying_fields.some(
+        field => record[field]?.$guid !== undefined
+    )
+    if (
+        identifying_fields.length &&
+        identifying_fields.includes(field) &&
+        !identifying_fields_are_guids
+    ) {
+        return false
+    }
+
+    return true
+}
+
+/**
+ * The wierd index format is because we need two types of lookups:
+ *   1. Lookup a specific entity, field, operation and value combo
+ *   2. Lookup a specific entity, field and operation but get all values
+ * This format handles those cases while minimizing heap allocation (better to have as many of the
+ * lookup props combined in a string as possible, so we dont have so many nested objects and arrays
+ * which would allocate more things to the heap). This index is made for the whole mutation, so
+ * we do want to optimize it. Also this format means less deep getting and setting, which is nice.
+ */
+type FkIndex = {
+    [entity_field_operation_string: string]: {
+        [value_string: string]: number[]
+    }
+}
+const set_fk_index = (
+    fk_index: FkIndex,
+    piece_index: number,
+    entity: string,
+    field: string,
+    operation: MutationOperation | 'upsert',
+    value: any
+) => {
+    const entity_field_operation_string = `${entity},${field},${operation}`
+    const value_string = JSON.stringify(value)
+    if (!fk_index[entity_field_operation_string]) {
+        fk_index[entity_field_operation_string] = {}
+    }
+
+    if (!fk_index[entity_field_operation_string][value_string]) {
+        fk_index[entity_field_operation_string][value_string] = []
+    }
+    fk_index[entity_field_operation_string][value_string].push(piece_index)
+}
+
+const fk_index_lookup = (
+    fk_index: FkIndex,
+    entity: string,
+    field: string,
+    operation: MutationOperation | 'upsert',
+    value: any,
+    callback: (piece_index) => any
+) => {
+    const entity_field_operation_string = `${entity},${field},${operation}`
+    const value_string = JSON.stringify(value)
+    const piece_indices =
+        fk_index?.[entity_field_operation_string]?.[value_string] ?? []
+    for (const piece_index of piece_indices) {
+        callback(piece_index)
+    }
+}
+const fk_index_lookup_any_value = (
+    fk_index: FkIndex,
+    entity: string,
+    field: string,
+    operation: MutationOperation | 'upsert',
+    callback: (piece_index) => any
+) => {
+    const entity_field_operation_string = `${entity},${field},${operation}`
+    const piece_indices_by_value = fk_index[entity_field_operation_string] ?? {}
+    for (const piece_indices of Object.values(piece_indices_by_value)) {
+        for (const piece_index of piece_indices) {
+            callback(piece_index)
+        }
+    }
 }
 
 /**

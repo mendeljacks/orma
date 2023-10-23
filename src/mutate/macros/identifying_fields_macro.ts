@@ -73,6 +73,10 @@ const field_can_be_identifier = (
     // in scope. It will only be fetched after the operation is done. for read guids however, the guid is in scope
     // (it must be in order to be read from), so we can use it to identify the record.
     const is_write_guid = value?.$guid !== undefined && value?.$write === true
+    // // unmarked guids (that have not been declared a read or a write guid yet) could later become a write guid,
+    // // so we need to be safe and not use it as an identifying field. 
+    // const is_unmarked_guid = value?.$guid !== undefined && value.$write === undefined && value.$read === undefined
+    
     return !is_nill && !is_write_guid
 }
 
