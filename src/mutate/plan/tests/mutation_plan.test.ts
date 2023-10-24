@@ -507,24 +507,24 @@ describe('mutation_plan.ts', () => {
 
             expect(mutate_plan).to.deep.equal(goal)
         })
-        test('handles updates with guids', () => {
+        test('handles self referencing records', () => {
             // must first update to the new id, then create using the new updated id
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
-                        $operation: 'update',
-                        id: 1,
-                        billing_address_id: { $guid: 'a' },
+                        $operation: 'create',
+                        id: { $guid: 'a' },
+                        parent_category_id: { $guid: 'a' },
                     },
-                    path: ['users', 1],
+                    path: ['categories', 0],
                 },
                 {
                     record: {
                         $operation: 'update',
-                        email: 'aa@a.com',
-                        id: { $guid: 'a' }, // update id by email, so this needs to happen first
+                        id: 2,
+                        parent_category_id: { $guid: 'a' },
                     },
-                    path: ['addresses', 0],
+                    path: ['categories', 1],
                 },
             ]
 
@@ -534,7 +534,7 @@ describe('mutation_plan.ts', () => {
             )
 
             const goal = {
-                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_pieces: [mutation_pieces[0], mutation_pieces[1]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
                     { start_index: 1, end_index: 2 },

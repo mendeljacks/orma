@@ -240,6 +240,7 @@ export const global_test_schema = {
                     $not_null: true,
                     $precision: 10,
                 },
+                parent_category_id: { $data_type: 'int' },
                 resource_id: {
                     $data_type: 'varchar',
                 },
@@ -263,6 +264,13 @@ export const global_test_schema = {
                     $fields: ['resource_id'],
                 },
             ],
+            $foreign_keys: [{
+                $fields: ['parent_category_id'],
+                $references: {
+                    $entity: 'categories',
+                    $fields: ['id']
+                },
+            }]
         },
         post_has_categories: {
             $database_type: 'sqlite',
@@ -347,6 +355,11 @@ export const global_test_schema = {
                     to_entity: 'post_has_categories',
                     to_field: 'category_id',
                 },
+                {
+                    from_field: 'id',
+                    to_entity: 'categories',
+                    to_field: 'parent_category_id',
+                },
             ],
         },
     },
@@ -356,9 +369,8 @@ type G = typeof global_test_schema
 export interface GlobalTestSchema extends G {}
 export interface GlobalTestAliases {
     users: 'billing_address' | 'shipping_address'
-    posts: 'total_views' | 'my_title' | 'my_comments',
+    posts: 'total_views' | 'my_title' | 'my_comments'
     $root: 'my_posts'
-    
 }
 export type GlobalTestQuery = OrmaQuery<GlobalTestSchema, GlobalTestAliases>
 export type GlobalTestMutation = OrmaMutation<GlobalTestSchema>

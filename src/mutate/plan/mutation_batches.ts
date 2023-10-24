@@ -72,7 +72,12 @@ const generate_toposort_graph = (
                     entity,
                     record
                 )
-                child_indices.push(...new_piece_indices)
+                new_piece_indices.forEach(new_piece_index => {
+                    // ignore self referential records
+                    if (new_piece_index !== piece_index) {
+                        child_indices.push(new_piece_index)
+                    }
+                })
             })
 
             acc[piece_index] = child_indices

@@ -48,6 +48,7 @@ export const get_create_ast = (
                 field
             )
 
+            const el = get_field_schema(orma_schema, entity, field)?.$default
             const value_or_default =
                 resolved_value === undefined
                     ? // run it through the ast parser to handle function defaults like $current_timestamp
