@@ -1,5 +1,6 @@
 import { OrmaSchema } from '../schema/schema_types'
 import {
+    DeepMutable,
     GetAllEntities,
     GetFields,
     GetFieldType,
@@ -149,29 +150,50 @@ type SimplifyType<T> = T extends object
 //             : never
 //         : never
 // }>
+// export type OrmaQueryResult<
+//     Schema extends OrmaSchema,
+//     Query extends object,
+//     Entity extends GetAllEntities<Schema> = never
+// > =
+
+// Omit<
+//     {
+//         // should be returned as a result if the key is not a keyword and the value is not a subquery
+//         -readonly [Key in keyof Query]: Query[Key] extends {
+//             $from: GetAllEntities<Schema>
+//         } // if the value has a $from prop, it is always a subquery
+//             ?
+//                   | OrmaQueryResult<Schema, Query[Key], Query[Key]['$from']>[]
+//                   | undefined
+//             : Key extends GetAllEntities<Schema> // The other option for a subquery is that the prop is an entity name
+//             ? Query[Key] extends object // and the value is an object
+//                 ? Exclude<keyof Query[Key], Keyword> extends never // and the value has at least one non-keyword prop
+//                     ? never
+//                     : OrmaQueryResult<Schema, Query[Key], Key>[] | undefined
+//                 : never
+//             : GetSchemaTypeForField<Schema, Entity, Key, Query[Key]>
+//     },
+//     Keyword
+// >
 export type OrmaQueryResult<
     Schema extends OrmaSchema,
-    Query extends object,
-    Entity extends GetAllEntities<Schema> = never
-> = Omit<
-    {
-        // should be returned as a result if the key is not a keyword and the value is not a subquery
-        -readonly [Key in keyof Query]: Query[Key] extends {
-            $from: GetAllEntities<Schema>
-        } // if the value has a $from prop, it is always a subquery
-            ?
-                  | OrmaQueryResult<Schema, Query[Key], Query[Key]['$from']>[]
-                  | undefined
-            : Key extends GetAllEntities<Schema> // The other option for a subquery is that the prop is an entity name
-            ? Query[Key] extends object // and the value is an object
-                ? Exclude<keyof Query[Key], Keyword> extends never // and the value has at least one non-keyword prop
-                    ? never
-                    : OrmaQueryResult<Schema, Query[Key], Key>[] | undefined
-                : never
-            : GetSchemaTypeForField<Schema, Entity, Key, Query[Key]>
-    },
-    Keyword
->
+    Aliases extends OrmaQueryAliases<Schema>,
+    Query extends object
+> = {
+    -readonly [Key in keyof Query &
+        (
+            | GetAllEntities<Schema>
+            | GetRootAliases<Schema, Aliases>
+        )]?: Query[Key] extends {
+        $from: GetAllEntities<Schema>
+    }
+        ? OrmaRecord<Schema, Aliases, Query[Key]['$from'], Query[Key]>[]
+        : Query[Key] extends object
+        ? Key extends GetAllEntities<Schema>
+            ? OrmaRecord<Schema, Aliases, Key, Query[Key]>[]
+            : never
+        : never
+}
 
 type GetSchemaTypeForField<
     Schema extends OrmaSchema,
@@ -208,6 +230,8 @@ export type OrmaRecord<
                     Subquery[Key]
                 >[]
               | undefined // subquery with $from
+        : Subquery[Key] extends { $escape }
+        ? DeepMutable<Subquery[Key]['$escape']>
         : Subquery[Key] extends true
         ? Key extends GetFields<Schema, Entity>
             ? GetFieldType<Schema, Entity, Key> // field_name: true
@@ -221,4 +245,8 @@ export type OrmaRecord<
         : any // unhandled case, like {$sum: 'quantity'}
 }
 
-type DefaultCase<Key> = Key extends `$${string}` ? never : any
+/*
+
+Subquery[Key] extends { $escape }
+        ? Subquery[Key]['$escape']
+*/

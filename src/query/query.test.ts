@@ -7,16 +7,17 @@ describe('query.ts', () => {
     describe(orma_nester.name, () => {
         test('nests restults', () => {
             const result = orma_nester(
-                [
-                    [['posts'], [{ user_id: 1 }]],
-                    [['posts', 'users'], [{ id: 1 }]],
-                ],
+                global_test_schema,
                 {
                     posts: {
                         users: {},
                     },
                 },
-                global_test_schema
+                [],
+                [
+                    [['posts'], [{ user_id: 1 }]],
+                    [['posts', 'users'], [{ id: 1 }]],
+                ]
             )
 
             expect(result).to.deep.equal({

@@ -14,6 +14,7 @@ import { orma_query } from '../query/query'
 import { validate_query } from '../query/validation/query_validation'
 import { global_test_hydration } from '../test_data/global_test_hydration'
 import {
+    GlobalTestAliases,
     GlobalTestMutation,
     GlobalTestSchema,
     global_test_schema,
@@ -104,7 +105,7 @@ export const test_mutate = async (
 
 export const test_query = async <T extends Record<string, any>>(
     query: T
-): Promise<OrmaQueryResult<GlobalTestSchema, T>> => {
+): Promise<OrmaQueryResult<GlobalTestSchema, GlobalTestAliases, T>> => {
     validate_errors([validate_query(query, global_test_schema)])
     const res = await (orma_query as any)(
         query,

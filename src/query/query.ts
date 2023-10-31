@@ -1,5 +1,5 @@
 import { clone, deep_get, drop_last, last } from '../helpers/helpers'
-import { nester, NesterData } from '../helpers/nester'
+import { nester, NesterData, NesterModification } from '../helpers/nester'
 import { get_direct_edge } from '../helpers/schema_helpers'
 import { MysqlFunction } from '../mutate/mutate'
 import { generate_statement } from '../mutate/statement_generation/mutation_statements'
@@ -42,9 +42,10 @@ export const get_real_entity_name = (
 }
 
 export const orma_nester = (
-    results: [string[], Record<string, unknown>[]][],
+    orma_schema: OrmaSchema,
     query,
-    orma_schema: OrmaSchema
+    nester_modifications: NesterModification[],
+    results: [string[], Record<string, unknown>[]][],
 ) => {
     // get data in the right format for the nester
     const edges = results.map(result => {
@@ -78,7 +79,7 @@ export const orma_nester = (
         ]
     })
 
-    return nester(data, edges)
+    return nester(data, edges, nester_modifications)
 }
 
 // export const orma_query = async <schema>(raw_query: validate_query<schema>, orma_schema: validate_orma_schema<schema>, query_function: (sql_string: string) => Promise<Record<string, unknown>[]>) => {
@@ -91,17 +92,18 @@ export const orma_query = async <
     orma_schema_input: Schema,
     query_function: MysqlFunction,
     connection_edges: ConnectionEdges = {}
-): Promise<OrmaQueryResult<Schema, Query>> => {
+): Promise<OrmaQueryResult<Schema, Aliases, Query>> => {
     const query = clone(raw_query) // clone query so we can apply macros without mutating the actual input query
     const orma_schema = orma_schema_input as any // this is just because the codebase isnt properly typed
 
     // simple macros
     apply_any_path_macro(query, orma_schema)
-    apply_select_macro(query, orma_schema)
+    const nester_deletions_by_path = apply_select_macro(query, orma_schema)
     apply_where_connected_macro(orma_schema, query, connection_edges)
 
     const query_plan = get_query_plan(query)
     let results: any[] = []
+    let nester_modifications: NesterModification[] = []
 
     // Sequential for query plan
     for (const paths of query_plan) {
@@ -114,7 +116,7 @@ export const orma_query = async <
             )
             return !short_circuit
         })
-        const subqueries = paths_to_query.map(path => {
+        const subquery_data = paths_to_query.map(path => {
             // this pretty inefficient, but nesting macro gets confused when it sees the where clauses
             // that it put in the query and thinks that they were there before mutation planning.
             // The data about tier results should really come from the mutation plan and not from
@@ -125,29 +127,40 @@ export const orma_query = async <
             apply_nesting_macro(tier_query, path, results, orma_schema)
 
             const subquery = deep_get(path, tier_query)
-            apply_escape_macro(subquery, orma_schema)
+            const nester_additions = apply_escape_macro(subquery, orma_schema)
+            const nester_deletions =
+                nester_deletions_by_path[JSON.stringify(path)]
 
-            return subquery
+            return { subquery, nester_additions, nester_deletions }
         })
 
         // Promise.all for each element in query plan.
         // dont call query is there are no sql strings to run
         const output =
-            subqueries.length > 0
+            subquery_data.length > 0
                 ? await query_function(
-                      subqueries.map(subquery =>
+                      subquery_data.map(({ subquery }) =>
                           generate_statement(subquery, [], [])
                       )
                   )
                 : []
 
         // Combine outputs
-        subqueries.forEach((_, i) =>
+        subquery_data.forEach((_, i) => {
             results.push([paths_to_query[i], output[i]])
-        )
+            nester_modifications.push({
+                additions: subquery_data[i].nester_additions,
+                deletions: subquery_data[i].nester_deletions,
+            })
+        })
     }
 
-    const output = orma_nester(results, query, orma_schema)
+    const output = orma_nester(
+        orma_schema,
+        query,
+        nester_modifications,
+        results
+    )
 
     return output as any
 }

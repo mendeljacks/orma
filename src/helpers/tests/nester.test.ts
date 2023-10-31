@@ -43,7 +43,7 @@ describe('nester', () => {
             ],
         }
 
-        let result = nester(data, edges)
+        let result = nester(data, edges, [])
 
         expect(result).to.deep.equal(goal)
     })
@@ -85,7 +85,7 @@ describe('nester', () => {
             ],
         }
 
-        let result = nester(data, edges)
+        let result = nester(data, edges, [])
 
         expect(result).to.deep.equal(goal)
     })
@@ -144,7 +144,7 @@ describe('nester', () => {
             ],
         }
 
-        let result = nester(data, edges)
+        let result = nester(data, edges, [])
 
         expect(result).to.deep.equal(goal)
     })
@@ -174,7 +174,7 @@ describe('nester', () => {
             ],
         }
 
-        let result = nester(data, edges)
+        let result = nester(data, edges, [])
 
         expect(result).to.deep.equal(goal)
     })
@@ -215,7 +215,7 @@ describe('nester', () => {
             ],
         }
 
-        let result = nester(data, edges)
+        let result = nester(data, edges, [])
 
         expect(result).to.deep.equal(goal)
     })
@@ -293,7 +293,7 @@ describe('nester', () => {
 
         let result = {}
         // for (let i = 0; i < 10000; i++) {
-        result = nester(data, edges)
+        result = nester(data, edges, [])
         // }
         console.timeEnd('t')
 
@@ -319,7 +319,7 @@ describe('nester', () => {
 
         const edges = [null, ['variant_id', 'id'], ['product_id', 'id']]
 
-        const result: any = nester(data, edges)
+        const result: any = nester(data, edges, [])
         const len = result.order_items[0].variants[0].products.length
         expect(len).to.equal(1)
         expect(result).to.deep.equal({

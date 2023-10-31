@@ -10,7 +10,7 @@ import { OrmaQueryResult } from './query_result_types'
 const test = () => {
     const query_response = <Query extends GlobalTestQuery>(
         query: Query
-    ): OrmaQueryResult<GlobalTestSchema, Query> => '' as any
+    ): OrmaQueryResult<GlobalTestSchema, GlobalTestAliases, Query> => '' as any
 
     {
         // data props propagate as arrays
@@ -168,6 +168,44 @@ const test = () => {
 
         result.posts?.map(post => {
             post.title = 'my cool title'
+        })
+    }
+    {
+        // handles simple excape
+        const q = {
+            posts: {
+                title: true,
+                my_title: {
+                    $escape: 123,
+                },
+            },
+        } as const satisfies GlobalTestQuery
+        const result = query_response(q)
+
+        result.posts?.map(post => {
+            const test: IsEqual<typeof post.my_title, 123> = true
+        })
+    }
+    {
+        // handles object escape
+        const q = {
+            posts: {
+                title: true,
+                my_title: {
+                    $escape: [123],
+                },
+                id: {
+                    $escape: {
+                        $guid: 'a' as 'a' | 'b',
+                    },
+                },
+            },
+        } as const satisfies GlobalTestQuery
+        const result = query_response(q)
+
+        result.posts?.map(post => {
+            const test: IsEqual<typeof post.my_title, [123]> = true
+            const test2: IsEqual<typeof post.id, { $guid: 'a' | 'b' }> = true
         })
     }
 }

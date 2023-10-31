@@ -2,11 +2,15 @@ import { get_higher_path } from '../mutate/helpers/mutate_helpers'
 import { Path } from '../types'
 import { array_equals, last } from './helpers'
 
-export const nester = (data: NesterData, edges: NesterEdges) => {
+export const nester = (
+    data: NesterData,
+    edges: NesterEdges,
+    nester_modifications: NesterModification[]
+) => {
     // indexes are used to quickly get references to records deep in the result json. Using an index
     // allows accessing these records directly, which is faster than using deep_get or deep_set.
     const indexes = initialize_indexes(data, edges)
-    const result = get_results(data, edges, indexes)
+    const result = get_results(data, edges, indexes, nester_modifications)
     return result
 }
 
@@ -41,14 +45,35 @@ const get_higher_datum_index = (data: NesterData, path_template: Path) => {
     return data_index
 }
 
+/**
+ * Adds and deletes according to the nester modifications. Mutates input records
+ */
+const apply_nester_modifications = (
+    nester_modification: NesterModification | undefined,
+    record: Record<string, any>
+) => {
+    if (!nester_modification) {
+        return
+    }
+
+    nester_modification.additions.forEach(({ field, value }) => {
+        record[field] = value
+    })
+    nester_modification.deletions.forEach(({ field }) => {
+        delete record[field]
+    })
+}
+
 const get_results = (
     data: NesterData,
     edges: NesterEdges,
-    indexes: IndexesByField[]
+    indexes: IndexesByField[],
+    nester_modifications: NesterModification[]
 ) => {
     let result: Record<string, any> = {}
     data.forEach(([path_template, records], datum_index) => {
         const index = indexes[datum_index]
+        const nester_modification = nester_modifications[datum_index]
 
         const array_mode = last(path_template) === 0
         const edge = edges[datum_index]
@@ -66,7 +91,10 @@ const get_results = (
             }
 
             // add this record to the index so we can nest other stuff on it
-            records?.forEach(record => add_to_index(index, record))
+            records?.forEach(record => {
+                add_to_index(index, record)
+                apply_nester_modifications(nester_modification, record)
+            })
 
             return
         }
@@ -92,6 +120,7 @@ const get_results = (
                 // since we are making shallow copies for each higher record
                 add_to_index(index, record_to_nest)
                 nester_set(higher_record, record_to_nest, set_field, array_mode)
+                apply_nester_modifications(nester_modification, record)
             })
         })
     })
@@ -129,58 +158,9 @@ type IndexesByField = {
 
 export type NesterData = [Path, Record<string, any>[] | undefined][]
 export type NesterEdges = (null | string[])[]
-
-// // old nester code ------------------------
-// /**
-//  * @param data Takes a list of nest path and nest data pairs ordered by acceptable insert order
-//  * @param edges Takes a list of edges corresponding to the points between the data
-//  */
-// export const nester = (data, edges) => {
-//     // Requires that data is sorted so that later elements are equal or deeper in json tree
-//     let result = {}
-//     for (let i = 0; i < data.length; i++) {
-//         const [pth, list]: any = data[i]
-//         const array_mode = last(pth) === 0
-//         const path = array_mode ? drop_last(1, pth) : pth
-//         if (!edges[i]) deep_set(path, list, result)
-//         else {
-//             const left_list = extract_subpaths(drop_last(1, path), result)
-//             const { left, inner, right } = lir_join(
-//                 left_list,
-//                 result,
-//                 list,
-//                 el => deep_get([...el, edges[i][0]], result),
-//                 (l, acc, r) => {
-//                     r.forEach((right_adjacent, r_index) => {
-//                         l.forEach((left_adjacent, l_index) => {
-//                             // When the same item appears in multiple spots
-//                             // we want to make a copy of it
-//                             const item_to_nest =
-//                                 l_index === 0
-//                                     ? right_adjacent
-//                                     : clone(right_adjacent)
-
-//                             if (array_mode) {
-//                                 push_path(
-//                                     [...left_adjacent, last(path)],
-//                                     item_to_nest,
-//                                     acc
-//                                 )
-//                             } else {
-//                                 deep_set(
-//                                     [...left_adjacent, last(path)],
-//                                     item_to_nest,
-//                                     acc
-//                                 )
-//                             }
-//                         })
-//                     })
-
-//                     return acc
-//                 },
-//                 el => el[edges[i][1]]
-//             )
-//         }
-//     }
-//     return result
-// }
+export type NesterModification = {
+    additions: NesterAddition[]
+    deletions: NesterDeletion[]
+}
+export type NesterDeletion = { field: string }
+export type NesterAddition = { field: string; value: any }

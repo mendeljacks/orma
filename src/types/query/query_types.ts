@@ -177,6 +177,7 @@ export type Expression<
       >
     | GetFields<Schema, Entity>
     | GetAliases<Schema, Aliases, Entity>
+    | { $escape: any }
 
 type ExpressionFunction<
     Schema extends OrmaSchema,

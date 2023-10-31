@@ -1,10 +1,11 @@
 import { as_orma_query } from '../../query/query'
 import {
+    GlobalTestAliases,
     GlobalTestQuery,
     GlobalTestSchema,
     global_test_schema,
 } from '../../test_data/global_test_schema'
-import { SimplifiedQuery } from './query_types'
+import { FieldObj, SimplifiedQuery } from './query_types'
 
 {
     // allows fields and aliases
@@ -245,12 +246,12 @@ import { SimplifiedQuery } from './query_types'
 }
 
 {
-    as_orma_query(global_test_schema, {
+    const t = {
         posts: {
             id: true,
-            _asdas: {
-                $from: 'users',
-            }
+            my_title: {
+                $escape: 123,
+            },
         },
-    })
+    } as const satisfies GlobalTestQuery
 }

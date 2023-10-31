@@ -1,11 +1,16 @@
 import { orma_escape } from '../../helpers/escape'
-import { deep_for_each, deep_set, last } from '../../helpers/helpers'
+import {
+    deep_for_each,
+    deep_set,
+    is_simple_object,
+    last,
+} from '../../helpers/helpers'
+import { NesterAddition } from '../../helpers/nester'
 import { OrmaSchema } from '../../types/schema/schema_types'
-import { get_real_entity_name } from '../query'
 import { get_any_path_context_entity } from './any_path_macro'
 
 export const apply_escape_macro = (query, orma_schema: OrmaSchema) => {
-    apply_escape_macro_to_query_part(orma_schema, undefined, query)
+    return apply_escape_macro_to_query_part(orma_schema, undefined, query)
 }
 
 // can be used to escape only parts of queries, for example only escaping a $where clause
@@ -15,9 +20,43 @@ export const apply_escape_macro_to_query_part = (
     query
 ) => {
     let raw_paths: any[] = []
+    let nester_additions: NesterAddition[] = []
 
     deep_for_each(query, (value, path) => {
-        if (value?.$escape !== undefined) {
+        // We can select an escaped value, to simply return that value. For strings and numbers,
+        // we can send something like SELECT 1 AS my_column to our database and have it return
+        // 1 for every row. This also lets us do computed values or having clauses using my_column.
+        // however this wont work for ararys and objects, so we need to remove these from the query
+        //  - they will be added back to the query results later.
+        if (last(path) === '$select') {
+            const select = value as any[]
+            const delete_indices = select
+                .flatMap((select_el, i) => {
+                    const escape_value = select_el?.$as?.[0]?.$escape
+
+                    const is_object_or_array =
+                        Array.isArray(escape_value) ||
+                        is_simple_object(escape_value)
+                    return is_object_or_array ? [i] : []
+                })
+                // deletions need to start from the end to not mess up the indices
+                .reverse()
+            delete_indices.forEach(i => {
+                // make sure the escaped select is added back in later by the nester
+                nester_additions.push({
+                    value: select[i].$as[0].$escape,
+                    field: select[i].$as[1],
+                })
+                select.splice(i, 1)
+            })
+        }
+
+        // handle regular escapes
+        const escape_value = value?.$escape
+        const is_object_or_array =
+            Array.isArray(escape_value) || is_simple_object(escape_value)
+        const is_deleted = path.includes('select') && is_object_or_array
+        if (escape_value !== undefined && !is_deleted) {
             raw_paths.push([path, value])
         }
     })
@@ -44,4 +83,6 @@ export const apply_escape_macro_to_query_part = (
             query
         )
     })
+
+    return nester_additions
 }

@@ -102,6 +102,7 @@ describe('full integration test', () => {
                     id: true,
                     title: true,
                     views: true,
+                    user_id: true,
                     $where: {
                         $or: [
                             {
@@ -223,13 +224,12 @@ describe('full integration test', () => {
                     email: 'aa@a.com',
                     first_name: 'A', // first name was updated
                     last_name: 'Anderson',
-                    id: 1,
                     likes: [
                         {
                             // new like was added
                             user_id: 1,
                             post_id: 1,
-                            posts: [{ title: 'First post!', id: 1 }],
+                            posts: [{ title: 'First post!' }],
                         },
                     ],
                 },
@@ -547,6 +547,56 @@ describe('full integration test', () => {
         } as const satisfies GlobalTestQuery)
 
         expect(res.posts).to.equal(undefined)
+    })
+    test('handles selecting escaped object', async () => {
+        const res = await test_query({
+            posts: {
+                id: {
+                    $escape: { $guid: 'a' },
+                },
+                my_title: {
+                    $escape: ['hi'],
+                },
+                total_views: {
+                    $escape: 1,
+                },
+                users: {
+                    id: true,
+                },
+                $limit: 1,
+            },
+        } as const satisfies GlobalTestQuery)
+
+        expect(res).to.deep.equal({
+            posts: [
+                {
+                    id: { $guid: 'a' },
+                    my_title: ['hi'],
+                    total_views: 1,
+                    users: [
+                        {
+                            id: 1,
+                        },
+                    ],
+                },
+            ],
+        })
+    })
+    test('removes intermediate foriegn keys', async () => {
+        const res = await test_query({
+            users: {
+                posts: {
+                    title: true,
+                    $limit: 1,
+                },
+                $limit: 1,
+            },
+        } as const satisfies GlobalTestQuery)
+
+        //@ts-ignore
+        expect(res.users?.[0].id).to.equal(undefined)
+        //@ts-ignore
+        expect(res.users?.[0].posts?.[0].user_id).to.equal(undefined)
     })
     test.skip('allows $identifying_fields override')
     test.skip('handles manual guid + raw value linking')
