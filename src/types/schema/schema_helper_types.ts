@@ -103,40 +103,6 @@ export type GetParentEdges<
       >
     : never
 
-// export type GetParentEdgesForFields<
-//     Schema extends OrmaSchema,
-//     Entity extends GetAllEntities<Schema>,
-//     Fields extends GetFields<Schema, Entity>
-// > = Fields extends GetFields<Schema, Entity> // map over fields
-//     ? Schema[Entity][Fields] extends { references: any } // filter fields to only include ones with foreign keys
-//         ? {
-//               from_entity: Entity
-//               to_entity: GetStringKeys<Schema[Entity][Fields]['references']> // pull out entity from { references: { ... }}
-//               from_field: Fields
-//               to_field: GetStringKeys<
-//                   Schema[Entity][Fields]['references'][GetStringKeys<
-//                       Schema[Entity][Fields]['references']
-//                   >]
-//               > // pull out field from references objecs
-//           }
-//         : never
-//     : never
-
-// Fields extends any // map over fields
-//     ? Schema[Entity][Fields] extends { references: any } // filter fields to only include ones with foreign keys
-//         ? {
-//               from_entity: Entity
-//               to_entity: GetStringKeys<Schema[Entity][Fields]['references']> // pull out entity from { references: { ... }}
-//               from_field: Fields
-//               to_field: GetStringKeys<
-//                   Schema[Entity][Fields]['references'][GetStringKeys<
-//                       Schema[Entity][Fields]['references']
-//                   >]
-//               > // pull out field from references objecs
-//           }
-//         : never
-//     : never
-
 export type GetChildEdges<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
@@ -169,9 +135,6 @@ type CacheToEdge<
     Edges extends ForeignKeyEdge
 > = Edges extends ForeignKeyEdge
     ? {
-          //   from_entity: Edges['from_entity'] extends GetAllEntities<Schema>
-          //       ? Edges['from_entity']
-          //       : never
           from_field: Edges['from_field'] extends GetFields<
               Schema,
               GetAllEntities<Schema>
@@ -181,12 +144,6 @@ type CacheToEdge<
           to_entity: Edges['to_entity'] extends GetAllEntities<Schema>
               ? Edges['to_entity']
               : never
-          //   to_field: Edges['to_field'] extends GetFields<
-          //       Schema,
-          //       GetAllEntities<Schema>
-          //   >
-          //       ? Edges['to_field']
-          //       : never
       }
     : never
 
@@ -195,27 +152,36 @@ export type GetAllEdges<
     Entities extends GetAllEntities<Schema>
 > = GetParentEdges<Schema, Entities> | GetChildEdges<Schema, Entities>
 
+/*
+So this type actually used to be split into 3 for readability, but it was causing performance issues
+so I uglified it, endowing it with lots of repetition and making it hard to follow. Pretty sure its faster
+now though.
+*/
 export type GetFieldType<
     Schema extends OrmaSchema,
     Entity extends GetAllEntities<Schema>,
     Field extends GetFields<Schema, Entity>
-> = GetFieldType2<Schema['$entities'][Entity]['$fields'][Field]>
-
-// handle nullable
-type GetFieldType2<FieldSchema extends OrmaFieldSchema> =
-    FieldSchema['$not_null'] extends true
-        ? GetFieldType3<FieldSchema>
-        : GetFieldType3<FieldSchema> | null
-
-// handle enum
-type GetFieldType3<FieldSchema extends OrmaFieldSchema> = FieldSchema extends {
-    $data_type: 'enum'
-    $enum_values: readonly any[]
-}
-    ? FieldSchema['$enum_values'][number]
-    : FieldTypeStringToType<
-          MysqlToTypescriptTypeString<NonNullable<FieldSchema['$data_type']>>
+> = Field extends GetFields<Schema, Entity>
+    ? AddNull<
+          Schema['$entities'][Entity]['$fields'][Field] extends {
+              $data_type: 'enum'
+              $enum_values: readonly any[]
+          }
+              ? Schema['$entities'][Entity]['$fields'][Field]['$enum_values'][number]
+              : FieldTypeStringToType<
+                    MysqlToTypescriptTypeString<
+                        NonNullable<
+                            Schema['$entities'][Entity]['$fields'][Field]['$data_type']
+                        >
+                    >
+                >,
+          Schema['$entities'][Entity]['$fields'][Field]['$not_null'] extends true
+              ? false
+              : true
       >
+    : never
+
+type AddNull<T, AddNull extends boolean> = AddNull extends true ? T | null : T
 
 export type GetFieldSchema<
     Schema extends OrmaSchema,
@@ -240,50 +206,6 @@ type FieldTypeStringToType<
     : TypeString extends 'date'
     ? Date
     : any
-
-// This type is equivalent to
-// fields.filter(field => schema.entities[entity].fields[field][SchemaProp] === value)
-// but typescript doesn't have higher kinded types which would allow a filter type,
-// so we need this massive, badly abstracted monstrosity instead.
-export type FilterFieldsBySchemaProp<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    SchemaProp extends string,
-    value
-> = FilterFieldsBySchemaPropWithFieldsExplicit<
-    Schema,
-    Entity,
-    GetFields<Schema, Entity>,
-    SchemaProp,
-    value
->
-
-// type distribution of a union (in the case Fields) via a ternary operator only seems to work if the
-// union is passed directly in to the type, but not if its generated (e.g. by GetFields<> type).
-// So we need this intermediary layer to make it work. I hate typescript.
-type FilterFieldsBySchemaPropWithFieldsExplicit<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    Fields extends GetFields<Schema, Entity>,
-    SchemaProp extends string,
-    value
-> = Fields extends any
-    ? FieldSchemaPropEq<Schema, Entity, Fields, SchemaProp, value> extends true
-        ? Fields
-        : never //FilterFieldBySchemaProp<Schema, Entity, Fields, SchemaProp, value>
-    : never
-
-export type FieldSchemaPropEq<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    Field extends GetFields<Schema, Entity>,
-    SchemaProp extends string,
-    value
-> = GetFieldSchema<Schema, Entity, Field> extends {
-    [prop in SchemaProp]: value
-}
-    ? IsEqual<GetFieldSchema<Schema, Entity, Field>[SchemaProp], value>
-    : false
 
 type OrmaForeignKey = NonNullable<
     OrmaSchema['$entities'][string]['$foreign_keys']

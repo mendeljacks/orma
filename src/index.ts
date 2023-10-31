@@ -14,6 +14,7 @@ export { type OrmaQuery } from './types/query/query_types'
 export {
     type OrmaQueryResult,
     type OrmaRecord,
+    type OrmaField
 } from './types/query/query_result_types'
 
 // mutate

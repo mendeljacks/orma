@@ -105,7 +105,7 @@ export const test_mutate = async (
 
 export const test_query = async <T extends Record<string, any>>(
     query: T
-): Promise<OrmaQueryResult<GlobalTestSchema, GlobalTestAliases, T>> => {
+): Promise<OrmaQueryResult<GlobalTestSchema, T>> => {
     validate_errors([validate_query(query, global_test_schema)])
     const res = await (orma_query as any)(
         query,

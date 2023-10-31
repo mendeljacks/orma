@@ -5,12 +5,12 @@ import {
 } from '../../test_data/global_test_schema'
 import { IsEqual } from '../helper_types'
 import { GetAllEdges } from '../schema/schema_helper_types'
-import { OrmaQueryResult } from './query_result_types'
+import { OrmaField, OrmaQueryResult, OrmaRecord } from './query_result_types'
 
 const test = () => {
     const query_response = <Query extends GlobalTestQuery>(
         query: Query
-    ): OrmaQueryResult<GlobalTestSchema, GlobalTestAliases, Query> => '' as any
+    ): OrmaQueryResult<GlobalTestSchema, Query> => '' as any
 
     {
         // data props propagate as arrays
@@ -207,5 +207,28 @@ const test = () => {
             const test: IsEqual<typeof post.my_title, [123]> = true
             const test2: IsEqual<typeof post.id, { $guid: 'a' | 'b' }> = true
         })
+    }
+    {
+        // handles orma record
+        type TestType = OrmaRecord<
+            GlobalTestSchema,
+            'users',
+            {
+                users: {
+                    id: true
+                }
+            }
+        >
+
+        const fn = (test_arg: TestType) => {
+            const id = test_arg.users![0].id
+            const test: IsEqual<typeof id, number> = true
+        }
+    }
+    {
+        // handles orma record
+        type TestType = OrmaField<GlobalTestSchema, 'users', 'first_name'>
+
+        const test: IsEqual<TestType, string | null> = true
     }
 }
