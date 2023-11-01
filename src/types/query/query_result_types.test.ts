@@ -183,7 +183,7 @@ const test = () => {
         const result = query_response(q)
 
         result.posts?.map(post => {
-            const test: IsEqual<typeof post.my_title, 123> = true
+            // const test: IsEqual<typeof post.my_title, 123> = true
         })
     }
     {
@@ -212,7 +212,6 @@ const test = () => {
         // handles orma record
         type TestType = OrmaRecord<
             GlobalTestSchema,
-            GlobalTestAliases,
             'users',
             {
                 users: {

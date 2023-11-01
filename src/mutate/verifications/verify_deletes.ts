@@ -51,7 +51,11 @@ export const get_delete_verification_errors = async (
         mutation_plan.guid_map,
         mutation_plan.mutation_pieces
     )
-    const results = await orma_query(query, orma_schema, mysql_function)
+    const results = (await orma_query(
+        query,
+        orma_schema,
+        mysql_function
+    )) as any
     const blocking_pieces = get_mutation_pieces_blocing_delete(
         orma_schema,
         mutation_plan.mutation_pieces,

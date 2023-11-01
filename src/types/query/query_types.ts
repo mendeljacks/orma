@@ -156,13 +156,18 @@ export type QueryField<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
-> = boolean | Expression<Schema, Aliases, Entity>
+> =
+    | boolean
+    | Expression<Schema, Aliases, Entity>
+    | { $escape: number | string | any[] | Record<string, any> }
 
 type QueryAliasedField<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
     Entity extends GetAllEntities<Schema>
-> = Expression<Schema, Aliases, Entity>
+> =
+    | Expression<Schema, Aliases, Entity>
+    | { $escape: number | string | any[] | Record<string, any> }
 
 export type Expression<
     Schema extends OrmaSchema,
@@ -177,7 +182,6 @@ export type Expression<
       >
     | GetFields<Schema, Entity>
     | GetAliases<Schema, Aliases, Entity>
-    | { $escape: any }
 
 type ExpressionFunction<
     Schema extends OrmaSchema,

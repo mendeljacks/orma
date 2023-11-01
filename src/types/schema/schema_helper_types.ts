@@ -1,10 +1,5 @@
-// generate type for orma schema which plays well with as const declarations
-
-import { Edge } from '../../helpers/schema_helpers'
 import { mysql_to_typescript_types } from '../../schema/introspector'
 import { ForeignKeyEdge, OrmaSchema } from '../schema/schema_types'
-import { IsEqual } from '../helper_types'
-import { Schema } from 'jsonschema'
 
 export type DeepReadonly<T> = T extends (infer R)[]
     ? readonly DeepReadonly<R>[]
@@ -27,7 +22,9 @@ export type Keyword = `$${string}`
 
 export type DeepMutable<T> = T extends Function
     ? T
-    : { -readonly [P in keyof T]: DeepMutable<T[P]> }
+    : T extends object
+    ? { -readonly [P in keyof T]: DeepMutable<T[P]> }
+    : T
 
 // basic structure
 
