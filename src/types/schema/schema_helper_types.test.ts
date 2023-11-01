@@ -8,7 +8,6 @@ import {
     GetAllEntities,
     GetChildEdges,
     GetFields,
-    GetFieldsByRequired,
     GetFieldType,
     GetParentEdges,
 } from './schema_helper_types'
@@ -104,16 +103,4 @@ import {
         GetFieldType<GlobalTestSchema, 'tax_codes', 'tax_code'>,
         'TAX1' | 'TAX2' | 'TAX3' | null
     > = true
-}
-
-{
-    type T = GetFieldsByRequired<typeof global_test_schema, 'users', true>
-    // gets regular required fields, but not auto increment fields. Ignores nullable fields
-    const test1: IsEqual<T, 'email'> = true
-}
-
-{
-    type T = GetFieldsByRequired<typeof global_test_schema, 'posts', true>
-    // ignores fields with a default and foreign keys
-    const test1: IsEqual<T, 'title'> = true
 }

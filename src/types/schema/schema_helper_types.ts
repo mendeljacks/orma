@@ -54,44 +54,6 @@ export type GetFieldNotNull<
     ? true
     : false
 
-// get a union of fields that either are nullable or are not nullable
-export type GetFieldsByRequired<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    IsRequired extends boolean
-> = GetFieldsByRequired2<Schema, Entity, GetFields<Schema, Entity>, IsRequired>
-
-type GetFieldsByRequired2<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    Fields extends GetFields<Schema, Entity>,
-    IsRequired extends boolean
-> = Fields extends GetFields<Schema, Entity>
-    ? GetFieldIsRequired<
-          Schema['$entities'][Entity]['$fields'][Fields],
-          Fields,
-          GetParentEdges<Schema, Entity>['from_field']
-      > extends IsRequired
-        ? Fields
-        : never
-    : never
-
-// a field is required if it is not nullable, and there is no auto_increment or default. Also foreign keys are considered
-// not required, since the logic to require them is more complicated and handled elsewhere
-export type GetFieldIsRequired<
-    FieldSchema extends OrmaFieldSchema,
-    Field extends any,
-    ForeignKeyFields extends any
-> = ForeignKeyFields extends Field
-    ? false
-    : FieldSchema['$not_null'] extends true
-    ? FieldSchema['$auto_increment'] extends true
-        ? false
-        : FieldSchema['$default'] extends OrmaFieldSchema['$default']
-        ? false
-        : true
-    : false
-
 export type GetParentEdges<
     Schema extends OrmaSchema,
     Entities extends GetAllEntities<Schema>
