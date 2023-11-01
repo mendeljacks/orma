@@ -54,6 +54,11 @@ export const get_guid_query = (
         return acc
     }, new Set<string>())
 
+    // can happen for updates that dont do anything and so dont have identifying fields
+    if (all_identifying_fields.size === 0) {
+        return undefined
+    }
+
     const $where = get_identifying_where(
         orma_schema,
         guid_map,

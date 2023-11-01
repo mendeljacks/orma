@@ -150,30 +150,27 @@ type SimplifyType<T> = T extends object
 //             : never
 //         : never
 // }>
+
 export type OrmaQueryResult<
     Schema extends OrmaSchema,
     Query extends object,
     Entity extends GetAllEntities<Schema> = never
-> = OrmaRecord<Schema, Entity, Query>
-
-export type OrmaRecord<
-    Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    Query extends object
 > = Omit<
     {
         // should be returned as a result if the key is not a keyword and the value is not a subquery
         -readonly [Key in keyof Query]: Query[Key] extends {
-            $from
+            $from: GetAllEntities<Schema>
         } // if the value has a $from prop, it is always a subquery
-            ? OrmaRecord<Schema, Query[Key]['$from'], Query[Key]>[] | undefined
+            ?
+                  | OrmaQueryResult<Schema, Query[Key], Query[Key]['$from']>[]
+                  | undefined
             : Query[Key] extends { $escape } // handle escaped constants
             ? DeepMutable<Query[Key]['$escape']>
             : Key extends GetAllEntities<Schema> // The other option for a subquery is that the prop is an entity name
             ? Query[Key] extends object // and the value is an object
                 ? Exclude<keyof Query[Key], Keyword> extends never // and the value has at least one non-keyword prop
                     ? never
-                    : OrmaRecord<Schema, Key, Query[Key]>[] | undefined
+                    : OrmaQueryResult<Schema, Query[Key], Key>[] | undefined
                 : never
             : GetSchemaTypeForField<Schema, Entity, Key, Query[Key]>
     },
@@ -192,6 +189,43 @@ type GetSchemaTypeForField<
     : Value extends GetFields<Schema, Entity>
     ? GetFieldType<Schema, Entity, Value>
     : any
+
+export type OrmaRecord<
+    Schema extends OrmaSchema,
+    Aliases extends OrmaQueryAliases<Schema>,
+    Entity extends GetAllEntities<Schema>,
+    Subquery extends object
+> = {
+    -readonly [Key in keyof Subquery &
+        (
+            | GetAllEntities<Schema>
+            | GetFields<Schema, Entity>
+            | GetAliases<Schema, Aliases, Entity>
+        )]: Subquery[Key] extends {
+        $from: GetAllEntities<Schema>
+    }
+        ?
+              | OrmaRecord<
+                    Schema,
+                    Aliases,
+                    Subquery[Key]['$from'],
+                    Subquery[Key]
+                >[]
+              | undefined // subquery with $from
+        : Subquery[Key] extends { $escape } // handle escaped constants
+        ? DeepMutable<Subquery[Key]['$escape']>
+        : Subquery[Key] extends true
+        ? Key extends GetFields<Schema, Entity>
+            ? GetFieldType<Schema, Entity, Key> // field_name: true
+            : "Unrecognized field name for value 'true'"
+        : Subquery[Key] extends GetFields<Schema, Entity>
+        ? GetFieldType<Schema, Entity, Subquery[Key]> // renamed_field: 'field_name'
+        : Key extends GetAllEntities<Schema>
+        ? Subquery[Key] extends object
+            ? OrmaRecord<Schema, Aliases, Key, Subquery[Key]>[] | undefined // subquery with no $from
+            : any
+        : any // unhandled case, like {$sum: 'quantity'}
+}
 
 export type OrmaField<
     Schema extends OrmaSchema,

@@ -5,7 +5,10 @@ import { clone } from '../helpers/helpers'
 import { get_mutation_diff } from '../mutate/diff/diff_mutation'
 import { orma_mutate_prepare, orma_mutate_run } from '../mutate/mutate'
 import { generate_orma_schema_cache } from '../schema/introspector'
-import { GlobalTestQuery } from '../test_data/global_test_schema'
+import {
+    GlobalTestMutation,
+    GlobalTestQuery,
+} from '../test_data/global_test_schema'
 import { OrmaSchema } from '../types/schema/schema_types'
 import {
     register_integration_test,
@@ -597,6 +600,39 @@ describe('full integration test', () => {
         expect(res.users?.[0].id).to.equal(undefined)
         //@ts-ignore
         expect(res.users?.[0].posts?.[0].user_id).to.equal(undefined)
+    })
+    test('handles mutates with no actions', async () => {
+        await test_mutate({
+            users: [
+                {
+                    $operation: 'update',
+                    id: 1,
+                    posts: [
+                        {
+                            $operation: 'update',
+                        },
+                    ],
+                },
+            ],
+        } as const satisfies GlobalTestMutation)
+
+        // test passes if it doesnt crash
+    })
+    test('handles mutates with empty updates', async () => {
+        const res = await test_mutate({
+            users: [
+                {
+                    $operation: 'update',
+                    posts: [
+                        {
+                            $operation: 'update',
+                        },
+                    ],
+                },
+            ],
+        } as const satisfies GlobalTestMutation)
+
+        // test passes if it doesnt crash
     })
     test.skip('allows $identifying_fields override')
     test.skip('handles manual guid + raw value linking')

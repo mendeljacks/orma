@@ -131,6 +131,12 @@ export const get_update_ast = (
 
     const identifying_fields = mutation_piece.record
         .$identifying_fields as string[]
+
+    if (!identifying_fields?.length) {
+        // to handle updates with no props
+        return undefined
+    }
+
     const where = get_identifying_where(
         orma_schema,
         guid_map,

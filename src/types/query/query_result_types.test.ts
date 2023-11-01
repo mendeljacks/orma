@@ -212,6 +212,7 @@ const test = () => {
         // handles orma record
         type TestType = OrmaRecord<
             GlobalTestSchema,
+            GlobalTestAliases,
             'users',
             {
                 users: {
