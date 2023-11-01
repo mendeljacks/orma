@@ -47,8 +47,8 @@ export type OrmaRecord<
             ? Subquery[Key] extends object
                 ? OrmaRecord<Schema, Key, Subquery[Key]>[] | undefined // subquery with no $from
                 : any
-            : Subquery[Key] extends { $escape }
-            ? DeepMutable<Subquery[Key]['$escape']>
+            // : Subquery[Key] extends { $escape }
+            // ? DeepMutable<Subquery[Key]['$escape']>
             : any // unhandled case, like {$sum: 'quantity'}
     },
     Keyword
