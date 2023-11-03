@@ -187,10 +187,14 @@ describe('nester', () => {
                     { id: 11, product_id: 1 },
                 ],
             ],
-            [['variants', 0, 'products', 0], [{ id: 1 }]],
+            [['variants', 0, 'products', 0], [{ id: 1, title: 'my product' }]],
+            [
+                ['variants', 0, 'products', 0, 'images', 0],
+                [{ variant_id: 1, url: 'test' }],
+            ],
         ]
 
-        const edges = [null, ['product_id', 'id']]
+        const edges = [null, ['product_id', 'id'], ['id', 'variant_id']]
 
         const goal = {
             variants: [
@@ -199,7 +203,13 @@ describe('nester', () => {
                     product_id: 1,
                     products: [
                         {
-                            id: 1,
+                            title: 'my product',
+                            images: [
+                                {
+                                    variant_id: 1,
+                                    url: 'test',
+                                },
+                            ],
                         },
                     ],
                 },
@@ -208,14 +218,25 @@ describe('nester', () => {
                     product_id: 1,
                     products: [
                         {
-                            id: 1,
+                            title: 'my product',
+                            images: [
+                                {
+                                    variant_id: 1,
+                                    url: 'test',
+                                },
+                            ],
                         },
                     ],
                 },
             ],
         }
 
-        let result = nester(data, edges, [])
+        // deleting the product id makes sure the field is not deleted before adding
+        // the copy to the index
+        let result = nester(data, edges, [
+            { additions: [], deletions: [] },
+            { additions: [], deletions: [{ field: 'id' }] },
+        ])
 
         expect(result).to.deep.equal(goal)
     })
