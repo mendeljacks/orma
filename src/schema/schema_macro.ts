@@ -49,13 +49,13 @@ const get_create_entity_statements = (
         Object.keys(entity_schema.$fields).map(field_name => {
             const field_schema = entity_schema.$fields[field_name]
             // For sqlite to do auto incrementing, we need the magic INTEGER PRIMARY KEY
-            // type. Having UNSIGNED or a precision like INTEGER(10) will cause it to 
+            // type. Having UNSIGNED or a precision like INTEGER(10) will cause it to
             // not auto increment.
             if (database_type === 'sqlite' && field_schema.$auto_increment) {
                 return {
                     $name: field_name,
                     $data_type: 'int',
-                    $auto_increment: true
+                    $auto_increment: true,
                 }
             } else {
                 return {
