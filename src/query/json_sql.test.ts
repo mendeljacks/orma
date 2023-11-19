@@ -3,16 +3,18 @@ import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
 import {
     AlterStatement,
-    CreateStatement,
+    CreateStatement
 } from '../types/schema/schema_ast_types'
 import { json_to_sql } from './json_sql'
+import { OrmaSchema } from '../types/schema/schema_types'
+import { get_schema_diff } from '../schema/schema_macro'
 
 describe('json_sql.ts', () => {
     describe('json_to_sql', () => {
         test('joins commands', () => {
             const json = {
                 $select: ['a'],
-                $from: 'b',
+                $from: 'b'
             }
 
             const sql = format(json_to_sql(json))
@@ -23,8 +25,8 @@ describe('json_sql.ts', () => {
         test('nested command work', () => {
             const json = {
                 $where: {
-                    $eq: ['a', 'b'],
-                },
+                    $eq: ['a', 'b']
+                }
             }
 
             const sql = format(json_to_sql(json))
@@ -35,19 +37,19 @@ describe('json_sql.ts', () => {
         test('handles selecting functions', () => {
             const json = {
                 $select: [{ $as: ['SUM(views)', 'total_views'] }],
-                $from: 'posts',
+                $from: 'posts'
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('SELECT SUM(views) AS total_views FROM \`posts\`')
+            const goal = format('SELECT SUM(views) AS total_views FROM `posts`')
 
             expect(sql).to.equal(goal)
         })
         test("'$not' command works", () => {
             const json = {
                 $not: {
-                    $in: ['a', [1, 2]],
-                },
+                    $in: ['a', [1, 2]]
+                }
             }
 
             const sql = format(json_to_sql(json))
@@ -60,17 +62,17 @@ describe('json_sql.ts', () => {
                 $and: [
                     {
                         $not: {
-                            $eq: ['a', null],
-                        },
+                            $eq: ['a', null]
+                        }
                     },
                     {
                         $not: {
                             // this also evualuates to NULL when passed into sql. Sql commands are case insensitive, so
                             // the casing shouldnt matter
-                            $eq: ['a', 'NuLl'],
-                        },
-                    },
-                ],
+                            $eq: ['a', 'NuLl']
+                        }
+                    }
+                ]
             }
 
             const sql = format(json_to_sql(json))
@@ -82,8 +84,8 @@ describe('json_sql.ts', () => {
             const json = {
                 $eq: [
                     ['id', 'parent_id'],
-                    [1, 2],
-                ],
+                    [1, 2]
+                ]
             }
 
             const sql = format(json_to_sql(json))
@@ -96,9 +98,9 @@ describe('json_sql.ts', () => {
                 $not: {
                     $eq: [
                         ['id', 'parent_id'],
-                        [1, null],
-                    ],
-                },
+                        [1, null]
+                    ]
+                }
             }
 
             const sql = format(json_to_sql(json))
@@ -109,7 +111,7 @@ describe('json_sql.ts', () => {
         test('handles aggregate functions', () => {
             const json = {
                 $min: 'field',
-                $count: '*',
+                $count: '*'
             }
 
             const sql = format(json_to_sql(json))
@@ -119,7 +121,7 @@ describe('json_sql.ts', () => {
         })
         test('handles functions with multiple args', () => {
             const json = {
-                $coalesce: [1, 2],
+                $coalesce: [1, 2]
             }
 
             const sql = format(json_to_sql(json))
@@ -129,7 +131,7 @@ describe('json_sql.ts', () => {
         })
         test('$round', () => {
             const json = {
-                $round: [1.234, 2],
+                $round: [1.234, 2]
             }
 
             const sql = format(json_to_sql(json))
@@ -151,7 +153,7 @@ describe('json_sql.ts', () => {
         })
         test('handles if', () => {
             const json = {
-                $if: [{ $eq: [1, 1] }, '"yes"', '"no"'],
+                $if: [{ $eq: [1, 1] }, '"yes"', '"no"']
             }
             const sql = format(json_to_sql(json))
             const goal = format(`IF (1 = 1, "yes", "no")`)
@@ -170,11 +172,11 @@ describe('json_sql.ts', () => {
                     $not: {
                         $not: {
                             $not: {
-                                $in: ['a', [1, 2]],
-                            },
-                        },
-                    },
-                },
+                                $in: ['a', [1, 2]]
+                            }
+                        }
+                    }
+                }
             }
 
             const sql = format(json_to_sql(json))
@@ -188,9 +190,9 @@ describe('json_sql.ts', () => {
                     ['a', 'b'],
                     [
                         [1, "'c'"],
-                        [{ $coalesce: ['null', 2] }, 3],
-                    ],
-                ],
+                        [{ $coalesce: ['null', 2] }, 3]
+                    ]
+                ]
             }
 
             const a = json_to_sql(json)
@@ -201,7 +203,7 @@ describe('json_sql.ts', () => {
         })
         test('ignores undefined properties', () => {
             const json = {
-                $having: undefined,
+                $having: undefined
             }
             //@ts-ignore
             const sql = format(json_to_sql(json))
@@ -212,7 +214,7 @@ describe('json_sql.ts', () => {
         test('handles $entity $field', () => {
             const json = {
                 $entity: 'items',
-                $field: 'sku',
+                $field: 'sku'
             }
             //@ts-ignore
             const sql = format(json_to_sql(json))
@@ -227,11 +229,11 @@ describe('json_sql.ts', () => {
                         {
                             $select: ['*'],
                             $from: 'reviews',
-                            $where: { $eq: ['listing_id', 0] },
+                            $where: { $eq: ['listing_id', 0] }
                         },
-                        4,
-                    ],
-                },
+                        4
+                    ]
+                }
             }
 
             const sql = format(json_to_sql(json))
@@ -258,18 +260,18 @@ describe('json_sql.ts', () => {
                         $name: 'id',
                         $data_type: 'int',
                         $not_null: true,
-                        $auto_increment: true,
+                        $auto_increment: true
                     },
                     {
                         $constraint: 'primary_key',
-                        $fields: ['id'],
-                    },
-                ],
+                        $fields: ['id']
+                    }
+                ]
             }
 
             const goal = format(`
                 CREATE TEMPORARY TABLE IF NOT EXISTS my_table (
-                    id INT NOT NULL AUTO_INCREMENT,
+                    \`id\` INT NOT NULL AUTO_INCREMENT,
                     PRIMARY KEY (id)
                 ) COMMENT "my table"`)
 
@@ -282,11 +284,11 @@ describe('json_sql.ts', () => {
                     {
                         $alter_operation: 'add',
                         $name: 'id',
-                        $data_type: 'int',
+                        $data_type: 'int'
                     },
                     {
                         $alter_operation: 'drop',
-                        $name: 'id',
+                        $name: 'id'
                     },
                     {
                         $alter_operation: 'modify',
@@ -294,16 +296,16 @@ describe('json_sql.ts', () => {
                         $name: 'my_id',
                         $data_type: 'decimal',
                         $precision: 6,
-                        $scale: 2,
-                    },
-                ],
+                        $scale: 2
+                    }
+                ]
             }
 
             const goal = format(`
                 ALTER TABLE \`my_table\` (
-                    ADD id INT,
-                    DROP id,
-                    MODIFY id my_id DECIMAL(6, 2)
+                    ADD \`id\` INT,
+                    DROP \`id\`,
+                    MODIFY id \`my_id\` DECIMAL(6, 2)
                 )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -316,14 +318,14 @@ describe('json_sql.ts', () => {
                         $name: 'id',
                         $data_type: 'int',
                         $not_null: true,
-                        $auto_increment: true,
-                    },
-                ],
+                        $auto_increment: true
+                    }
+                ]
             }
 
             const goal = format(`
                 CREATE TABLE my_table (
-                    id INT NOT NULL AUTO_INCREMENT
+                    \`id\` INT NOT NULL AUTO_INCREMENT
                 )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -335,14 +337,14 @@ describe('json_sql.ts', () => {
                     {
                         $name: 'id',
                         $data_type: 'enum',
-                        $enum_values: ['A', 'b'],
-                    },
-                ],
+                        $enum_values: ['A', 'b']
+                    }
+                ]
             }
 
             const goal = format(`
                 CREATE TABLE my_table (
-                    id ENUM("A", "b")
+                    \`id\` ENUM("A", "b")
                 )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -354,14 +356,14 @@ describe('json_sql.ts', () => {
                     {
                         $name: 'id',
                         $data_type: 'enum',
-                        $enum_values: ['A', 'b'],
-                    },
-                ],
+                        $enum_values: ['A', 'b']
+                    }
+                ]
             }
 
             const goal = format(`
                 CREATE TABLE my_table (
-                    id TEXT CHECK(id IN ("A", "b"))
+                    \`id\` TEXT CHECK(id IN ("A", "b"))
                 )`)
 
             expect(format(json_to_sql(json, 'sqlite'))).to.equal(goal)
@@ -373,15 +375,15 @@ describe('json_sql.ts', () => {
                     {
                         $name: 'id',
                         $data_type: 'int',
-                        $unsigned: true,
-                    },
+                        $unsigned: true
+                    }
                 ],
-                $comment: 'sqlite doesnt support comments',
+                $comment: 'sqlite doesnt support comments'
             }
 
             const goal = format(`
                 CREATE TABLE my_table (
-                    id UNSIGNED INTEGER
+                    \`id\` UNSIGNED INTEGER
                 )`)
 
             expect(format(json_to_sql(json, 'sqlite'))).to.equal(goal)
@@ -394,23 +396,23 @@ describe('json_sql.ts', () => {
                         $name: 'label1',
                         $data_type: 'varchar',
                         $precision: 2,
-                        $default: '"N/A"',
+                        $default: '"N/A"'
                     },
                     {
                         $name: 'label2',
                         $data_type: 'varchar',
                         $precision: 2,
                         $default: {
-                            $current_timestamp: true,
-                        },
-                    },
-                ],
+                            $current_timestamp: true
+                        }
+                    }
+                ]
             }
 
             const goal = format(`
                 CREATE TABLE my_table (
-                    label1 VARCHAR(2) DEFAULT "N/A",
-                    label2 VARCHAR(2) DEFAULT CURRENT_TIMESTAMP
+                    \`label1\` VARCHAR(2) DEFAULT "N/A",
+                    \`label2\` VARCHAR(2) DEFAULT CURRENT_TIMESTAMP
                 )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -424,18 +426,18 @@ describe('json_sql.ts', () => {
                         $data_type: 'timestamp',
                         $not_null: true,
                         $default: {
-                            $current_timestamp: true,
+                            $current_timestamp: true
                         },
                         $on_update: {
-                            $current_timestamp: true,
-                        },
-                    },
-                ],
+                            $current_timestamp: true
+                        }
+                    }
+                ]
             }
 
             const goal = format(`
                 CREATE TABLE my_table (
-                    updated_at TIMESTAMP NOT NULL 
+                    \`updated_at\` TIMESTAMP NOT NULL 
                         DEFAULT CURRENT_TIMESTAMP 
                         ON UPDATE CURRENT_TIMESTAMP
                 )`)
@@ -452,14 +454,14 @@ describe('json_sql.ts', () => {
                         $name: 'invisible',
                         $invisible: true,
                         $fields: ['label'],
-                        $comment: 'invis',
-                    },
-                ],
+                        $comment: 'invis'
+                    }
+                ]
             }
 
             const goal = format(`
                 ALTER TABLE \`my_table\` (
-                    ADD INDEX invisible (label) INVISIBLE COMMENT "invis"
+                    ADD INDEX \`invisible\` (label) INVISIBLE COMMENT "invis"
                 )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -472,9 +474,9 @@ describe('json_sql.ts', () => {
                         $alter_operation: 'add',
                         $constraint: 'unique_key',
                         $name: 'uq_ind',
-                        $fields: ['label'],
-                    },
-                ],
+                        $fields: ['label']
+                    }
+                ]
             }
 
             const goal = format(`
@@ -492,14 +494,14 @@ describe('json_sql.ts', () => {
                         $alter_operation: 'add',
                         $index: 'full_text',
                         $name: 'ft',
-                        $fields: ['size', 'label'],
-                    },
-                ],
+                        $fields: ['size', 'label']
+                    }
+                ]
             }
 
             const goal = format(`
             ALTER TABLE \`my_table\` (
-                ADD FULLTEXT INDEX ft (size, label)
+                ADD FULLTEXT INDEX \`ft\` (size, label)
             )`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -509,8 +511,8 @@ describe('json_sql.ts', () => {
                 $create_index: 'my_index',
                 $on: {
                     $entity: 'my_table',
-                    $fields: ['field1', 'field2'],
-                },
+                    $fields: ['field1', 'field2']
+                }
             }
 
             const goal = format(`
@@ -527,9 +529,9 @@ describe('json_sql.ts', () => {
                         $alter_operation: 'add',
                         $constraint: 'primary_key',
                         $name: 'primary',
-                        $fields: ['id'],
-                    },
-                ],
+                        $fields: ['id']
+                    }
+                ]
             }
 
             const goal = format(`
@@ -546,8 +548,8 @@ describe('json_sql.ts', () => {
                 $fields: ['parent_id'],
                 $references: {
                     $entity: 'parents',
-                    $fields: ['id'],
-                },
+                    $fields: ['id']
+                }
             }
 
             const json: AlterStatement = {
@@ -558,22 +560,22 @@ describe('json_sql.ts', () => {
                         ...foreign_key_base,
                         $name: 'my_foreign_key',
                         $on_update: {
-                            $restrict: true,
+                            $restrict: true
                         },
                         $on_delete: {
-                            $cascade: true,
-                        },
+                            $cascade: true
+                        }
                     },
                     {
                         ...foreign_key_base,
                         $on_update: {
-                            $set_null: true,
+                            $set_null: true
                         },
                         $on_delete: {
-                            $no_action: true,
-                        },
-                    },
-                ],
+                            $no_action: true
+                        }
+                    }
+                ]
             }
 
             const goal = format(`
@@ -590,13 +592,87 @@ describe('json_sql.ts', () => {
         test('can create table $like', () => {
             const json: CreateStatement = {
                 $create_table: 'my_table',
-                $like_table: 'other_table',
+                $like_table: 'other_table'
             }
 
             const goal = format(`
             CREATE TABLE my_table LIKE other_table`)
 
             expect(format(json_to_sql(json))).to.equal(goal)
+        })
+        test('Can create postgres table', () => {
+            const schema: OrmaSchema = {
+                $entities: {
+                    permissions: {
+                        $database_type: 'postgres',
+                        $fields: {
+                            id: {
+                                $data_type: 'int',
+                                $auto_increment: true
+                            },
+                            label: {
+                                $data_type: 'varchar',
+                                $precision: 450,
+                                $not_null: true
+                            },
+                            updated_at: {
+                                $data_type: 'timestamp',
+                                $default: 'CURRENT_TIMESTAMP',
+                                $not_null: true
+                            },
+                            created_at: {
+                                $data_type: 'timestamp',
+                                $default: 'CURRENT_TIMESTAMP',
+                                $not_null: true
+                            },
+                            resource_id: {
+                                $data_type: 'varchar',
+                                $precision: 20,
+                                $not_null: true
+                            }
+                        },
+                        $primary_key: {
+                            $fields: ['id']
+                        },
+                        $unique_keys: [
+                            {
+                                $name: 'id_UNIQUE',
+                                $fields: ['id']
+                            },
+                            {
+                                $name: 'PRIMARY',
+                                $fields: ['id']
+                            },
+                            {
+                                $name: 'resource_id_UNIQUE',
+                                $fields: ['resource_id']
+                            }
+                        ]
+                    }
+                }
+            }
+
+            const schema_diff = get_schema_diff({ $entities: {} }, schema)
+
+            const statements = schema_diff.map(ast => ({
+                sql_string: json_to_sql(ast, 'postgres')
+            }))
+
+            const output = format(statements[0].sql_string)
+            expect(output).to.equal(
+                format(`
+                CREATE TABLE permissions (
+                    "id" INT GENERATED BY DEFAULT AS IDENTITY,
+                    "label" VARCHAR(450) NOT NULL,
+                    "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    "resource_id" VARCHAR(20) NOT NULL,
+                    CONSTRAINT "id_UNIQUE" UNIQUE (id),
+                    CONSTRAINT "PRIMARY" UNIQUE (id),
+                    CONSTRAINT "resource_id_UNIQUE" UNIQUE (resource_id),
+                    PRIMARY KEY (id)
+                )`)
+            )
         })
     })
 })
