@@ -6,12 +6,12 @@ import {
     is_entity_name,
     is_field_name,
     is_parent_entity,
-    is_reserved_keyword,
+    is_reserved_keyword
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { Path } from '../../types'
 import { OrmaQuery, WhereConnected } from '../../types/query/query_types'
-import { sql_function_definitions } from '../json_sql'
+import { sql_function_definitions } from '../ast_to_sql'
 import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { is_subquery } from '../query_helpers'
 import { query_validation_schema } from './query_validation_schema'
@@ -67,7 +67,7 @@ const validate_outer_subquery = (
         ...validate_common_subquery(subquery, subquery_path, orma_schema),
         ...validate_data_props(query, subquery, subquery_path, orma_schema),
         ...validate_select(subquery, subquery_path, false, orma_schema),
-        ...validate_foreign_key(query, subquery, subquery_path, orma_schema),
+        ...validate_foreign_key(query, subquery, subquery_path, orma_schema)
     ]
 
     return errors
@@ -81,7 +81,7 @@ const validate_inner_subquery = (
 ) => {
     const errors = [
         ...validate_common_subquery(subquery, subquery_path, orma_schema),
-        ...validate_select(subquery, subquery_path, false, orma_schema),
+        ...validate_select(subquery, subquery_path, false, orma_schema)
     ]
 
     return errors
@@ -118,7 +118,7 @@ const validate_common_subquery = (
             entity_name,
             field_aliases,
             orma_schema
-        ),
+        )
     ]
 
     return errors
@@ -145,8 +145,8 @@ const validate_from_clause = (
         ? [
               {
                   message: `$from clause ${subquery.$from} is not a valid entity name.`,
-                  path: [...subquery_path, '$from'],
-              },
+                  path: [...subquery_path, '$from']
+              }
           ]
         : incorrect_entity
         ? [
@@ -156,8 +156,8 @@ const validate_from_clause = (
                   } and subquery property is ${last(
                       subquery_path
                   )}, neither of which are valid entity names.`,
-                  path: subquery_path,
-              },
+                  path: subquery_path
+              }
           ]
         : []
 
@@ -198,9 +198,9 @@ const validate_data_props = (
                           path: [...subquery_path, prop],
                           additional_info: {
                               prop,
-                              entity_name,
-                          },
-                      },
+                              entity_name
+                          }
+                      }
                   ]
                 : []
         }
@@ -265,8 +265,8 @@ const validate_expression = (
                 ? [
                       {
                           message: `${expression} is not a valid field name of entity ${context_entity}. If you want to use a literal value, try replacing ${expression} with {$escape: ${expression}}.`,
-                          path: expression_path,
-                      },
+                          path: expression_path
+                      }
                   ]
                 : []
 
@@ -278,8 +278,8 @@ const validate_expression = (
             return [
                 {
                     message: `${expression.$entity} is not a valid entity name.`,
-                    path: [...expression_path, '$entity'],
-                },
+                    path: [...expression_path, '$entity']
+                }
             ]
         }
 
@@ -289,8 +289,8 @@ const validate_expression = (
             return [
                 {
                     message: `${expression.$field} is not a valid field name of entity ${expression.$entity}.`,
-                    path: [...expression_path, '$field'],
-                },
+                    path: [...expression_path, '$field']
+                }
             ]
         }
 
@@ -361,8 +361,8 @@ const validate_select = (
             ? [
                   {
                       message: `Inner $select must have exactly one field, but it has ${select_length} fields.`,
-                      path: [...subquery_path, '$select'],
-                  },
+                      path: [...subquery_path, '$select']
+                  }
               ]
             : []
 
@@ -413,9 +413,9 @@ const validate_foreign_key = (
                     'Only a $foreign_key with one field is currently supported.',
                 path: [...subquery_path, '$foreign_key'],
                 additional_info: {
-                    foreign_key_length: $foreign_key.length,
-                },
-            },
+                    foreign_key_length: $foreign_key.length
+                }
+            }
         ]
     }
 
@@ -428,7 +428,7 @@ const validate_foreign_key = (
 
     const valid_edges = [
         ...entity_edges.filter(edge => edge.to_entity === higher_entity),
-        ...higher_entity_edges.filter(edge => edge.to_entity === entity),
+        ...higher_entity_edges.filter(edge => edge.to_entity === entity)
     ]
     const matching_edges = valid_edges.filter(edge => edge.from_field === field)
 
@@ -440,11 +440,9 @@ const validate_foreign_key = (
                 additional_info: {
                     entity,
                     higher_entity,
-                    valid_foreign_keys: valid_edges.map(
-                        edge => edge.from_field
-                    ),
-                },
-            },
+                    valid_foreign_keys: valid_edges.map(edge => edge.from_field)
+                }
+            }
         ]
     }
 
@@ -630,8 +628,8 @@ const validate_any_path_clause = (
             return [
                 {
                     message: `${entity} is not a valid entity name.`,
-                    path: [...where_path, '$any_path', 0, i],
-                },
+                    path: [...where_path, '$any_path', 0, i]
+                }
             ]
         }
 
@@ -641,8 +639,8 @@ const validate_any_path_clause = (
             return [
                 {
                     message: `${entity} is not connected to previous entity ${previous_entity}.`,
-                    path: [...where_path, '$any_path', 0, i],
-                },
+                    path: [...where_path, '$any_path', 0, i]
+                }
             ]
         }
 
@@ -673,8 +671,8 @@ const validate_where_connected = (query, orma_schema: OrmaSchema) => {
             return [
                 {
                     message: `${el.$entity} is not a valid entity name.`,
-                    path: ['$where_connected', i, '$entity'],
-                },
+                    path: ['$where_connected', i, '$entity']
+                }
             ]
         }
 
@@ -682,8 +680,8 @@ const validate_where_connected = (query, orma_schema: OrmaSchema) => {
             return [
                 {
                     message: `${el.$field} is not a valid field name of entity ${el.$entity}.`,
-                    path: ['$where_connected', i, '$field'],
-                },
+                    path: ['$where_connected', i, '$field']
+                }
             ]
         }
 
@@ -693,8 +691,8 @@ const validate_where_connected = (query, orma_schema: OrmaSchema) => {
             return [
                 {
                     message: `Field ${el.$field} in entity ${el.$entity} appears more than once in the $where_connected.`,
-                    path: ['$where_connected', i],
-                },
+                    path: ['$where_connected', i]
+                }
             ]
         }
         done_fields.add(field_string)

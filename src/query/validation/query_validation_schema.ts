@@ -1,43 +1,43 @@
-import { sql_function_definitions } from '../json_sql'
+import { sql_function_definitions } from '../ast_to_sql'
 
 const alias_regex = '^[A-Za-z0-9_$]+$' // alphanumeric and _
 
 const primitive_schema = {
     oneOf: [
         {
-            type: 'string',
+            type: 'string'
         },
         {
-            type: 'boolean',
+            type: 'boolean'
         },
         {
-            type: 'number',
+            type: 'number'
         },
         {
-            type: 'null',
-        },
-    ],
+            type: 'null'
+        }
+    ]
 }
 
 const expression_schema = {
     anyOf: [
         {
             // expression can be the name of a field
-            type: 'string',
+            type: 'string'
         },
         {
             // or an entity / field combo
             type: 'object',
             properties: {
                 $entity: {
-                    type: 'string',
+                    type: 'string'
                 },
                 $field: {
-                    type: 'string',
-                },
+                    type: 'string'
+                }
             },
             required: ['$entity', '$field'],
-            additionalProperties: false,
+            additionalProperties: false
         },
         // or an sql function
         ...Object.keys(sql_function_definitions).map(function_name => {
@@ -50,8 +50,8 @@ const expression_schema = {
                     : sql_function_definition.max_args === 1
                     ? [
                           {
-                              $ref: '#/$defs/expression',
-                          },
+                              $ref: '#/$defs/expression'
+                          }
                       ]
                     : [
                           {
@@ -59,9 +59,9 @@ const expression_schema = {
                               minItems: sql_function_definition.min_args,
                               maxItems: sql_function_definition.max_args,
                               items: {
-                                  $ref: '#/$defs/expression',
-                              },
-                          },
+                                  $ref: '#/$defs/expression'
+                              }
+                          }
                       ]
 
             // if no args are allowed, we must use true as a placeholder for the json value. If multiple args are allowed,
@@ -73,8 +73,8 @@ const expression_schema = {
                 sql_function_definition.max_args === 0
                     ? [
                           {
-                              const: true,
-                          },
+                              const: true
+                          }
                       ]
                     : []
 
@@ -83,41 +83,41 @@ const expression_schema = {
                       {
                           $type: 'object',
                           properties: {
-                              $distinct: inner_schema,
+                              $distinct: inner_schema
                           },
                           required: ['distinct'],
-                          additionalProperties: false,
-                      },
+                          additionalProperties: false
+                      }
                   ]
                 : []
 
             const star_schema = sql_function_definition.allow_star
                 ? [
                       {
-                          const: '*',
-                      },
+                          const: '*'
+                      }
                   ]
                 : []
 
             const field_schema = {
                 type: 'object',
                 properties: {
-                    [function_name]: inner_schema,
+                    [function_name]: inner_schema
                 },
                 required: [function_name],
-                additionalProperties: false,
+                additionalProperties: false
             }
 
             const schemas = [
                 ...true_schema,
                 ...distinct_schema,
                 ...star_schema,
-                field_schema,
+                field_schema
             ]
 
             return schemas.length > 0
                 ? {
-                      oneOf: schemas,
+                      oneOf: schemas
                   }
                 : schemas
         }),
@@ -126,17 +126,17 @@ const expression_schema = {
             type: 'object',
             properties: {
                 $escape: {
-                    $ref: '#/$defs/primitive',
-                },
+                    $ref: '#/$defs/primitive'
+                }
             },
             required: ['$escape'],
-            additionalProperties: false,
+            additionalProperties: false
         },
         // or a subquery
         {
-            $ref: '#/$defs/inner_query',
-        },
-    ],
+            $ref: '#/$defs/inner_query'
+        }
+    ]
 }
 
 const order_by_schema = {
@@ -148,37 +148,37 @@ const order_by_schema = {
                 additionalProperties: false,
                 properties: {
                     $asc: {
-                        $ref: '#/$defs/expression',
-                    },
-                },
+                        $ref: '#/$defs/expression'
+                    }
+                }
             },
             {
                 type: 'object',
                 additionalProperties: false,
                 properties: {
                     $desc: {
-                        $ref: '#/$defs/expression',
-                    },
-                },
-            },
-        ],
-    },
+                        $ref: '#/$defs/expression'
+                    }
+                }
+            }
+        ]
+    }
 }
 
 const group_by_schema = {
     type: 'array',
     items: {
-        $ref: '#/$defs/expression',
-    },
+        $ref: '#/$defs/expression'
+    }
 }
 
 const operation_schema = {
     type: 'array',
     items: {
-        $ref: `#/$defs/expression`,
+        $ref: `#/$defs/expression`
     },
     minItems: 2,
-    maxItems: 2,
+    maxItems: 2
 }
 
 const where_schema = {
@@ -193,19 +193,19 @@ const where_schema = {
             $and: {
                 type: 'array',
                 items: {
-                    $ref: `#/$defs/where_clause`,
+                    $ref: `#/$defs/where_clause`
                 },
-                minItems: 1,
-            },
+                minItems: 1
+            }
         },
         {
             $or: {
                 type: 'array',
                 items: {
-                    $ref: `#/$defs/where_clause`,
+                    $ref: `#/$defs/where_clause`
                 },
-                minItems: 1,
-            },
+                minItems: 1
+            }
         },
         {
             $in: {
@@ -214,7 +214,7 @@ const where_schema = {
                 maxItems: 2,
                 items: [
                     {
-                        $ref: `#/$defs/expression`,
+                        $ref: `#/$defs/expression`
                     },
                     {
                         oneOf: [
@@ -222,11 +222,11 @@ const where_schema = {
                                 type: 'array',
                                 minItems: 1,
                                 items: {
-                                    $ref: `#/$defs/expression`,
-                                },
+                                    $ref: `#/$defs/expression`
+                                }
                             },
                             {
-                                $ref: '#/$defs/inner_query',
+                                $ref: '#/$defs/inner_query'
                             },
                             {
                                 type: 'object',
@@ -235,21 +235,21 @@ const where_schema = {
                                         type: 'array',
                                         minItems: 1,
                                         items: {
-                                            $ref: '#/$defs/primitive',
-                                        },
-                                    },
+                                            $ref: '#/$defs/primitive'
+                                        }
+                                    }
                                 },
-                                additionalProperties: false,
-                            },
-                        ],
-                    },
-                ],
-            },
+                                additionalProperties: false
+                            }
+                        ]
+                    }
+                ]
+            }
         },
         {
             $not: {
-                $ref: `#/$defs/where_clause`,
-            },
+                $ref: `#/$defs/where_clause`
+            }
         },
         {
             $any_path: {
@@ -260,20 +260,20 @@ const where_schema = {
                     {
                         type: 'array',
                         items: {
-                            type: 'string',
-                        },
+                            type: 'string'
+                        }
                     },
                     {
-                        $ref: '#/$defs/where_clause',
-                    },
-                ],
-            },
-        },
+                        $ref: '#/$defs/where_clause'
+                    }
+                ]
+            }
+        }
     ].map(properties => ({
         type: 'object',
         additionalProperties: false,
-        properties,
-    })),
+        properties
+    }))
 }
 
 const query_shared_props = {
@@ -283,7 +283,7 @@ const query_shared_props = {
         items: {
             anyOf: [
                 {
-                    $ref: '#/$defs/expression',
+                    $ref: '#/$defs/expression'
                 },
                 {
                     type: 'object',
@@ -294,40 +294,40 @@ const query_shared_props = {
                             maxItems: 2,
                             items: [
                                 {
-                                    $ref: '#/$defs/expression',
+                                    $ref: '#/$defs/expression'
                                 },
                                 {
                                     minLength: 1,
                                     type: 'string',
-                                    pattern: alias_regex,
-                                },
-                            ],
-                        },
+                                    pattern: alias_regex
+                                }
+                            ]
+                        }
                     },
-                    additionalProperties: false,
-                },
-            ],
-        },
+                    additionalProperties: false
+                }
+            ]
+        }
     },
     $from: {
-        type: 'string',
+        type: 'string'
     },
     $limit: {
         type: 'number',
-        minimum: 0,
+        minimum: 0
     },
     $offset: {
         type: 'number',
-        minimum: 0,
+        minimum: 0
     },
     $order_by: order_by_schema,
     $group_by: group_by_schema,
     $where: {
-        $ref: '#/$defs/where_clause',
+        $ref: '#/$defs/where_clause'
     },
     $having: {
-        $ref: '#/$defs/where_clause',
-    },
+        $ref: '#/$defs/where_clause'
+    }
 }
 
 // outer queries are regular queries like { products: { id: true }}
@@ -346,25 +346,25 @@ const outer_query_schema = {
             anyOf: [
                 {
                     // this covers case 1
-                    type: 'boolean',
+                    type: 'boolean'
                 },
                 {
                     // this covers cases 2 and 3
-                    $ref: '#/$defs/expression',
+                    $ref: '#/$defs/expression'
                 },
                 {
                     // this covers cases 4 and 5
-                    $ref: '#/$defs/outer_query',
-                },
-            ],
-        },
+                    $ref: '#/$defs/outer_query'
+                }
+            ]
+        }
     },
     additionalProperties: false,
     // known properties of a query
     properties: {
         ...query_shared_props,
-        $foreign_key: { type: 'array', minItems: 1, items: { type: 'string' } },
-    },
+        $foreign_key: { type: 'array', minItems: 1, items: { type: 'string' } }
+    }
 }
 
 // inner queries dont have property selects, nesting etc and are used inside where clauses, e.g.
@@ -372,10 +372,10 @@ const outer_query_schema = {
 const inner_query_schema = {
     type: 'object',
     properties: {
-        ...query_shared_props,
+        ...query_shared_props
     },
     required: ['$select', '$from'],
-    additionalProperties: false,
+    additionalProperties: false
 }
 
 const where_connected_schema = {
@@ -385,21 +385,21 @@ const where_connected_schema = {
         type: 'object',
         properties: {
             $entity: {
-                type: 'string',
+                type: 'string'
             },
             $field: {
-                type: 'string',
+                type: 'string'
             },
             $values: {
                 type: 'array',
                 minItems: 1,
                 items: {
-                    $ref: '#/$defs/primitive',
-                },
-            },
+                    $ref: '#/$defs/primitive'
+                }
+            }
         },
-        additionalProperties: false,
-    },
+        additionalProperties: false
+    }
 }
 
 export const query_validation_schema = {
@@ -409,13 +409,13 @@ export const query_validation_schema = {
         where_clause: where_schema,
         outer_query: outer_query_schema,
         inner_query: inner_query_schema,
-        primitive: primitive_schema,
+        primitive: primitive_schema
     },
     type: 'object',
     properties: {
-        $where_connected: where_connected_schema,
+        $where_connected: where_connected_schema
     },
     additionalProperties: {
-        $ref: '#/$defs/outer_query',
-    },
+        $ref: '#/$defs/outer_query'
+    }
 }

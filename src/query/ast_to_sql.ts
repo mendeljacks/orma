@@ -20,7 +20,7 @@
  * statement - in other words, the set of sql statements and the set of sql jsons are equivalent sets.
  * This is true theoretically, however some sql functions may not be implemented due to time limitations.
  *
- * @module json_sql
+ * @module ast_to_sql
  */
 
 import { deep_get, drop_last, is_simple_object } from '../helpers/helpers'
@@ -165,35 +165,35 @@ export const sql_function_definitions = {
     $cast_signed: {
         ast_to_sql: args => `CAST((${args}) AS SIGNED)`,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $sum: {
         ast_to_sql: args => `SUM(${args})`,
         aggregate: true,
         allow_distinct: true,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $min: {
         ast_to_sql: args => `MIN(${args})`,
         aggregate: true,
         allow_distinct: true,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $max: {
         ast_to_sql: args => `MAX(${args})`,
         aggregate: true,
         allow_distinct: true,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $avg: {
         ast_to_sql: args => `AVG(${args})`,
         aggregate: true,
         allow_distinct: true,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $count: {
         ast_to_sql: args => `COUNT(${args})`,
@@ -201,7 +201,7 @@ export const sql_function_definitions = {
         allow_distinct: true,
         allow_star: true,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     // non-aggregate functions
     $coalesce: {
@@ -209,82 +209,82 @@ export const sql_function_definitions = {
             const res = `COALESCE(${args.join(', ')})`
             return nested_under_odd_nots(path) ? `NOT (${res})` : res
         },
-        min_args: 1,
+        min_args: 1
     },
     $round: {
         ast_to_sql: args => `ROUND(${args.join(', ')})`,
         min_args: 2,
-        max_args: 2,
+        max_args: 2
     },
     $floor: {
         ast_to_sql: args => `FLOOR(${args})`,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $ceil: {
         ast_to_sql: args => `CEIL(${args})`,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $lower: {
         ast_to_sql: args => `LOWER(${args})`,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $upper: {
         ast_to_sql: args => `UPPER(${args})`,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $date: {
         ast_to_sql: args => `DATE(${args})`,
         min_args: 1,
-        max_args: 1,
+        max_args: 1
     },
     $if: {
         ast_to_sql: args => `IF(${args.join(', ')})`,
         min_args: 3,
-        max_args: 3,
+        max_args: 3
     },
     $concat: {
         ast_to_sql: args => `CONCAT(${args.join(', ')})`,
-        min_args: 1,
+        min_args: 1
     },
     $multiply: {
         ast_to_sql: args => `(${args.join(' * ')})`,
         min_args: 2,
-        max_args: 2,
+        max_args: 2
     },
     $divide: {
         ast_to_sql: args => `(${args.join(' / ')})`,
         min_args: 2,
-        max_args: 2,
+        max_args: 2
     },
     $add: {
         ast_to_sql: args => `(${args.join(' + ')})`,
         min_args: 2,
-        max_args: 2,
+        max_args: 2
     },
     $subtract: {
         ast_to_sql: args => `(${args.join(' - ')})`,
         min_args: 2,
-        max_args: 2,
+        max_args: 2
     },
     // Postgres's PostGIS functions
     $st_distance: {
         ast_to_sql: args => `ST_Distance(${args.join(', ')})`,
         min_args: 2,
-        max_args: 3,
+        max_args: 3
     },
     $st_dwithin: {
         ast_to_sql: args => `ST_DWithin(${args.join(', ')})`,
         min_args: 2,
-        max_args: 3,
+        max_args: 3
     },
     $current_timestamp: {
         ast_to_sql: arg => `CURRENT_TIMESTAMP`,
-        max_args: 0,
-    },
+        max_args: 0
+    }
 } as const satisfies SqlFunctionDefinitions
 
 // note that the order of the command parsers is the same order they appear in the sql strings. this means that
@@ -448,7 +448,7 @@ const sql_command_parsers = {
         const constraint_type_sql = {
             unique_key: `UNIQUE`,
             primary_key: `PRIMARY KEY`,
-            foreign_key: `FOREIGN KEY`,
+            foreign_key: `FOREIGN KEY`
         }[arg]
 
         const constraint_sql = name
@@ -460,7 +460,7 @@ const sql_command_parsers = {
         return {
             true: `INDEX`,
             full_text: 'FULLTEXT INDEX',
-            spatial: 'SPATIAL INDEX',
+            spatial: 'SPATIAL INDEX'
         }[arg]
     },
     $name: (arg, path, obj, database_type) =>
@@ -547,7 +547,7 @@ const sql_command_parsers = {
     // because no one should be using such a bad and inconsistent syntax
     $create_index: (arg, path, obj, database_type) =>
         `CREATE INDEX ${escape_field(arg, database_type)}`,
-    $on: arg => `ON ${arg}`,
+    $on: arg => `ON ${arg}`
 }
 
 /**

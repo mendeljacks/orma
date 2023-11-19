@@ -3,7 +3,7 @@ import { sqlite3_adapter } from '../helpers/database_adapters'
 import { remove_file } from '../helpers/file_helpers'
 import { get_schema_diff } from '../schema/schema_macro'
 import { OrmaSchema } from '../types/schema/schema_types'
-import { json_to_sql } from '../query/json_sql'
+import { json_to_sql } from '../query/ast_to_sql'
 import { orma_mutate } from '../mutate/mutate'
 import { copyFileSync } from 'fs'
 
@@ -40,7 +40,7 @@ export const set_up_test_database = async (
 
     const schema_diff = get_schema_diff({ $entities: {} }, orma_schema)
     const statements = schema_diff.map(ast => ({
-        sql_string: json_to_sql(ast, 'sqlite'),
+        sql_string: json_to_sql(ast, 'sqlite')
     }))
     await sqlite3_adapter(db)(statements)
     await orma_mutate(

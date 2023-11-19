@@ -2,9 +2,9 @@ import { OrmaError } from '../../helpers/error_handling'
 import { orma_escape } from '../../helpers/escape'
 import {
     get_field_schema,
-    is_reserved_keyword,
+    is_reserved_keyword
 } from '../../helpers/schema_helpers'
-import { json_to_sql } from '../../query/json_sql'
+import { json_to_sql } from '../../query/ast_to_sql'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { is_submutation, path_to_entity } from '../helpers/mutate_helpers'
@@ -69,7 +69,7 @@ export const get_create_ast = (
 
     const ast = {
         $insert_into: [entity, [...fields]],
-        $values: values,
+        $values: values
     }
 
     return ast
@@ -176,7 +176,7 @@ export const get_update_ast = (
         : {
               $update: entity,
               $set,
-              $where: where,
+              $where: where
           }
 }
 
@@ -198,7 +198,7 @@ export const get_delete_ast = (
 
     const ast = {
         $delete_from: entity,
-        $where,
+        $where
     }
 
     return ast
@@ -214,8 +214,8 @@ export const throw_identifying_key_errors = (
             message: `Could not find primary keys or unique keys in record to ${operation}`,
             path: path,
             additional_info: {
-                identifying_columns: identifying_keys,
-            },
+                identifying_columns: identifying_keys
+            }
         } as OrmaError
     }
 }

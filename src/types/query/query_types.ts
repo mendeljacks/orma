@@ -3,9 +3,9 @@ import { Pluck } from '../helper_types'
 import {
     GetAllEdges,
     GetAllEntities,
-    GetFields,
+    GetFields
 } from '../schema/schema_helper_types'
-import { sql_function_definitions } from '../../query/json_sql'
+import { sql_function_definitions } from '../../query/ast_to_sql'
 
 export type OrmaQueryAliases<Schema extends OrmaSchema> = {
     [Entity in GetAllEntities<Schema>]?: string

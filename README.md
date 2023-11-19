@@ -506,7 +506,7 @@ Orma supports the use of SQL functions. When using an SQL function a field name 
 
 </td></tr></table>
 
-A full list of currently supported functions can be found in the sql_function_definitions variable in the [source code](src/query/json_sql.ts).
+A full list of currently supported functions can be found in the sql_function_definitions variable in the [source code](src/query/ast_to_sql.ts).
 
 ## Pagination
 

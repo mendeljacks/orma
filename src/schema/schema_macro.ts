@@ -2,15 +2,15 @@ import { array_equals, get_difference } from '../helpers/helpers'
 import { get_all_edges } from '../helpers/schema_helpers'
 import {
     get_mutation_batches,
-    MutationPiece,
+    MutationPiece
 } from '../mutate/plan/mutation_batches'
 import {
     ConstraintDefinition,
     FieldDefinition,
     IndexDefinition,
-    RegularCreateStatement,
+    RegularCreateStatement
 } from '../types/schema/schema_ast_types'
-import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaSchema, SupportedDatabases } from '../types/schema/schema_types'
 
 export const get_schema_diff = (
     original_schema: OrmaSchema,
@@ -29,14 +29,11 @@ export const get_schema_diff = (
         create_entity_statements
     )
 
-    const sqlite_create_index_statements = entities_to_create.flatMap(entity =>
-        get_create_index_statements_for_sqlite(
-            entity,
-            final_schema.$entities[entity]
-        )
+    const standalone_index_statements = entities_to_create.flatMap(entity =>
+        get_standalone_index_statements(entity, final_schema.$entities[entity])
     )
 
-    return [...sorted_create_statements, ...sqlite_create_index_statements]
+    return [...sorted_create_statements, ...standalone_index_statements]
 }
 
 const get_create_entity_statements = (
@@ -55,37 +52,37 @@ const get_create_entity_statements = (
                 return {
                     $name: field_name,
                     $data_type: 'int',
-                    $auto_increment: true,
+                    $auto_increment: true
                 }
             } else {
                 return {
                     $name: field_name,
-                    ...field_schema,
+                    ...field_schema
                 }
             }
         }) ?? []
 
     const primary_key: ConstraintDefinition = {
         $constraint: 'primary_key',
-        ...entity_schema.$primary_key,
+        ...entity_schema.$primary_key
     }
 
     const unique_keys: ConstraintDefinition[] =
         entity_schema?.$unique_keys?.map(el => ({
             $constraint: 'unique_key',
-            ...el,
+            ...el
         })) ?? []
 
     const foreign_keys: ConstraintDefinition[] =
         entity_schema?.$foreign_keys?.map(el => ({
             $constraint: 'foreign_key',
-            ...el,
+            ...el
         })) ?? []
 
     const indexes: IndexDefinition[] =
         entity_schema?.$indexes?.map(el => ({
             ...(el.$index ? { $index: el.$index } : { $index: true }),
-            ...el,
+            ...el
         })) ?? []
 
     return {
@@ -96,8 +93,9 @@ const get_create_entity_statements = (
             ...unique_keys,
             ...foreign_keys,
             // primary key and indexes are special cases in sqlite that are handled separately
-            ...(database_type !== 'sqlite' ? [primary_key, ...indexes] : []),
-        ],
+            ...(database_type !== 'sqlite' ? [primary_key] : []),
+            ...(standalone_index_dbs.includes(database_type) ? [] : indexes)
+        ]
     }
 }
 
@@ -106,11 +104,13 @@ const get_create_entity_statements = (
  * SQLite insists that indexes are created using a completely separate CREATE INDEX syntax.
  * So this needs to be done separately to cover for SQLite's poor design choices.
  */
-const get_create_index_statements_for_sqlite = (
+const standalone_index_dbs: SupportedDatabases[] = ['sqlite', 'postgres']
+
+const get_standalone_index_statements = (
     entity_name: string,
     entity_schema: OrmaSchema['$entities'][string]
 ) => {
-    if (entity_schema.$database_type !== 'sqlite') {
+    if (!standalone_index_dbs.includes(entity_schema.$database_type)) {
         // indexes handled in the create statement for non-sqlite
         return []
     }
@@ -118,15 +118,15 @@ const get_create_index_statements_for_sqlite = (
     const indexes: IndexDefinition[] =
         entity_schema?.$indexes?.map(el => ({
             ...(el.$index ? { $index: el.$index } : { $index: true }),
-            ...el,
+            ...el
         })) ?? []
 
     return indexes.map(index => ({
         $create_index: index.$name,
         $on: {
             $entity: entity_name,
-            $fields: index.$fields,
-        },
+            $fields: index.$fields
+        }
     }))
 }
 
@@ -157,8 +157,8 @@ const get_sorted_create_table_statements = (
                     $operation: 'create',
                     // keep track of the statement to convert the sorted mutation pieces back to statements
                     $_statement_index: i,
-                    ...edge_fields_obj,
-                },
+                    ...edge_fields_obj
+                }
             }
         }
     )

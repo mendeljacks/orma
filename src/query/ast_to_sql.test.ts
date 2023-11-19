@@ -5,11 +5,11 @@ import {
     AlterStatement,
     CreateStatement
 } from '../types/schema/schema_ast_types'
-import { json_to_sql } from './json_sql'
+import { json_to_sql } from './ast_to_sql'
 import { OrmaSchema } from '../types/schema/schema_types'
 import { get_schema_diff } from '../schema/schema_macro'
 
-describe('json_sql.ts', () => {
+describe('ast_to_sql.ts', () => {
     describe('json_to_sql', () => {
         test('joins commands', () => {
             const json = {
@@ -647,6 +647,12 @@ describe('json_sql.ts', () => {
                                 $name: 'resource_id_UNIQUE',
                                 $fields: ['resource_id']
                             }
+                        ],
+                        $indexes: [
+                            {
+                                $name: 'idx_1',
+                                $fields: ['label']
+                            }
                         ]
                     }
                 }
@@ -672,6 +678,9 @@ describe('json_sql.ts', () => {
                     CONSTRAINT "resource_id_UNIQUE" UNIQUE (resource_id),
                     PRIMARY KEY (id)
                 )`)
+            )
+            expect(statements[1].sql_string).to.equal(
+                'CREATE INDEX "idx_1" ON "permissions" (label)'
             )
         })
     })

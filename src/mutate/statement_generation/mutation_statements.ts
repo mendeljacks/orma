@@ -1,19 +1,19 @@
 import { push_path } from '../../helpers/push_path'
 import { OrmaSchema } from '../../types/schema/schema_types'
-import { json_to_sql } from '../../query/json_sql'
+import { json_to_sql } from '../../query/ast_to_sql'
 import { Path } from '../../types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { MutationOperation, operation, ValuesByGuid } from '../mutate'
 import {
     MutationBatch,
     MutationPiece,
-    mutation_batch_for_each,
+    mutation_batch_for_each
 } from '../plan/mutation_batches'
 import { get_guid_query } from './mutation_guid_query'
 import {
     get_create_ast,
     get_delete_ast,
-    get_update_ast,
+    get_update_ast
 } from './mutation_operations'
 import { GuidMap } from '../macros/guid_plan_macro'
 
@@ -68,7 +68,7 @@ export const get_mutation_statements = (
                           guid_query,
                           mutation_pieces,
                           group_indices
-                      ),
+                      )
                   ]
                 : []
         }
@@ -112,7 +112,7 @@ const get_mutation_infos_for_group = (
                 mutation_piece_indices,
                 entity,
                 orma_schema
-            ),
+            )
         ]
     } else if (operation === 'update') {
         asts = mutation_piece_indices.map(piece_index =>
@@ -126,7 +126,7 @@ const get_mutation_infos_for_group = (
                 mutation_piece_indices,
                 entity,
                 guid_map
-            ),
+            )
         ]
     } else {
         throw new Error(`Unrecognized $operation ${operation}`)
@@ -160,7 +160,7 @@ export const generate_statement = (
         paths: mutation_piece_indices?.map(i => mutation_pieces[i].path) ?? [],
         records:
             mutation_piece_indices?.map(i => mutation_pieces[i].record) ?? [],
-        sql_string: json_to_sql(ast),
+        sql_string: json_to_sql(ast)
     }
 
     return statement
