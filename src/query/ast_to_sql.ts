@@ -473,7 +473,7 @@ const sql_command_parsers = {
         const precision = get_neighbour_field(obj, path, '$precision')
         const scale = get_neighbour_field(obj, path, '$scale')
         const enum_values = get_neighbour_field(obj, path, '$enum_values')?.map(
-            el => `"${el}"`
+            el => (database_type === 'postgres' ? `'${el}'` : `"${el}"`)
         )
         const data_type_args = (enum_values ?? [precision, scale])
             .filter(el => el !== undefined)
