@@ -480,7 +480,7 @@ const sql_command_parsers = {
             .join(', ')
 
         // sqlite doesnt support enums directly, so it needs to be through a CHECK constraint
-        if (database_type === 'sqlite' && arg === 'enum') {
+        if (['postgres', 'sqlite'].includes(database_type) && arg === 'enum') {
             const field_name = get_neighbour_field(obj, path, '$name')
             return `TEXT CHECK(${field_name} IN (${data_type_args}))`
         }
