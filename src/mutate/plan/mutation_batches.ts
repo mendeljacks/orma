@@ -2,7 +2,7 @@ import { last } from '../../helpers/helpers'
 import {
     get_all_edges,
     get_child_edges,
-    get_parent_edges,
+    get_parent_edges
 } from '../../helpers/schema_helpers'
 import { toposort } from '../../helpers/toposort'
 import { Path } from '../../types'
@@ -13,7 +13,7 @@ import { get_identifying_fields } from '../macros/identifying_fields_macro'
 import { MutationOperation } from '../mutate'
 import {
     MutationPlanConstraint,
-    mutation_plan_constraints,
+    mutation_plan_constraints
 } from './mutation_plan_constraints'
 
 /**
@@ -194,7 +194,7 @@ const get_constraint_results = (
                 orma_schema,
                 edge,
                 entity,
-                record,
+                record
             })
         ) {
             return []
@@ -205,7 +205,7 @@ const get_constraint_results = (
             // perform exact match or any value lookups for the target record based on the fk index
             if (constraint.target_filter.foreign_key_filter === 'exact_match') {
                 const value = record[edge.from_field]
-                const value_string = JSON.stringify(value)
+                const value_string = get_value_string(value)
                 const new_piece_indices =
                     fk_index?.[entity_field_operation_string]?.[value_string] ??
                     []
@@ -234,7 +234,7 @@ const set_fk_index = (
     value: any
 ) => {
     const entity_field_operation_string = `${entity},${field},${operation}`
-    const value_string = JSON.stringify(value)
+    const value_string = get_value_string(value)
     if (!fk_index[entity_field_operation_string]) {
         fk_index[entity_field_operation_string] = {}
     }
@@ -244,6 +244,10 @@ const set_fk_index = (
     }
     fk_index[entity_field_operation_string][value_string].push(piece_index)
 }
+
+const get_value_string = value =>
+    // dont include $read or $write props in guids
+    JSON.stringify(value?.$guid ? { $guid: value.$guid } : value)
 
 /**
  * Sorts mutation pieces in the order they will be executed and also gives batches that say what to run in parallel
@@ -264,7 +268,7 @@ const sort_mutation_pieces = <T extends unknown>(
         const start_index = last_end_index ?? 0
         mutation_batches.push({
             start_index,
-            end_index: start_index + toposort_tier.length,
+            end_index: start_index + toposort_tier.length
         })
     })
 
@@ -289,7 +293,7 @@ export const run_mutation_plan = async (
         const mutation_batch = mutation_plan.mutation_batches[batch_index]
         await callback({
             index: batch_index,
-            mutation_batch,
+            mutation_batch
         })
     }
 }

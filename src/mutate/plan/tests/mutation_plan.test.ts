@@ -1,15 +1,11 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
+import { global_test_schema } from '../../../test_data/global_test_schema'
 import {
-    GlobalTestMutation,
-    global_test_schema,
-} from '../../../test_data/global_test_schema'
-import { apply_nesting_mutation_macro } from '../../macros/nesting_mutation_macro'
-import {
-    get_mutation_batches,
     MutationPiece,
     MutationPlan,
-    run_mutation_plan,
+    get_mutation_batches,
+    run_mutation_plan
 } from '../mutation_batches'
 
 describe('mutation_plan.ts', () => {
@@ -18,16 +14,16 @@ describe('mutation_plan.ts', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: { id: { $guid: 1 }, $operation: 'create' },
-                    path: ['users', 0],
+                    path: ['users', 0]
                 },
                 {
                     record: { user_id: { $guid: 1 }, $operation: 'create' },
-                    path: ['users', 0, 'posts', 0],
+                    path: ['users', 0, 'posts', 0]
                 },
                 {
                     record: { user_id: { $guid: 1 }, $operation: 'create' },
-                    path: ['users', 0, 'posts', 1],
-                },
+                    path: ['users', 0, 'posts', 1]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -39,8 +35,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces,
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 3 },
-                ],
+                    { start_index: 1, end_index: 3 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -50,12 +46,12 @@ describe('mutation_plan.ts', () => {
                 { record: { $operation: 'create', id: 2 }, path: ['users', 0] },
                 {
                     record: { $operation: 'create', user_id: 2 },
-                    path: ['posts', 0],
+                    path: ['posts', 0]
                 },
                 {
                     record: { user_id: 2, $operation: 'create' },
-                    path: ['users', 0, 'posts', 0],
-                },
+                    path: ['users', 0, 'posts', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -67,8 +63,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces,
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 3 },
-                ],
+                    { start_index: 1, end_index: 3 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -77,9 +73,9 @@ describe('mutation_plan.ts', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: { id: 1, user_id: 2, $operation: 'update' },
-                    path: ['posts', 0],
+                    path: ['posts', 0]
                 },
-                { record: { id: 2, $operation: 'create' }, path: ['users', 0] },
+                { record: { id: 2, $operation: 'create' }, path: ['users', 0] }
             ]
             const mutate_plan = get_mutation_batches(
                 global_test_schema,
@@ -90,8 +86,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -100,7 +96,7 @@ describe('mutation_plan.ts', () => {
             const mutation_pieces: MutationPiece[] = [
                 { record: { id: 2, $operation: 'update' }, path: ['users', 0] },
                 { record: { id: 3, $operation: 'update' }, path: ['users', 1] },
-                { record: { id: 2, $operation: 'update' }, path: ['posts', 0] },
+                { record: { id: 2, $operation: 'update' }, path: ['posts', 0] }
             ]
             const mutate_plan = get_mutation_batches(
                 global_test_schema,
@@ -110,7 +106,7 @@ describe('mutation_plan.ts', () => {
             // update order is not guaranteed
             const goal = {
                 mutation_pieces,
-                mutation_batches: [{ start_index: 0, end_index: 3 }],
+                mutation_batches: [{ start_index: 0, end_index: 3 }]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -119,12 +115,12 @@ describe('mutation_plan.ts', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: { user_id: { $guid: 2 }, $operation: 'create' },
-                    path: ['users', 0, 'posts', 0],
+                    path: ['users', 0, 'posts', 0]
                 },
                 {
                     record: { id: { $guid: 2 }, $operation: 'create' },
-                    path: ['users', 0],
-                },
+                    path: ['users', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -136,8 +132,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -146,12 +142,12 @@ describe('mutation_plan.ts', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: { id: { $guid: 1 }, $operation: 'delete' },
-                    path: ['users', 0],
+                    path: ['users', 0]
                 },
                 {
                     record: { user_id: { $guid: 1 }, $operation: 'delete' },
-                    path: ['users', 0, 'posts', 0],
-                },
+                    path: ['users', 0, 'posts', 0]
+                }
             ]
             const mutate_plan = get_mutation_batches(
                 global_test_schema,
@@ -162,8 +158,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -173,20 +169,20 @@ describe('mutation_plan.ts', () => {
                 { record: { id: 1, $operation: 'update' }, path: ['users', 0] },
                 {
                     record: { id: { $guid: 1 }, $operation: 'create' },
-                    path: ['users', 1],
+                    path: ['users', 1]
                 },
                 {
                     record: { id: 2, $operation: 'delete' },
-                    path: ['users', 0, 'posts', 0],
+                    path: ['users', 0, 'posts', 0]
                 },
                 {
                     record: { user_id: { $guid: 1 }, $operation: 'create' },
-                    path: ['users', 1, 'posts', 0],
+                    path: ['users', 1, 'posts', 0]
                 },
                 {
                     record: { id: 3, post_id: 2, $operation: 'delete' },
-                    path: ['users', 0, 'posts', 0, 'comments', 0],
-                },
+                    path: ['users', 0, 'posts', 0, 'comments', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -200,19 +196,19 @@ describe('mutation_plan.ts', () => {
                     mutation_pieces[1],
                     mutation_pieces[4],
                     mutation_pieces[3],
-                    mutation_pieces[2],
+                    mutation_pieces[2]
                 ],
                 mutation_batches: [
                     { start_index: 0, end_index: 3 },
-                    { start_index: 3, end_index: 5 },
-                ],
+                    { start_index: 3, end_index: 5 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
         })
         test('handles entity with no nesting', () => {
             const mutation_pieces: MutationPiece[] = [
-                { record: { $operation: 'update' }, path: ['users', 0] },
+                { record: { $operation: 'update' }, path: ['users', 0] }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -222,7 +218,7 @@ describe('mutation_plan.ts', () => {
 
             const goal = {
                 mutation_pieces,
-                mutation_batches: [{ start_index: 0, end_index: 1 }],
+                mutation_batches: [{ start_index: 0, end_index: 1 }]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -231,12 +227,12 @@ describe('mutation_plan.ts', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: { user_id: { $guid: 1 }, $operation: 'create' },
-                    path: ['posts', 0],
+                    path: ['posts', 0]
                 },
                 {
                     record: { id: { $guid: 1 }, $operation: 'create' },
-                    path: ['posts', 0, 'users', 0],
-                },
+                    path: ['posts', 0, 'users', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -248,8 +244,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -258,16 +254,16 @@ describe('mutation_plan.ts', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: { user_id: { $guid: 1 }, $operation: 'create' },
-                    path: ['posts', 0],
+                    path: ['posts', 0]
                 },
                 {
                     record: { id: { $guid: 1 }, $operation: 'create' },
-                    path: ['posts', 0, 'users', 0],
+                    path: ['posts', 0, 'users', 0]
                 },
                 {
                     record: { user_id: { $guid: 1 }, $operation: 'create' },
-                    path: ['posts', 0, 'users', 0, 'posts', 0],
-                },
+                    path: ['posts', 0, 'users', 0, 'posts', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -279,12 +275,12 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [
                     mutation_pieces[1],
                     mutation_pieces[0],
-                    mutation_pieces[2],
+                    mutation_pieces[2]
                 ],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 3 },
-                ],
+                    { start_index: 1, end_index: 3 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -295,14 +291,14 @@ describe('mutation_plan.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        user_id: { $guid: 1 },
+                        user_id: { $guid: 1 }
                     },
-                    path: ['posts', 0],
+                    path: ['posts', 0]
                 },
                 {
                     record: { id: { $guid: 1 }, $operation: 'create' },
-                    path: ['posts', 0, 'users', 0],
-                },
+                    path: ['posts', 0, 'users', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -314,8 +310,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -334,18 +330,18 @@ describe('mutation_plan.ts', () => {
                         $operation: 'update',
                         email: 'aa@a.com',
                         id: 2, // update id by email, so this needs to happen after the delete
-                        $identifying_fields: ['email'],
+                        $identifying_fields: ['email']
                     },
-                    path: ['users', 0],
+                    path: ['users', 0]
                 },
                 {
                     record: {
                         $operation: 'delete',
                         id: 1,
-                        user_id: 1,
+                        user_id: 1
                     },
-                    path: ['posts', 1],
-                },
+                    path: ['posts', 1]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -357,8 +353,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -370,9 +366,9 @@ describe('mutation_plan.ts', () => {
                         //@ts-ignore
                         $operation: 'upsert',
                         id: 1,
-                        user_id: 2,
+                        user_id: 2
                     },
-                    path: ['posts', 1],
+                    path: ['posts', 1]
                 },
                 {
                     record: {
@@ -380,10 +376,10 @@ describe('mutation_plan.ts', () => {
                         $operation: 'upsert',
                         email: 'aa@a.com',
                         id: 2, // update id by email, so this needs to happen after the delete
-                        $identifying_fields: ['email'],
+                        $identifying_fields: ['email']
                     },
-                    path: ['users', 0],
-                },
+                    path: ['users', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -395,8 +391,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -406,18 +402,18 @@ describe('mutation_plan.ts', () => {
                 {
                     record: {
                         $operation: 'delete',
-                        id: 1,
+                        id: 1
                     },
-                    path: ['addresses', 0],
+                    path: ['addresses', 0]
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        billing_address_id: null,
+                        billing_address_id: null
                     },
-                    path: ['users', 0],
-                },
+                    path: ['users', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -429,8 +425,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -441,19 +437,19 @@ describe('mutation_plan.ts', () => {
                 {
                     record: {
                         $operation: 'create',
-                        user_id: 2,
+                        user_id: 2
                     },
-                    path: ['posts', 1],
+                    path: ['posts', 1]
                 },
                 {
                     record: {
                         $operation: 'update',
                         email: 'aa@a.com',
                         id: 2, // update id by email, so this needs to happen first
-                        $identifying_fields: ['email'],
+                        $identifying_fields: ['email']
                     },
-                    path: ['users', 0],
-                },
+                    path: ['users', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -465,8 +461,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -477,19 +473,19 @@ describe('mutation_plan.ts', () => {
                 {
                     record: {
                         $operation: 'update',
-                        user_id: 2,
+                        user_id: 2
                     },
-                    path: ['posts', 1],
+                    path: ['posts', 1]
                 },
                 {
                     record: {
                         $operation: 'update',
                         email: 'aa@a.com',
                         id: 2, // update id by email, so this needs to happen first
-                        $identifying_fields: ['email'],
+                        $identifying_fields: ['email']
                     },
-                    path: ['users', 0],
-                },
+                    path: ['users', 0]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -501,8 +497,8 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -514,18 +510,18 @@ describe('mutation_plan.ts', () => {
                     record: {
                         $operation: 'create',
                         id: { $guid: 'a' },
-                        parent_category_id: { $guid: 'a' },
+                        parent_category_id: { $guid: 'a' }
                     },
-                    path: ['categories', 0],
+                    path: ['categories', 0]
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: 2,
-                        parent_category_id: { $guid: 'a' },
+                        parent_category_id: { $guid: 'a' }
                     },
-                    path: ['categories', 1],
-                },
+                    path: ['categories', 1]
+                }
             ]
 
             const mutate_plan = get_mutation_batches(
@@ -537,8 +533,43 @@ describe('mutation_plan.ts', () => {
                 mutation_pieces: [mutation_pieces[0], mutation_pieces[1]],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 2 },
-                ],
+                    { start_index: 1, end_index: 2 }
+                ]
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
+        test('handles $guids with $read and $write', () => {
+            // must first update to the new id, then create using the new updated id
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'create',
+                        user_id: { $guid: 'a', $read: true }
+                    },
+                    path: ['posts', 1]
+                },
+                {
+                    record: {
+                        $operation: 'create',
+                        email: 'aa@a.com',
+                        id: { $guid: 'a', $write: true }
+                    },
+                    path: ['users', 0]
+                }
+            ]
+
+            const mutate_plan = get_mutation_batches(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            const goal = {
+                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 }
+                ]
             }
 
             expect(mutate_plan).to.deep.equal(goal)
@@ -554,29 +585,29 @@ describe('mutation_plan.ts', () => {
                     {
                         record: {
                             $operation: 'create',
-                            id: 1,
+                            id: 1
                         },
-                        path: ['users', 0],
+                        path: ['users', 0]
                     },
                     {
                         record: {
                             $operation: 'create',
-                            id: 2,
+                            id: 2
                         },
-                        path: ['users', 1],
+                        path: ['users', 1]
                     },
                     {
                         record: {
                             $operation: 'create',
-                            id: 3,
+                            id: 3
                         },
-                        path: ['users', 2],
-                    },
+                        path: ['users', 2]
+                    }
                 ],
                 mutation_batches: [
                     { start_index: 0, end_index: 1 },
-                    { start_index: 1, end_index: 3 },
-                ],
+                    { start_index: 1, end_index: 3 }
+                ]
             }
 
             let i = 0
@@ -584,12 +615,12 @@ describe('mutation_plan.ts', () => {
                 if (i === 0) {
                     expect(context).to.deep.equal({
                         index: 0,
-                        mutation_batch: mutation_plan.mutation_batches[0],
+                        mutation_batch: mutation_plan.mutation_batches[0]
                     })
                 } else {
                     expect(context).to.deep.equal({
                         index: 1,
-                        mutation_batch: mutation_plan.mutation_batches[1],
+                        mutation_batch: mutation_plan.mutation_batches[1]
                     })
                 }
                 i += 1

@@ -7,18 +7,18 @@ import { orma_mutate_prepare, orma_mutate_run } from '../mutate/mutate'
 import { generate_orma_schema_cache } from '../schema/introspector'
 import {
     GlobalTestMutation,
-    GlobalTestQuery,
+    GlobalTestQuery
 } from '../test_data/global_test_schema'
 import { OrmaSchema } from '../types/schema/schema_types'
 import {
     register_integration_test,
     test_mutate,
-    test_query,
+    test_query
 } from './integration_setup.test'
 import { remove_file } from '../helpers/file_helpers'
 import {
     close_sqlite_database,
-    open_sqlite_database,
+    open_sqlite_database
 } from './integration_test_helpers'
 
 describe('full integration test', () => {
@@ -29,8 +29,8 @@ describe('full integration test', () => {
             $operation: 'create',
             users: [
                 { name: 'John', age: 25 },
-                { name: 'Jane', age: 30 },
-            ],
+                { name: 'Jane', age: 30 }
+            ]
         } as {
             $operation: 'create'
             users: {
@@ -48,23 +48,23 @@ describe('full integration test', () => {
                         $data_type: 'int',
                         $auto_increment: true,
                         $not_null: true,
-                        $unsigned: true,
+                        $unsigned: true
                     },
                     name: {
                         $data_type: 'varchar',
-                        $not_null: true,
-                    },
+                        $not_null: true
+                    }
                 },
                 $primary_key: {
                     $fields: ['user_id'],
-                    $name: 'user_id_pk',
+                    $name: 'user_id_pk'
                 },
-                $unique_keys: [{ $fields: ['name'], $name: 'name_uq' }],
-            },
+                $unique_keys: [{ $fields: ['name'], $name: 'name_uq' }]
+            }
         }
         const orma_schema: OrmaSchema = {
             $entities,
-            $cache: generate_orma_schema_cache($entities),
+            $cache: generate_orma_schema_cache($entities)
         }
 
         const mutation_plan = orma_mutate_prepare(orma_schema, mutation)
@@ -76,8 +76,8 @@ describe('full integration test', () => {
         await sqlite3_adapter(db)([
             {
                 sql_string:
-                    'CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR NOT NULL, age INTEGER)',
-            },
+                    'CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR NOT NULL, age INTEGER)'
+            }
         ])
         await orma_mutate_run(orma_schema, sqlite3_adapter(db), mutation_plan)
 
@@ -92,8 +92,8 @@ describe('full integration test', () => {
                 {
                     $entity: 'users',
                     $field: 'id',
-                    $values: [1, 3],
-                },
+                    $values: [1, 3]
+                }
             ],
             users: {
                 id: true,
@@ -109,15 +109,15 @@ describe('full integration test', () => {
                     $where: {
                         $or: [
                             {
-                                $lte: ['views', { $escape: 5 }],
+                                $lte: ['views', { $escape: 5 }]
                             },
                             {
-                                $like: ['title', { $escape: 'First%' }],
-                            },
-                        ],
-                    },
-                },
-            },
+                                $like: ['title', { $escape: 'First%' }]
+                            }
+                        ]
+                    }
+                }
+            }
         } as const satisfies GlobalTestQuery
 
         const original = await test_query(query)
@@ -129,8 +129,8 @@ describe('full integration test', () => {
                     first_name: 'Alice',
                     email: 'aa@a.com',
                     posts: [
-                        { id: 1, title: 'First post!', views: 2, user_id: 1 },
-                    ],
+                        { id: 1, title: 'First post!', views: 2, user_id: 1 }
+                    ]
                 },
                 {
                     id: 3,
@@ -141,11 +141,11 @@ describe('full integration test', () => {
                             id: 3,
                             title: 'How to light a wood stove',
                             views: 0,
-                            user_id: 3,
-                        },
-                    ],
-                },
-            ],
+                            user_id: 3
+                        }
+                    ]
+                }
+            ]
         })
         const modified = clone(original)
         modified!.users![0].posts![0].views = 3
@@ -159,18 +159,18 @@ describe('full integration test', () => {
                 id: true,
                 views: true,
                 $where: {
-                    $eq: ['id', { $escape: 1 }],
-                },
-            },
+                    $eq: ['id', { $escape: 1 }]
+                }
+            }
         } as const satisfies GlobalTestQuery)
 
         expect(res_after_mutation).to.deep.equal({
             posts: [
                 {
                     id: 1,
-                    views: 3,
-                },
-            ],
+                    views: 3
+                }
+            ]
         })
     })
     test('handles basic upsert', async () => {
@@ -188,13 +188,13 @@ describe('full integration test', () => {
                             posts: [
                                 {
                                     title: 'First post!',
-                                    user_id: { $guid: 'a' },
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
+                                    user_id: { $guid: 'a' }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
         } as const
         await test_mutate(mutation)
 
@@ -206,19 +206,19 @@ describe('full integration test', () => {
                 first_name: true,
                 last_name: true,
                 $where: {
-                    $eq: ['email', { $escape: 'aa@a.com' }],
+                    $eq: ['email', { $escape: 'aa@a.com' }]
                 },
                 likes: {
                     user_id: true,
                     post_id: true,
                     $where: {
-                        $eq: ['post_id', { $escape: 1 }],
+                        $eq: ['post_id', { $escape: 1 }]
                     },
                     posts: {
-                        title: true,
-                    },
-                },
-            },
+                        title: true
+                    }
+                }
+            }
         })
 
         expect(result).to.deep.equal({
@@ -232,11 +232,11 @@ describe('full integration test', () => {
                             // new like was added
                             user_id: 1,
                             post_id: 1,
-                            posts: [{ title: 'First post!' }],
-                        },
-                    ],
-                },
-            ],
+                            posts: [{ title: 'First post!' }]
+                        }
+                    ]
+                }
+            ]
         })
     })
     test('update child to point to parent', async () => {
@@ -251,11 +251,11 @@ describe('full integration test', () => {
                         {
                             id: { $guid: 'a' },
                             line_1: '123 guid test st',
-                            resource_id: '1',
-                        },
-                    ],
-                },
-            ],
+                            resource_id: '1'
+                        }
+                    ]
+                }
+            ]
         })
 
         const result = await test_query({
@@ -264,14 +264,14 @@ describe('full integration test', () => {
                 billing_address_id: true,
                 shipping_address_id: true,
                 $where: {
-                    $eq: ['id', { $escape: 1 }],
+                    $eq: ['id', { $escape: 1 }]
                 },
                 addresses: {
                     id: true,
                     line_1: true,
-                    $foreign_key: ['billing_address_id'],
-                },
-            },
+                    $foreign_key: ['billing_address_id']
+                }
+            }
         })
 
         expect(result).to.deep.equal({
@@ -283,11 +283,11 @@ describe('full integration test', () => {
                     addresses: [
                         {
                             id: 1,
-                            line_1: '123 guid test st',
-                        },
-                    ],
-                },
-            ],
+                            line_1: '123 guid test st'
+                        }
+                    ]
+                }
+            ]
         })
     })
     test("handles 'diamond' nesting graphs", async () => {
@@ -303,13 +303,13 @@ describe('full integration test', () => {
                             title: 'asd test',
                             likes: [
                                 {
-                                    user_id: { $guid: 'a' },
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
+                                    user_id: { $guid: 'a' }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
         })
 
         const query = {
@@ -321,13 +321,13 @@ describe('full integration test', () => {
                     title: true,
                     likes: {
                         id: true,
-                        user_id: true,
-                    },
+                        user_id: true
+                    }
                 },
                 $where: {
-                    $eq: ['email', { $escape: 'ab@c.com' }],
-                },
-            },
+                    $eq: ['email', { $escape: 'ab@c.com' }]
+                }
+            }
         } as const
         const result = await test_query(query)
 
@@ -338,7 +338,7 @@ describe('full integration test', () => {
 
         await test_mutate({
             $operation: 'delete',
-            users: result.users,
+            users: result.users
         })
 
         const result_after_delete = await test_query(query)
@@ -350,16 +350,16 @@ describe('full integration test', () => {
             posts: [
                 {
                     title: 'asd test',
-                    user_id: 1234,
-                },
+                    user_id: 1234
+                }
             ],
             users: [
                 {
                     id: 1234,
                     email: 'ab@c.com',
-                    first_name: 'asd',
-                },
-            ],
+                    first_name: 'asd'
+                }
+            ]
         })
 
         const query = {
@@ -368,12 +368,12 @@ describe('full integration test', () => {
                 email: true,
                 posts: {
                     user_id: true,
-                    title: true,
+                    title: true
                 },
                 $where: {
-                    $eq: ['email', { $escape: 'ab@c.com' }],
-                },
-            },
+                    $eq: ['email', { $escape: 'ab@c.com' }]
+                }
+            }
         } as const
         const result = await test_query(query)
 
@@ -386,11 +386,11 @@ describe('full integration test', () => {
                     posts: [
                         {
                             user_id: 1234,
-                            title: 'asd test',
-                        },
-                    ],
-                },
-            ],
+                            title: 'asd test'
+                        }
+                    ]
+                }
+            ]
         })
     })
     test('handles query ownership for nullable fields', async () => {
@@ -399,9 +399,9 @@ describe('full integration test', () => {
             addresses: [
                 {
                     id: 12345,
-                    line_1: 'ASD TEST',
-                },
-            ],
+                    line_1: 'ASD TEST'
+                }
+            ]
         })
 
         const query = {
@@ -409,16 +409,16 @@ describe('full integration test', () => {
                 {
                     $entity: 'users',
                     $field: 'id',
-                    $values: [1],
-                },
+                    $values: [1]
+                }
             ],
             addresses: {
                 id: true,
                 line_1: true,
                 $where: {
-                    $eq: ['id', { $escape: 12345 }],
-                },
-            },
+                    $eq: ['id', { $escape: 12345 }]
+                }
+            }
         } as const
         const result = await test_query(query)
 
@@ -428,9 +428,9 @@ describe('full integration test', () => {
             addresses: [
                 {
                     id: 12345,
-                    line_1: 'ASD TEST',
-                },
-            ],
+                    line_1: 'ASD TEST'
+                }
+            ]
         })
     })
     describe('unique check', () => {
@@ -441,9 +441,9 @@ describe('full integration test', () => {
                     {
                         id: 12345,
                         title: 'unique title',
-                        user_id: 1,
-                    },
-                ],
+                        user_id: 1
+                    }
+                ]
             })
 
             try {
@@ -452,9 +452,9 @@ describe('full integration test', () => {
                     posts: [
                         {
                             id: 1,
-                            title: 'unique title',
-                        },
-                    ],
+                            title: 'unique title'
+                        }
+                    ]
                 })
                 expect(undefined).to.equal('Expected an error to be thrown')
             } catch (error) {}
@@ -466,9 +466,9 @@ describe('full integration test', () => {
                     {
                         id: 12345,
                         title: 'unique title',
-                        user_id: 1,
-                    },
-                ],
+                        user_id: 1
+                    }
+                ]
             })
 
             await test_mutate({
@@ -476,9 +476,9 @@ describe('full integration test', () => {
                 posts: [
                     {
                         id: 12345,
-                        title: 'unique title',
-                    },
-                ],
+                        title: 'unique title'
+                    }
+                ]
             })
         })
         test('allows noop updates', async () => {
@@ -488,18 +488,18 @@ describe('full integration test', () => {
                     {
                         id: 12345,
                         title: 'unique title',
-                        user_id: 1,
-                    },
-                ],
+                        user_id: 1
+                    }
+                ]
             })
 
             await test_mutate({
                 $operation: 'update',
                 posts: [
                     {
-                        id: 12345,
-                    },
-                ],
+                        id: 12345
+                    }
+                ]
             })
         })
         test('ignores objects in part of unique key', async () => {
@@ -510,16 +510,16 @@ describe('full integration test', () => {
                         id: 123,
                         first_name: 'a',
                         last_name: 'b',
-                        email: 'a@b.com',
-                    },
+                        email: 'a@b.com'
+                    }
                 ],
                 posts: [
                     {
                         id: 1231,
                         title: 'unique title',
-                        user_id: 123,
-                    },
-                ],
+                        user_id: 123
+                    }
+                ]
             })
 
             await test_mutate({
@@ -528,16 +528,16 @@ describe('full integration test', () => {
                     {
                         $operation: 'update',
                         id: { $guid: 1 },
-                        email: 'a@b.com',
-                    },
+                        email: 'a@b.com'
+                    }
                 ],
                 likes: [
                     {
                         $operation: 'create',
                         user_id: { $guid: 1 },
-                        post_id: 1231,
-                    },
-                ],
+                        post_id: 1231
+                    }
+                ]
             })
         })
     })
@@ -545,8 +545,8 @@ describe('full integration test', () => {
         const res = await test_query({
             posts: {
                 id: true,
-                $where: { $eq: [{ $escape: 1 }, { $escape: 2 }] },
-            },
+                $where: { $eq: [{ $escape: 1 }, { $escape: 2 }] }
+            }
         } as const satisfies GlobalTestQuery)
 
         expect(res.posts).to.equal(undefined)
@@ -555,19 +555,19 @@ describe('full integration test', () => {
         const res = await test_query({
             posts: {
                 id: {
-                    $escape: { $guid: 'a' },
+                    $escape: { $guid: 'a' }
                 },
                 my_title: {
-                    $escape: ['hi'],
+                    $escape: ['hi']
                 },
                 total_views: {
-                    $escape: 1,
+                    $escape: 1
                 },
                 users: {
-                    id: true,
+                    id: true
                 },
-                $limit: 1,
-            },
+                $limit: 1
+            }
         } as const satisfies GlobalTestQuery)
 
         expect(res).to.deep.equal({
@@ -578,11 +578,11 @@ describe('full integration test', () => {
                     total_views: 1,
                     users: [
                         {
-                            id: 1,
-                        },
-                    ],
-                },
-            ],
+                            id: 1
+                        }
+                    ]
+                }
+            ]
         })
     })
     test('removes intermediate foriegn keys', async () => {
@@ -590,10 +590,10 @@ describe('full integration test', () => {
             users: {
                 posts: {
                     title: true,
-                    $limit: 1,
+                    $limit: 1
                 },
-                $limit: 1,
-            },
+                $limit: 1
+            }
         } as const satisfies GlobalTestQuery)
 
         //@ts-ignore
@@ -609,11 +609,11 @@ describe('full integration test', () => {
                     id: 1,
                     posts: [
                         {
-                            $operation: 'update',
-                        },
-                    ],
-                },
-            ],
+                            $operation: 'update'
+                        }
+                    ]
+                }
+            ]
         } as const satisfies GlobalTestMutation)
 
         // test passes if it doesnt crash
@@ -625,11 +625,11 @@ describe('full integration test', () => {
                     $operation: 'update',
                     posts: [
                         {
-                            $operation: 'update',
-                        },
-                    ],
-                },
-            ],
+                            $operation: 'update'
+                        }
+                    ]
+                }
+            ]
         } as const satisfies GlobalTestMutation)
 
         // test passes if it doesnt crash
