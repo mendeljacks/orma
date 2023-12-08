@@ -78,5 +78,8 @@ export const reset_test_database = async (
         get_db_path(directory_path)
     )
     const new_database = await open_sqlite_database(get_db_path(directory_path))
+    await sqlite3_adapter(new_database)([
+        { sql_string: 'PRAGMA foreign_keys = ON' }
+    ])
     return new_database
 }

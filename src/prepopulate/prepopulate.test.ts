@@ -13,7 +13,7 @@ import {
 import { OrmaMutation } from '../types/mutation/mutation_types'
 import { prepopulate } from './prepopulate'
 
-describe.only('Prepopulate', () => {
+describe('Prepopulate', () => {
     register_integration_test()
 
     test('Prepopulate without supercede', async () => {

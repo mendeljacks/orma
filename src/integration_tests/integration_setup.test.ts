@@ -51,9 +51,6 @@ export const register_integration_test = () => {
             test_database.db,
             test_database_directory
         )
-        await sqlite3_adapter(test_database.db)([
-            { sql_string: 'PRAGMA foreign_keys = ON' }
-        ])
     })
 }
 
