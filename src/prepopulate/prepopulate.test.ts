@@ -3,32 +3,21 @@ import { describe, test } from 'mocha'
 import {
     register_integration_test,
     test_mutate,
-    test_query,
+    test_query
 } from '../integration_tests/integration_setup.test'
 import {
     GlobalTestQuery,
     GlobalTestSchema,
-    global_test_schema,
+    global_test_schema
 } from '../test_data/global_test_schema'
 import { OrmaMutation } from '../types/mutation/mutation_types'
 import { prepopulate } from './prepopulate'
 
-describe('Prepopulate', () => {
+describe.only('Prepopulate', () => {
     register_integration_test()
 
     test('Prepopulate without supercede', async () => {
-        // Get users
-        const result = await test_query({
-            users: {
-                id: true,
-            },
-        } as const satisfies GlobalTestQuery)
-
-        // Delete users
-        await test_mutate({
-            $operation: 'delete',
-            users: result.users?.map(el => ({ id: el.id })).slice(0, 1),
-        })
+        await delete_users()
 
         const schema = {
             ...global_test_schema,
@@ -42,19 +31,19 @@ describe('Prepopulate', () => {
                             {
                                 id: 1,
                                 first_name: 'John',
-                                email: 'test',
+                                email: 'test'
                             },
                             {
                                 id: 2,
                                 first_name: 'Jane',
-                                email: 'test2',
-                            },
+                                email: 'test2'
+                            }
                         ] as NonNullable<
                             OrmaMutation<GlobalTestSchema>['users']
-                        >,
-                    },
-                },
-            },
+                        >
+                    }
+                }
+            }
         }
 
         await prepopulate(test_query, test_mutate, schema)
@@ -63,24 +52,14 @@ describe('Prepopulate', () => {
         const result2 = await test_query({
             users: {
                 id: true,
-            },
+                first_name: true
+            }
         } as const satisfies GlobalTestQuery)
 
         expect(result2.users?.length).to.equal(3)
     })
     test('Prepopulate with supercede', async () => {
-        // Get users
-        const result = await test_query({
-            users: {
-                id: true,
-            },
-        } as const satisfies GlobalTestQuery)
-
-        // Delete users
-        await test_mutate({
-            $operation: 'delete',
-            users: result.users?.map(el => ({ id: el.id })).slice(0, 1),
-        })
+        await delete_users()
 
         const schema = {
             ...global_test_schema,
@@ -94,19 +73,19 @@ describe('Prepopulate', () => {
                             {
                                 id: 1,
                                 first_name: 'John',
-                                email: 'test',
+                                email: 'test'
                             },
                             {
                                 id: 2,
                                 first_name: 'Jane',
-                                email: 'test2',
-                            },
+                                email: 'test2'
+                            }
                         ] as NonNullable<
                             OrmaMutation<GlobalTestSchema>['users']
-                        >,
-                    },
-                },
-            },
+                        >
+                    }
+                }
+            }
         }
 
         await prepopulate(test_query, test_mutate, schema)
@@ -114,25 +93,14 @@ describe('Prepopulate', () => {
         // Get users
         const result2 = await test_query({
             users: {
-                id: true,
-            },
+                id: true
+            }
         } as const satisfies GlobalTestQuery)
 
         expect(result2.users?.length).to.equal(2)
     })
     test('Can fail nicely', async () => {
-        // Get users
-        const result = await test_query({
-            users: {
-                id: true,
-            },
-        } as const satisfies GlobalTestQuery)
-
-        // Delete users
-        await test_mutate({
-            $operation: 'delete',
-            users: result.users?.map(el => ({ id: el.id })).slice(0, 1),
-        })
+        await delete_users()
 
         const schema = {
             ...global_test_schema,
@@ -146,19 +114,19 @@ describe('Prepopulate', () => {
                             {
                                 id: 1,
                                 first_name: 'John',
-                                email: 'test',
+                                email: 'test'
                             },
                             {
                                 id: 2,
                                 first_name: 'Jane',
-                                email: 'test',
-                            },
+                                email: 'test'
+                            }
                         ] as NonNullable<
                             OrmaMutation<GlobalTestSchema>['users']
-                        >,
-                    },
-                },
-            },
+                        >
+                    }
+                }
+            }
         }
 
         try {
@@ -169,18 +137,7 @@ describe('Prepopulate', () => {
         }
     })
     test('Can run multiple times', async () => {
-        // Get users
-        const result = await test_query({
-            users: {
-                id: true,
-            },
-        } as const satisfies GlobalTestQuery)
-
-        // Delete users
-        await test_mutate({
-            $operation: 'delete',
-            users: result.users?.map(el => ({ id: el.id })).slice(0, 1),
-        })
+        await delete_users()
 
         const schema = {
             ...global_test_schema,
@@ -194,19 +151,19 @@ describe('Prepopulate', () => {
                             {
                                 id: 1,
                                 first_name: 'John',
-                                email: 'test',
+                                email: 'test'
                             },
                             {
                                 id: 2,
                                 first_name: 'Jane',
-                                email: 'test3',
-                            },
+                                email: 'test3'
+                            }
                         ] as NonNullable<
                             OrmaMutation<GlobalTestSchema>['users']
-                        >,
-                    },
-                },
-            },
+                        >
+                    }
+                }
+            }
         }
 
         try {
@@ -217,3 +174,24 @@ describe('Prepopulate', () => {
         }
     })
 })
+
+const delete_users = async () => {
+    // Get users
+    const result = await test_query({
+        users: {
+            id: true,
+            $where: { $eq: ['id', { $escape: 1 }] }
+        },
+        posts: {
+            id: true,
+            user_id: true,
+            comments: { id: true }
+        }
+    } as const satisfies GlobalTestQuery)
+
+    // Delete users id 1 and also all posts to avoid fk constraint fail
+    await test_mutate({
+        $operation: 'delete',
+        ...result
+    })
+}

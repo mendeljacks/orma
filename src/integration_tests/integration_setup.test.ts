@@ -1,4 +1,5 @@
-import { before, beforeEach } from 'mocha'
+import { expect } from 'chai'
+import { before, beforeEach, describe, test } from 'mocha'
 import * as sqlite3 from 'sqlite3'
 import { sqlite3_adapter } from '../helpers/database_adapters'
 import { validate_errors } from '../helpers/helpers'
@@ -8,27 +9,26 @@ import { get_mutation_connected_errors } from '../mutate/verifications/mutation_
 import { get_unique_verification_errors } from '../mutate/verifications/verify_uniqueness'
 import {
     add_connection_edges,
-    get_upwards_connection_edges,
+    get_upwards_connection_edges
 } from '../query/macros/where_connected_macro'
 import { orma_query } from '../query/query'
 import { validate_query } from '../query/validation/query_validation'
 import { global_test_hydration } from '../test_data/global_test_hydration'
 import {
-    GlobalTestAliases,
     GlobalTestMutation,
     GlobalTestSchema,
-    global_test_schema,
+    global_test_schema
 } from '../test_data/global_test_schema'
 import { OrmaQueryResult } from '../types/query/query_result_types'
 import { WhereConnected } from '../types/query/query_types'
 import {
     reset_test_database,
     set_up_test_database,
-    tear_down_test_database,
+    tear_down_test_database
 } from './integration_test_helpers'
 
 let test_database = {
-    db: undefined as sqlite3.Database | undefined,
+    db: undefined as sqlite3.Database | undefined
 }
 
 const test_database_directory = './'
@@ -46,13 +46,15 @@ after(async () =>
 )
 
 export const register_integration_test = () => {
-    beforeEach(
-        async () =>
-            (test_database.db = await reset_test_database(
-                test_database.db,
-                test_database_directory
-            ))
-    )
+    beforeEach(async () => {
+        test_database.db = await reset_test_database(
+            test_database.db,
+            test_database_directory
+        )
+        await sqlite3_adapter(test_database.db)([
+            { sql_string: 'PRAGMA foreign_keys = ON' }
+        ])
+    })
 }
 
 const connection_edges = add_connection_edges(
@@ -62,14 +64,14 @@ const connection_edges = add_connection_edges(
             from_entity: 'addresses',
             from_field: 'id',
             to_entity: 'users',
-            to_field: 'billing_address_id',
+            to_field: 'billing_address_id'
         },
         {
             from_entity: 'addresses',
             from_field: 'id',
             to_entity: 'users',
-            to_field: 'shipping_address_id',
-        },
+            to_field: 'shipping_address_id'
+        }
     ]
 )
 
@@ -92,7 +94,7 @@ export const test_mutate = async (
             global_test_schema,
             sqlite3_adapter(test_database.db!),
             mutation_plan
-        ),
+        )
     ])
 
     const res = await orma_mutate_run(
@@ -115,3 +117,17 @@ export const test_query = async <T extends Record<string, any>>(
     )
     return res
 }
+
+describe('integration_setup', () => {
+    register_integration_test()
+    test('uses sqlite foreign keys', async () => {
+        // not allowed since there there are posts that are children of users
+        const executed_query = await sqlite3_adapter(test_database.db!)([
+            { sql_string: 'DELETE FROM users WHERE id = 1' }
+        ])
+            .then(() => true)
+            .catch(() => false)
+
+        expect(executed_query).to.equal(false)
+    })
+})
