@@ -297,7 +297,7 @@ const sql_command_parsers = {
             .map(([column, value]) => `${column} = ${value}`)
             .join(', ')}`,
     $delete_from: table_name => `DELETE FROM ${table_name}`,
-    $distinct: column_name => `DISTINCT ${column_name}`,
+    $distinct: column_name => `DISTINCT (${column_name})`,
     $insert_into: ([table_name, [...columns]]) =>
         `INSERT INTO ${table_name} (${columns.join(', ')})`,
     $values: (values: any[][]) =>
