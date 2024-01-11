@@ -213,7 +213,7 @@ const validate_data_props = (
                 value,
                 [...subquery_path, prop],
                 entity_name,
-                [], // mysql doesnt let references to field aliases in a select
+                get_field_aliases(subquery),
                 orma_schema
             )
         }

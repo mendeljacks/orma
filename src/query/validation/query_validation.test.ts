@@ -782,5 +782,19 @@ describe('query_validation.ts', () => {
                 ['posts', '$foreign_key', 0],
             ])
         })
+        test('allows expressions to reference aliased fields', () => {
+            const errors = validate_query(
+                {
+                    posts: {
+                        $select: [{ $as: ['id', 'my_field']}],
+                        count: { $distinct: 'my_field'}
+                    },
+                },
+                global_test_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
     })
 })
