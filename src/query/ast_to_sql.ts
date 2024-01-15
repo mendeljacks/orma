@@ -291,7 +291,8 @@ export const sql_function_definitions = {
 // changing the order of the command parsers can break the output sql
 const sql_command_parsers = {
     // mutations
-    $update: table_name => `UPDATE ${table_name}`,
+    // table_name === true is for FOR UPDATE statements
+    $update: table_name => `UPDATE ${table_name === true ? '' : table_name}`,
     $set: items =>
         `SET ${items
             .map(([column, value]) => `${column} = ${value}`)
@@ -318,6 +319,11 @@ const sql_command_parsers = {
     $group_by: args => `GROUP BY ${args.join(', ')}`,
     $having: args => `HAVING ${args}`,
     $order_by: args => `ORDER BY ${args.join(', ')}`,
+    $for: args => `FOR ${args}`,
+    $share: args => `SHARE ${args}`,
+    $of: args => `OF ${args.join(', ')}`,
+    $no_wait: args => `NOWAIT ${args}`,
+    $skip_locked: args => `SKIP LOCKED ${args}`,
     $asc: args => `${args} ASC`,
     $desc: args => `${args} DESC`,
     $limit: args => `LIMIT ${args}`,
