@@ -1,15 +1,15 @@
-import { array_equals, key_by } from '../../helpers/helpers'
+import { array_equals, array_set_equals, key_by } from '../../helpers/helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { GuidMap } from '../macros/guid_plan_macro'
 import {
     get_identifying_fields,
-    get_possible_identifying_keys,
+    get_possible_identifying_keys
 } from '../macros/identifying_fields_macro'
 import {
     MutationBatch,
     MutationPiece,
-    mutation_batch_for_each,
+    mutation_batch_for_each
 } from '../plan/mutation_batches'
 
 type DatabaseIndexesByEntity = {
@@ -153,7 +153,7 @@ const get_database_row_for_mutation_piece = (
         entity
     )
     const identifying_key_index = possible_identifying_keys.findIndex(keys =>
-        array_equals(keys, identifying_keys)
+        array_set_equals(keys, identifying_keys)
     )
 
     const identifying_values = identifying_keys.map(field => {

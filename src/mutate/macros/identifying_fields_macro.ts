@@ -1,7 +1,7 @@
-import { array_equals } from '../../helpers/helpers'
+import { array_equals, array_set_equals } from '../../helpers/helpers'
 import {
     get_primary_keys,
-    get_unique_field_groups,
+    get_unique_field_groups
 } from '../../helpers/schema_helpers'
 import { Path } from '../../types'
 import { OrmaSchema } from '../../types/schema/schema_types'
@@ -73,7 +73,7 @@ const field_can_be_identifier = (
     // in scope. It will only be fetched after the operation is done. for read guids however, the guid is in scope
     // (it must be in order to be read from), so we can use it to identify the record.
     const is_write_guid = value?.$guid !== undefined && value?.$write === true
-    
+
     return !is_nill && !is_write_guid
 }
 
@@ -93,7 +93,7 @@ export const get_possible_identifying_keys = (
     return [
         primary_keys,
         // filter out primary keys so we dont get duplicate fields (since primary keys are also unique)
-        ...unique_field_groups.filter(el => !array_equals(primary_keys, el)),
+        ...unique_field_groups.filter(el => !array_set_equals(primary_keys, el))
     ]
 }
 

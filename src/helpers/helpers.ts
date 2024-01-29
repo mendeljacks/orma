@@ -269,6 +269,14 @@ export const array_equals = (array1: readonly any[], array2: readonly any[]) =>
     array1.length === array2.length &&
     array1.every((el1, i) => el1 === array2[i])
 
+export const array_set_equals = (
+    array1: readonly any[],
+    array2: readonly any[]
+) => set_equals(new Set(array1), new Set(array2))
+
+export const set_equals = (set1: Set<any>, set2: Set<any>) =>
+    set1.size === set2.size && [...set1].every(value => set2.has(value))
+
 // from: https://stackoverflow.com/a/69424269
 /**
  * Tests whether two values are deeply equal using same-value equality.

@@ -1,13 +1,13 @@
 import { OrmaError } from '../../helpers/error_handling'
 import {
-    array_equals,
+    array_set_equals,
     group_by,
     is_simple_object,
-    key_by,
+    key_by
 } from '../../helpers/helpers'
 import {
     get_primary_keys,
-    get_unique_field_groups,
+    get_unique_field_groups
 } from '../../helpers/schema_helpers'
 import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
@@ -96,7 +96,7 @@ export const get_verify_uniqueness_query = (
         // all unique fields
         const unique_field_groups = [
             get_primary_keys(entity, orma_schema),
-            ...get_unique_field_groups(entity, false, orma_schema),
+            ...get_unique_field_groups(entity, false, orma_schema)
         ]
 
         // generate a where clause for each unique field group for each mutation piece
@@ -138,7 +138,7 @@ export const get_verify_uniqueness_query = (
                 return acc
             },
             {
-                $where,
+                $where
             }
         )
 
@@ -166,7 +166,7 @@ const get_checkable_mutation_indices = (
         // search for them
         const is_identifying_key =
             record.$operation === 'update' &&
-            array_equals(record.$identifying_fields, unique_key)
+            array_set_equals(record.$identifying_fields, unique_key)
 
         // null fields never violate unique constraints since null != null in sql. so
         // if even one field is being set to null, the unique constraint cannot be violated and
@@ -217,7 +217,7 @@ export const get_database_uniqueness_errors = (
         // a field group is a set of fields that together are unique
         const field_groups = [
             get_primary_keys(entity, orma_schema),
-            ...get_unique_field_groups(entity, false, orma_schema),
+            ...get_unique_field_groups(entity, false, orma_schema)
         ]
 
         const entity_errors = field_groups.flatMap(field_group => {
@@ -278,8 +278,8 @@ export const get_database_uniqueness_errors = (
                             database_record: database_record,
                             mutation_record: mutation_piece.record,
                             unique_fields: field_group,
-                            incorrect_values: values,
-                        },
+                            incorrect_values: values
+                        }
                     }
 
                     return error
@@ -308,7 +308,7 @@ export const get_mutation_uniqueness_errors = (
     const errors = entities.flatMap(entity => {
         const field_groups = [
             get_primary_keys(entity, orma_schema),
-            ...get_unique_field_groups(entity, false, orma_schema),
+            ...get_unique_field_groups(entity, false, orma_schema)
         ]
 
         const entity_errors = field_groups.flatMap((field_group: any) => {
@@ -356,8 +356,8 @@ export const get_mutation_uniqueness_errors = (
                             additional_info: {
                                 mutation_record: record.record,
                                 unique_fields: field_group,
-                                incorrect_values: values,
-                            },
+                                incorrect_values: values
+                            }
                         }
                     })
 

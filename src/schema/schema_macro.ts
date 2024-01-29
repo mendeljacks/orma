@@ -1,8 +1,8 @@
-import { array_equals, get_difference } from '../helpers/helpers'
+import { get_difference } from '../helpers/helpers'
 import { get_all_edges } from '../helpers/schema_helpers'
 import {
-    get_mutation_batches,
-    MutationPiece
+    MutationPiece,
+    get_mutation_batches
 } from '../mutate/plan/mutation_batches'
 import {
     ConstraintDefinition,
