@@ -5,7 +5,7 @@ import { edge_path_to_where_ins } from '../../query/macros/any_path_macro'
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
 import {
     ConnectionEdges,
-    get_edge_paths_by_destination,
+    get_edge_paths_by_destination
 } from '../../query/macros/where_connected_macro'
 import { combine_wheres } from '../../query/query_helpers'
 import { WhereConnected } from '../../types/query/query_types'
@@ -55,7 +55,7 @@ export const get_ownership_queries = (
     connection_edges: ConnectionEdges,
     guid_map: GuidMap,
     where_connecteds: WhereConnected<OrmaSchema>,
-    all_mutation_pieces: MutationPiece[]
+    mutation_pieces: MutationPiece[]
 ) => {
     /* 
     algorithm:
@@ -84,15 +84,15 @@ export const get_ownership_queries = (
         
     */
 
-    const mutation_pieces_by_entity = group_by(
-        all_mutation_pieces,
-        mutation_piece => path_to_entity(mutation_piece.path)
+    const piece_indices_by_entity = group_by(
+        mutation_pieces.map((_, i) => i),
+        i => path_to_entity(mutation_pieces[i].path)
     )
-    const entities = Object.keys(mutation_pieces_by_entity)
+    const entities = Object.keys(piece_indices_by_entity)
 
     const queries = where_connecteds.flatMap(where_connected => {
         const wheres = entities.flatMap(entity => {
-            const mutation_pieces = mutation_pieces_by_entity[entity]
+            const piece_indices = piece_indices_by_entity[entity]
 
             const primary_key_wheres = get_identifier_connected_wheres(
                 orma_schema,
@@ -100,6 +100,7 @@ export const get_ownership_queries = (
                 guid_map,
                 where_connected,
                 mutation_pieces,
+                piece_indices,
                 entity
             )
 
@@ -107,6 +108,7 @@ export const get_ownership_queries = (
                 connection_edges,
                 where_connected,
                 mutation_pieces,
+                piece_indices,
                 entity
             )
 
@@ -122,7 +124,7 @@ export const get_ownership_queries = (
         const query = {
             $select: [where_connected.$field],
             $from: where_connected.$entity,
-            $where,
+            $where
         }
 
         return [query]
@@ -137,17 +139,17 @@ export const get_identifier_connected_wheres = (
     guid_map: GuidMap,
     where_connected: WhereConnected<OrmaSchema>[number],
     mutation_pieces: MutationPiece[],
+    piece_indices: number[],
     entity: string
 ) => {
-    const relevant_piece_indices = mutation_pieces.flatMap(
-        (mutation_piece, piece_index) => {
-            // this query fetches data that is in the database but not in the mutation. Because creates
-            // are not yet in the database, all data must be in scope already, so we can safely ignore them
-            const is_create = mutation_piece.record.$operation === 'create'
+    const relevant_piece_indices = piece_indices.flatMap(piece_index => {
+        // this query fetches data that is in the database but not in the mutation. Because creates
+        // are not yet in the database, all data must be in scope already, so we can safely ignore them
+        const is_create =
+            mutation_pieces[piece_index].record.$operation === 'create'
 
-            return is_create ? [] : [piece_index]
-        }
-    )
+        return is_create ? [] : [piece_index]
+    })
     const identifying_where = get_identifying_where(
         orma_schema,
         guid_map,
@@ -197,6 +199,7 @@ export const get_foreign_key_connected_wheres = (
     connection_edges: ConnectionEdges,
     where_connected: WhereConnected<OrmaSchema>[number],
     mutation_pieces: MutationPiece[],
+    piece_indices: number[],
     entity: string
 ) => {
     // TODO: optimize by combining this with the one in the other function
@@ -208,8 +211,9 @@ export const get_foreign_key_connected_wheres = (
     const edge_paths = edge_paths_obj[where_connected.$entity] ?? []
     const foreign_key_wheres = edge_paths
         .map(edge_path => {
-            const values = mutation_pieces
-                .map(({ record }) => {
+            const values = piece_indices
+                .map((piece_index) => {
+                    const { record } = mutation_pieces[piece_index]
                     const field = edge_path[0].from_field
                     const value = record[field]
                     // ignore any values with a guid since they must refer to something in this mutation,
@@ -230,7 +234,7 @@ export const get_foreign_key_connected_wheres = (
                 .map(edge => reverse_edge(edge))
             const parent_field = edge_path[0].to_field
             const parent_where = {
-                $in: [parent_field, values],
+                $in: [parent_field, values]
             }
 
             if (search_ownership_path.length === 0) {
@@ -278,8 +282,8 @@ const generate_ownership_errors = (
                     where_connected,
                     owners,
                     valid_owners,
-                    invalid_owners,
-                },
+                    invalid_owners
+                }
             }
             return [error]
         } else {

@@ -250,6 +250,11 @@ export const sql_function_definitions = {
         ast_to_sql: args => `CONCAT(${args.join(', ')})`,
         min_args: 1
     },
+    $group_concat: {
+        ast_to_sql: args => `GROUP_CONCAT(${args.join(', ')})`,
+        aggregate: true,
+        min_args: 1
+    },
     $multiply: {
         ast_to_sql: args => `(${args.join(' * ')})`,
         min_args: 2,

@@ -346,6 +346,7 @@ describe('mutation_connected.ts', () => {
                 new Map(),
                 get_test_where_connected('users'),
                 mutation_pieces,
+                [0],
                 'posts'
             )
 
@@ -398,6 +399,7 @@ describe('mutation_connected.ts', () => {
                 new Map(),
                 get_test_where_connected('addresses'),
                 mutation_pieces,
+                [0],
                 'users'
             )
 
@@ -441,6 +443,7 @@ describe('mutation_connected.ts', () => {
                 new Map(),
                 get_test_where_connected('users'),
                 mutation_pieces,
+                [0],
                 'products'
             )
 
@@ -470,6 +473,7 @@ describe('mutation_connected.ts', () => {
                     $values: [1],
                 },
                 mutation_pieces,
+                [0],
                 'posts'
             )
 
@@ -503,6 +507,7 @@ describe('mutation_connected.ts', () => {
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
+                [0, 1],
                 'posts'
             )
 
@@ -536,6 +541,7 @@ describe('mutation_connected.ts', () => {
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
+                [0, 1],
                 'comments'
             )
 
@@ -570,6 +576,7 @@ describe('mutation_connected.ts', () => {
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
+                [0],
                 'comments'
             )
 

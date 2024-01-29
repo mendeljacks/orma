@@ -10,13 +10,13 @@ describe('query.ts', () => {
                 global_test_schema,
                 {
                     posts: {
-                        users: {},
-                    },
+                        users: {}
+                    }
                 },
                 [],
                 [
                     [['posts'], [{ user_id: 1 }]],
-                    [['posts', 'users'], [{ id: 1 }]],
+                    [['posts', 'users'], [{ id: 1 }]]
                 ]
             )
 
@@ -26,11 +26,11 @@ describe('query.ts', () => {
                         user_id: 1,
                         users: [
                             {
-                                id: 1,
-                            },
-                        ],
-                    },
-                ],
+                                id: 1
+                            }
+                        ]
+                    }
+                ]
             })
         })
     })
