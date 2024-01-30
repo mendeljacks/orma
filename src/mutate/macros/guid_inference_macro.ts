@@ -4,7 +4,7 @@ import {
     Edge,
     get_direct_edges,
     get_primary_keys,
-    is_parent_entity,
+    is_parent_entity
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
@@ -38,7 +38,7 @@ export const apply_guid_inference_macro = (
                 : []),
             ...child_mutation_piece.lower_indices.map(
                 lower_index => mutation_pieces[lower_index]
-            ),
+            )
         ]
 
         const child_entity = path_to_entity(child_mutation_piece.path)
@@ -164,6 +164,8 @@ const should_apply_inference = (
             }
         even though category_id is not a unique key on its own, because there is a guid on post_id, only
         providing category_id is enough to identify the post_has_category
+    - a deleted child and updated parent is useful in a similar way to nested updates. You can delete the child
+        based on a lookup on the updated parent.
     - an upsert will always resolve to either a create or an update, so replacing any operation with upsert
         in one of the previous cases, will be like replacing it with update or create, meaning all combinations
         of create, update or upsert are accounted for.
@@ -172,8 +174,11 @@ const should_apply_inference = (
     const both_creates_or_updates =
         create_or_update_operations.includes(parent_op) &&
         create_or_update_operations.includes(child_op)
+    const deleted_child_updated_parent =
+        child_op === 'delete' && parent_op === 'update'
 
-    const valid_operations = both_creates_or_updates || both_deletes
+    const valid_operations =
+        both_creates_or_updates || both_deletes || deleted_child_updated_parent
 
     // we dont do foreign key inference if the foreign key (e.g. parent_id) has something
     // provided by the user, even if the parent (e.g. id) is empty. We could propagate to the

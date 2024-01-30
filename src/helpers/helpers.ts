@@ -277,6 +277,8 @@ export const array_set_equals = (
 export const set_equals = (set1: Set<any>, set2: Set<any>) =>
     set1.size === set2.size && [...set1].every(value => set2.has(value))
 
+export const to_sorted = (array: any[]) => clone(array ?? []).sort()
+
 // from: https://stackoverflow.com/a/69424269
 /**
  * Tests whether two values are deeply equal using same-value equality.

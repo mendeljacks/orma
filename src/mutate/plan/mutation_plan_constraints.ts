@@ -38,8 +38,8 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
         target_filter: {
             connection_type: 'child',
             operations: ['create', 'update', 'upsert'],
-            foreign_key_filter: 'exact_match',
-        },
+            foreign_key_filter: 'exact_match'
+        }
     },
     {
         /*
@@ -60,8 +60,8 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
         target_filter: {
             connection_type: 'parent',
             operations: ['delete'],
-            foreign_key_filter: 'exact_match',
-        },
+            foreign_key_filter: 'exact_match'
+        }
     },
     {
         /*
@@ -83,8 +83,8 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
         target_filter: {
             connection_type: 'parent',
             operations: ['delete'],
-            foreign_key_filter: 'any',
-        },
+            foreign_key_filter: 'no_match'
+        }
     },
     {
         /*
@@ -114,8 +114,8 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
         target_filter: {
             connection_type: 'child',
             operations: ['create', 'update', 'upsert'],
-            foreign_key_filter: 'exact_match',
-        },
+            foreign_key_filter: 'exact_match'
+        }
     },
     {
         /*
@@ -138,9 +138,33 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
         target_filter: {
             connection_type: 'parent',
             operations: ['update', 'upsert'],
-            foreign_key_filter: 'any',
-        },
+            foreign_key_filter: 'no_match'
+        }
     },
+    {
+        /*
+        example:
+        {
+            categories: [{ 
+                $operation: 'update', 
+                $identifying_fields: ['label'],
+                id: { $guid: 'a' },
+                label: 'Root',
+            }],
+            post_has_categories: [{ 
+                $operation: 'delete', 
+                post_id: 1,
+                category_id: { $guid: 'a' },
+            }],
+        }
+        */
+        source_filter: ({ record }) => ['update', 'upsert'].includes(record.$operation),
+        target_filter: {
+            connection_type: 'child',
+            operations: ['delete'],
+            foreign_key_filter: 'exact_match'
+        }
+    }
 ]
 
 export type MutationPlanConstraint = {
@@ -155,6 +179,6 @@ export type MutationPlanConstraint = {
     target_filter: {
         operations: (operation | 'upsert')[]
         connection_type: 'parent' | 'child'
-        foreign_key_filter: 'exact_match' | 'any'
+        foreign_key_filter: 'exact_match' | 'no_match'
     }
 }

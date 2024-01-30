@@ -203,21 +203,28 @@ const get_constraint_results = (
         return constraint.target_filter.operations.flatMap(target_operation => {
             const entity_field_operation_string = `${edge.to_entity},${edge.to_field},${target_operation}`
             // perform exact match or any value lookups for the target record based on the fk index
+            const value = record[edge.from_field]
+            const value_string = get_value_string(value)
             if (constraint.target_filter.foreign_key_filter === 'exact_match') {
-                const value = record[edge.from_field]
-                const value_string = get_value_string(value)
                 const new_piece_indices =
                     fk_index?.[entity_field_operation_string]?.[value_string] ??
                     []
                 return new_piece_indices
-            } else {
+            } else if (
+                constraint.target_filter.foreign_key_filter === 'no_match'
+            ) {
                 // any value lookup
                 const piece_indices_by_value =
                     fk_index[entity_field_operation_string] ?? {}
-                const new_piece_indices = Object.values(
-                    piece_indices_by_value
-                ).flat()
+
+                // no_match type is only for foreign keys that dont match (check examples)
+                const new_piece_indices = Object.keys(piece_indices_by_value)
+                    .filter(key => key !== value_string)
+                    .map(key => piece_indices_by_value[key])
+                    .flat()
                 return new_piece_indices
+            } else {
+                throw new Error('Unknown foreign_key_filter type')
             }
         })
     })

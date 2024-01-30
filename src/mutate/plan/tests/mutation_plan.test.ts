@@ -503,6 +503,45 @@ describe('mutation_plan.ts', () => {
 
             expect(mutate_plan).to.deep.equal(goal)
         })
+        test('handles deleting child based on parent', () => {
+            // must first update to the new id, then create using the new updated id
+            const mutation_pieces: MutationPiece[] = [
+                // delete the post_has_category for the category with label 'Root'. To do this, we must
+                // process the update first (which gets us the category_id), then do the delete
+                {
+                    record: {
+                        $operation: 'delete',
+                        post_id: 1,
+                        category_id: { $guid: 'a' }
+                    },
+                    path: ['post_has_categories', 1]
+                },
+                {
+                    record: {
+                        $operation: 'update',
+                        label: 'Root',
+                        id: { $guid: 'a' },
+                        $identifying_fields: ['label']
+                    },
+                    path: ['categories', 0]
+                }
+            ]
+
+            const mutate_plan = get_mutation_batches(
+                global_test_schema,
+                mutation_pieces
+            )
+
+            const goal = {
+                mutation_pieces: [mutation_pieces[1], mutation_pieces[0]],
+                mutation_batches: [
+                    { start_index: 0, end_index: 1 },
+                    { start_index: 1, end_index: 2 }
+                ]
+            }
+
+            expect(mutate_plan).to.deep.equal(goal)
+        })
         test('handles self referencing records', () => {
             // must first update to the new id, then create using the new updated id
             const mutation_pieces: MutationPiece[] = [

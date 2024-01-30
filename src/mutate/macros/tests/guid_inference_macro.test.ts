@@ -5,9 +5,7 @@ import {
     global_test_schema
 } from '../../../test_data/global_test_schema'
 import { apply_guid_inference_macro } from '../guid_inference_macro'
-import {
-    NestingMutationOutput
-} from '../nesting_mutation_macro'
+import { NestingMutationOutput } from '../nesting_mutation_macro'
 
 describe('guid_inference_macro.ts', () => {
     describe(apply_guid_inference_macro.name, () => {
@@ -16,20 +14,20 @@ describe('guid_inference_macro.ts', () => {
                 {
                     record: { $operation: 'create', user_id: 1 },
                     path: ['posts', 0],
-                    lower_indices: [1, 2],
+                    lower_indices: [1, 2]
                 },
                 {
                     record: { $operation: 'create' },
                     path: ['posts', 0, 'comments', 0],
                     higher_index: 0,
-                    lower_indices: [],
+                    lower_indices: []
                 },
                 {
                     record: { $operation: 'create' },
                     path: ['posts', 0, 'comments', 1],
                     higher_index: 0,
-                    lower_indices: [],
-                },
+                    lower_indices: []
+                }
             ]
             apply_guid_inference_macro(global_test_schema, mutation_pieces)
 
@@ -52,14 +50,14 @@ describe('guid_inference_macro.ts', () => {
                 {
                     record: { id: 1, $operation: 'delete' },
                     path: ['comments', 0],
-                    lower_indices: [1],
+                    lower_indices: [1]
                 },
                 {
                     record: { id: 2, $operation: 'delete' },
                     path: ['comments', 0, 'posts', 0],
                     higher_index: 0,
-                    lower_indices: [],
-                },
+                    lower_indices: []
+                }
             ]
 
             apply_guid_inference_macro(global_test_schema, mutation_pieces)
@@ -75,25 +73,25 @@ describe('guid_inference_macro.ts', () => {
                         $operation: 'update',
                         comments: [
                             {
-                                $operation: 'update',
-                            },
-                        ],
-                    },
-                ],
+                                $operation: 'update'
+                            }
+                        ]
+                    }
+                ]
             } as const satisfies GlobalTestMutation
 
             const mutation_pieces: NestingMutationOutput = [
                 {
                     record: { $operation: 'update' },
                     path: ['posts', 0],
-                    lower_indices: [1],
+                    lower_indices: [1]
                 },
                 {
                     record: { $operation: 'update' },
                     path: ['posts', 0, 'comments', 0],
                     higher_index: 0,
-                    lower_indices: [],
-                },
+                    lower_indices: []
+                }
             ]
 
             apply_guid_inference_macro(global_test_schema, mutation_pieces)
@@ -109,7 +107,7 @@ describe('guid_inference_macro.ts', () => {
                 {
                     record: { $operation: 'create' },
                     path: ['posts', 0],
-                    lower_indices: [1],
+                    lower_indices: [1]
                 },
                 {
                     record: { $operation: 'create' },
@@ -117,14 +115,14 @@ describe('guid_inference_macro.ts', () => {
                     // (the higher or the lower one) should be the parent. So we do nothing.
                     path: ['posts', 0, 'comments', 0],
                     higher_index: 0,
-                    lower_indices: [2],
+                    lower_indices: [2]
                 },
                 {
                     record: { $operation: 'create' },
                     path: ['posts', 0, 'comments', 0, 'posts', 0],
                     higher_index: 1,
-                    lower_indices: [],
-                },
+                    lower_indices: []
+                }
             ]
 
             apply_guid_inference_macro(global_test_schema, mutation_pieces)
@@ -137,14 +135,52 @@ describe('guid_inference_macro.ts', () => {
                 {
                     record: { $operation: 'update', id: 1 },
                     path: ['posts', 0],
-                    lower_indices: [1],
+                    lower_indices: [1]
                 },
                 {
                     record: { $operation: 'create' },
                     path: ['posts', 0, 'comments', 0],
                     higher_index: 0,
-                    lower_indices: [],
+                    lower_indices: []
+                }
+            ]
+
+            apply_guid_inference_macro(global_test_schema, mutation_pieces)
+
+            //@ts-ignore
+            expect(mutation_pieces[0].record.id).to.deep.equal(
+                mutation_pieces[1].record.post_id
+            )
+        })
+        test('handles deleting based on parent', () => {
+            const mutation_pieces: NestingMutationOutput = [
+                {
+                    record: { $operation: 'update', email: 'a@a.com' },
+                    path: ['posts', 0],
+                    lower_indices: [1]
                 },
+                {
+                    record: {
+                        $operation: 'delete',
+                        category_id: { $guid: 'a' }
+                    },
+                    path: ['posts', 0, 'post_has_categories', 0],
+                    higher_index: 0,
+                    lower_indices: [2]
+                },
+                {
+                    record: { $operation: 'update', id: { $guid: 'a' } },
+                    path: [
+                        'posts',
+                        0,
+                        'post_has_categories',
+                        0,
+                        'categories',
+                        0
+                    ],
+                    higher_index: 1,
+                    lower_indices: []
+                }
             ]
 
             apply_guid_inference_macro(global_test_schema, mutation_pieces)

@@ -1,4 +1,9 @@
-import { array_equals, array_set_equals, key_by } from '../../helpers/helpers'
+import {
+    array_equals,
+    array_set_equals,
+    key_by,
+    to_sorted
+} from '../../helpers/helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { GuidMap } from '../macros/guid_plan_macro'
@@ -74,7 +79,7 @@ const get_database_indexes_by_entity = (
                             // we chose the unique key such that none of its fields are nullable, and they are all actually
                             // supplied in the mutation. Therefore we can safely stringify without worrying about null values getting
                             // lost, or collisions between two rows that both have null fields (mysql allows this on unique indexes)
-                            JSON.stringify(
+                            values_to_key(
                                 identifying_key.map(field => db_row[field])
                             )
                         )
@@ -190,8 +195,11 @@ const get_database_row_for_mutation_piece = (
 
     const database_index =
         database_indexes_by_entity[entity][identifying_key_index]
-    const database_row =
-        database_index[JSON.stringify(identifying_values)] ?? {}
+    const database_row = database_index[values_to_key(identifying_values)] ?? {}
 
     return database_row
 }
+
+// Make sure its sorted as order of keys doesnt matter -
+// e.g. category_id, post_id is the same as post_id, category_id
+const values_to_key = (values: any[]) => JSON.stringify(to_sorted(values))

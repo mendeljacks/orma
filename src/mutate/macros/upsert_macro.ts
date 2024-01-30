@@ -54,7 +54,7 @@ export const get_upsert_macro_query = (
                     guid_map,
                     mutation_pieces,
                     piece_indices
-                ),
+                )
             }
 
             return acc
@@ -220,6 +220,9 @@ const apply_upsert_macro_given_data = (
         } else {
             //@ts-ignore
             mutation_piece.record.$operation = 'create'
+            // identifying fields are only for updates and deletes, not creates
+            //@ts-ignore
+            delete mutation_piece.record.$identifying_fields
         }
     })
 }
