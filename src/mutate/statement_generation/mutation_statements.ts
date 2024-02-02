@@ -1,5 +1,5 @@
 import { push_path } from '../../helpers/push_path'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { OrmaSchema, SupportedDatabases } from '../../types/schema/schema_types'
 import { json_to_sql } from '../../query/ast_to_sql'
 import { Path } from '../../types'
 import { path_to_entity } from '../helpers/mutate_helpers'
@@ -62,12 +62,14 @@ export const get_mutation_statements = (
                 guid_map,
                 orma_schema
             )
+            const database_type = orma_schema.$entities[entity].$database_type
             return guid_query
                 ? [
                       generate_statement(
                           guid_query,
                           mutation_pieces,
-                          group_indices
+                          group_indices,
+                          database_type
                       )
                   ]
                 : []
@@ -132,11 +134,19 @@ const get_mutation_infos_for_group = (
         throw new Error(`Unrecognized $operation ${operation}`)
     }
 
+    const database_type = orma_schema.$entities[entity].$database_type
     return asts.flatMap(ast =>
         // can be undefined if there is nothing to do, e.g. a stub update
         ast === undefined
             ? []
-            : [generate_statement(ast, mutation_pieces, mutation_piece_indices)]
+            : [
+                  generate_statement(
+                      ast,
+                      mutation_pieces,
+                      mutation_piece_indices,
+                      database_type
+                  )
+              ]
     )
 }
 
@@ -149,7 +159,8 @@ type GroupedMutation = {
 export const generate_statement = (
     ast: Record<string, any>,
     mutation_pieces: MutationPiece[],
-    mutation_piece_indices: number[]
+    mutation_piece_indices: number[],
+    database_type: SupportedDatabases
 ) => {
     const first_piece = mutation_pieces[mutation_piece_indices[0]]
     const statement: OrmaStatement = {
@@ -160,7 +171,7 @@ export const generate_statement = (
         paths: mutation_piece_indices?.map(i => mutation_pieces[i].path) ?? [],
         records:
             mutation_piece_indices?.map(i => mutation_pieces[i].record) ?? [],
-        sql_string: json_to_sql(ast)
+        sql_string: json_to_sql(ast, database_type)
     }
 
     return statement

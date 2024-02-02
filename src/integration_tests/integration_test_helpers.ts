@@ -48,6 +48,7 @@ export const set_up_test_database = async (
         sqlite3_adapter(db),
         orma_schema
     )
+    await sqlite3_adapter(db)([{ sql_string: 'PRAGMA foreign_keys = ON' }])
     copyFileSync(
         get_db_path(directory_path),
         get_checkpoint_path(directory_path)

@@ -11,12 +11,12 @@ import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
 import {
     apply_nesting_macro,
-    should_nesting_short_circuit,
+    should_nesting_short_circuit
 } from './macros/nesting_macro'
 import { apply_select_macro } from './macros/select_macro'
 import {
     apply_where_connected_macro,
-    ConnectionEdges,
+    ConnectionEdges
 } from './macros/where_connected_macro'
 import { get_query_plan } from './query_plan'
 
@@ -45,7 +45,7 @@ export const orma_nester = (
     orma_schema: OrmaSchema,
     query,
     nester_modifications: NesterModification[],
-    results: [string[], Record<string, unknown>[]][],
+    results: [string[], Record<string, unknown>[]][]
 ) => {
     // get data in the right format for the nester
     const edges = results.map(result => {
@@ -75,7 +75,7 @@ export const orma_nester = (
         const rows = result[1]
         return [
             path.flatMap(path_el => [path_el, 0]),
-            rows?.length ? rows : undefined,
+            rows?.length ? rows : undefined
         ]
     })
 
@@ -139,9 +139,17 @@ export const orma_query = async <
         const output =
             subquery_data.length > 0
                 ? await query_function(
-                      subquery_data.map(({ subquery }) =>
-                          generate_statement(subquery, [], [])
-                      )
+                      subquery_data.map(({ subquery }) => {
+                          const entity = subquery.$from
+                          const database_type =
+                              orma_schema.$entities[entity].$database_type
+                          return generate_statement(
+                              subquery,
+                              [],
+                              [],
+                              database_type
+                          )
+                      })
                   )
                 : []
 
@@ -150,7 +158,7 @@ export const orma_query = async <
             results.push([paths_to_query[i], output[i]])
             nester_modifications.push({
                 additions: subquery_data[i].nester_additions,
-                deletions: subquery_data[i].nester_deletions,
+                deletions: subquery_data[i].nester_deletions
             })
         })
     }

@@ -324,7 +324,9 @@ const sql_command_parsers = {
     $group_by: args => `GROUP BY ${args.join(', ')}`,
     $having: args => `HAVING ${args}`,
     $order_by: args => `ORDER BY ${args.join(', ')}`,
-    $for: args => `FOR ${args}`,
+    $for: (args, path, obj, database_type) =>
+        // sqlite doesnt support SELECT ... FOR UPDATE
+        database_type === 'sqlite' ? '' : `FOR ${args}`,
     $share: args => `SHARE ${args}`,
     $of: args => `OF ${args.join(', ')}`,
     $no_wait: args => `NOWAIT ${args}`,

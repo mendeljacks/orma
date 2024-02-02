@@ -38,9 +38,11 @@ export const get_mutation_connected_errors = async (
     }
 
     const ownership_results = await mysql_function(
-        ownership_queries.map(ownership_query =>
-            generate_statement(ownership_query, [], [])
-        )
+        ownership_queries.map(ownership_query => {
+            const entity = ownership_query.$from
+            const database_type = orma_schema.$entities[entity].$database_type
+            return generate_statement(ownership_query, [], [], database_type)
+        })
     )
 
     const errors = generate_ownership_errors(
@@ -212,7 +214,7 @@ export const get_foreign_key_connected_wheres = (
     const foreign_key_wheres = edge_paths
         .map(edge_path => {
             const values = piece_indices
-                .map((piece_index) => {
+                .map(piece_index => {
                     const { record } = mutation_pieces[piece_index]
                     const field = edge_path[0].from_field
                     const value = record[field]
