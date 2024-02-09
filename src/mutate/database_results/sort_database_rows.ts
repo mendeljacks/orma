@@ -202,4 +202,6 @@ const get_database_row_for_mutation_piece = (
 
 // Make sure its sorted as order of keys doesnt matter -
 // e.g. category_id, post_id is the same as post_id, category_id
-const values_to_key = (values: any[]) => JSON.stringify(to_sorted(values))
+// convert to string since mysql treats 123 the same as '123'
+const values_to_key = (values: any[]) =>
+    JSON.stringify(values.map(el => el?.toString() ?? null).sort())
