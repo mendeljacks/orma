@@ -36,5 +36,27 @@ describe('mutate.ts', () => {
 
             expect(1).to.equal(1)
         })
+        test('handles operation none', async () => {
+            const mutation = {
+                posts: [
+                    {
+                        $operation: 'create',
+                        title: 'my post 1235',
+                        user_id: 1,
+                        post_has_categories: [
+                            {
+                                $operation: 'none'
+                            }
+                        ]
+                    }
+                ]
+            } as const satisfies GlobalTestMutation
+
+            const res = await test_mutate(mutation, [
+                { $entity: 'users', $field: 'id', $values: [1] }
+            ])
+
+            expect(1).to.equal(1)
+        })
     })
 })

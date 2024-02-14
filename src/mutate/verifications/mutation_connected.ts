@@ -150,7 +150,10 @@ export const get_identifier_connected_wheres = (
         const is_create =
             mutation_pieces[piece_index].record.$operation === 'create'
 
-        return is_create ? [] : [piece_index]
+        const is_none =
+            mutation_pieces[piece_index].record.$operation === 'none'
+
+        return is_create || is_none ? [] : [piece_index]
     })
     const identifying_where = get_identifying_where(
         orma_schema,

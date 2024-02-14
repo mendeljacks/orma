@@ -130,6 +130,8 @@ const get_mutation_infos_for_group = (
                 guid_map
             )
         ]
+    } else if (operation === 'none') {
+        asts = []
     } else {
         throw new Error(`Unrecognized $operation ${operation}`)
     }

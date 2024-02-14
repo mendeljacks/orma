@@ -5,7 +5,7 @@ import { orma_nester } from './query'
 
 describe('query.ts', () => {
     describe(orma_nester.name, () => {
-        test('nests restults', () => {
+        test('nests results', () => {
             const result = orma_nester(
                 global_test_schema,
                 {

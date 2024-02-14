@@ -27,7 +27,7 @@ type OperationObj = {
     readonly $operation?: Operation
 }
 
-type Operation = 'create' | 'update' | 'delete' | 'upsert'
+type Operation = 'create' | 'update' | 'delete' | 'upsert' | 'none'
 
 type FieldsObj<
     Schema extends OrmaSchema,

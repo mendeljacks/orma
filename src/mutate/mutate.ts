@@ -21,7 +21,7 @@ import {
     OrmaStatement,
 } from './statement_generation/mutation_statements'
 
-export type MutationOperation = 'create' | 'update' | 'delete'
+export type MutationOperation = 'create' | 'update' | 'delete' | 'none'
 export type operation = MutationOperation | 'query'
 export type MysqlFunction = (
     statements: OrmaStatement[]

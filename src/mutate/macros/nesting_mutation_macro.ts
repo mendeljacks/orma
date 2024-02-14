@@ -67,7 +67,7 @@ export const apply_nesting_mutation_macro = mutation => {
 
 export type NestingMutationOutput = {
     record: Record<string, any> & {
-        $operation: 'create' | 'update' | 'delete' | 'upsert'
+        $operation: 'create' | 'update' | 'delete' | 'upsert' | 'none'
     }
     path: Path
     higher_index?: number
