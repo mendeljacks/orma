@@ -48,7 +48,8 @@ describe('mutate.ts', () => {
                                 $operation: 'none'
                             }
                         ]
-                    }
+                    },
+                    { $operation: 'none' }
                 ]
             } as const satisfies GlobalTestMutation
 

@@ -153,6 +153,12 @@ const get_database_row_for_mutation_piece = (
             // (unlike in an actual update, where it determines which fields are modified). We just select any key in
             // the same way as was selected for the query
         )
+
+    // this can happen if the operation is none and no identifying fields are given
+    if (!identifying_keys) {
+        return {}
+    }
+
     const possible_identifying_keys = get_possible_identifying_keys(
         orma_schema,
         entity
