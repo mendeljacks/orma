@@ -1,6 +1,6 @@
 import {
     global_test_schema,
-    GlobalTestSchema,
+    GlobalTestSchema
 } from '../../test_data/global_test_schema'
 import { IsEqual } from '../helper_types'
 import {
@@ -9,7 +9,7 @@ import {
     GetChildEdges,
     GetFields,
     GetFieldType,
-    GetParentEdges,
+    GetParentEdges
 } from './schema_helper_types'
 
 {
@@ -35,13 +35,13 @@ import {
 
     const good1: test = {
         to_entity: 'addresses',
-        from_field: 'billing_address_id',
+        from_field: 'billing_address_id'
     }
 
     // wrong entity
     const bad1: test = {
         // @ts-expect-error
-        to_entity: 'products',
+        to_entity: 'products'
     }
 }
 
@@ -50,13 +50,13 @@ import {
 
     const good1: test = {
         from_field: 'id',
-        to_entity: 'posts',
+        to_entity: 'posts'
     }
 
     // wrong edge direction
     const bad1: test = {
         // @ts-expect-error
-        to_entity: 'addresses',
+        to_entity: 'addresses'
     }
 }
 
@@ -66,19 +66,19 @@ import {
     // edge to child
     const good1: test = {
         from_field: 'id',
-        to_entity: 'posts',
+        to_entity: 'posts'
     }
 
     // edge to parent
     const good2: test = {
         to_entity: 'addresses',
-        from_field: 'shipping_address_id',
+        from_field: 'shipping_address_id'
     }
 
     // only allow edges from users
     const bad1: test = {
         //@ts-expect-error
-        to_entity: 'comments',
+        to_entity: 'comments'
     }
 }
 
@@ -101,6 +101,6 @@ import {
     // handles enum type
     const expect: IsEqual<
         GetFieldType<GlobalTestSchema, 'tax_codes', 'tax_code'>,
-        'TAX1' | 'TAX2' | 'TAX3' | null
+        'TAX1' | 'TAX2' | 'TAX3'
     > = true
 }

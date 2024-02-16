@@ -8,7 +8,7 @@ import {
     get_database_uniqueness_errors,
     get_duplicate_record_indices,
     get_mutation_uniqueness_errors,
-    get_verify_uniqueness_query,
+    get_verify_uniqueness_query
 } from './verify_uniqueness'
 
 describe('verify_uniqueness.ts', () => {
@@ -21,9 +21,9 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         title: 'hi',
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -39,9 +39,9 @@ describe('verify_uniqueness.ts', () => {
                     id: true,
                     title: true,
                     $where: {
-                        $eq: ['title', { $escape: 'hi' }],
-                    },
-                },
+                        $eq: ['title', { $escape: 'hi' }]
+                    }
+                }
             })
         })
         test('searches combo unique', () => {
@@ -55,9 +55,9 @@ describe('verify_uniqueness.ts', () => {
                         first_name: 'john', // combo unique
                         last_name: 'smith', // combo unique
                         age: 20,
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -77,17 +77,17 @@ describe('verify_uniqueness.ts', () => {
                     $where: {
                         $or: [
                             {
-                                $eq: ['email', { $escape: 'a@a.com' }],
+                                $eq: ['email', { $escape: 'a@a.com' }]
                             },
                             {
                                 $eq: [
                                     ['first_name', 'last_name'],
-                                    [{ $escape: 'john' }, { $escape: 'smith' }],
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                    [{ $escape: 'john' }, { $escape: 'smith' }]
+                                ]
+                            }
+                        ]
+                    }
+                }
             })
         })
         test('only updates and creates', () => {
@@ -96,23 +96,23 @@ describe('verify_uniqueness.ts', () => {
                     $operation: 'update',
                     id: 12,
                     title: 'hi',
-                    $identifying_fields: ['id'],
+                    $identifying_fields: ['id']
                 },
                 {
                     $operation: 'delete',
                     id: 13,
                     title: 'as',
-                    $identifying_fields: ['id'],
+                    $identifying_fields: ['id']
                 },
                 {
                     $operation: 'create',
                     id: 14,
                     user_id: 1,
-                    title: '123',
-                },
+                    title: '123'
+                }
             ].map((el, i) => ({
                 path: ['posts', i],
-                record: el,
+                record: el
             })) as MutationPiece[]
 
             const piece_indices_by_entity =
@@ -131,17 +131,17 @@ describe('verify_uniqueness.ts', () => {
                     $where: {
                         $or: [
                             {
-                                $eq: ['id', { $escape: 14 }],
+                                $eq: ['id', { $escape: 14 }]
                             },
                             {
                                 $in: [
                                     'title',
-                                    [{ $escape: 'hi' }, { $escape: '123' }],
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                    [{ $escape: 'hi' }, { $escape: '123' }]
+                                ]
+                            }
+                        ]
+                    }
+                }
             })
         })
         test('handles no unique fields', () => {
@@ -153,9 +153,9 @@ describe('verify_uniqueness.ts', () => {
                         // not used as a unique field since it is the identifying field and so is not being edited
                         title: 'hi',
                         views: 123,
-                        $identifying_fields: ['title'],
-                    },
-                },
+                        $identifying_fields: ['title']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -179,9 +179,9 @@ describe('verify_uniqueness.ts', () => {
                         // we have to fetch both first_name and last_name
                         id: 1,
                         first_name: 'john',
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -199,9 +199,9 @@ describe('verify_uniqueness.ts', () => {
                     first_name: true,
                     last_name: true,
                     $where: {
-                        $eq: ['first_name', { $escape: 'john' }],
-                    },
-                },
+                        $eq: ['first_name', { $escape: 'john' }]
+                    }
+                }
             })
         })
         test('handles combo unique', () => {
@@ -213,9 +213,9 @@ describe('verify_uniqueness.ts', () => {
                         id: 1,
                         first_name: 'john',
                         last_name: 'smith',
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -235,10 +235,10 @@ describe('verify_uniqueness.ts', () => {
                     $where: {
                         $eq: [
                             ['first_name', 'last_name'],
-                            [{ $escape: 'john' }, { $escape: 'smith' }],
-                        ],
-                    },
-                },
+                            [{ $escape: 'john' }, { $escape: 'smith' }]
+                        ]
+                    }
+                }
             })
         })
         test('ignores $guid', () => {
@@ -250,9 +250,9 @@ describe('verify_uniqueness.ts', () => {
                         id: { $guid: 1, $write: true },
                         email: 'a@a.com',
                         first_name: { $guid: 1 },
-                        last_name: 'smith',
-                    },
-                },
+                        last_name: 'smith'
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -272,14 +272,14 @@ describe('verify_uniqueness.ts', () => {
                     $where: {
                         $or: [
                             {
-                                $eq: ['email', { $escape: 'a@a.com' }],
+                                $eq: ['email', { $escape: 'a@a.com' }]
                             },
                             {
-                                $eq: ['last_name', { $escape: 'smith' }],
-                            },
-                        ],
-                    },
-                },
+                                $eq: ['last_name', { $escape: 'smith' }]
+                            }
+                        ]
+                    }
+                }
             })
         })
         test('searches multiple entities and fields', () => {
@@ -290,8 +290,8 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 1,
                         title: 'title 1',
-                        $identifying_fields: ['id'],
-                    },
+                        $identifying_fields: ['id']
+                    }
                 },
                 {
                     path: ['posts', 1],
@@ -299,8 +299,8 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 2,
                         title: 'title 2',
-                        $identifying_fields: ['id'],
-                    },
+                        $identifying_fields: ['id']
+                    }
                 },
                 {
                     path: ['users', 0],
@@ -308,9 +308,9 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 11,
                         email: 'a@a.com',
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -328,9 +328,9 @@ describe('verify_uniqueness.ts', () => {
                     $where: {
                         $in: [
                             'title',
-                            [{ $escape: 'title 1' }, { $escape: 'title 2' }],
-                        ],
-                    },
+                            [{ $escape: 'title 1' }, { $escape: 'title 2' }]
+                        ]
+                    }
                 },
                 users: {
                     id: true,
@@ -338,9 +338,9 @@ describe('verify_uniqueness.ts', () => {
                     last_name: true,
                     email: true,
                     $where: {
-                        $eq: ['email', { $escape: 'a@a.com' }],
-                    },
-                },
+                        $eq: ['email', { $escape: 'a@a.com' }]
+                    }
+                }
             })
         })
     })
@@ -350,27 +350,27 @@ describe('verify_uniqueness.ts', () => {
                 {
                     field1: 'a',
                     field2: 'b',
-                    field3: 'c',
+                    field3: 'c'
                 },
                 {
                     field1: 'a',
-                    field2: 'x',
-                },
+                    field2: 'x'
+                }
             ]
             const records2 = [
                 {
                     field1: 'x',
-                    field2: 'b',
+                    field2: 'b'
                 },
                 {
                     field1: 'a',
-                    field2: 'b',
-                },
+                    field2: 'b'
+                }
             ]
 
             const result = get_duplicate_record_indices(records1, records2, [
                 'field1',
-                'field2',
+                'field2'
             ])
 
             expect(result).to.deep.equal([[0, 1]])
@@ -378,14 +378,14 @@ describe('verify_uniqueness.ts', () => {
         test('works for no duplicates', () => {
             const records1 = [
                 {
-                    field1: 'a',
-                },
+                    field1: 'a'
+                }
             ]
             const records2 = []
 
             const result = get_duplicate_record_indices(records1, records2, [
                 'field1',
-                'field2',
+                'field2'
             ])
 
             expect(result).to.deep.equal([])
@@ -400,8 +400,8 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         email: 'a',
-                        $identifying_fields: ['id'],
-                    },
+                        $identifying_fields: ['id']
+                    }
                 },
                 {
                     path: ['categories', 0],
@@ -409,9 +409,9 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 13,
                         label: 'hi',
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -420,15 +420,15 @@ describe('verify_uniqueness.ts', () => {
                 users: [
                     {
                         id: 1,
-                        email: 'a',
-                    },
+                        email: 'a'
+                    }
                 ],
                 categories: [
                     {
                         id: 2,
-                        label: 'hi',
-                    },
-                ],
+                        label: 'hi'
+                    }
+                ]
             }
 
             const errors = get_database_uniqueness_errors(
@@ -441,7 +441,7 @@ describe('verify_uniqueness.ts', () => {
             const paths = errors.map(error => error.path)
             expect(paths).to.deep.equal([
                 ['users', 0],
-                ['categories', 0],
+                ['categories', 0]
             ])
         })
         test('does not generate an error for identifying keys on update', () => {
@@ -452,17 +452,17 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         line_1: 'a',
-                        $identifying_fields: ['id'],
-                    },
+                        $identifying_fields: ['id']
+                    }
                 },
                 {
                     path: ['addresses', 0],
                     record: {
                         $operation: 'create',
                         id: 12,
-                        line_1: 'c',
-                    },
-                },
+                        line_1: 'c'
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -471,9 +471,9 @@ describe('verify_uniqueness.ts', () => {
                 addresses: [
                     {
                         id: 12,
-                        line_1: 'b',
-                    },
-                ],
+                        line_1: 'b'
+                    }
+                ]
             }
 
             const errors = get_database_uniqueness_errors(
@@ -494,9 +494,9 @@ describe('verify_uniqueness.ts', () => {
                         id: 12,
                         first_name: 'john',
                         last_name: 'a',
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -506,9 +506,9 @@ describe('verify_uniqueness.ts', () => {
                     {
                         id: 12,
                         first_name: 'john',
-                        last_name: 'b',
-                    },
-                ],
+                        last_name: 'b'
+                    }
+                ]
             }
 
             const errors = get_database_uniqueness_errors(
@@ -528,9 +528,9 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         email: null,
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -539,9 +539,9 @@ describe('verify_uniqueness.ts', () => {
                 users: [
                     {
                         id: 12,
-                        email: null,
-                    },
-                ],
+                        email: null
+                    }
+                ]
             }
 
             const errors = get_database_uniqueness_errors(
@@ -561,9 +561,9 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         email: {},
-                        $identifying_fields: ['id'],
-                    },
-                },
+                        $identifying_fields: ['id']
+                    }
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -572,9 +572,9 @@ describe('verify_uniqueness.ts', () => {
                 users: [
                     {
                         id: 12,
-                        email: null,
-                    },
-                ],
+                        email: null
+                    }
+                ]
             }
 
             const errors = get_database_uniqueness_errors(
@@ -596,9 +596,9 @@ describe('verify_uniqueness.ts', () => {
                         id: 12,
                         first_name: 'john',
                         last_name: 'smith',
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 0],
+                    path: ['users', 0]
                 },
                 {
                     record: {
@@ -606,9 +606,9 @@ describe('verify_uniqueness.ts', () => {
                         id: 13,
                         first_name: 'john',
                         last_name: 'doe',
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 1],
+                    path: ['users', 1]
                 },
                 {
                     record: {
@@ -616,19 +616,19 @@ describe('verify_uniqueness.ts', () => {
                         id: 14,
                         first_name: 'john',
                         last_name: 'smith',
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 2],
+                    path: ['users', 2]
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: 13,
                         line_1: 'hi',
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['addresses', 0],
-                },
+                    path: ['addresses', 0]
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -648,18 +648,18 @@ describe('verify_uniqueness.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 12,
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 0],
+                    path: ['users', 0]
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: 12,
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 1],
-                },
+                    path: ['users', 1]
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -679,19 +679,19 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'update',
                         id: 12,
                         email: [{}],
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 0],
+                    path: ['users', 0]
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: 12,
                         email: [{}],
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 1],
-                },
+                    path: ['users', 1]
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)
@@ -711,19 +711,80 @@ describe('verify_uniqueness.ts', () => {
                         $operation: 'delete',
                         id: 12,
                         email: 'a@a.com',
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 0],
+                    path: ['users', 0]
                 },
                 {
                     record: {
                         $operation: 'delete',
                         id: 12,
                         email: 'a@a.com',
-                        $identifying_fields: ['id'],
+                        $identifying_fields: ['id']
                     },
-                    path: ['users', 1],
+                    path: ['users', 1]
+                }
+            ]
+            const piece_indices_by_entity =
+                get_piece_indices_by_entity(mutation_pieces)
+
+            const errors = get_mutation_uniqueness_errors(
+                global_test_schema,
+                mutation_pieces,
+                piece_indices_by_entity
+            )
+
+            expect(errors.length).to.equal(0)
+        })
+        test('handles partially null unique keys', () => {
+            // none of these cause sql errors
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'create',
+                        tax_code: 'TAX1',
+                        tax_subcode: '1'
+                    },
+                    path: ['tax_codes', 0]
                 },
+                {
+                    record: {
+                        $operation: 'create',
+                        tax_code: 'TAX1',
+                        tax_subcode: '2'
+                    },
+                    path: ['tax_codes', 0]
+                },
+                {
+                    record: {
+                        $operation: 'create',
+                        tax_code: 'TAX1',
+                        tax_subcode: null
+                    },
+                    path: ['tax_codes', 0]
+                },
+                {
+                    record: {
+                        $operation: 'create',
+                        tax_code: 'TAX1',
+                        tax_subcode: null
+                    },
+                    path: ['tax_codes', 0]
+                },
+                {
+                    record: {
+                        $operation: 'create',
+                        tax_code: 'TAX1'
+                    },
+                    path: ['tax_codes', 0]
+                },
+                {
+                    record: {
+                        $operation: 'create',
+                        tax_code: 'TAX1'
+                    },
+                    path: ['tax_codes', 0]
+                }
             ]
             const piece_indices_by_entity =
                 get_piece_indices_by_entity(mutation_pieces)

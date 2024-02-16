@@ -10,52 +10,52 @@ export const global_test_schema = {
                 id: {
                     $data_type: 'int',
                     $auto_increment: true,
-                    $not_null: true,
+                    $not_null: true
                 },
                 first_name: {
-                    $data_type: 'varchar',
+                    $data_type: 'varchar'
                 },
                 last_name: {
-                    $data_type: 'varchar',
+                    $data_type: 'varchar'
                 },
                 email: {
                     $data_type: 'varchar',
-                    $not_null: true,
+                    $not_null: true
                 },
                 billing_address_id: {
-                    $data_type: 'int',
+                    $data_type: 'int'
                 },
                 shipping_address_id: {
-                    $data_type: 'int',
-                },
+                    $data_type: 'int'
+                }
             },
             $primary_key: {
-                $fields: ['id'],
+                $fields: ['id']
             },
             $unique_keys: [
                 {
-                    $fields: ['email'],
+                    $fields: ['email']
                 },
                 {
-                    $fields: ['first_name', 'last_name'],
-                },
+                    $fields: ['first_name', 'last_name']
+                }
             ],
             $foreign_keys: [
                 {
                     $fields: ['billing_address_id'],
                     $references: {
                         $entity: 'addresses',
-                        $fields: ['id'],
-                    },
+                        $fields: ['id']
+                    }
                 },
                 {
                     $fields: ['shipping_address_id'],
                     $references: {
                         $entity: 'addresses',
-                        $fields: ['id'],
-                    },
-                },
-            ],
+                        $fields: ['id']
+                    }
+                }
+            ]
         },
         posts: {
             $database_type: 'sqlite',
@@ -63,40 +63,40 @@ export const global_test_schema = {
                 id: {
                     $data_type: 'int',
                     $auto_increment: true,
-                    $not_null: true,
+                    $not_null: true
                 },
                 user_id: {
                     $data_type: 'int',
-                    $not_null: true,
+                    $not_null: true
                 },
                 title: {
                     $data_type: 'varchar',
-                    $not_null: true,
+                    $not_null: true
                 },
                 views: {
                     $data_type: 'int',
                     $not_null: true,
-                    $default: 0,
-                },
+                    $default: 0
+                }
             },
             $primary_key: {
-                $fields: ['id'],
+                $fields: ['id']
             },
             $unique_keys: [
                 {
                     $name: 'unique_title',
-                    $fields: ['title'],
-                },
+                    $fields: ['title']
+                }
             ],
             $foreign_keys: [
                 {
                     $fields: ['user_id'],
                     $references: {
                         $entity: 'users',
-                        $fields: ['id'],
-                    },
-                },
-            ],
+                        $fields: ['id']
+                    }
+                }
+            ]
         },
         likes: {
             $database_type: 'sqlite',
@@ -104,42 +104,42 @@ export const global_test_schema = {
                 id: {
                     $data_type: 'int',
                     $auto_increment: true,
-                    $not_null: true,
+                    $not_null: true
                 },
                 user_id: {
                     $data_type: 'int',
-                    $not_null: true,
+                    $not_null: true
                 },
                 post_id: {
                     $data_type: 'int',
-                    $not_null: true,
-                },
+                    $not_null: true
+                }
             },
             $primary_key: {
-                $fields: ['id'],
+                $fields: ['id']
             },
             $unique_keys: [
                 {
                     $name: 'unique_user_id_post_id',
-                    $fields: ['user_id', 'post_id'],
-                },
+                    $fields: ['user_id', 'post_id']
+                }
             ],
             $foreign_keys: [
                 {
                     $fields: ['user_id'],
                     $references: {
                         $entity: 'users',
-                        $fields: ['id'],
-                    },
+                        $fields: ['id']
+                    }
                 },
                 {
                     $fields: ['post_id'],
                     $references: {
                         $entity: 'posts',
-                        $fields: ['id'],
-                    },
-                },
-            ],
+                        $fields: ['id']
+                    }
+                }
+            ]
         },
         comments: {
             $database_type: 'sqlite',
@@ -147,25 +147,25 @@ export const global_test_schema = {
                 id: {
                     $data_type: 'int',
                     $auto_increment: true,
-                    $not_null: true,
+                    $not_null: true
                 },
                 post_id: {
                     $data_type: 'int',
-                    $not_null: true,
-                },
+                    $not_null: true
+                }
             },
             $primary_key: {
-                $fields: ['id'],
+                $fields: ['id']
             },
             $foreign_keys: [
                 {
                     $fields: ['post_id'],
                     $references: {
                         $entity: 'posts',
-                        $fields: ['id'],
-                    },
-                },
-            ],
+                        $fields: ['id']
+                    }
+                }
+            ]
         },
         addresses: {
             $database_type: 'sqlite',
@@ -173,36 +173,36 @@ export const global_test_schema = {
                 id: {
                     $data_type: 'int',
                     $auto_increment: true,
-                    $not_null: true,
+                    $not_null: true
                 },
                 line_1: {
-                    $data_type: 'varchar',
+                    $data_type: 'varchar'
                 },
                 resource_id: {
-                    $data_type: 'varchar',
+                    $data_type: 'varchar'
                 },
                 tax_code_id: {
-                    $data_type: 'int',
-                },
+                    $data_type: 'int'
+                }
             },
             $unique_keys: [
                 {
                     $fields: ['resource_id'],
-                    $name: 'resource_uq',
-                },
+                    $name: 'resource_uq'
+                }
             ],
             $primary_key: {
-                $fields: ['id'],
+                $fields: ['id']
             },
             $foreign_keys: [
                 {
                     $fields: ['tax_code_id'],
                     $references: {
                         $entity: 'tax_codes',
-                        $fields: ['id'],
-                    },
-                },
-            ],
+                        $fields: ['id']
+                    }
+                }
+            ]
         },
         tax_codes: {
             $database_type: 'sqlite',
@@ -210,22 +210,26 @@ export const global_test_schema = {
                 id: {
                     $data_type: 'int',
                     $auto_increment: true,
-                    $not_null: true,
+                    $not_null: true
                 },
                 tax_code: {
                     $data_type: 'enum',
                     $enum_values: ['TAX1', 'TAX2', 'TAX3'],
+                    $not_null: true
                 },
+                tax_subcode: {
+                    $data_type: 'varchar'
+                }
             },
             $unique_keys: [
                 {
-                    $fields: ['tax_code'],
-                    $name: 'tax_code_uq',
-                },
+                    $fields: ['tax_code', 'tax_subcode'],
+                    $name: 'tax_code_uq'
+                }
             ],
             $primary_key: {
-                $fields: ['id'],
-            },
+                $fields: ['id']
+            }
         },
         categories: {
             $database_type: 'sqlite',
@@ -233,63 +237,65 @@ export const global_test_schema = {
                 id: {
                     $data_type: 'int',
                     $auto_increment: true,
-                    $not_null: true,
+                    $not_null: true
                 },
                 label: {
                     $data_type: 'varchar',
                     $not_null: true,
-                    $precision: 10,
+                    $precision: 10
                 },
                 parent_category_id: { $data_type: 'int' },
                 resource_id: {
-                    $data_type: 'varchar',
+                    $data_type: 'varchar'
                 },
                 size: {
                     $data_type: 'decimal',
                     $precision: 5,
                     $scale: 2,
-                    $unsigned: true,
-                },
+                    $unsigned: true
+                }
             },
             $primary_key: {
-                $fields: ['id'],
+                $fields: ['id']
             },
             $unique_keys: [
                 {
                     $name: 'label_uq',
-                    $fields: ['label'],
+                    $fields: ['label']
                 },
                 {
                     $name: 'resource_uq',
-                    $fields: ['resource_id'],
-                },
+                    $fields: ['resource_id']
+                }
             ],
-            $foreign_keys: [{
-                $fields: ['parent_category_id'],
-                $references: {
-                    $entity: 'categories',
-                    $fields: ['id']
-                },
-            }]
+            $foreign_keys: [
+                {
+                    $fields: ['parent_category_id'],
+                    $references: {
+                        $entity: 'categories',
+                        $fields: ['id']
+                    }
+                }
+            ]
         },
         post_has_categories: {
             $database_type: 'sqlite',
             $fields: {
                 post_id: {
                     $data_type: 'int',
-                    $not_null: true,
+                    $not_null: true
                 },
                 category_id: {
                     $data_type: 'int',
-                    $not_null: true,
+                    $not_null: true
                 },
                 main_category: {
                     $data_type: 'tinyint',
-                    $precision: 1,
-                },
+                    $precision: 1
+                }
             },
             $primary_key: {
-                $fields: ['post_id', 'category_id'],
+                $fields: ['post_id', 'category_id']
             },
             $foreign_keys: [
                 {
@@ -297,19 +303,19 @@ export const global_test_schema = {
                     $fields: ['post_id'],
                     $references: {
                         $entity: 'posts',
-                        $fields: ['id'],
-                    },
+                        $fields: ['id']
+                    }
                 },
                 {
                     $name: 'category_id_fk',
                     $fields: ['category_id'],
                     $references: {
                         $entity: 'categories',
-                        $fields: ['id'],
-                    },
-                },
-            ],
-        },
+                        $fields: ['id']
+                    }
+                }
+            ]
+        }
     },
     $cache: {
         $reversed_foreign_keys: {
@@ -317,52 +323,52 @@ export const global_test_schema = {
                 {
                     from_field: 'id',
                     to_entity: 'users',
-                    to_field: 'billing_address_id',
+                    to_field: 'billing_address_id'
                 },
                 {
                     from_field: 'id',
                     to_entity: 'users',
-                    to_field: 'shipping_address_id',
-                },
+                    to_field: 'shipping_address_id'
+                }
             ],
             tax_codes: [
                 {
                     from_field: 'id',
                     to_entity: 'addresses',
-                    to_field: 'tax_code_id',
-                },
+                    to_field: 'tax_code_id'
+                }
             ],
             users: [
                 { from_field: 'id', to_entity: 'posts', to_field: 'user_id' },
-                { from_field: 'id', to_entity: 'likes', to_field: 'user_id' },
+                { from_field: 'id', to_entity: 'likes', to_field: 'user_id' }
             ],
             posts: [
                 { from_field: 'id', to_entity: 'likes', to_field: 'post_id' },
                 {
                     from_field: 'id',
                     to_entity: 'comments',
-                    to_field: 'post_id',
+                    to_field: 'post_id'
                 },
                 {
                     from_field: 'id',
                     to_entity: 'post_has_categories',
-                    to_field: 'post_id',
-                },
+                    to_field: 'post_id'
+                }
             ],
             categories: [
                 {
                     from_field: 'id',
                     to_entity: 'post_has_categories',
-                    to_field: 'category_id',
+                    to_field: 'category_id'
                 },
                 {
                     from_field: 'id',
                     to_entity: 'categories',
-                    to_field: 'parent_category_id',
-                },
-            ],
-        },
-    },
+                    to_field: 'parent_category_id'
+                }
+            ]
+        }
+    }
 } as const satisfies OrmaSchema
 
 type G = typeof global_test_schema
