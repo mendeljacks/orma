@@ -10,7 +10,7 @@ describe('diff_mutation.ts', () => {
         expect(update_obj).to.deep.equal({
             $operation: 'update',
             id: 2,
-            title: 'pc',
+            title: 'pc'
         })
     })
     test('diffs deeply', () => {
@@ -20,8 +20,8 @@ describe('diff_mutation.ts', () => {
                 id: 2,
                 title: null,
                 body_html: 'Computer',
-                old_column: 'hi',
-            },
+                old_column: 'hi'
+            }
         }
         const modified = {
             id: 1,
@@ -29,8 +29,8 @@ describe('diff_mutation.ts', () => {
                 id: 2,
                 title: 'pc',
                 body_html: 'Computer',
-                new_column: 'ho',
-            },
+                new_column: 'ho'
+            }
         }
         const update_obj = get_mutation_diff(original, modified)
         expect(update_obj).to.deep.equal({
@@ -40,8 +40,8 @@ describe('diff_mutation.ts', () => {
                 $operation: 'update',
                 id: 2,
                 title: 'pc',
-                new_column: 'ho',
-            },
+                new_column: 'ho'
+            }
         })
     })
 
@@ -49,7 +49,7 @@ describe('diff_mutation.ts', () => {
         // Notice it matches by id not position in array
         const original = [
             { id: 1, sku: 'deleteme' },
-            { id: 2, sku: 'mysku' },
+            { id: 2, sku: 'mysku' }
         ]
         const modified = [{ id: 2, sku: 'mysku' }]
         const update_obj = get_mutation_diff(original, modified)
@@ -58,8 +58,8 @@ describe('diff_mutation.ts', () => {
             {
                 $operation: 'delete',
                 id: 1,
-                sku: 'deleteme',
-            },
+                sku: 'deleteme'
+            }
         ])
     })
     test('Adds missing array items', () => {
@@ -71,8 +71,8 @@ describe('diff_mutation.ts', () => {
         expect(update_obj).to.deep.equal([
             {
                 $operation: 'create',
-                sku: 'mysku',
-            },
+                sku: 'mysku'
+            }
         ])
     })
     test('Modifies array items', () => {
@@ -84,18 +84,18 @@ describe('diff_mutation.ts', () => {
             {
                 $operation: 'update',
                 id: 2,
-                sku: 'mysku2',
-            },
+                sku: 'mysku2'
+            }
         ])
     })
     test('Knows if items were moved', () => {
         const original = [
             { id: 1, label: 'a' },
-            { id: 2, label: 'b' },
+            { id: 2, label: 'b' }
         ]
         const modified = [
             { id: 2, label: 'b' },
-            { id: 1, label: 'a' },
+            { id: 1, label: 'a' }
         ]
         const update_obj = get_mutation_diff(original, modified)
 
@@ -112,9 +112,9 @@ describe('diff_mutation.ts', () => {
             variants: [
                 {
                     $operation: 'create',
-                    title: 'computer',
-                },
-            ],
+                    title: 'computer'
+                }
+            ]
         })
     })
     test('Excludes identical arrays', () => {
@@ -131,7 +131,7 @@ describe('diff_mutation.ts', () => {
 
         expect(update_obj).to.deep.equal({
             $operation: 'create',
-            note: 'some data',
+            note: 'some data'
         })
     })
     test('Ignores $guids for operation', () => {
@@ -145,10 +145,10 @@ describe('diff_mutation.ts', () => {
                 {
                     $operation: 'update',
                     product_id: {
-                        $guid: 1, // no operation create here, since it is a guid
-                    },
-                },
-            ],
+                        $guid: 1 // no operation create here, since it is a guid
+                    }
+                }
+            ]
         })
     })
     test('Top level create with nesting', () => {
@@ -158,11 +158,11 @@ describe('diff_mutation.ts', () => {
                 {
                     images: [
                         {
-                            url: 'test',
-                        },
-                    ],
-                },
-            ],
+                            url: 'test'
+                        }
+                    ]
+                }
+            ]
         }
         const update_obj = get_mutation_diff(original, modified)
 
@@ -174,11 +174,11 @@ describe('diff_mutation.ts', () => {
                     images: [
                         {
                             $operation: 'create',
-                            url: 'test',
-                        },
-                    ],
-                },
-            ],
+                            url: 'test'
+                        }
+                    ]
+                }
+            ]
         })
     })
     test('handles nested deletes', () => {
@@ -195,21 +195,21 @@ describe('diff_mutation.ts', () => {
                     image_in_stores: [
                         {
                             $operation: 'delete',
-                            id: 2,
-                        },
-                    ],
-                },
-            ],
+                            id: 2
+                        }
+                    ]
+                }
+            ]
         })
     })
     test('ignores $identifying_fields', () => {
         const original = {
-            images: [{ id: 1 }],
+            images: [{ id: 1 }]
         }
         const modified = {
             images: [
-                { id: 1, $identifying_fields: ['id'], $operation: 'update' },
-            ],
+                { id: 1, $identifying_fields: ['id'], $operation: 'update' }
+            ]
         }
         const update_obj = get_mutation_diff(original, modified)
 
@@ -219,9 +219,33 @@ describe('diff_mutation.ts', () => {
                 {
                     id: 1,
                     $identifying_fields: ['id'],
-                    $operation: 'update',
-                },
-            ],
+                    $operation: 'update'
+                }
+            ]
+        })
+    })
+    test.skip('handles deletes when entire array is removed', () => {
+        const original = {
+            users: [{ id: 1, posts: [{ id: 2 }] }]
+        }
+        const modified = {
+            users: [{ id: 1 }]
+        }
+        const update_obj = get_mutation_diff(original, modified)
+
+        expect(update_obj).to.deep.equal({
+            $operation: 'update',
+            users: [
+                {
+                    id: 1,
+                    posts: [
+                        {
+                            $operation: 'delete',
+                            id: 2
+                        }
+                    ]
+                }
+            ]
         })
     })
 })
