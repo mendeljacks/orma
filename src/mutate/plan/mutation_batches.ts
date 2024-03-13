@@ -217,9 +217,20 @@ const get_constraint_results = (
                 const piece_indices_by_value =
                     fk_index[entity_field_operation_string] ?? {}
 
-                // no_match type is only for foreign keys that dont match (check examples)
+                // no_match type is only for foreign keys that dont match (check examples).
+                // for no_match, we assume $guids are $read and not making any change, and so ignore them
+                // (this isnt necessarily true, but not doing this can cause unnecessary constraints that make
+                // cycles in the toposort so we make this assumption for now. Really we would want to know if the
+                // $guid is read or write, and only make a constraint in the write case.)
+
+                const key_guid_string = '{"$guid":'
                 const new_piece_indices = Object.keys(piece_indices_by_value)
-                    .filter(key => key !== value_string)
+                    .filter(
+                        key =>
+                            key !== value_string &&
+                            !key?.startsWith(key_guid_string) &&
+                            !value_string?.startsWith(key_guid_string)
+                    )
                     .map(key => piece_indices_by_value[key])
                     .flat()
                 return new_piece_indices
