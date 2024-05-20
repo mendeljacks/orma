@@ -206,13 +206,13 @@ export const sql_function_definitions = {
     // non-aggregate functions
     $coalesce: {
         ast_to_sql: (args, path) => {
-            const res = `COALESCE(${wrap_if_subquery(args.join(', '))})`
+            const res = `COALESCE(${args.map(arg => wrap_if_subquery(arg)).join(', ')})`
             return nested_under_odd_nots(path) ? `NOT (${res})` : res
         },
         min_args: 1
     },
     $round: {
-        ast_to_sql: args => `ROUND(${wrap_if_subquery(args.join(', '))})`,
+        ast_to_sql: args => `ROUND(${args.map(arg => wrap_if_subquery(arg)).join(', ')})`,
         min_args: 2,
         max_args: 2
     },
@@ -242,47 +242,47 @@ export const sql_function_definitions = {
         max_args: 1
     },
     $if: {
-        ast_to_sql: args => `IF(${wrap_if_subquery(args.join(', '))})`,
+        ast_to_sql: args => `IF(${args.map(arg => wrap_if_subquery(arg)).join(', ')})`,
         min_args: 3,
         max_args: 3
     },
     $concat: {
-        ast_to_sql: args => `CONCAT(${wrap_if_subquery(args.join(', '))})`,
+        ast_to_sql: args => `CONCAT(${args.map(arg => wrap_if_subquery(arg)).join(', ')})`,
         min_args: 1
     },
     $group_concat: {
-        ast_to_sql: args => `GROUP_CONCAT(${wrap_if_subquery(args.join(', '))})`,
+        ast_to_sql: args => `GROUP_CONCAT(${args.map(arg => wrap_if_subquery(arg)).join(', ')})`,
         aggregate: true,
         min_args: 1
     },
     $multiply: {
-        ast_to_sql: args => `(${wrap_if_subquery(args.join(' * '))})`,
+        ast_to_sql: args => `(${args.map(arg => wrap_if_subquery(arg)).join(' * ')})`,
         min_args: 2,
         max_args: 2
     },
     $divide: {
-        ast_to_sql: args => `(${wrap_if_subquery(args.join(' / '))})`,
+        ast_to_sql: args => `(${args.map(arg => wrap_if_subquery(arg)).join(' / ')})`,
         min_args: 2,
         max_args: 2
     },
     $add: {
-        ast_to_sql: args => `(${wrap_if_subquery(args.join(' + '))})`,
+        ast_to_sql: args => `(${args.map(arg => wrap_if_subquery(arg)).join(' + ')})`,
         min_args: 2,
         max_args: 2
     },
     $subtract: {
-        ast_to_sql: args => `(${wrap_if_subquery(args.join(' - '))})`,
+        ast_to_sql: args => `(${args.map(arg => wrap_if_subquery(arg)).join(' - ')})`,
         min_args: 2,
         max_args: 2
     },
     // Postgres's PostGIS functions
     $st_distance: {
-        ast_to_sql: args => `ST_Distance(${wrap_if_subquery(args.join(', '))})`,
+        ast_to_sql: args => `ST_Distance(${args.map(arg => wrap_if_subquery(arg)).join(', ')})`,
         min_args: 2,
         max_args: 3
     },
     $st_dwithin: {
-        ast_to_sql: args => `ST_DWithin(${wrap_if_subquery(args.join(', '))})`,
+        ast_to_sql: args => `ST_DWithin(${args.map(arg => wrap_if_subquery(arg)).join(', ')})`,
         min_args: 2,
         max_args: 3
     },

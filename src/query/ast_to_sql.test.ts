@@ -271,6 +271,34 @@ describe('ast_to_sql.ts', () => {
 
             expect(sql).to.equal(goal)
         })
+        test('Can wrap subqueries for functions part 2', () => {
+            const json = {
+                $multiply: [
+                    'quantity',
+                    {
+                        $select: ['id'],
+                        $from: 'reviews',
+                        $where: { $eq: ['listing_id', 0] }
+                    }
+                ]
+            }
+
+            const sql = format(json_to_sql(json))
+
+            const goal = format(`
+            (
+                quantity * (
+                  SELECT
+                    id
+                  FROM
+                    \`reviews\`
+                  WHERE
+                    listing_id = 0
+                )
+              )`)
+
+            expect(sql).to.equal(goal)
+        })
         test('can create table', () => {
             const json: CreateStatement = {
                 $create_table: 'my_table',
