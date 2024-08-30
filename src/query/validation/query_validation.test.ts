@@ -9,8 +9,8 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        $from: 'not_an_entity',
-                    },
+                        $from: 'not_an_entity'
+                    }
                 },
                 global_test_schema
             )
@@ -23,8 +23,8 @@ describe('query_validation.ts', () => {
                 {
                     posts: {
                         not_a_field: true,
-                        $from: 'posts',
-                    },
+                        $from: 'posts'
+                    }
                 },
                 global_test_schema
             )
@@ -37,8 +37,8 @@ describe('query_validation.ts', () => {
                 {
                     posts: {
                         id: 'not_a_field',
-                        $from: 'posts',
-                    },
+                        $from: 'posts'
+                    }
                 },
                 global_test_schema
             )
@@ -54,15 +54,15 @@ describe('query_validation.ts', () => {
                         $from: 'posts',
                         $order_by: [
                             {
-                                $desc: 'title',
+                                $desc: 'title'
                             },
                             {
                                 $asc: {
-                                    $sum: 'id',
-                                },
-                            },
-                        ],
-                    },
+                                    $sum: 'id'
+                                }
+                            }
+                        ]
+                    }
                 },
                 global_test_schema
             )
@@ -78,10 +78,10 @@ describe('query_validation.ts', () => {
                         $from: 'posts',
                         $order_by: [
                             {
-                                $desc: 'not_a_field',
-                            },
-                        ],
-                    },
+                                $desc: 'not_a_field'
+                            }
+                        ]
+                    }
                 },
                 global_test_schema
             )
@@ -98,9 +98,9 @@ describe('query_validation.ts', () => {
                         $from: 'posts',
                         $order_by: [
                             { $asc: { $sum: 'my_id' } },
-                            { $desc: 'my_id2' },
-                        ],
-                    },
+                            { $desc: 'my_id2' }
+                        ]
+                    }
                 },
                 global_test_schema
             )
@@ -116,10 +116,10 @@ describe('query_validation.ts', () => {
                         $from: 'posts',
                         $group_by: [
                             {
-                                $sum: 'id',
-                            },
-                        ],
-                    },
+                                $sum: 'id'
+                            }
+                        ]
+                    }
                 },
                 global_test_schema
             )
@@ -133,8 +133,8 @@ describe('query_validation.ts', () => {
                     posts: {
                         id: true,
                         $from: 'posts',
-                        $group_by: ['not_a_field'],
-                    },
+                        $group_by: ['not_a_field']
+                    }
                 },
                 global_test_schema
             )
@@ -149,8 +149,8 @@ describe('query_validation.ts', () => {
                         $select: [{ $as: ['id', "i'd"] }],
                         "my_'id": 'id',
                         $from: 'posts',
-                        $group_by: ['my_id'],
-                    },
+                        $group_by: ['my_id']
+                    }
                 },
                 global_test_schema
             )
@@ -164,13 +164,13 @@ describe('query_validation.ts', () => {
                     posts: {
                         $select: [
                             {
-                                $as: ['id', 'my_id2'],
-                            },
+                                $as: ['id', 'my_id2']
+                            }
                         ],
                         my_id: 'id',
                         $from: 'posts',
-                        $group_by: ['my_id', 'my_id2'],
-                    },
+                        $group_by: ['my_id', 'my_id2']
+                    }
                 },
                 global_test_schema
             )
@@ -184,15 +184,15 @@ describe('query_validation.ts', () => {
                     posts: {
                         $select: [
                             {
-                                $as: ['id', 'my_id2'],
+                                $as: ['id', 'my_id2']
                             },
                             {
-                                $as: ['my_id2', 'my_id3'],
-                            },
+                                $as: ['my_id2', 'my_id3']
+                            }
                         ],
                         my_id: 'id',
-                        $from: 'posts',
-                    },
+                        $from: 'posts'
+                    }
                 },
                 global_test_schema
             )
@@ -207,8 +207,8 @@ describe('query_validation.ts', () => {
                         id: true,
                         $from: 'posts',
                         $limit: 1,
-                        $offset: 1,
-                    },
+                        $offset: 1
+                    }
                 },
                 global_test_schema
             )
@@ -223,8 +223,8 @@ describe('query_validation.ts', () => {
                         id: true,
                         $from: 'posts',
                         $limit: -1,
-                        $offset: -1,
-                    },
+                        $offset: -1
+                    }
                 },
                 global_test_schema
             )
@@ -232,7 +232,7 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
                 ['posts', '$limit'],
-                ['posts', '$offset'],
+                ['posts', '$offset']
             ])
         })
         test('allows where clause $and', () => {
@@ -244,11 +244,11 @@ describe('query_validation.ts', () => {
                         $where: {
                             $and: [
                                 {
-                                    $eq: ['id', 'id'],
-                                },
-                            ],
-                        },
-                    },
+                                    $eq: ['id', 'id']
+                                }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -265,26 +265,26 @@ describe('query_validation.ts', () => {
                         $where: {
                             $and: [
                                 {
-                                    $eq: ['id', { $escape: '123' }],
+                                    $eq: ['id', { $escape: '123' }]
                                 },
                                 {
-                                    $gt: ['id', 'id'],
+                                    $gt: ['id', 'id']
                                 },
                                 {
-                                    $lt: ['id', 'id'],
+                                    $lt: ['id', 'id']
                                 },
                                 {
-                                    $gte: ['id', 'id'],
+                                    $gte: ['id', 'id']
                                 },
                                 {
-                                    $lte: ['id', 'id'],
+                                    $lte: ['id', 'id']
                                 },
                                 {
-                                    $like: ['id', 'id'],
-                                },
-                            ],
-                        },
-                    },
+                                    $like: ['id', 'id']
+                                }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -298,9 +298,9 @@ describe('query_validation.ts', () => {
                     posts: {
                         id: true,
                         $where: {
-                            $eq: ['id', {}],
-                        },
-                    },
+                            $eq: ['id', {}]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -315,9 +315,9 @@ describe('query_validation.ts', () => {
                         id: true,
                         $from: 'posts',
                         $where: {
-                            $eq: ['not_a_field', 'test'], // the value must be escaped or a field name
-                        },
-                    },
+                            $eq: ['not_a_field', 'test'] // the value must be escaped or a field name
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -325,7 +325,7 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
                 ['posts', '$where', '$eq', 0],
-                ['posts', '$where', '$eq', 1],
+                ['posts', '$where', '$eq', 1]
             ])
         })
         test('allows where clause $in with list of values', () => {
@@ -335,9 +335,9 @@ describe('query_validation.ts', () => {
                         id: true,
                         $from: 'posts',
                         $where: {
-                            $in: ['id', [{ $escape: 1 }, { $escape: '2' }]],
-                        },
-                    },
+                            $in: ['id', [{ $escape: 1 }, { $escape: '2' }]]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -352,9 +352,9 @@ describe('query_validation.ts', () => {
                         id: true,
                         $from: 'posts',
                         $where: {
-                            $in: ['id', { $escape: [1, 2] }],
-                        },
-                    },
+                            $in: ['id', { $escape: [1, 2] }]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -369,9 +369,9 @@ describe('query_validation.ts', () => {
                         id: true,
                         $from: 'posts',
                         $where: {
-                            $in: ['id', { $escape: true }],
-                        },
-                    },
+                            $in: ['id', { $escape: true }]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -390,11 +390,11 @@ describe('query_validation.ts', () => {
                                 'user_id',
                                 {
                                     $select: ['id'],
-                                    $from: 'users',
-                                },
-                            ],
-                        },
-                    },
+                                    $from: 'users'
+                                }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -413,18 +413,18 @@ describe('query_validation.ts', () => {
                                 'user_id',
                                 {
                                     $select: ['not_a_field'],
-                                    $from: 'users',
-                                },
-                            ],
-                        },
-                    },
+                                    $from: 'users'
+                                }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['posts', '$where', '$in', 1, '$select', 0],
+                ['posts', '$where', '$in', 1, '$select', 0]
             ])
         })
         test('allows aliased fields in $having', () => {
@@ -434,9 +434,9 @@ describe('query_validation.ts', () => {
                         my_id: 'id',
                         $from: 'posts',
                         $having: {
-                            $eq: ['my_id', { $escape: 12 }],
-                        },
-                    },
+                            $eq: ['my_id', { $escape: 12 }]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -457,20 +457,20 @@ describe('query_validation.ts', () => {
                                     $eq: [
                                         'post_id',
                                         {
-                                            $escape: 12,
-                                        },
-                                    ],
-                                },
-                            ],
-                        },
-                    },
+                                            $escape: 12
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['users', '$where', '$any_path', 0, 0],
+                ['users', '$where', '$any_path', 0, 0]
             ])
         })
         test('correctly interprets which entity the $any_path is on', () => {
@@ -487,20 +487,20 @@ describe('query_validation.ts', () => {
                                     $eq: [
                                         'user_id',
                                         {
-                                            $escape: 12,
-                                        },
-                                    ],
-                                },
-                            ],
-                        },
-                    },
+                                            $escape: 12
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['users', '$where', '$any_path', 1, '$eq', 0],
+                ['users', '$where', '$any_path', 1, '$eq', 0]
             ])
         })
         test('allows $where_connected', () => {
@@ -510,13 +510,13 @@ describe('query_validation.ts', () => {
                         {
                             $entity: 'users',
                             $field: 'id',
-                            $values: [1, 'a'],
-                        },
+                            $values: [1, 'a']
+                        }
                     ],
                     posts: {
                         id: true,
-                        $from: 'posts',
-                    },
+                        $from: 'posts'
+                    }
                 },
                 global_test_schema
             )
@@ -531,12 +531,12 @@ describe('query_validation.ts', () => {
                         {
                             $entity: 'users',
                             $field: 'id',
-                            $values: [], // this cant be empty
-                        },
+                            $values: [] // this cant be empty
+                        }
                     ],
                     posts: {
-                        id: true,
-                    },
+                        id: true
+                    }
                 },
                 global_test_schema
             )
@@ -551,12 +551,12 @@ describe('query_validation.ts', () => {
                         {
                             $entity: 'not_an_entity',
                             $field: 'id',
-                            $values: [1],
-                        },
+                            $values: [1]
+                        }
                     ],
                     posts: {
-                        id: true,
-                    },
+                        id: true
+                    }
                 },
                 global_test_schema
             )
@@ -571,18 +571,18 @@ describe('query_validation.ts', () => {
                         {
                             $entity: 'users',
                             $field: 'id',
-                            $values: [1],
+                            $values: [1]
                         },
                         {
                             // vendors.id appears twice
                             $entity: 'users',
                             $field: 'id',
-                            $values: [2],
-                        },
+                            $values: [2]
+                        }
                     ],
                     posts: {
-                        id: true,
-                    },
+                        id: true
+                    }
                 },
                 global_test_schema
             )
@@ -596,10 +596,10 @@ describe('query_validation.ts', () => {
                     posts: {
                         max_id: {
                             $max: {
-                                $distinct: 'id',
-                            },
-                        },
-                    },
+                                $distinct: 'id'
+                            }
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -612,9 +612,9 @@ describe('query_validation.ts', () => {
                 {
                     posts: {
                         count: {
-                            $count: '*',
-                        },
-                    },
+                            $count: '*'
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -627,8 +627,8 @@ describe('query_validation.ts', () => {
                 {
                     posts: {
                         id: true,
-                        $select: ['*'],
-                    },
+                        $select: ['*']
+                    }
                 },
                 global_test_schema
             )
@@ -640,8 +640,8 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        $where: { $or: [] },
-                    },
+                        $where: { $or: [] }
+                    }
                 },
                 global_test_schema
             )
@@ -653,8 +653,8 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        $where: { $and: [] },
-                    },
+                        $where: { $and: [] }
+                    }
                 },
                 global_test_schema
             )
@@ -669,10 +669,10 @@ describe('query_validation.ts', () => {
                         $where: {
                             $eq: [
                                 { $entity: 'posts', $field: 'id' },
-                                { $escape: 1 },
-                            ],
-                        },
-                    },
+                                { $escape: 1 }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -688,19 +688,19 @@ describe('query_validation.ts', () => {
                             $eq: [
                                 {
                                     $entity: 'not_an_entity',
-                                    $field: 'user_id',
+                                    $field: 'user_id'
                                 },
-                                { $escape: 1 },
-                            ],
-                        },
-                    },
+                                { $escape: 1 }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['posts', '$where', '$eq', 0, '$entity'],
+                ['posts', '$where', '$eq', 0, '$entity']
             ])
         })
         test('requires valid $field name', () => {
@@ -710,17 +710,17 @@ describe('query_validation.ts', () => {
                         $where: {
                             $eq: [
                                 { $entity: 'posts', $field: 'post_id' },
-                                { $escape: 1 },
-                            ],
-                        },
-                    },
+                                { $escape: 1 }
+                            ]
+                        }
+                    }
                 },
                 global_test_schema
             )
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['posts', '$where', '$eq', 0, '$field'],
+                ['posts', '$where', '$eq', 0, '$field']
             ])
         })
         test.skip('must have a data prop if there is no valid sql function', () => {
@@ -728,8 +728,8 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        $limit: 1, // limit is not an sql function, so there neeeds to be a prop e.g. id: true
-                    },
+                        $limit: 1 // limit is not an sql function, so there neeeds to be a prop e.g. id: true
+                    }
                 },
                 global_test_schema
             )
@@ -746,10 +746,10 @@ describe('query_validation.ts', () => {
                             $foreign_key: ['post_id'], // regular nest
                             posts: {
                                 id: true,
-                                $foreign_key: ['post_id'], // reverse nest
-                            },
-                        },
-                    },
+                                $foreign_key: ['post_id'] // reverse nest
+                            }
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -764,13 +764,13 @@ describe('query_validation.ts', () => {
                         $foreign_key: ['post_id'], // wrong level, should be on images
                         comments: {
                             id: true,
-                            $foreign_key: ['user_id'], // wrong field, vendor_id doesnt connect images and products
+                            $foreign_key: ['user_id'] // wrong field, vendor_id doesnt connect images and products
                         },
                         users: {
                             id: true,
-                            $foreign_key: ['id', 'id'], // two fields are invalid
-                        },
-                    },
+                            $foreign_key: ['id', 'id'] // two fields are invalid
+                        }
+                    }
                 },
                 global_test_schema
             )
@@ -779,16 +779,35 @@ describe('query_validation.ts', () => {
             expect(paths).to.deep.equal([
                 ['posts', 'comments', '$foreign_key', 0],
                 ['posts', 'users', '$foreign_key'],
-                ['posts', '$foreign_key', 0],
+                ['posts', '$foreign_key', 0]
             ])
         })
         test('allows expressions to reference aliased fields', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        $select: [{ $as: ['id', 'my_field']}],
-                        count: { $distinct: 'my_field'}
-                    },
+                        $select: [{ $as: ['id', 'my_field'] }],
+                        count: { $distinct: 'my_field' }
+                    }
+                },
+                global_test_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
+        test('handles $exists', () => {
+            const errors = validate_query(
+                {
+                    posts: {
+                        $select: ['id'],
+                        $where: {
+                            $exists: {
+                                $select: ['id'],
+                                $from: 'posts'
+                            }
+                        }
+                    }
                 },
                 global_test_schema
             )

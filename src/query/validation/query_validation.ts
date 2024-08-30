@@ -598,15 +598,23 @@ const validate_where = (
     }
 
     // prop is an operation such as $gte or $like
-    return where[prop].flatMap((el, i) =>
-        validate_expression(
-            el,
-            [...where_path, prop, i],
-            context_entity,
-            field_aliases,
-            orma_schema
-        )
-    )
+    return Array.isArray(where[prop])
+        ? where[prop].flatMap((el, i) =>
+              validate_expression(
+                  el,
+                  [...where_path, prop, i],
+                  context_entity,
+                  field_aliases,
+                  orma_schema
+              )
+          )
+        : validate_expression(
+              where[prop],
+              [...where_path, prop],
+              context_entity,
+              field_aliases,
+              orma_schema
+          )
 }
 
 const validate_any_path_clause = (

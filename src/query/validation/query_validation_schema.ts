@@ -252,6 +252,11 @@ const where_schema = {
             }
         },
         {
+            $exists: {
+                $ref: '#/$defs/inner_query'
+            }
+        },
+        {
             $any_path: {
                 type: 'array',
                 minItems: 2,
