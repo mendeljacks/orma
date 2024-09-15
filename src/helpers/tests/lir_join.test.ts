@@ -30,7 +30,7 @@ describe('lir_join', () => {
 
     })
 
-    test('Nests many entities to one location (right to left)', () => {
+    test('Nests many tables to one location (right to left)', () => {
         const products = [{ id: 1, title: 'Laptop' }]
         const product_in_stores = [{ product_id: 1, store_id: 1 }, { product_id: 1, store_id: 2 }]
         const goal = [{
@@ -52,7 +52,7 @@ describe('lir_join', () => {
         expect(right).to.deep.equal([])
 
     })
-    test('Nests many entities to one location (left to right)', () => {
+    test('Nests many tables to one location (left to right)', () => {
         const products = [{ id: 1, title: 'Laptop' }]
         const product_in_stores = [{ product_id: 1, store_id: 1 }, { product_id: 1, store_id: 2 }]
         const goal = [{
@@ -202,7 +202,7 @@ describe('lir_join', () => {
 
     test.skip('preserves order of elements in array')
 
-    test.skip('Nests multiple entities', () => {
+    test.skip('Nests multiple tables', () => {
         const variants = [{ id: 1, sku: 'mysku1' }]
         const variant_in_stores = [{ variant_id: 1, price: 19.99 }]
         const images = [{ variant_id: 1, bucket_url: 'http:...' }]

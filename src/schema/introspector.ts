@@ -3,43 +3,11 @@
  * @module
  */
 
+import { sql_to_typescript_types } from '../compiler/schema/sql_data_types'
 import { group_by, sort_by_prop } from '../helpers/helpers'
 import { MysqlFunction } from '../mutate/mutate'
-import { DeepMutable } from '../types/schema/schema_helper_types'
-import { OrmaSchema, SupportedDatabases } from '../types/schema/schema_types'
-
-export const mysql_to_typescript_types = {
-    bigint: 'number',
-    binary: 'string',
-    bit: 'not_supported',
-    blob: 'not_supported',
-    bool: 'boolean',
-    boolean: 'boolean',
-    char: 'string',
-    date: 'string',
-    datetime: 'string',
-    decimal: 'number',
-    double: 'number',
-    enum: 'enum',
-    float: 'number',
-    int: 'number',
-    longblob: 'not_supported',
-    longtext: 'string',
-    mediumblob: 'not_supported',
-    mediumint: 'number',
-    mediumtext: 'string',
-    set: 'not_supported',
-    smallint: 'number',
-    text: 'string',
-    time: 'string',
-    timestamp: 'string',
-    tinyblob: 'not_supported',
-    tinyint: 'boolean',
-    tinytext: 'string',
-    varbinary: 'string',
-    varchar: 'string',
-    json: 'string',
-} as const
+import { DeepMutable } from './schema_helper_types'
+import { OrmaSchema, SupportedDatabases } from './schema_types'
 
 export const orma_introspect = async (
     db: string,
@@ -71,8 +39,8 @@ export const orma_introspect = async (
         options.database_type
     )
 
-    const $cache = generate_orma_schema_cache(orma_schema.$entities)
-    orma_schema.$cache = $cache
+    const $cache = generate_orma_schema_cache(orma_schema.tables)
+    orma_schema.cache = $cache
 
     return orma_schema
 }
@@ -174,10 +142,10 @@ export const generate_database_schema = (
                 ?.slice()
                 ?.sort((a, b) => sort_by_prop(a, b, 'constraint_name'))
 
-            const $fields = sorted_mysql_columns?.reduce(
+            const $columns = sorted_mysql_columns?.reduce(
                 (acc, mysql_column) => {
                     acc[mysql_column.column_name] =
-                        generate_field_schema(mysql_column)
+                        generate_column_schema(mysql_column)
                     return acc
                 },
                 {}
@@ -199,25 +167,25 @@ export const generate_database_schema = (
                 mysql_table.table_name
             ]?.sort((a, b) => sort_by_prop(a, b, '$name'))
 
-            acc.$entities[mysql_table.table_name] = {
+            acc.tables[mysql_table.table_name] = {
                 $comment: mysql_table.table_comment,
-                $database_type: database_type,
-                $fields,
-                $primary_key: generate_primary_key_schema(sorted_mysql_columns),
-                ...($foreign_keys?.length && { $foreign_keys }),
-                ...($indexes?.length && { $indexes }),
-                ...($unique_keys?.length && { $unique_keys }),
+                database_type: database_type,
+                columns: $columns,
+                primary_key: generate_primary_key_schema(sorted_mysql_columns),
+                ...($foreign_keys?.length && { foreign_keys: $foreign_keys }),
+                ...($indexes?.length && { indexes: $indexes }),
+                ...($unique_keys?.length && { unique_keys: $unique_keys })
             }
 
             return acc
         },
-        { $entities: {} } as OrmaSchemaMutable
+        { tables: {} } as OrmaSchemaMutable
     )
 
     return database_schema
 }
 
-export const generate_field_schema = (mysql_column: MysqlColumn) => {
+export const generate_column_schema = (mysql_column: MysqlColumn) => {
     const {
         table_name,
         column_name,
@@ -229,13 +197,13 @@ export const generate_field_schema = (mysql_column: MysqlColumn) => {
         numeric_precision,
         numeric_scale,
         column_type,
-        is_identity,
+        is_idtable,
         datetime_precision,
         column_key,
         extra,
         generation_expression,
         column_comment,
-        identity_generation,
+        idtable_generation
     } = mysql_column
 
     const enum_match = column_type?.match(/enum\((.+)\)/)?.[1] ?? ''
@@ -247,23 +215,22 @@ export const generate_field_schema = (mysql_column: MysqlColumn) => {
     const precision =
         numeric_precision ?? datetime_precision ?? character_maximum_length
 
-    const field_schema: OrmaField = {
+    const column_schema: OrmaColumn = {
         $data_type:
-            data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
+            data_type.toLowerCase() as keyof typeof sql_to_typescript_types,
         ...(enum_values?.length && { $enum_values: enum_values }),
         ...(precision && { $precision: precision }),
         ...(numeric_scale && { $scale: numeric_scale }),
         ...(column_type?.match(/unsigned/) && { $unsigned: true }),
         ...(extra === 'auto_increment' && { $auto_increment: true }),
-        ...((identity_generation || column_default) && {
-            $default:
-                identity_generation || parse_column_default(column_default),
+        ...((idtable_generation || column_default) && {
+            $default: idtable_generation || parse_column_default(column_default)
         }),
         ...(is_nullable === 'NO' && { $not_null: true }),
-        ...(column_comment && { $comment: column_comment }),
+        ...(column_comment && { $comment: column_comment })
     }
 
-    return field_schema
+    return column_schema
 }
 
 const parse_column_default = (value: any) => {
@@ -295,7 +262,7 @@ const generate_primary_key_schema = (mysql_columns: MysqlColumn[]) => {
         el => el.column_key === 'PRI'
     )
     return {
-        $fields: primary_key_columns?.map(el => el.column_name) ?? [],
+        $columns: primary_key_columns?.map(el => el.column_name) ?? []
     }
 }
 
@@ -305,7 +272,7 @@ const generate_foreign_key_schema = (mysql_foreign_key: MysqlForeignKey) => {
         column_name,
         referenced_table_name,
         referenced_column_name,
-        constraint_name,
+        constraint_name
     } = mysql_foreign_key
 
     if (!referenced_table_name || !referenced_column_name) {
@@ -314,11 +281,11 @@ const generate_foreign_key_schema = (mysql_foreign_key: MysqlForeignKey) => {
 
     return {
         $name: constraint_name,
-        $fields: [column_name],
+        $columns: [column_name],
         $references: {
-            $entity: referenced_table_name,
-            $fields: [referenced_column_name],
-        },
+            $table: referenced_table_name,
+            $columns: [referenced_column_name]
+        }
     }
 }
 
@@ -342,7 +309,7 @@ export const generate_index_schemas = (
                     : Number(mysql_index.non_unique) === 1
             )
 
-        // we need to do this because mysql puts each field of an index as a separate row
+        // we need to do this because mysql puts each column of an index as a separate row
         // in the indeformation schema table
         const mysql_indexes_by_name = group_by(
             mysql_indexes,
@@ -353,13 +320,13 @@ export const generate_index_schemas = (
             index_name => {
                 const index = mysql_indexes_by_name[index_name][0]
                 const uniq = <T>(els: T[]): T[] => [...new Set(els)]
-                const fields = uniq(
+                const columns = uniq(
                     mysql_indexes_by_name[index_name]
                         .slice()
                         .sort((a, b) => a.seq_in_index - b.seq_in_index)
                         .map(el => el.column_name)
                 )
-                return generate_index_schema(index, fields)
+                return generate_index_schema(index, columns)
             }
         )
 
@@ -370,7 +337,7 @@ export const generate_index_schemas = (
     return index_schemas_by_table
 }
 
-const generate_index_schema = (mysql_index: MysqlIndex, fields: string[]) => {
+const generate_index_schema = (mysql_index: MysqlIndex, columns: string[]) => {
     const {
         table_name,
         non_unique,
@@ -385,45 +352,45 @@ const generate_index_schema = (mysql_index: MysqlIndex, fields: string[]) => {
         comment,
         index_comment,
         is_visible,
-        expression,
+        expression
     } = mysql_index
 
     const orma_index_schema: OrmaIndex = {
         $name: index_name,
-        $fields: fields,
+        $columns: columns,
         // $index: true, // TODO: figure out how mysql shows other index types like spatial or fulltext
         ...(index_comment && { $comment: index_comment }),
-        ...(is_visible === 'NO' && { $invisible: true }),
+        ...(is_visible === 'NO' && { $invisible: true })
     }
 
     return orma_index_schema
 }
 
 export const generate_orma_schema_cache = (
-    $entities: OrmaSchema['$entities']
+    $tables: OrmaSchema['tables']
 ): OrmaSchemaCache | undefined => {
-    const fk_cache: OrmaSchemaCache['$reversed_foreign_keys'] = {}
+    const fk_cache: OrmaSchemaCache['reversed_foreign_keys'] = {}
 
-    const entities = Object.keys($entities)
+    const tables = Object.keys($tables)
 
-    entities.forEach(entity => {
-        $entities[entity].$foreign_keys?.forEach(foreign_key => {
-            if (!fk_cache[foreign_key.$references.$entity]) {
-                fk_cache[foreign_key.$references.$entity] = []
+    tables.forEach(table => {
+        $tables[table].foreign_keys?.forEach(foreign_key => {
+            if (!fk_cache[foreign_key.$references.$table]) {
+                fk_cache[foreign_key.$references.$table] = []
             }
             //@ts-ignore can push
-            fk_cache[foreign_key.$references.$entity].push({
-                // from_entity: foreign_key.to_entity,
-                from_field: foreign_key.$references.$fields[0],
-                to_entity: entity,
-                to_field: foreign_key.$fields[0],
+            fk_cache[foreign_key.$references.$table].push({
+                // from_table: foreign_key.to_table,
+                from_columns: foreign_key.$references.$columns[0],
+                to_table: table,
+                to_columns: foreign_key.$columns[0]
             })
         })
     })
 
     return Object.keys(fk_cache).length > 0
         ? {
-              $reversed_foreign_keys: fk_cache,
+              reversed_foreign_keys: fk_cache
           }
         : undefined
 }
@@ -441,8 +408,8 @@ export type MysqlColumn = {
     ordinal_position: number
     column_default?: string | number
     is_nullable?: string
-    is_identity?: 'YES' | 'NO' // postgres
-    identity_generation?: string | null // postgres
+    is_idtable?: 'YES' | 'NO' // postgres
+    idtable_generation?: string | null // postgres
     data_type: string
     character_maximum_length?: number
     numeric_precision?: number
@@ -481,13 +448,13 @@ export type MysqlForeignKey = {
 }
 
 type OrmaIndex = NonNullable<
-    OrmaSchemaMutable['$entities'][string]['$indexes']
+    OrmaSchemaMutable['tables'][string]['indexes']
 >[number]
 
-type OrmaField = NonNullable<
-    OrmaSchemaMutable['$entities'][string]['$fields']
+type OrmaColumn = NonNullable<
+    OrmaSchemaMutable['tables'][string]['columns']
 >[string]
 
-type OrmaSchemaCache = NonNullable<OrmaSchemaMutable['$cache']>
+type OrmaSchemaCache = NonNullable<OrmaSchemaMutable['cache']>
 
 export const as_orma_schema = t => t

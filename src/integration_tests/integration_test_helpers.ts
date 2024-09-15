@@ -2,7 +2,7 @@ import * as sqlite3 from 'sqlite3'
 import { sqlite3_adapter } from '../helpers/database_adapters'
 import { remove_file } from '../helpers/file_helpers'
 import { get_schema_diff } from '../schema/schema_macro'
-import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaSchema } from '../schema/schema_types'
 import { json_to_sql } from '../query/ast_to_sql'
 import { orma_mutate } from '../mutate/mutate'
 import { copyFileSync } from 'fs'
@@ -28,7 +28,7 @@ export const close_sqlite_database = async (db: sqlite3.Database) =>
     )
 
 /**
- * Call once before all tests run. Make sure the orma_schema entities have $database_type set to 'sqlite'
+ * Call once before all tests run. Make sure the orma_schema tables have $database_type set to 'sqlite'
  */
 export const set_up_test_database = async (
     orma_schema: OrmaSchema,
@@ -38,7 +38,7 @@ export const set_up_test_database = async (
     clear_database_files(directory_path)
     const db = await open_sqlite_database(get_db_path(directory_path))
 
-    const schema_diff = get_schema_diff({ $entities: {} }, orma_schema)
+    const schema_diff = get_schema_diff({ tables: {} }, orma_schema)
     const statements = schema_diff.map(ast => ({
         sql_string: json_to_sql(ast, 'sqlite')
     }))

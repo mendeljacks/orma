@@ -24,10 +24,10 @@ describe('mutation_connected.ts', () => {
         get_upwards_connection_edges(global_test_schema)
 
     const get_test_where_connected = (
-        entity: string
+        table: string
     ): WhereConnected<GlobalTestSchema>[number] => ({
-        $entity: entity as any,
-        $field: 'id',
+        $table: table as any,
+        $column: 'id',
         $values: [1, 2],
     })
 
@@ -73,7 +73,7 @@ describe('mutation_connected.ts', () => {
             )
             expect(errors.length).to.equal(1)
         })
-        test('works when nothing is connected to ownership entity', async () => {
+        test('works when nothing is connected to ownership table', async () => {
             const query_function: MysqlFunction = async statements => []
 
             const mutation_pieces = []
@@ -90,7 +90,7 @@ describe('mutation_connected.ts', () => {
         })
     })
     describe(get_ownership_queries.name, () => {
-        test('tracks multiple entities', () => {
+        test('tracks multiple tables', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
@@ -104,7 +104,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 3,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['comments', 0],
                 },
@@ -147,7 +147,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['addresses', 0],
                 },
@@ -167,10 +167,10 @@ describe('mutation_connected.ts', () => {
                 default_connection_edges,
                 [
                     {
-                        from_entity: 'addresses',
-                        from_field: 'id',
-                        to_entity: 'users',
-                        to_field: 'shipping_address_id',
+                        from_table: 'addresses',
+                        from_columns: 'id',
+                        to_table: 'users',
+                        to_columns: 'shipping_address_id',
                     },
                 ]
             )
@@ -212,7 +212,7 @@ describe('mutation_connected.ts', () => {
                 },
             ])
         })
-        test('handles creating a child of a reverse connected entity', () => {
+        test('handles creating a child of a reverse connected table', () => {
             const mutation_pieces: MutationPiece[] = [
                 // in this case we expect that any posts connected to an already existing post_has_category
                 // connected to category 1 will show up in the connected query, since category 2 is owned
@@ -231,10 +231,10 @@ describe('mutation_connected.ts', () => {
                 default_connection_edges,
                 [
                     {
-                        from_entity: 'categories',
-                        from_field: 'id',
-                        to_entity: 'post_has_categories',
-                        to_field: 'category_id',
+                        from_table: 'categories',
+                        from_columns: 'id',
+                        to_table: 'post_has_categories',
+                        to_columns: 'category_id',
                     },
                 ]
             )
@@ -280,7 +280,7 @@ describe('mutation_connected.ts', () => {
                 },
             ])
         })
-        test('handles entity with no connected to table', () => {
+        test('handles table with no connected to table', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
@@ -334,7 +334,7 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 12,
                         title: 'hi',
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['posts', 0],
                 },
@@ -369,7 +369,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['users', 0],
                 },
@@ -379,16 +379,16 @@ describe('mutation_connected.ts', () => {
             //     default_connection_edges,
             //     [
             //         {
-            //             from_entity: 'addresses',
-            //             from_field: 'id',
-            //             to_entity: 'users',
-            //             to_field: 'shipping_address_id',
+            //             from_table: 'addresses',
+            //             from_column: 'id',
+            //             to_table: 'users',
+            //             to_column: 'shipping_address_id',
             //         },
             //         {
-            //             from_entity: 'addresses',
-            //             from_field: 'id',
-            //             to_entity: 'users',
-            //             to_field: 'billing_address_id',
+            //             from_table: 'addresses',
+            //             from_column: 'id',
+            //             to_table: 'users',
+            //             to_column: 'billing_address_id',
             //         },
             //     ]
             // )
@@ -456,7 +456,7 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                         user_id: 12,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['posts', 0],
                 },
@@ -468,8 +468,8 @@ describe('mutation_connected.ts', () => {
                 default_connection_edges,
                 new Map(),
                 {
-                    $entity: 'categories',
-                    $field: 'id',
+                    $table: 'categories',
+                    $column: 'id',
                     $values: [1],
                 },
                 mutation_pieces,
@@ -489,7 +489,7 @@ describe('mutation_connected.ts', () => {
                         id: 1,
                         user_id: 12,
                         title: 'hi',
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['posts', 0],
                 },
@@ -524,7 +524,7 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                         post_id: 11,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['comments', 0],
                 },
@@ -566,7 +566,7 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['comments', 0],
                 },

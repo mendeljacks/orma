@@ -31,7 +31,7 @@ export const apply_nesting_mutation_macro = mutation => {
         const higher_index = last_processed_index + 1
         const higher_piece = flat_mutation[higher_index]
 
-        // array implies lower records (as opposed to a field value or a $guid). This is the current way
+        // array implies lower records (as opposed to a column value or a $guid). This is the current way
         // it works in mutations, but could change at some point if we allow nesting parents with objects directly
         Object.keys(higher_piece.record).forEach(prop => {
             if (is_submutation(higher_piece.record, prop)) {

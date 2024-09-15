@@ -4,26 +4,26 @@ import { last } from '../../helpers/helpers'
 import {
     can_have_guid,
     get_all_edges,
-    get_field_names,
-    get_field_schema,
-    is_entity_name,
-    is_field_name,
-    is_required_field,
-    is_reserved_keyword,
+    get_column_names,
+    get_column_schema,
+    is_table_name,
+    is_column_name,
+    is_required_column,
+    is_reserved_keyword
 } from '../../helpers/schema_helpers'
-import { mysql_to_typescript_types } from '../../schema/introspector'
 import { Path } from '../../types'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { OrmaSchema } from '../../schema/schema_types'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
 import { MutationOperation } from '../mutate'
+import { sql_to_typescript_types } from '../../compiler/schema/sql_data_types'
 
 export const mutate_validation_schema = {
     type: 'object',
     properties: {
         $operation: {
             type: 'string',
-            enum: ['create', 'update', 'delete', 'upsert', 'none'],
-        },
+            enum: ['create', 'update', 'delete', 'upsert', 'none']
+        }
     },
     additionalProperties: {
         type: 'array',
@@ -32,14 +32,14 @@ export const mutate_validation_schema = {
             properties: {
                 $operation: {
                     type: 'string',
-                    enum: ['create', 'update', 'delete', 'upsert', 'none'],
+                    enum: ['create', 'update', 'delete', 'upsert', 'none']
                 },
-                $identifying_fields: {
+                $identifying_columns: {
                     type: 'array',
                     items: {
-                        type: 'string',
-                    },
-                },
+                        type: 'string'
+                    }
+                }
             },
             additionalProperties: {
                 oneOf: [
@@ -52,33 +52,33 @@ export const mutate_validation_schema = {
                         type: 'object',
                         properties: {
                             $guid: {
-                                oneOf: [{ type: 'string' }, { type: 'number' }],
+                                oneOf: [{ type: 'string' }, { type: 'number' }]
                             },
                             $write: {
-                                type: 'boolean',
+                                type: 'boolean'
                             },
                             $read: {
-                                type: 'boolean',
+                                type: 'boolean'
                             },
                             $resolved_value: {
                                 oneOf: [
                                     { type: 'string' },
                                     { type: 'number' },
-                                    { type: 'null' },
-                                ],
-                            },
+                                    { type: 'null' }
+                                ]
+                            }
                         },
                         additionalProperties: false,
-                        required: ['$guid'],
+                        required: ['$guid']
                     },
                     {
                         // ref to this bit of the subschema
-                        $ref: '#/additionalProperties',
-                    },
-                ],
-            },
-        },
-    },
+                        $ref: '#/additionalProperties'
+                    }
+                ]
+            }
+        }
+    }
 }
 
 export const validate_mutation = (mutation, orma_schema: OrmaSchema) => {
@@ -105,14 +105,14 @@ export const validate_orma_mutation = (mutation, orma_schema: OrmaSchema) => {
  * require a code-generated JSON schema) or things which reference parent values such as operation inheritance
  */
 const validate_mutation_js = (mutation, orma_schema: OrmaSchema) => {
-    // check root level props which must be entity names,
+    // check root level props which must be table names,
     // then generate errors for nested mutations
-    const field_errors = Object.keys(mutation)
+    const column_errors = Object.keys(mutation)
         .filter(key => !is_reserved_keyword(key))
         .flatMap(key => {
             const value = mutation[key] as any[]
 
-            if (is_entity_name(key, orma_schema)) {
+            if (is_table_name(orma_schema, key)) {
                 return value.flatMap((record, i) =>
                     validate_mutation_record(
                         mutation,
@@ -125,15 +125,15 @@ const validate_mutation_js = (mutation, orma_schema: OrmaSchema) => {
             } else {
                 return [
                     {
-                        message: `Property ${key} is not a valid entity name.`,
-                        path: [key],
+                        message: `Property ${key} is not a valid table name.`,
+                        path: [key]
                         // original_data: mutation,
-                    },
+                    }
                 ] as OrmaError[]
             }
         })
 
-    return field_errors
+    return column_errors
 }
 
 const validate_mutation_record = (
@@ -144,30 +144,30 @@ const validate_mutation_record = (
     higher_operation: MutationOperation | undefined = undefined
 ): OrmaError[] => {
     const operation = record.$operation ?? higher_operation
-    const entity_name = get_ancestor_name_from_path(record_path, 0)
+    const table_name = get_ancestor_name_from_path(record_path, 0)
 
-    if (!entity_name) {
+    if (!table_name) {
         throw new Error('Shouldnt happen')
     }
 
     const errors = [
         ...validate_operation_existence(mutation, record_path, operation),
-        ...validate_required_fields(
+        ...validate_required_columns(
             mutation,
             record_path,
             record,
-            entity_name,
+            table_name,
             operation,
             orma_schema
         ),
-        ...validate_fields_and_nested_mutations(
+        ...validate_columns_and_nested_mutations(
             mutation,
             record_path,
             record,
-            entity_name,
+            table_name,
             operation,
             orma_schema
-        ),
+        )
         // ...validate_identifying_keys(
         //     mutation,
         //     record_path,
@@ -178,7 +178,7 @@ const validate_mutation_record = (
         // ...validate_operation_nesting(
         //     mutation,
         //     record_path,
-        //     entity_name,
+        //     table_name,
         //     operation,
         //     higher_operation,
         //     orma_schema
@@ -198,8 +198,8 @@ const validate_operation_existence = (
                   {
                       message: `Records must have an operation or an inherited operation.`,
                       // original_data: mutation,
-                      path: [...record_path, '$operation'],
-                  },
+                      path: [...record_path, '$operation']
+                  }
               ]
             : []
 
@@ -235,32 +235,32 @@ const get_ancestor_name_from_path = (
     return undefined
 }
 
-const validate_fields_and_nested_mutations = (
+const validate_columns_and_nested_mutations = (
     mutation: any,
     record_path: any,
     record: any,
-    entity_name: string,
+    table_name: string,
     operation: any,
     orma_schema: OrmaSchema
 ) => {
-    const connected_entities = get_all_edges(entity_name, orma_schema).map(
-        el => el.to_entity
+    const connected_tables = get_all_edges(table_name, orma_schema).map(
+        el => el.to_table
     )
 
-    const field_errors = Object.keys(record)
+    const column_errors = Object.keys(record)
         .filter(key => !is_reserved_keyword(key))
         .flatMap(key => {
             const value = record[key]
 
-            if (connected_entities.includes(key)) {
+            if (connected_tables.includes(key)) {
                 // submutation
                 if (!Array.isArray(value)) {
                     return [
                         {
                             message: `Nested mutations must be an array.`,
-                            path: [...record_path, key],
+                            path: [...record_path, key]
                             // original_data: mutation,
-                        },
+                        }
                     ] as OrmaError[]
                 }
 
@@ -273,57 +273,61 @@ const validate_fields_and_nested_mutations = (
                         operation
                     )
                 )
-            } else if (is_field_name(entity_name, key, orma_schema)) {
-                // regular field
+            } else if (is_column_name(orma_schema, table_name, key)) {
+                // regular column
                 if (Array.isArray(value)) {
                     return [
                         {
                             message: `Regular properties can't be arrays.`,
-                            path: [...record_path, key],
+                            path: [...record_path, key]
                             // original_data: mutation,
-                        },
+                        }
                     ] as OrmaError[]
                 }
 
-                return validate_field(
+                return validate_column(
                     orma_schema,
                     mutation,
                     [...record_path, key],
-                    entity_name,
+                    table_name,
                     record[key]
                 )
             } else {
                 // unknown prop
                 return [
                     {
-                        message: `Property ${key} is not a valid connected entity or field name.`,
-                        path: [...record_path, key],
+                        message: `Property ${key} is not a valid connected table or column name.`,
+                        path: [...record_path, key]
                         // original_data: mutation,
-                    },
+                    }
                 ] as OrmaError[]
             }
         })
-    return field_errors
+    return column_errors
 }
 
-const validate_field = (
+const validate_column = (
     orma_schema: OrmaSchema,
     mutation: any,
-    field_path: Path,
-    entity_name: string,
-    field_value: string | number | null | boolean | { $guid: string | number }
+    column_path: Path,
+    table_name: string,
+    column_value: string | number | null | boolean | { $guid: string | number }
 ): OrmaError[] => {
-    if (field_value === undefined) {
+    if (column_value === undefined) {
         // undefined is like nothing is there, so it should be like the validation doesnt run
         return []
     }
 
-    const field_name = last(field_path) as string
-    const field_schema = get_field_schema(orma_schema, entity_name, field_name)
-    const required_data_type = field_schema.$data_type
+    const column_name = last(column_path) as string
+    const column_schema = get_column_schema(
+        orma_schema,
+        table_name,
+        column_name
+    )
+    const required_data_type = column_schema.$data_type
 
     const required_simple_type = required_data_type
-        ? mysql_to_typescript_types[required_data_type]
+        ? sql_to_typescript_types[required_data_type]
         : null
 
     if (
@@ -336,32 +340,32 @@ const validate_field = (
     }
 
     // @ts-ignore
-    if (field_value?.$guid) {
-        if (can_have_guid(orma_schema, entity_name, field_name)) {
-            // no further checks needed if this field can have a guid
+    if (column_value?.$guid) {
+        if (can_have_guid(orma_schema, table_name, column_name)) {
+            // no further checks needed if this column can have a guid
             return []
         } else {
             return [
                 {
-                    message: `${entity_name} ${field_name} has a $guid but is not a primary or foreign key.`,
-                    path: field_path,
+                    message: `${table_name} ${column_name} has a $guid but is not a primary or foreign key.`,
+                    path: column_path
                     // original_data: mutation,
-                },
+                }
             ]
         }
     }
 
-    if (field_value === null) {
-        if (field_schema.$not_null) {
+    if (column_value === null) {
+        if (column_schema.$not_null) {
             return [
                 {
-                    message: `${entity_name} ${field_name} is non-nullable but is set to null.`,
-                    path: field_path,
+                    message: `${table_name} ${column_name} is non-nullable but is set to null.`,
+                    path: column_path
                     // original_data: mutation,
-                },
+                }
             ]
         } else {
-            // if the field value is null, and the column is nullable, then it is always valid, we don't need
+            // if the column value is null, and the column is nullable, then it is always valid, we don't need
             // further checks
             return []
         }
@@ -369,35 +373,35 @@ const validate_field = (
 
     // enums only get a check that the value is in the list of allowed values, no other checks
     if (required_simple_type === 'enum') {
-        const enum_values = field_schema.$enum_values ?? []
-        const enum_errors = enum_values.includes(field_value as any)
+        const enum_values = column_schema.$enum_values ?? []
+        const enum_errors = enum_values.includes(column_value as any)
             ? []
             : [
                   {
-                      message: `${entity_name} ${field_name} is ${field_value} but must be one of ${enum_values?.join(
+                      message: `${table_name} ${column_name} is ${column_value} but must be one of ${enum_values?.join(
                           ', '
                       )}.`,
-                      path: field_path,
+                      path: column_path,
                       // original_data: mutation,
                       additional_info: {
-                          enum_values,
-                      },
-                  },
+                          enum_values
+                      }
+                  }
               ]
 
         return enum_errors
     }
 
-    // field value cannot be null at this point, so we dont need to handle that case for the typeof
-    const given_js_type = typeof field_value
+    // column value cannot be null at this point, so we dont need to handle that case for the typeof
+    const given_js_type = typeof column_value
 
     if (required_simple_type === 'string') {
         const allowed_types = ['boolean', 'string', 'number']
         if (!allowed_types.includes(given_js_type)) {
             return get_type_mismatch_errors(
                 mutation,
-                field_path,
-                entity_name,
+                column_path,
+                table_name,
                 required_data_type,
                 allowed_types.join(', '),
                 given_js_type
@@ -405,21 +409,21 @@ const validate_field = (
         }
 
         // cast from string / boolean
-        const string_field_value = field_value?.toString() ?? ''
-        const max_character_count = field_schema.$precision ?? Infinity
-        const given_character_count = string_field_value.length
+        const string_column_value = column_value?.toString() ?? ''
+        const max_character_count = column_schema.$precision ?? Infinity
+        const given_character_count = string_column_value.length
         const length_errors =
             given_character_count > max_character_count
                 ? [
                       {
-                          message: `${entity_name} ${field_name} is ${string_field_value.length} characters long but cannot be more than ${field_schema.$precision} characters long.`,
-                          path: field_path,
+                          message: `${table_name} ${column_name} is ${string_column_value.length} characters long but cannot be more than ${column_schema.$precision} characters long.`,
+                          path: column_path,
                           // original_data: mutation,
                           additional_info: {
                               given_character_count,
-                              max_character_count,
-                          },
-                      },
+                              max_character_count
+                          }
+                      }
                   ]
                 : []
 
@@ -431,40 +435,40 @@ const validate_field = (
         if (!allowed_types.includes(given_js_type)) {
             return get_type_mismatch_errors(
                 mutation,
-                field_path,
-                entity_name,
+                column_path,
+                table_name,
                 required_data_type,
                 allowed_types.join(', '),
                 given_js_type
             )
         }
 
-        const number_field_value = Number(field_value)
+        const number_column_value = Number(column_value)
         if (
-            isNaN(number_field_value) ||
-            field_value?.toString()?.trim() === ''
+            isNaN(number_column_value) ||
+            column_value?.toString()?.trim() === ''
         ) {
             return [
                 {
-                    message: `${entity_name} ${field_name} is not a valid number, boolean or number string.`,
-                    path: field_path,
+                    message: `${table_name} ${column_name} is not a valid number, boolean or number string.`,
+                    path: column_path
                     // original_data: mutation,
-                },
+                }
             ]
         }
 
-        if (number_field_value > Number.MAX_SAFE_INTEGER) {
+        if (number_column_value > Number.MAX_SAFE_INTEGER) {
             return [
                 {
-                    message: `${entity_name} ${field_name} is larger than ${Number.MAX_SAFE_INTEGER}, the largest allowed number.`,
-                    path: field_path,
+                    message: `${table_name} ${column_name} is larger than ${Number.MAX_SAFE_INTEGER}, the largest allowed number.`,
+                    path: column_path
                     // original_data: mutation,
-                },
+                }
             ]
         }
 
-        const max_character_count = field_schema.$precision ?? Infinity
-        const given_character_count = number_field_value
+        const max_character_count = column_schema.$precision ?? Infinity
+        const given_character_count = number_column_value
             .toString()
             .replaceAll(/[^0-9]/g, '').length
 
@@ -472,48 +476,48 @@ const validate_field = (
             given_character_count > max_character_count
                 ? [
                       {
-                          message: `${entity_name} ${field_name} has ${given_character_count} digits but cannot have more than ${max_character_count} digits.`,
-                          path: field_path,
+                          message: `${table_name} ${column_name} has ${given_character_count} digits but cannot have more than ${max_character_count} digits.`,
+                          path: column_path,
                           // original_data: mutation,
                           additional_info: {
                               given_character_count,
-                              max_character_count,
-                          },
-                      },
+                              max_character_count
+                          }
+                      }
                   ]
                 : []
 
-        const decimal_part = number_field_value.toString().match(/\.(.*)/)?.[1]
-        const max_decimals = field_schema.$scale ?? Infinity
+        const decimal_part = number_column_value.toString().match(/\.(.*)/)?.[1]
+        const max_decimals = column_schema.$scale ?? Infinity
         const given_decimals = decimal_part?.length ?? 0
 
         const decimal_errors =
             given_decimals > max_decimals
                 ? [
                       {
-                          message: `${entity_name} ${field_name} has ${given_decimals} digits after the decimal point but cannot have more than ${max_decimals} digits.`,
-                          path: field_path,
+                          message: `${table_name} ${column_name} has ${given_decimals} digits after the decimal point but cannot have more than ${max_decimals} digits.`,
+                          path: column_path,
                           // original_data: mutation,
                           additional_info: {
                               given_decimals,
-                              max_decimals,
-                          },
-                      },
+                              max_decimals
+                          }
+                      }
                   ]
                 : []
 
         const unsigned_errors =
-            field_schema.$unsigned && number_field_value < 0
+            column_schema.$unsigned && number_column_value < 0
                 ? [
                       {
-                          message: `${entity_name} ${field_name} is ${number_field_value} but cannot be negative.`,
-                          path: field_path,
+                          message: `${table_name} ${column_name} is ${number_column_value} but cannot be negative.`,
+                          path: column_path,
                           // original_data: mutation,
                           additional_info: {
                               given_decimals,
-                              max_decimals,
-                          },
-                      },
+                              max_decimals
+                          }
+                      }
                   ]
                 : []
 
@@ -522,13 +526,13 @@ const validate_field = (
 
     if (required_simple_type === 'boolean') {
         const allowed_values = [0, 1, '0', '1', true, false]
-        if (!allowed_values.includes(field_value as any)) {
+        if (!allowed_values.includes(column_value as any)) {
             return [
                 {
-                    message: `${entity_name} ${field_name} is ${field_value} but must be one of true, false, 0, 1, '0', '1'.`,
-                    path: field_path,
+                    message: `${table_name} ${column_name} is ${column_value} but must be one of true, false, 0, 1, '0', '1'.`,
+                    path: column_path
                     // original_data: mutation,
-                },
+                }
             ]
         } else {
             return []
@@ -540,45 +544,45 @@ const validate_field = (
 
 const get_type_mismatch_errors = (
     mutation: any,
-    field_path: Path,
-    entity_name: string,
+    column_path: Path,
+    table_name: string,
     required_data_type: string,
     required_simple_type: string,
     given_js_type: string
 ): OrmaError[] => {
-    const field_name = last(field_path)
+    const column_name = last(column_path)
     return [
         {
-            message: `${entity_name} ${field_name} is a ${given_js_type} but must be a ${required_simple_type}.`,
-            path: field_path,
+            message: `${table_name} ${column_name} is a ${given_js_type} but must be a ${required_simple_type}.`,
+            path: column_path,
             // original_data: mutation,
             additional_info: {
                 required_data_type,
                 given_js_type,
-                required_js_type: required_simple_type,
-            },
-        },
+                required_js_type: required_simple_type
+            }
+        }
     ]
 }
 
-const validate_required_fields = (
+const validate_required_columns = (
     mutation: any,
     record_path: any,
     record: any,
-    entity_name: string,
+    table_name: string,
     operation: any,
     orma_schema: OrmaSchema
 ) => {
-    const required_fields = get_field_names(entity_name, orma_schema).filter(
-        field_name => is_required_field(entity_name, field_name, orma_schema)
+    const required_columns = get_column_names(table_name, orma_schema).filter(
+        column_name => is_required_column(table_name, column_name, orma_schema)
     )
 
-    const errors: OrmaError[] = required_fields.flatMap(required_field => {
-        // required fields are only applicable in creates, for updates (and deletes), the user never needs to
-        // supply anything since required fields would already be in the database
+    const errors: OrmaError[] = required_columns.flatMap(required_column => {
+        // required columns are only applicable in creates, for updates (and deletes), the user never needs to
+        // supply anything since required columns would already be in the database
         if (
             ['create', 'upsert'].includes(operation) &&
-            record[required_field] === undefined
+            record[required_column] === undefined
         ) {
             // any foreign key that is for a connected parent record does not have to be supplied by the user since it
             // will be auto-inserted via foreign key propagation from the parent. (the parent record must be a create
@@ -589,17 +593,17 @@ const validate_required_fields = (
                 orma_schema
             )
 
-            const required_field_is_foreign_key = foreign_keys
-                .map(({ edge }) => edge.from_field)
-                .includes(required_field)
+            const required_column_is_foreign_key = foreign_keys
+                .map(({ edge }) => edge.from_columns)
+                .includes(required_column)
 
-            if (!required_field_is_foreign_key) {
+            if (!required_column_is_foreign_key) {
                 return [
                     {
-                        message: `${required_field} is required to create ${entity_name}.`,
-                        path: [...record_path, required_field],
+                        message: `${required_column} is required to create ${table_name}.`,
+                        path: [...record_path, required_column]
                         // original_data: mutation,
-                    },
+                    }
                 ]
             }
         }
@@ -613,21 +617,21 @@ const validate_required_fields = (
 // const validate_operation_nesting = (
 //     mutation: any,
 //     record_path: any,
-//     entity_name: string,
+//     table_name: string,
 //     operation: MutationOperation,
 //     higher_operation: MutationOperation | undefined,
 //     orma_schema: OrmaSchema
 // ) => {
-//     const higher_entity = get_ancestor_name_from_path(record_path, 1)
-//     const higher_entity_is_parent = is_parent_entity(
-//         higher_entity,
-//         entity_name,
+//     const higher_table = get_ancestor_name_from_path(record_path, 1)
+//     const higher_table_is_parent = is_parent_table(
+//         higher_table,
+//         table_name,
 //         orma_schema
 //     )
-//     const parent_operation = higher_entity_is_parent
+//     const parent_operation = higher_table_is_parent
 //         ? higher_operation
 //         : operation
-//     const child_operation = higher_entity_is_parent
+//     const child_operation = higher_table_is_parent
 //         ? operation
 //         : higher_operation
 
@@ -644,22 +648,22 @@ const validate_required_fields = (
 //         record_path.length > 2 && // 0 = root, 1 = inside array, 2 = top layer of objects
 //         !is_valid_operation_nesting(parent_operation, child_operation)
 //     ) {
-//         const parent_entity = higher_entity_is_parent
-//             ? higher_entity
-//             : entity_name
-//         const child_entity = higher_entity_is_parent
-//             ? entity_name
-//             : higher_entity
+//         const parent_table = higher_table_is_parent
+//             ? higher_table
+//             : table_name
+//         const child_table = higher_table_is_parent
+//             ? table_name
+//             : higher_table
 
 //         // TODO: rethink how operation nesting is checked. This is disallowing valid mutations
 
 //         // operation_nesting_errors.push({
-//         //     message: `Invalid operation nesting. Parent ${parent_entity} has operation ${parent_operation} while child ${child_entity} has operation ${child_operation}`,
+//         //     message: `Invalid operation nesting. Parent ${parent_table} has operation ${parent_operation} while child ${child_table} has operation ${child_operation}`,
 //         //     path: [...record_path, '$operation'],
 //         //     // original_data: mutation,
 //         //     additional_info: {
-//         //         parent_entity,
-//         //         child_entity,
+//         //         parent_table,
+//         //         child_table,
 //         //         parent_operation,
 //         //         child_operation,
 //         //     },
@@ -678,12 +682,12 @@ const validate_required_fields = (
 // ) => {
 //     let identifying_key_errors: OrmaError[] = []
 //     if (operation === 'update' || operation === 'delete') {
-//         const entity_name = get_ancestor_name_from_path(record_path, 0)
-//         if (!entity_name) {
-//             throw new Error('No entity name found')
+//         const table_name = get_ancestor_name_from_path(record_path, 0)
+//         if (!table_name) {
+//             throw new Error('No table name found')
 //         }
 //         const identifying_keys = get_identifying_keys(
-//             entity_name,
+//             table_name,
 //             record,
 //             {},
 //             orma_schema

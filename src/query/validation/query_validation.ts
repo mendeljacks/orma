@@ -3,16 +3,16 @@ import { OrmaError } from '../../helpers/error_handling'
 import { is_simple_object, last } from '../../helpers/helpers'
 import {
     get_parent_edges,
-    is_entity_name,
-    is_field_name,
-    is_parent_entity,
+    is_table_name,
+    is_column_name,
+    is_parent_table,
     is_reserved_keyword
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { OrmaSchema } from '../../schema/schema_types'
 import { Path } from '../../types'
 import { OrmaQuery, WhereConnected } from '../../types/query/query_types'
 import { sql_function_definitions } from '../ast_to_sql'
-import { get_real_entity_name, get_real_higher_entity_name } from '../query'
+import { get_real_table_name, get_real_higher_table_name } from '../query'
 import { is_subquery } from '../query_helpers'
 import { query_validation_schema } from './query_validation_schema'
 
@@ -43,9 +43,9 @@ export const validate_orma_query = async <T>(
  * require a code-generated JSON schema)
  */
 const validate_query_js = (query, orma_schema: OrmaSchema) => {
-    // check root level props which must be entity names,
+    // check root level props which must be table names,
     // then generate errors for nested queries
-    const field_errors = Object.keys(query)
+    const column_errors = Object.keys(query)
         .filter(key => !is_reserved_keyword(key))
         .flatMap(key =>
             validate_outer_subquery(query, query[key], [key], orma_schema)
@@ -54,7 +54,7 @@ const validate_query_js = (query, orma_schema: OrmaSchema) => {
 
     const where_connected_errors = validate_where_connected(query, orma_schema)
 
-    return [...field_errors, ...where_connected_errors]
+    return [...column_errors, ...where_connected_errors]
 }
 
 const validate_outer_subquery = (
@@ -76,7 +76,7 @@ const validate_outer_subquery = (
 const validate_inner_subquery = (
     subquery,
     subquery_path: Path,
-    required_one_field: boolean,
+    required_one_column: boolean,
     orma_schema: OrmaSchema
 ) => {
     const errors = [
@@ -92,12 +92,12 @@ const validate_common_subquery = (
     subquery_path: Path,
     orma_schema: OrmaSchema
 ): OrmaError[] => {
-    const entity_name = get_real_entity_name(
+    const table_name = get_real_table_name(
         last(subquery_path) as string,
         subquery
     )
 
-    const field_aliases = get_field_aliases(subquery)
+    const column_aliases = get_column_aliases(subquery)
 
     const errors = [
         ...validate_from_clause(subquery, subquery_path, orma_schema),
@@ -107,7 +107,7 @@ const validate_common_subquery = (
             subquery?.$where,
             [...subquery_path, '$where'],
             '$where',
-            entity_name,
+            table_name,
             [],
             orma_schema
         ),
@@ -115,8 +115,8 @@ const validate_common_subquery = (
             subquery?.$having,
             [...subquery_path, '$having'],
             '$having',
-            entity_name,
-            field_aliases,
+            table_name,
+            column_aliases,
             orma_schema
         )
     ]
@@ -125,7 +125,7 @@ const validate_common_subquery = (
 }
 
 /**
- * validates that the query has a $from entity, or an inferred $from based on the subquery prop
+ * validates that the query has a $from table, or an inferred $from based on the subquery prop
  */
 const validate_from_clause = (
     subquery,
@@ -133,29 +133,29 @@ const validate_from_clause = (
     orma_schema: OrmaSchema
 ) => {
     const incorrect_from_clause =
-        subquery?.$from && !is_entity_name(subquery.$from, orma_schema)
+        subquery?.$from && !is_table_name(orma_schema, subquery.$from)
 
-    const entity_name = get_real_entity_name(
+    const table_name = get_real_table_name(
         last(subquery_path) as string,
         subquery
     )
-    const incorrect_entity = !is_entity_name(entity_name, orma_schema)
+    const incorrect_table = !is_table_name(orma_schema, table_name)
 
     const errors: OrmaError[] = incorrect_from_clause
         ? [
               {
-                  message: `$from clause ${subquery.$from} is not a valid entity name.`,
+                  message: `$from clause ${subquery.$from} is not a valid table name.`,
                   path: [...subquery_path, '$from']
               }
           ]
-        : incorrect_entity
+        : incorrect_table
         ? [
               {
                   message: `Subquery $from clause is ${
                       subquery?.$from
                   } and subquery property is ${last(
                       subquery_path
-                  )}, neither of which are valid entity names.`,
+                  )}, neither of which are valid table names.`,
                   path: subquery_path
               }
           ]
@@ -174,31 +174,31 @@ const validate_data_props = (
     orma_schema: OrmaSchema
 ) => {
     // there are 5 cases for data properties:
-    //   1. key is a field, value is a boolean. In this case the key will end up in the $select
-    //   2. value is a field name. In this case the value will end up in the select
-    //   3. value is an object with an SQL function (e.g. {$sum: 'field'})
-    //   4. key is an entity name, value is a subquery (doesnt need a $from clause). The subquery is from the
-    //      entity in key name
+    //   1. key is a column, value is a boolean. In this case the key will end up in the $select
+    //   2. value is a column name. In this case the value will end up in the select
+    //   3. value is an object with an SQL function (e.g. {$sum: 'column'})
+    //   4. key is an table name, value is a subquery (doesnt need a $from clause). The subquery is from the
+    //      table in key name
     //   5. value is a subquery with a $from clause (e.g. { id: true, $from: 'my_table'}). The subquery is from the
-    //      entity in the $from clause
+    //      table in the $from clause
     const errors: OrmaError[] = Object.keys(subquery).flatMap(prop => {
         if (is_reserved_keyword(prop)) {
             return []
         }
 
         const value = subquery[prop]
-        const entity_name = get_real_entity_name(last(subquery_path), subquery)
+        const table_name = get_real_table_name(last(subquery_path), subquery)
 
         // case 1
         if (typeof value === 'boolean') {
-            return !is_field_name(entity_name, prop, orma_schema)
+            return !is_column_name(orma_schema, table_name, prop)
                 ? [
                       {
-                          message: `Property ${prop} is not a valid field name of entity ${entity_name}.`,
+                          message: `Property ${prop} is not a valid column name of table ${table_name}.`,
                           path: [...subquery_path, prop],
                           additional_info: {
                               prop,
-                              entity_name
+                              table_name
                           }
                       }
                   ]
@@ -212,8 +212,8 @@ const validate_data_props = (
             return validate_expression(
                 value,
                 [...subquery_path, prop],
-                entity_name,
-                get_field_aliases(subquery),
+                table_name,
+                get_column_aliases(subquery),
                 orma_schema
             )
         }
@@ -237,8 +237,8 @@ const validate_data_props = (
 const validate_expression = (
     expression,
     expression_path: Path,
-    context_entity: string,
-    field_aliases: string[],
+    context_table: string,
+    column_aliases: string[],
     orma_schema
 ): OrmaError[] => {
     if (typeof expression === 'string') {
@@ -260,11 +260,11 @@ const validate_expression = (
         }
 
         const errors =
-            !is_field_name(context_entity, expression, orma_schema) &&
-            !field_aliases.includes(expression)
+            !is_column_name(orma_schema, context_table, expression) &&
+            !column_aliases.includes(expression)
                 ? [
                       {
-                          message: `${expression} is not a valid field name of entity ${context_entity}. If you want to use a literal value, try replacing ${expression} with {$escape: ${expression}}.`,
+                          message: `${expression} is not a valid column name of table ${context_table}. If you want to use a literal value, try replacing ${expression} with {$escape: ${expression}}.`,
                           path: expression_path
                       }
                   ]
@@ -273,23 +273,23 @@ const validate_expression = (
         return errors
     }
 
-    if (expression?.$entity) {
-        if (!is_entity_name(expression.$entity, orma_schema)) {
+    if (expression?.$table) {
+        if (!is_table_name(orma_schema, expression.$table)) {
             return [
                 {
-                    message: `${expression.$entity} is not a valid entity name.`,
-                    path: [...expression_path, '$entity']
+                    message: `${expression.$table} is not a valid table name.`,
+                    path: [...expression_path, '$table']
                 }
             ]
         }
 
         if (
-            !is_field_name(expression.$entity, expression.$field, orma_schema)
+            !is_column_name(orma_schema, expression.$table, expression.$column)
         ) {
             return [
                 {
-                    message: `${expression.$field} is not a valid field name of entity ${expression.$entity}.`,
-                    path: [...expression_path, '$field']
+                    message: `${expression.$column} is not a valid column name of table ${expression.$table}.`,
+                    path: [...expression_path, '$column']
                 }
             ]
         }
@@ -310,7 +310,7 @@ const validate_expression = (
         const prop = props[0]
 
         if (prop === '$escape') {
-            // escaped expressions dont need further validation, e.g. it can have any string not just a field name
+            // escaped expressions dont need further validation, e.g. it can have any string not just a column name
             return []
         }
 
@@ -319,16 +319,16 @@ const validate_expression = (
                   validate_expression(
                       arg,
                       [...expression_path, prop, i],
-                      context_entity,
-                      field_aliases,
+                      context_table,
+                      column_aliases,
                       orma_schema
                   )
               )
             : validate_expression(
                   expression[prop],
                   [...expression_path, prop],
-                  context_entity,
-                  field_aliases,
+                  context_table,
+                  column_aliases,
                   orma_schema
               )
 
@@ -351,48 +351,48 @@ const validate_expression = (
 const validate_select = (
     subquery,
     subquery_path,
-    require_one_field: boolean,
+    require_one_column: boolean,
     orma_schema: OrmaSchema
 ) => {
     const select = (subquery?.$select ?? []) as any[]
     const select_length = select.length
-    const require_one_field_errors: OrmaError[] =
-        require_one_field && select_length !== 1
+    const require_one_column_errors: OrmaError[] =
+        require_one_column && select_length !== 1
             ? [
                   {
-                      message: `Inner $select must have exactly one field, but it has ${select_length} fields.`,
+                      message: `Inner $select must have exactly one column, but it has ${select_length} columns.`,
                       path: [...subquery_path, '$select']
                   }
               ]
             : []
 
-    const entity_name = get_real_entity_name(last(subquery_path), subquery)
-    const expression_errors = select.flatMap((field, i) => {
-        const field_aliases = select.flatMap((field, i2) => {
+    const table_name = get_real_table_name(last(subquery_path), subquery)
+    const expression_errors = select.flatMap((column, i) => {
+        const column_aliases = select.flatMap((column, i2) => {
             if (i === i2) return []
 
-            return field?.$as ? [field.$as[1]] : []
+            return column?.$as ? [column.$as[1]] : []
         })
         // for $as, the second item in the array is the alias name which is always valid if it passes
         // the json schema. here we just need to validate the first item as an expression.
-        return field?.$as
+        return column?.$as
             ? validate_expression(
-                  field.$as[0],
+                  column.$as[0],
                   [...subquery_path, '$select', i, '$as', 0],
-                  entity_name,
-                  field_aliases,
+                  table_name,
+                  column_aliases,
                   orma_schema
               )
             : validate_expression(
-                  field,
+                  column,
                   [...subquery_path, '$select', i],
-                  entity_name,
-                  field_aliases,
+                  table_name,
+                  column_aliases,
                   orma_schema
               )
     })
 
-    return [...require_one_field_errors, ...expression_errors]
+    return [...require_one_column_errors, ...expression_errors]
 }
 
 const validate_foreign_key = (
@@ -410,7 +410,7 @@ const validate_foreign_key = (
         return [
             {
                 message:
-                    'Only a $foreign_key with one field is currently supported.',
+                    'Only a $foreign_key with one column is currently supported.',
                 path: [...subquery_path, '$foreign_key'],
                 additional_info: {
                     foreign_key_length: $foreign_key.length
@@ -419,28 +419,28 @@ const validate_foreign_key = (
         ]
     }
 
-    const field = $foreign_key[0]
+    const column = $foreign_key[0]
 
-    const entity = get_real_entity_name(last(subquery_path), subquery)
-    const higher_entity = get_real_higher_entity_name(subquery_path, query)
-    const entity_edges = get_parent_edges(entity, orma_schema)
-    const higher_entity_edges = get_parent_edges(higher_entity, orma_schema)
+    const table = get_real_table_name(last(subquery_path), subquery)
+    const higher_table = get_real_higher_table_name(subquery_path, query)
+    const table_edges = get_parent_edges(table, orma_schema)
+    const higher_table_edges = get_parent_edges(higher_table, orma_schema)
 
     const valid_edges = [
-        ...entity_edges.filter(edge => edge.to_entity === higher_entity),
-        ...higher_entity_edges.filter(edge => edge.to_entity === entity)
+        ...table_edges.filter(edge => edge.to_table === higher_table),
+        ...higher_table_edges.filter(edge => edge.to_table === table)
     ]
-    const matching_edges = valid_edges.filter(edge => edge.from_field === field)
+    const matching_edges = valid_edges.filter(edge => edge.from_columns === column)
 
     if (matching_edges.length === 0) {
         return [
             {
-                message: `$foreign key must be either a field of ${entity} which references ${higher_entity} or a field of ${higher_entity} which references ${entity}.`,
+                message: `$foreign key must be either a column of ${table} which references ${higher_table} or a column of ${higher_table} which references ${table}.`,
                 path: [...subquery_path, '$foreign_key', 0],
                 additional_info: {
-                    entity,
-                    higher_entity,
-                    valid_foreign_keys: valid_edges.map(edge => edge.from_field)
+                    table,
+                    higher_table,
+                    valid_foreign_keys: valid_edges.map(edge => edge.from_columns)
                 }
             }
         ]
@@ -449,25 +449,25 @@ const validate_foreign_key = (
     return []
 }
 
-// group by and order by works on any field or selected field alias
+// group by and order by works on any column or selected column alias
 const validate_group_by = (
     subquery,
     subquery_path: Path,
     orma_schema: OrmaSchema
 ) => {
-    const entity_name = get_real_entity_name(
+    const table_name = get_real_table_name(
         last(subquery_path) as string,
         subquery
     )
     const group_bys = (subquery?.$group_by ?? []) as any[]
-    const field_aliases = get_field_aliases(subquery)
+    const column_aliases = get_column_aliases(subquery)
 
     const errors = group_bys.flatMap((group_by, i) => {
         return validate_expression(
             group_by,
             [...subquery_path, '$group_by', i],
-            entity_name,
-            field_aliases,
+            table_name,
+            column_aliases,
             orma_schema
         )
     })
@@ -480,17 +480,17 @@ const validate_order_by = (
     subquery_path,
     orma_schema: OrmaSchema
 ) => {
-    const entity_name = get_real_entity_name(last(subquery_path), subquery)
+    const table_name = get_real_table_name(last(subquery_path), subquery)
     const order_bys = (subquery?.$order_by ?? []) as any[]
-    const field_aliases = get_field_aliases(subquery)
+    const column_aliases = get_column_aliases(subquery)
 
     const errors = order_bys.flatMap((order_by, i) => {
         const prop = Object.keys(order_by)[0] // this will be either $asc or $desc
         return validate_expression(
             order_by[prop],
             [...subquery_path, '$order_by', i, prop],
-            entity_name,
-            field_aliases,
+            table_name,
+            column_aliases,
             orma_schema
         )
     })
@@ -498,7 +498,7 @@ const validate_order_by = (
     return errors
 }
 
-const get_field_aliases = subquery => {
+const get_column_aliases = subquery => {
     const select = (subquery?.$select ?? []) as any[]
     const select_aliases = select
         .map(select_el => select_el?.$as?.[1])
@@ -511,14 +511,14 @@ const get_field_aliases = subquery => {
     return [...select_aliases, ...data_aliases]
 }
 
-// where clauses can search on any field
-// having clauses can search on any selected field or field alias
+// where clauses can search on any column
+// having clauses can search on any selected column or column alias
 const validate_where = (
     where,
     where_path: Path,
     where_type: '$where' | '$having',
-    context_entity: string,
-    field_aliases: string[],
+    context_table: string,
+    column_aliases: string[],
     orma_schema: OrmaSchema
 ) => {
     if (where === undefined) {
@@ -536,8 +536,8 @@ const validate_where = (
             where[prop],
             [...where_path, prop],
             where_type,
-            context_entity,
-            field_aliases,
+            context_table,
+            column_aliases,
             orma_schema
         )
     }
@@ -548,19 +548,19 @@ const validate_where = (
                 el,
                 [...where_path, prop, i],
                 where_type,
-                context_entity,
-                field_aliases,
+                context_table,
+                column_aliases,
                 orma_schema
             )
         )
     }
 
     if (prop === '$in') {
-        const field_errors = validate_expression(
+        const column_errors = validate_expression(
             where[prop][0],
             [...where_path, prop, 0],
-            context_entity,
-            field_aliases,
+            context_table,
+            column_aliases,
             orma_schema
         )
 
@@ -569,8 +569,8 @@ const validate_where = (
                   validate_expression(
                       el,
                       [...where_path, prop, 1, i],
-                      context_entity,
-                      field_aliases,
+                      context_table,
+                      column_aliases,
                       orma_schema
                   )
               )
@@ -583,7 +583,7 @@ const validate_where = (
                   orma_schema
               )
 
-        return [...field_errors, ...values_errors]
+        return [...column_errors, ...values_errors]
     }
 
     if (prop === '$any_path') {
@@ -591,8 +591,8 @@ const validate_where = (
             where,
             where_path,
             where_type,
-            context_entity,
-            field_aliases,
+            context_table,
+            column_aliases,
             orma_schema
         )
     }
@@ -603,16 +603,16 @@ const validate_where = (
               validate_expression(
                   el,
                   [...where_path, prop, i],
-                  context_entity,
-                  field_aliases,
+                  context_table,
+                  column_aliases,
                   orma_schema
               )
           )
         : validate_expression(
               where[prop],
               [...where_path, prop],
-              context_entity,
-              field_aliases,
+              context_table,
+              column_aliases,
               orma_schema
           )
 }
@@ -621,8 +621,8 @@ const validate_any_path_clause = (
     where,
     where_path: Path,
     where_type: '$where' | '$having',
-    context_entity: string,
-    field_aliases: string[],
+    context_table: string,
+    column_aliases: string[],
     orma_schema: OrmaSchema
 ) => {
     if (!where?.$any_path) {
@@ -630,23 +630,23 @@ const validate_any_path_clause = (
     }
 
     const path = where.$any_path[0] as string[]
-    const path_errors: OrmaError[] = path.flatMap((entity, i) => {
-        const previous_entity = i === 0 ? context_entity : path[i - 1]
-        if (!is_entity_name(entity, orma_schema)) {
+    const path_errors: OrmaError[] = path.flatMap((table, i) => {
+        const previous_table = i === 0 ? context_table : path[i - 1]
+        if (!is_table_name(orma_schema, table)) {
             return [
                 {
-                    message: `${entity} is not a valid entity name.`,
+                    message: `${table} is not a valid table name.`,
                     path: [...where_path, '$any_path', 0, i]
                 }
             ]
         }
 
-        const is_parent = is_parent_entity(entity, previous_entity, orma_schema)
-        const is_child = is_parent_entity(previous_entity, entity, orma_schema)
+        const is_parent = is_parent_table(table, previous_table, orma_schema)
+        const is_child = is_parent_table(previous_table, table, orma_schema)
         if (!is_parent && !is_child) {
             return [
                 {
-                    message: `${entity} is not connected to previous entity ${previous_entity}.`,
+                    message: `${table} is not connected to previous table ${previous_table}.`,
                     path: [...where_path, '$any_path', 0, i]
                 }
             ]
@@ -655,14 +655,14 @@ const validate_any_path_clause = (
         return []
     })
 
-    const new_context_entity = path.length > 0 ? last(path) : context_entity
+    const new_context_table = path.length > 0 ? last(path) : context_table
 
     const where_errors = validate_where(
         where.$any_path[1],
         [...where_path, '$any_path', 1],
         where_type,
-        new_context_entity,
-        field_aliases,
+        new_context_table,
+        column_aliases,
         orma_schema
     )
 
@@ -673,37 +673,37 @@ const validate_where_connected = (query, orma_schema: OrmaSchema) => {
     const where_connected = (query.$where_connected ??
         []) as WhereConnected<OrmaSchema>
 
-    const done_fields = new Set<string>()
+    const done_columns = new Set<string>()
     const errors: OrmaError[] = where_connected.flatMap((el, i) => {
-        if (!is_entity_name(el.$entity, orma_schema)) {
+        if (!is_table_name(orma_schema, el.$table)) {
             return [
                 {
-                    message: `${el.$entity} is not a valid entity name.`,
-                    path: ['$where_connected', i, '$entity']
+                    message: `${el.$table} is not a valid table name.`,
+                    path: ['$where_connected', i, '$table']
                 }
             ]
         }
 
-        if (!is_field_name(el.$entity, el.$field, orma_schema)) {
+        if (!is_column_name(orma_schema, el.$table, el.$column)) {
             return [
                 {
-                    message: `${el.$field} is not a valid field name of entity ${el.$entity}.`,
-                    path: ['$where_connected', i, '$field']
+                    message: `${el.$column} is not a valid column name of table ${el.$table}.`,
+                    path: ['$where_connected', i, '$column']
                 }
             ]
         }
 
         // check for duplicates
-        const field_string = JSON.stringify([el.$entity, el.$field])
-        if (done_fields.has(field_string)) {
+        const column_string = JSON.stringify([el.$table, el.$column])
+        if (done_columns.has(column_string)) {
             return [
                 {
-                    message: `Field ${el.$field} in entity ${el.$entity} appears more than once in the $where_connected.`,
+                    message: `Column ${el.$column} in table ${el.$table} appears more than once in the $where_connected.`,
                     path: ['$where_connected', i]
                 }
             ]
         }
-        done_fields.add(field_string)
+        done_columns.add(column_string)
 
         return []
     })

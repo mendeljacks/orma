@@ -9,7 +9,7 @@ import { expect } from 'chai'
 describe('mutate.ts', () => {
     describe('integration tests', () => {
         register_integration_test()
-        test('can created based on nested entity with connected entity check', async () => {
+        test('can created based on nested table with connected table check', async () => {
             const mutation = {
                 $operation: 'upsert',
                 posts: [
@@ -31,7 +31,7 @@ describe('mutate.ts', () => {
             } as const satisfies GlobalTestMutation
 
             const res = await test_mutate(mutation, [
-                { $entity: 'users', $field: 'id', $values: [1] }
+                { $table: 'users', $column: 'id', $values: [1] }
             ])
 
             expect(1).to.equal(1)
@@ -54,7 +54,7 @@ describe('mutate.ts', () => {
             } as const satisfies GlobalTestMutation
 
             const res = await test_mutate(mutation, [
-                { $entity: 'users', $field: 'id', $values: [1] }
+                { $table: 'users', $column: 'id', $values: [1] }
             ])
 
             expect(1).to.equal(1)

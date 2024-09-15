@@ -58,16 +58,16 @@ const connection_edges = add_connection_edges(
     get_upwards_connection_edges(global_test_schema),
     [
         {
-            from_entity: 'addresses',
-            from_field: 'id',
-            to_entity: 'users',
-            to_field: 'billing_address_id'
+            from_table: 'addresses',
+            from_columns: 'id',
+            to_table: 'users',
+            to_columns: 'billing_address_id'
         },
         {
-            from_entity: 'addresses',
-            from_field: 'id',
-            to_entity: 'users',
-            to_field: 'shipping_address_id'
+            from_table: 'addresses',
+            from_columns: 'id',
+            to_table: 'users',
+            to_columns: 'shipping_address_id'
         }
     ]
 )

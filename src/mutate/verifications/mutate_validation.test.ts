@@ -45,7 +45,7 @@ describe('mutation_validation', () => {
                 $operation: 'create',
                 categories: [
                     {
-                        // no primary or unique field is needed here because validation recognises that this will be
+                        // no primary or unique column is needed here because validation recognises that this will be
                         // a create
                         label: 'hi',
                     },
@@ -94,34 +94,34 @@ describe('mutation_validation', () => {
         //     const errors = validate_mutation(test_mutation, global_test_schema)
         //     expect(errors).to.have.lengthOf(1)
         // })
-        test('requires valid field names', () => {
+        test('requires valid column names', () => {
             const test_mutation = {
                 $operation: 'create',
                 categories: [
                     {
                         label: 'test',
-                        not_a_field: 'hi',
+                        not_a_column: 'hi',
                     },
                 ],
             }
 
             const errors = validate_mutation(test_mutation, global_test_schema)
             const paths = errors.map(error => error.path)
-            expect(paths).to.deep.equal([['categories', 0, 'not_a_field']])
+            expect(paths).to.deep.equal([['categories', 0, 'not_a_column']])
         })
-        test('requires valid top-level entity names', () => {
+        test('requires valid top-level table names', () => {
             const test_mutation = {
                 $operation: 'create',
-                not_an_entity: [
+                not_an_table: [
                     {
-                        not_a_field: 'hi',
+                        not_a_column: 'hi',
                     },
                 ],
             }
 
             const errors = validate_mutation(test_mutation, global_test_schema)
             const paths = errors.map(error => error.path)
-            expect(paths).to.deep.equal([['not_an_entity']])
+            expect(paths).to.deep.equal([['not_an_table']])
         })
         test('allows empty mutations', () => {
             const test_mutation = {
@@ -139,20 +139,20 @@ describe('mutation_validation', () => {
             const errors = validate_mutation(test_mutation, global_test_schema)
             expect(errors).to.have.lengthOf(0)
         })
-        test('requires valid nested entity names', () => {
+        test('requires valid nested table names', () => {
             const test_mutation = {
                 $operation: 'create',
                 categories: [
                     {
                         label: 'test',
-                        not_an_entity: [],
+                        not_an_table: [],
                     },
                 ],
             }
 
             const errors = validate_mutation(test_mutation, global_test_schema)
             const paths = errors.map(error => error.path)
-            expect(paths).to.deep.equal([['categories', 0, 'not_an_entity']])
+            expect(paths).to.deep.equal([['categories', 0, 'not_an_table']])
         })
         test('allows different nestings on top level', () => {
             const test_mutation = {
@@ -168,7 +168,7 @@ describe('mutation_validation', () => {
             const errors = validate_mutation(test_mutation, global_test_schema)
             expect(errors).to.have.lengthOf(0)
         })
-        test('required fields must be present in creates', () => {
+        test('required columns must be present in creates', () => {
             const test_mutation = {
                 categories: [
                     {
@@ -222,7 +222,7 @@ describe('mutation_validation', () => {
             const errors = validate_mutation(test_mutation, global_test_schema)
             expect(errors).to.have.lengthOf(1)
         })
-        test('does not allow null for non-nullable fields', () => {
+        test('does not allow null for non-nullable columns', () => {
             const test_mutation = {
                 $operation: 'create',
                 image_urls: [

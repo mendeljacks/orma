@@ -3,62 +3,56 @@
  * @module
  */
 
-import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaSchema } from '../schema/schema_types'
 
 export type Edge = {
-    from_entity: string
-    from_field: string
-    to_entity: string
-    to_field: string
+    from_table: string
+    from_columns: string[]
+    to_table: string
+    to_columns: string[]
+}
+
+export const get_table_names = (orma_schema: OrmaSchema) => {
+    return Object.keys(orma_schema.tables)
 }
 
 /**
- * @returns a list of entities specified in the schema
+ * @returns a list of columns attatched to the given table
  */
-export const get_entity_names = (orma_schema: OrmaSchema) => {
-    return Object.keys(orma_schema.$entities).filter(
-        el => !is_reserved_keyword(el)
-    )
-}
-
-/**
- * @returns a list of fields attatched to the given entity
- */
-export const get_field_names = (
-    entity_name: string,
+export const get_column_names = (
+    table_name: string,
     orma_schema: OrmaSchema
 ) => {
-    return Object.keys(orma_schema.$entities?.[entity_name]?.$fields ?? {})
+    return Object.keys(orma_schema.tables?.[table_name]?.columns ?? {})
 }
 
 /**
- * @returns given an entity, returns true if the entity is in the schema
+ * @returns given an table, returns true if the table is in the schema
  */
-export const is_entity_name = (entity_name, orma_schema: OrmaSchema) =>
-    !!orma_schema?.$entities?.[entity_name]
+export const is_table_name = (orma_schema: OrmaSchema, table_name: any) =>
+    !!orma_schema?.tables?.[table_name]
 
-export const is_field_name = (
-    entity_name,
-    field_name,
-    orma_schema: OrmaSchema
-) => !!orma_schema?.$entities?.[entity_name]?.$fields?.[field_name]
+export const is_column_name = (
+    orma_schema: OrmaSchema,
+    table_name: any,
+    column_name: any
+) => !!orma_schema?.tables?.[table_name]?.columns?.[column_name]
 
 /**
- * Gets a list of edges from given entity -> parent entity
+ * Gets a list of edges from given table -> parent table
  */
 export const get_parent_edges = (
-    entity_name: string,
+    table_name: string,
     orma_schema: OrmaSchema
 ): Edge[] => {
-    const entity_schema =
-        orma_schema.$entities[entity_name] ??
-        ({} as OrmaSchema['$entities'][string])
-    const foreign_keys = entity_schema.$foreign_keys ?? []
+    const table_schema =
+        orma_schema.tables[table_name] ?? ({} as OrmaSchema['tables'][string])
+    const foreign_keys = table_schema.foreign_keys ?? []
     const edges = foreign_keys.map(foreign_key => ({
-        from_entity: entity_name,
-        from_field: foreign_key?.$fields?.[0],
-        to_entity: foreign_key?.$references?.$entity,
-        to_field: foreign_key?.$references?.$fields?.[0],
+        from_table: table_name,
+        from_column: foreign_key?.$columns?.[0],
+        to_table: foreign_key?.$references?.$table,
+        to_column: foreign_key?.$references?.$columns?.[0]
     }))
     return edges
 }
@@ -67,34 +61,34 @@ export const get_parent_edges = (
  * Swaps the 'from' and 'to' components of an edge
  */
 export const reverse_edge = (edge: Edge): Edge => ({
-    from_entity: edge.to_entity,
-    from_field: edge.to_field,
-    to_entity: edge.from_entity,
-    to_field: edge.from_field,
+    from_table: edge.to_table,
+    from_columns: edge.to_columns,
+    to_table: edge.from_table,
+    to_columns: edge.from_columns
 })
 
 /**
- * Gets a list of edges from given entity -> child entity
+ * Gets a list of edges from given table -> child table
  */
 export const get_child_edges = (
-    entity_name: string,
+    table_name: string,
     orma_schema: OrmaSchema
 ): Edge[] => {
     const foreign_keys =
-        orma_schema.$cache?.$reversed_foreign_keys?.[entity_name] ?? []
+        orma_schema.cache?.reversed_foreign_keys?.[table_name] ?? []
     const edges = foreign_keys.map(foreign_key => ({
-        from_entity: entity_name,
-        ...foreign_key,
+        from_table: table_name,
+        ...foreign_key
     }))
     return edges
 }
 
 /**
- * Gets a list of edges from given entity -> parent or child entity
+ * Gets a list of edges from given table -> parent or child table
  */
-export const get_all_edges = (entity_name, orma_schema) => {
-    const parent_edges = get_parent_edges(entity_name, orma_schema)
-    const child_edges = get_child_edges(entity_name, orma_schema)
+export const get_all_edges = (table_name, orma_schema) => {
+    const parent_edges = get_parent_edges(table_name, orma_schema)
+    const child_edges = get_child_edges(table_name, orma_schema)
     return [...parent_edges, ...child_edges]
 }
 
@@ -107,12 +101,12 @@ export const is_reserved_keyword = (keyword: any) => keyword?.[0] === '$'
  * Gets possible parent or child edges between two tables that are immediate child/parent or parent/child
  */
 export const get_direct_edges = (
-    from_entity: string,
-    to_entity: string,
+    from_table: string,
+    to_table: string,
     orma_schema: OrmaSchema
 ) => {
-    const possible_edges = get_all_edges(from_entity, orma_schema)
-    const edges = possible_edges.filter(el => el.to_entity === to_entity)
+    const possible_edges = get_all_edges(from_table, orma_schema)
+    const edges = possible_edges.filter(el => el.to_table === to_table)
     return edges
 }
 
@@ -120,33 +114,35 @@ export const get_direct_edges = (
  * This will throw an error if there is not exactly one edge
  */
 export const get_direct_edge = (
-    from_entity: string,
-    to_entity: string,
+    from_table: string,
+    to_table: string,
     orma_schema: OrmaSchema,
     foreign_key_override: string[] | undefined = undefined
 ) => {
-    const parent_edges = get_parent_edges(from_entity, orma_schema).filter(
-        el => el.to_entity === to_entity
+    const parent_edges = get_parent_edges(from_table, orma_schema).filter(
+        el => el.to_table === to_table
     )
-    const child_edges = get_child_edges(from_entity, orma_schema).filter(
-        el => el.to_entity === to_entity
+    const child_edges = get_child_edges(from_table, orma_schema).filter(
+        el => el.to_table === to_table
     )
 
     const filtered_parent_edges = foreign_key_override
         ? parent_edges.filter(
-              edge => edge.from_field === foreign_key_override[0]
+              edge => edge.from_columns === foreign_key_override[0]
           )
         : parent_edges
 
     const filtered_child_edges = foreign_key_override
-        ? child_edges.filter(edge => edge.to_field === foreign_key_override[0])
+        ? child_edges.filter(
+              edge => edge.to_columns === foreign_key_override[0]
+          )
         : child_edges
 
     const edges = [...filtered_parent_edges, ...filtered_child_edges]
 
     if (edges.length !== 1) {
         throw Error(
-            `Did not find exactly one edge from ${from_entity} to ${to_entity}`
+            `Did not find exactly one edge from ${from_table} to ${to_table}`
         )
     }
 
@@ -154,20 +150,20 @@ export const get_direct_edge = (
 }
 
 /**
- * returns a list of edges which, when traversed one after the other, connect the first given entity to the last.
- * The total length of the edge_path will be `entities.length - 1`.
- * This function will throw an error if there is more than one edge between any two tables in the entity list
- * @param entities a list of directly connected entities
+ * returns a list of edges which, when traversed one after the other, connect the first given table to the last.
+ * The total length of the edge_path will be `tables.length - 1`.
+ * This function will throw an error if there is more than one edge between any two tables in the table list
+ * @param tables a list of directly connected tables
  */
 export const get_edge_path = (
-    entities: string[],
+    tables: string[],
     orma_schema: OrmaSchema
 ): Edge[] => {
-    if (entities.length <= 1) {
+    if (tables.length <= 1) {
         return []
     }
 
-    const edge_path = entities.flatMap((entity, i) => {
+    const edge_path = tables.flatMap((table, i) => {
         if (i === 0) {
             // if (tables.length === 1) {
             //     return { root: table, to_table: table }
@@ -177,10 +173,10 @@ export const get_edge_path = (
             return []
         }
 
-        const from_entity = entities[i - 1]
-        const to_entity = entities[i]
+        const from_table = tables[i - 1]
+        const to_table = tables[i]
 
-        const edge = get_direct_edge(from_entity, to_entity, orma_schema)
+        const edge = get_direct_edge(from_table, to_table, orma_schema)
 
         return edge
     })
@@ -189,131 +185,133 @@ export const get_edge_path = (
 }
 
 /**
- * Returns true if entity1 is a parent of entity2
+ * Returns true if table1 is a parent of table2
  */
-export const is_parent_entity = (
-    entity1: string,
-    entity2: string,
+export const is_parent_table = (
+    table1: string,
+    table2: string,
     orma_schema: OrmaSchema
 ) => {
-    const child_edges = orma_schema.$cache?.$reversed_foreign_keys?.[entity1]
-    return child_edges?.some(edge => edge.to_entity === entity2)
+    const child_edges = orma_schema.cache?.reversed_foreign_keys?.[table1]
+    return child_edges?.some(edge => edge.to_table === table2)
 }
 
 /**
- * Gets a list of field names which have been marked as primary keys. More than one result indicates a compound primary key
+ * Gets a list of column names which have been marked as primary keys. More than one result indicates a compound primary key
  */
 export const get_primary_keys = (
-    entity_name: string,
+    table_name: string,
     orma_schema: OrmaSchema
 ) => {
-    const primary_key_fields =
-        orma_schema.$entities[entity_name].$primary_key?.$fields
+    const primary_key_columns =
+        orma_schema.tables[table_name].primary_key?.$columns
 
-    return primary_key_fields as string[]
+    return primary_key_columns as string[]
 }
 
 /**
- * Gets a list of field names which have been marked as unique, grouped into arrays to include indexes with
- * multiple fields. Optionally excludes nullable unique fields.
+ * Gets a list of column names which have been marked as unique, grouped into arrays to include indexes with
+ * multiple columns. Optionally excludes nullable unique columns.
  *
  * @example
  * return [
- *   ['unique_field'],
- *   ['primary_key_field'],
- *   ['compound_unique_field1', 'compound_unique_field2']
+ *   ['unique_column'],
+ *   ['primary_key_column'],
+ *   ['compound_unique_column1', 'compound_unique_column2']
  * ]
  */
-export const get_unique_field_groups = (
-    entity_name: string,
+export const get_unique_column_groups = (
+    table_name: string,
     exclude_nullable: boolean,
     orma_schema: OrmaSchema
 ): string[][] => {
-    const unique_keys = orma_schema.$entities[entity_name]?.$unique_keys ?? []
-    const unique_field_groups = unique_keys
+    const unique_keys = orma_schema.tables[table_name]?.unique_keys ?? []
+    const unique_column_groups = unique_keys
         .filter(unique_key => {
             if (exclude_nullable) {
-                const all_fields_non_nullable = unique_key.$fields?.every(
-                    field => {
-                        const field_schema =
-                            orma_schema.$entities[entity_name].$fields?.[field]
-                        return field_schema?.$not_null
+                const all_columns_non_nullable = unique_key.$columns?.every(
+                    column => {
+                        const column_schema =
+                            orma_schema.tables[table_name].columns?.[column]
+                        return column_schema?.$not_null
                     }
                 )
 
-                return all_fields_non_nullable
+                return all_columns_non_nullable
             } else {
                 return true
             }
         })
-        .map(unique_key => unique_key.$fields)
+        .map(unique_key => unique_key.$columns)
 
-    return unique_field_groups as string[][]
+    return unique_column_groups as string[][]
 }
 
-export const field_exists = (
-    entity: string,
-    field: string | number,
+export const column_exists = (
+    table: string,
+    column: string | number,
     schema: OrmaSchema
 ) => {
-    return !!schema.$entities[entity]?.$fields?.[field]
+    return !!schema.tables[table]?.columns?.[column]
 }
 
 /**
- * Returns true if a field is required to be initially provided by the user. Any field with a default is not required,
- * which includes nullable fields which default to null.
+ * Returns true if a column is required to be initially provided by the user. Any column with a default is not required,
+ * which includes nullable columns which default to null.
  */
-export const is_required_field = (
-    entity: string,
-    field: string,
+export const is_required_column = (
+    table: string,
+    column: string,
     schema: OrmaSchema
 ) => {
-    const field_schema = schema?.$entities?.[entity]?.$fields?.[field]
+    const column_schema = schema?.tables?.[table]?.columns?.[column]
     const is_required =
-        !!field_schema?.$not_null &&
-        field_schema?.$default === undefined &&
-        !field_schema?.$auto_increment
+        !!column_schema?.$not_null &&
+        column_schema?.$default === undefined &&
+        !column_schema?.$auto_increment
     return is_required
 }
 
-export const get_field_is_nullable = (
+export const get_column_is_nullable = (
     schema: OrmaSchema,
-    entity: string,
-    field: string
+    table: string,
+    column: string
 ) => {
-    const field_schema = schema?.$entities?.[entity]?.$fields?.[field]
-    const is_nullable = !field_schema?.$not_null
+    const column_schema = schema?.tables?.[table]?.columns?.[column]
+    const is_nullable = !column_schema?.$not_null
     return is_nullable
 }
 
-export const get_parent_edges_for_field = (
-    entity: string,
-    field: string,
+export const get_parent_edges_for_column = (
+    table: string,
+    column: string,
     orma_schema: OrmaSchema
 ) => {
-    const parent_edges = get_parent_edges(entity, orma_schema)
-    const matching_edges = parent_edges.filter(el => el.from_field === field)
+    const parent_edges = get_parent_edges(table, orma_schema)
+    const matching_edges = parent_edges.filter(el => el.from_columns === column)
     return matching_edges
 }
 
-export const get_field_schema = (
+export const get_column_schema = (
     schema: OrmaSchema,
-    entity: string,
-    field: string
+    table: string,
+    column: string
 ) => {
-    const field_schema = schema?.$entities?.[entity]?.$fields?.[field]
-    return field_schema
+    const column_schema = schema?.tables?.[table]?.columns?.[column]
+    return column_schema
 }
 
 export const can_have_guid = (
     schema: OrmaSchema,
-    entity: string,
-    field: string
+    table: string,
+    column: string
 ) => {
     const is_primary_key =
-        schema?.$entities?.[entity]?.$primary_key?.$fields?.includes(field)
-    const foreign_keys = schema?.$entities?.[entity]?.$foreign_keys ?? []
-    const is_foreign_key = foreign_keys.some(el => el.$fields?.includes(field))
+        schema?.tables?.[table]?.primary_key?.$columns?.includes(column)
+    const foreign_keys = schema?.tables?.[table]?.foreign_keys ?? []
+    const is_foreign_key = foreign_keys.some(el =>
+        el.$columns?.includes(column)
+    )
 
     return is_primary_key || is_foreign_key
 }

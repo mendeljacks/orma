@@ -6,10 +6,10 @@ import {
 } from '../../helpers/schema_helpers'
 import { toposort } from '../../helpers/toposort'
 import { Path } from '../../types'
-import { OrmaSchema } from '../../types/schema/schema_types'
-import { path_to_entity } from '../helpers/mutate_helpers'
+import { OrmaSchema } from '../../schema/schema_types'
+import { path_to_table } from '../helpers/mutate_helpers'
 import { GuidMap } from '../macros/guid_plan_macro'
-import { get_identifying_fields } from '../macros/identifying_fields_macro'
+import { get_identifying_columns } from '../macros/identifying_columns_macro'
 import { MutationOperation } from '../mutate'
 import {
     MutationPlanConstraint,
@@ -31,7 +31,7 @@ import {
  *        regular values or $guids
  *     2. toposort the graph and use this to sort the mutation pieces and generate mutation batches
  *
- * Note that the toposort graph is per record as opposed to per entity. This does have a performance
+ * Note that the toposort graph is per record as opposed to per table. This does have a performance
  * cost, but allows more advanced query planning like self-referential tables or zigzag nesting.
  */
 
@@ -58,7 +58,7 @@ const generate_toposort_graph = (
 
     const toposort_graph = mutation_pieces.reduce(
         (acc, mutation_piece, piece_index) => {
-            const entity = path_to_entity(mutation_piece.path)
+            const table = path_to_table(mutation_piece.path)
             const record = mutation_piece.record
             // these are the graph child indices that define the ordering of the
             // toposort - parents in the toposort graph must come before children
@@ -69,7 +69,7 @@ const generate_toposort_graph = (
                     orma_schema,
                     fk_index,
                     constraint,
-                    entity,
+                    table,
                     record
                 )
                 new_piece_indices.forEach(new_piece_index => {
@@ -99,30 +99,30 @@ const get_fk_index = (
     let fk_index: FkIndex = {}
 
     flat_mutation.forEach(({ record, path }, record_index) => {
-        const entity = path_to_entity(path)
-        const from_fields = new Set(
-            get_all_edges(entity, orma_schema).map(edge => edge.from_field)
+        const table = path_to_table(path)
+        const from_columns = new Set(
+            get_all_edges(table, orma_schema).map(edge => edge.from_columns)
         )
-        from_fields.forEach(from_field => {
-            // ignore non-updated fields since no cases require them to be checked
+        from_columns.forEach(from_column => {
+            // ignore non-updated columns since no cases require them to be checked
             if (
                 record.$operation === 'update' &&
-                !is_field_updated_for_mutation_plan(
+                !is_column_updated_for_mutation_plan(
                     orma_schema,
-                    entity,
-                    from_field,
+                    table,
+                    from_column,
                     record
                 )
             ) {
                 return
             }
-            const value = record[from_field]
+            const value = record[from_column]
             if (value !== undefined) {
                 set_fk_index(
                     fk_index,
                     record_index,
-                    entity,
-                    from_field,
+                    table,
+                    from_column,
                     record.$operation,
                     value
                 )
@@ -133,43 +133,43 @@ const get_fk_index = (
     return fk_index
 }
 
-export const is_field_updated_for_mutation_plan = (
+export const is_column_updated_for_mutation_plan = (
     orma_schema: OrmaSchema,
-    entity: string,
-    field: string,
-    record: Record<string, any> & { $identifying_fields?: string[] }
+    table: string,
+    column: string,
+    record: Record<string, any> & { $identifying_columns?: string[] }
 ) => {
-    // returning false optimizes the mutation plan by excluding this field if it is being used
-    // as an identifying field or otherwise not being updated. If unsure, this should return
+    // returning false optimizes the mutation plan by excluding this column if it is being used
+    // as an identifying column or otherwise not being updated. If unsure, this should return
     // true since that just adds more constraints to the mutation plan which might make it
     // go slower by adding more stages, but will never result in an error. Returning false
     // when its not supposed to might merge states that should be separate and so
     // cause an error.
 
-    if (record[field] === undefined) {
+    if (record[column] === undefined) {
         return false
     }
 
     // since the macro that puts in $read and $write guids did not run yet, there are cases where
-    // there is an ambiguous identifying fields that will be resolved once one of them are marked
-    // as a $write guid which disqualifies that field. In this case, the identifying fields will
+    // there is an ambiguous identifying columns that will be resolved once one of them are marked
+    // as a $write guid which disqualifies that column. In this case, the identifying columns will
     // be empty, and we just return the safe option of true from this function. If there are
-    // non-ambiguous identifying fields however, they shouldn't change after this point so its
+    // non-ambiguous identifying columns however, they shouldn't change after this point so its
     // safe to rely on them to optimize the mutation plan
-    const identifying_fields =
-        record.$identifying_fields ??
-        get_identifying_fields(orma_schema, entity, record, false)
+    const identifying_columns =
+        record.$identifying_columns ??
+        get_identifying_columns(orma_schema, table, record, false)
 
     // guids (which at this stage are not marked $read or $write) could later become a write guid (which would
-    // not be a valid identifying field, and so would cause it to actually be an updated field),
+    // not be a valid identifying column, and so would cause it to actually be an updated column),
     // so we need to be safe and not optimize them out of the constraint graph
-    const identifying_fields_are_guids = identifying_fields.some(
-        field => record[field]?.$guid !== undefined
+    const identifying_columns_are_guids = identifying_columns.some(
+        column => record[column]?.$guid !== undefined
     )
     if (
-        identifying_fields.length &&
-        identifying_fields.includes(field) &&
-        !identifying_fields_are_guids
+        identifying_columns.length &&
+        identifying_columns.includes(column) &&
+        !identifying_columns_are_guids
     ) {
         return false
     }
@@ -181,19 +181,19 @@ const get_constraint_results = (
     orma_schema: OrmaSchema,
     fk_index: FkIndex,
     constraint: MutationPlanConstraint,
-    entity: string,
+    table: string,
     record: Record<string, any> & { $operation: MutationOperation | 'upsert' }
 ): number[] => {
     const edges =
         constraint.target_filter.connection_type === 'child'
-            ? get_child_edges(entity, orma_schema)
-            : get_parent_edges(entity, orma_schema)
+            ? get_child_edges(table, orma_schema)
+            : get_parent_edges(table, orma_schema)
     const new_piece_indices = edges.flatMap(edge => {
         if (
             !constraint.source_filter({
                 orma_schema,
                 edge,
-                entity,
+                table,
                 record
             })
         ) {
@@ -201,13 +201,13 @@ const get_constraint_results = (
         }
 
         return constraint.target_filter.operations.flatMap(target_operation => {
-            const entity_field_operation_string = `${edge.to_entity},${edge.to_field},${target_operation}`
+            const table_column_operation_string = `${edge.to_table},${edge.to_columns},${target_operation}`
             // perform exact match or any value lookups for the target record based on the fk index
-            const value = record[edge.from_field]
+            const value = record[edge.from_columns]
             const value_string = get_value_string(value)
             if (constraint.target_filter.foreign_key_filter === 'exact_match') {
                 const new_piece_indices =
-                    fk_index?.[entity_field_operation_string]?.[value_string] ??
+                    fk_index?.[table_column_operation_string]?.[value_string] ??
                     []
                 return new_piece_indices
             } else if (
@@ -215,7 +215,7 @@ const get_constraint_results = (
             ) {
                 // any value lookup
                 const piece_indices_by_value =
-                    fk_index[entity_field_operation_string] ?? {}
+                    fk_index[table_column_operation_string] ?? {}
 
                 // no_match type is only for foreign keys that dont match (check examples).
                 // for no_match, we assume $guids are $read and not making any change, and so ignore them
@@ -246,21 +246,21 @@ const get_constraint_results = (
 const set_fk_index = (
     fk_index: FkIndex,
     piece_index: number,
-    entity: string,
-    field: string,
+    table: string,
+    column: string,
     operation: MutationOperation | 'upsert',
     value: any
 ) => {
-    const entity_field_operation_string = `${entity},${field},${operation}`
+    const table_column_operation_string = `${table},${column},${operation}`
     const value_string = get_value_string(value)
-    if (!fk_index[entity_field_operation_string]) {
-        fk_index[entity_field_operation_string] = {}
+    if (!fk_index[table_column_operation_string]) {
+        fk_index[table_column_operation_string] = {}
     }
 
-    if (!fk_index[entity_field_operation_string][value_string]) {
-        fk_index[entity_field_operation_string][value_string] = []
+    if (!fk_index[table_column_operation_string][value_string]) {
+        fk_index[table_column_operation_string][value_string] = []
     }
-    fk_index[entity_field_operation_string][value_string].push(piece_index)
+    fk_index[table_column_operation_string][value_string].push(piece_index)
 }
 
 const get_value_string = value =>
@@ -344,15 +344,15 @@ export const get_mutation_batch_length = (mutation_batch: MutationBatch) =>
 
 /**
  * The wierd index format is because the constraints so far need two types of lookups:
- *   1. Lookup a specific entity, field, operation and value combo
- *   2. Lookup a specific entity, field and operation but get all values
+ *   1. Lookup a specific table, column, operation and value combo
+ *   2. Lookup a specific table, column and operation but get all values
  * This format handles those cases while minimizing the number of new objects (better to have as many of
  * the lookup props combined in a string as possible, so we dont have so many nested objects and arrays
  * which would allocate more things to the heap). This index is made for the whole mutation, so
  * we do want to optimize it. Also this format means less deep getting and setting, which is nice.
  */
 type FkIndex = {
-    [entity_field_operation_string: string]: {
+    [table_column_operation_string: string]: {
         [value_string: string]: number[]
     }
 }

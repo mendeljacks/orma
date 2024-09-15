@@ -6,8 +6,8 @@ import {
     last,
 } from '../../helpers/helpers'
 import { NesterAddition } from '../../helpers/nester'
-import { OrmaSchema } from '../../types/schema/schema_types'
-import { get_any_path_context_entity } from './any_path_macro'
+import { OrmaSchema } from '../../schema/schema_types'
+import { get_any_path_context_table } from './any_path_macro'
 
 export const apply_escape_macro = (query, orma_schema: OrmaSchema) => {
     return apply_escape_macro_to_query_part(orma_schema, undefined, query)
@@ -16,7 +16,7 @@ export const apply_escape_macro = (query, orma_schema: OrmaSchema) => {
 // can be used to escape only parts of queries, for example only escaping a $where clause
 export const apply_escape_macro_to_query_part = (
     orma_schema: OrmaSchema,
-    root_entity: string | undefined,
+    root_table: string | undefined,
     query
 ) => {
     let raw_paths: any[] = []
@@ -45,7 +45,7 @@ export const apply_escape_macro_to_query_part = (
                 // make sure the escaped select is added back in later by the nester
                 nester_additions.push({
                     value: select[i].$as[0].$escape,
-                    field: select[i].$as[1],
+                    column: select[i].$as[1],
                 })
                 select.splice(i, 1)
             })
@@ -72,13 +72,13 @@ export const apply_escape_macro_to_query_part = (
             }
         }
 
-        const entity = get_any_path_context_entity(path, query) ?? root_entity
+        const table = get_any_path_context_table(path, query) ?? root_table
 
         deep_set(
             path,
             orma_escape(
                 value.$escape,
-                orma_schema.$entities[entity].$database_type
+                orma_schema.tables[table].database_type
             ),
             query
         )

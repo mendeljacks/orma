@@ -1,4 +1,4 @@
-import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaSchema } from '../schema/schema_types'
 import {
     replace_guids_with_values,
     save_resolved_guid_values,
@@ -6,7 +6,7 @@ import {
 import { sort_database_rows } from './database_results/sort_database_rows'
 import { apply_guid_inference_macro } from './macros/guid_inference_macro'
 import { apply_guid_plan_macro } from './macros/guid_plan_macro'
-import { apply_infer_identifying_fields_macro } from './macros/identifying_fields_macro'
+import { apply_infer_identifying_columns_macro } from './macros/identifying_columns_macro'
 import { apply_inherit_operations_macro } from './macros/inherit_operations_macro'
 import { apply_nesting_mutation_macro } from './macros/nesting_mutation_macro'
 import { apply_upsert_macro } from './macros/upsert_macro'
@@ -44,7 +44,7 @@ export const orma_mutate_prepare = (
         mutation_batch_object.mutation_pieces,
         mutation_batch_object.mutation_batches
     )
-    apply_infer_identifying_fields_macro(
+    apply_infer_identifying_columns_macro(
         orma_schema,
         mutation_batch_object.mutation_pieces
     )

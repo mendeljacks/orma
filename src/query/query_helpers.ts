@@ -1,9 +1,9 @@
 import { orma_escape } from '../helpers/escape'
 import { deep_get, is_simple_object, last } from '../helpers/helpers'
 import { is_reserved_keyword } from '../helpers/schema_helpers'
-import { path_to_entity } from '../mutate/helpers/mutate_helpers'
+import { path_to_table } from '../mutate/helpers/mutate_helpers'
 import { PathedRecord } from '../types'
-import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaSchema } from '../schema/schema_types'
 
 /**
  * Returns true if the parameter is a subquery. A subquery is an object that has at least one data fetching prop
@@ -26,12 +26,12 @@ export const is_subquery = (subquery: any) => {
 }
 
 /**
- * Calls the processor on every entity in a query. Does a breadth first search which processes the less nested
- * entities before the more nested ones.
+ * Calls the processor on every table in a query. Does a breadth first search which processes the less nested
+ * tables before the more nested ones.
  */
 export const query_for_each = (
     query: Record<string, any>,
-    processor: (value: any, path: string[], entity_name: string) => void,
+    processor: (value: any, path: string[], table_name: string) => void,
     current_path: string[] = []
 ) => {
     const root_paths = Object.keys(query)
@@ -49,9 +49,9 @@ export const query_for_each = (
         queue.push(...subquery_paths)
 
         if (path.length > 0) {
-            // dont call processor on query root, since this doesnt correspond with an entity
-            const entity_name = subquery.$from ?? last(path)
-            processor(subquery, path, entity_name)
+            // dont call processor on query root, since this doesnt correspond with an table
+            const table_name = subquery.$from ?? last(path)
+            processor(subquery, path, table_name)
         }
     }
 }
@@ -92,16 +92,16 @@ export const combine_wheres = (
 
 export const get_search_records_where = (
     pathed_records: PathedRecord[], // Record<string, any>[],
-    get_search_fields: (record: Record<string, any>) => string[],
+    get_search_columns: (record: Record<string, any>) => string[],
     orma_schema: OrmaSchema
 ) => {
-    const pathed_records_by_search_fields = pathed_records.reduce(
+    const pathed_records_by_search_columns = pathed_records.reduce(
         (acc, path_record) => {
-            const identifying_fields = get_search_fields(path_record.record)
-            if (identifying_fields.length === 0) {
-                throw new Error("Can't find identifying fields for record")
+            const identifying_columns = get_search_columns(path_record.record)
+            if (identifying_columns.length === 0) {
+                throw new Error("Can't find identifying columns for record")
             }
-            const key = JSON.stringify(identifying_fields)
+            const key = JSON.stringify(identifying_columns)
             if (!acc[key]) {
                 acc[key] = []
             }
@@ -112,34 +112,34 @@ export const get_search_records_where = (
         {}
     )
 
-    const ors = Object.keys(pathed_records_by_search_fields).flatMap(key => {
-        const identifying_fields = JSON.parse(key)
-        const pathed_records = pathed_records_by_search_fields[key]
-        if (identifying_fields.length === 1) {
-            const field = identifying_fields[0]
+    const ors = Object.keys(pathed_records_by_search_columns).flatMap(key => {
+        const identifying_columns = JSON.parse(key)
+        const pathed_records = pathed_records_by_search_columns[key]
+        if (identifying_columns.length === 1) {
+            const column = identifying_columns[0]
             return {
                 $in: [
-                    field,
+                    column,
                     pathed_records.map(({ record, path }) => {
-                        const entity = path_to_entity(path)
+                        const table = path_to_table(path)
                         return orma_escape(
-                            record[field],
-                            orma_schema.$entities[entity].$database_type
+                            record[column],
+                            orma_schema.tables[table].database_type
                         )
                     }),
                 ],
             }
         } else {
             // 2 or more, e.g. combo unique
-            // generate an or per record and an and per identifying field
+            // generate an or per record and an and per identifying column
             return pathed_records.map(({ path, record }) => ({
-                $and: identifying_fields.map(field => ({
+                $and: identifying_columns.map(column => ({
                     $eq: [
-                        field,
+                        column,
                         orma_escape(
-                            record[field],
-                            orma_schema.$entities[path_to_entity(path)]
-                                .$database_type
+                            record[column],
+                            orma_schema.tables[path_to_table(path)]
+                                .database_type
                         ),
                     ],
                 })),

@@ -1,34 +1,34 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
-import { OrmaSchema } from '../../../types/schema/schema_types'
+import { OrmaSchema } from '../../../schema/schema_types'
 import { MutationPiece } from '../../plan/mutation_batches'
 import { get_mutation_statements } from '../mutation_statements'
 
 describe('mutation_statements.ts', () => {
     const orma_schema: OrmaSchema = {
-        $entities: {
+        tables: {
             users: {
-                $fields: {
+                columns: {
                     id: { $not_null: true, $data_type: 'int' },
                     first_name: { $not_null: true, $data_type: 'varchar' },
                     last_name: { $not_null: true, $data_type: 'varchar' },
                     country_id: { $not_null: true, $data_type: 'int' },
                     resource_id: { $not_null: true, $data_type: 'varchar' },
                 },
-                $database_type: 'mysql',
-                $primary_key: {
-                    $fields: ['id'],
+                database_type: 'mysql',
+                primary_key: {
+                    $columns: ['id'],
                 },
-                $unique_keys: [
-                    { $fields: ['resource_id'] },
-                    { $fields: ['first_name', 'last_name'] },
+                unique_keys: [
+                    { $columns: ['resource_id'] },
+                    { $columns: ['first_name', 'last_name'] },
                 ],
             },
             products: {
-                $fields: { id: { $data_type: 'int', $not_null: true } },
-                $database_type: 'mysql',
-                $primary_key: {
-                    $fields: ['id'],
+                columns: { id: { $data_type: 'int', $not_null: true } },
+                database_type: 'mysql',
+                primary_key: {
+                    $columns: ['id'],
                 },
             },
         },
@@ -67,7 +67,7 @@ describe('mutation_statements.ts', () => {
                         $operation: 'update',
                         id: 1,
                         first_name: 'john',
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['users', 1],
                 },
@@ -75,7 +75,7 @@ describe('mutation_statements.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 1,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['products', 0],
                 },
@@ -112,7 +112,7 @@ describe('mutation_statements.ts', () => {
                             ],
                         },
                         operation: 'create',
-                        entity: 'users',
+                        table: 'users',
                         records: [
                             mutation_pieces[0].record,
                             mutation_pieces[3].record,
@@ -133,7 +133,7 @@ describe('mutation_statements.ts', () => {
                             },
                         },
                         operation: 'update',
-                        entity: 'users',
+                        table: 'users',
                         records: [mutation_pieces[1].record],
                         paths: [mutation_pieces[1].path],
                         sql_string:
@@ -147,7 +147,7 @@ describe('mutation_statements.ts', () => {
                             },
                         },
                         operation: 'delete',
-                        entity: 'products',
+                        table: 'products',
                         records: [mutation_pieces[2].record],
                         paths: [mutation_pieces[2].path],
                         sql_string: 'DELETE FROM products WHERE id = 1',

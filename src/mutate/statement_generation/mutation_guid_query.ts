@@ -1,20 +1,20 @@
 import { apply_escape_macro_to_query_part } from '../../query/macros/escaping_macros'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { OrmaSchema } from '../../schema/schema_types'
 import { get_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
-import { get_identifying_fields } from '../macros/identifying_fields_macro'
+import { get_identifying_columns } from '../macros/identifying_columns_macro'
 import { MutationPiece } from '../plan/mutation_batches'
 
 /**
  * Generates a query which, when run, will return all the data needed to
  *  1. match database record with mutation record (the identifying keys)
- *  2. replace guids with their resolved value (any field with a $guid)
+ *  2. replace guids with their resolved value (any column with a $guid)
  * Data is returned for all creates and updated in the input mutation pieces
  */
 export const get_guid_query = (
     mutation_pieces: MutationPiece[],
     piece_indices: number[],
-    entity: string,
+    table: string,
     guid_map: GuidMap,
     orma_schema: OrmaSchema
 ) => {
@@ -22,8 +22,8 @@ export const get_guid_query = (
         return undefined // can happen if the mutation is all deletes
     }
 
-    // get a list of fields with guids that we should query
-    const guid_fields = piece_indices.reduce<Set<string>>(
+    // get a list of columns with guids that we should query
+    const guid_columns = piece_indices.reduce<Set<string>>(
         (acc, piece_index) => {
             const record = mutation_pieces[piece_index].record
             Object.keys(record).forEach(key => {
@@ -37,25 +37,25 @@ export const get_guid_query = (
     )
 
     // get identifying keys which are needed for matching records later
-    const all_identifying_fields = piece_indices.reduce((acc, piece_index) => {
+    const all_identifying_columns = piece_indices.reduce((acc, piece_index) => {
         const record = mutation_pieces[piece_index].record
-        const identifying_fields =
-            record?.$identifying_fields ??
-            get_identifying_fields(
+        const identifying_columns =
+            record?.$identifying_columns ??
+            get_identifying_columns(
                 orma_schema,
-                entity,
+                table,
                 record,
                 // we dont mind if the unique key is ambiguous, since the choice of key doesnt do anything
-                // (unlike in an update, where it determines which fields are modified). We just select any key in
+                // (unlike in an update, where it determines which columns are modified). We just select any key in
                 // a repeatable way so we can do row matching later
                 true
             )
-        identifying_fields.forEach(field => acc.add(field))
+        identifying_columns.forEach(column => acc.add(column))
         return acc
     }, new Set<string>())
 
-    // can happen for updates that dont do anything and so dont have identifying fields
-    if (all_identifying_fields.size === 0) {
+    // can happen for updates that dont do anything and so dont have identifying columns
+    if (all_identifying_columns.size === 0) {
         return undefined
     }
 
@@ -66,18 +66,18 @@ export const get_guid_query = (
         piece_indices
     )
     // must apply escape macro since we need valid SQL AST
-    apply_escape_macro_to_query_part(orma_schema, entity, $where)
+    apply_escape_macro_to_query_part(orma_schema, table, $where)
 
-    // guid fields are needed for foreign key propagation while identifying keys are just needed to match up
-    // database rows with mutation rows later on. Unique fields so they only appear once in select
-    const fields = [...new Set([...guid_fields, ...all_identifying_fields])]
-    if (guid_fields.size === 0) {
+    // guid columns are needed for foreign key propagation while identifying keys are just needed to match up
+    // database rows with mutation rows later on. Unique columns so they only appear once in select
+    const columns = [...new Set([...guid_columns, ...all_identifying_columns])]
+    if (guid_columns.size === 0) {
         return undefined // can happen if there are no guids in the mutation
     }
 
     const query = {
-        $select: fields,
-        $from: entity,
+        $select: columns,
+        $from: table,
         $where,
     }
 

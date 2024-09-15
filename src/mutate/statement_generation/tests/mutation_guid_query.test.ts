@@ -23,7 +23,7 @@ describe('mutation_guid_query.ts', () => {
                         id: { $guid: 1 },
                         first_name: 'john',
                         last_name: 'smith',
-                        $identifying_fields: ['first_name', 'last_name'],
+                        $identifying_columns: ['first_name', 'last_name'],
                     },
                     path: ['users', 0],
                 },
@@ -31,7 +31,7 @@ describe('mutation_guid_query.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 1,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['users', 1],
                 },

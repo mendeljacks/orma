@@ -1,9 +1,9 @@
 import { group_by } from '../../helpers/helpers'
 import { orma_query } from '../../query/query'
 import { Path } from '../../types'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { OrmaSchema } from '../../schema/schema_types'
 import { sort_database_rows } from '../database_results/sort_database_rows'
-import { path_to_entity } from '../helpers/mutate_helpers'
+import { path_to_table } from '../helpers/mutate_helpers'
 import { get_identifying_where } from '../helpers/record_searching'
 import { MutationOperation, MysqlFunction } from '../mutate'
 import { MutationPiece as MutationPieceNoUpsert } from '../plan/mutation_batches'
@@ -33,22 +33,22 @@ export const get_upsert_macro_query = (
     guid_map: GuidMap,
     mutation_pieces: MutationPiece[]
 ) => {
-    const { relevant_piece_indices, select_fields_by_entity } =
+    const { relevant_piece_indices, select_columns_by_table } =
         get_upsert_query_data(orma_schema, guid_map, mutation_pieces)
 
     if (relevant_piece_indices.size === 0) {
         return undefined
     }
 
-    const piece_indices_by_entity = group_by(
+    const piece_indices_by_table = group_by(
         [...relevant_piece_indices],
-        piece_index => path_to_entity(mutation_pieces[piece_index].path)
+        piece_index => path_to_table(mutation_pieces[piece_index].path)
     )
 
-    const query = Object.entries(piece_indices_by_entity).reduce(
-        (acc, [entity, piece_indices], piece_index) => {
-            acc[entity] = {
-                ...select_fields_by_entity[entity],
+    const query = Object.entries(piece_indices_by_table).reduce(
+        (acc, [table, piece_indices], piece_index) => {
+            acc[table] = {
+                ...select_columns_by_table[table],
                 $where: get_identifying_where(
                     orma_schema,
                     guid_map,
@@ -71,7 +71,7 @@ const get_upsert_query_data = (
     mutation_pieces: MutationPiece[]
 ) => {
     const relevant_piece_indices = new Set<number>()
-    const select_fields_by_entity: SelectFieldsByEntity = {}
+    const select_columns_by_table: SelectColumnsByTable = {}
     mutation_pieces.forEach((mutation_piece, piece_index) => {
         if (mutation_piece.record.$operation === 'upsert') {
             add_relevant_piece_index(
@@ -80,12 +80,12 @@ const get_upsert_query_data = (
                 mutation_pieces,
                 piece_index,
                 relevant_piece_indices,
-                select_fields_by_entity
+                select_columns_by_table
             )
         }
     })
 
-    return { relevant_piece_indices, select_fields_by_entity }
+    return { relevant_piece_indices, select_columns_by_table }
 }
 
 const add_relevant_piece_index = (
@@ -94,32 +94,32 @@ const add_relevant_piece_index = (
     mutation_pieces: MutationPiece[],
     mutation_piece_index: number,
     relevant_piece_indices: Set<number>,
-    query: SelectFieldsByEntity
+    query: SelectColumnsByTable
 ) => {
     const { record, path } = mutation_pieces[mutation_piece_index]
 
     relevant_piece_indices.add(mutation_piece_index)
-    const entity = path_to_entity(path)
-    if (!query[entity]) {
-        query[entity] = {}
+    const table = path_to_table(path)
+    if (!query[table]) {
+        query[table] = {}
     }
-    record.$identifying_fields?.forEach(field => (query[entity][field] = true))
+    record.$identifying_columns?.forEach(column => (query[table][column] = true))
 
-    // for lookup purposes, if any of the identifying fields are $read guids, then we have to include the mutation
+    // for lookup purposes, if any of the identifying columns are $read guids, then we have to include the mutation
     // piece with the corresponding $write guid in the mutation.
-    record.$identifying_fields?.forEach(read_field => {
-        const value = record[read_field]
+    record.$identifying_columns?.forEach(read_column => {
+        const value = record[read_column]
         const has_guid = value?.$guid !== undefined
         if (has_guid && value?.$read) {
-            const { piece_index, field: write_field } = guid_map.get(
+            const { piece_index, column: write_column } = guid_map.get(
                 value.$guid
             )!.write
             const write_piece = mutation_pieces[piece_index]
-            const write_entity = path_to_entity(write_piece.path)
-            if (!query[write_entity]) {
-                query[write_entity] = {}
+            const write_table = path_to_table(write_piece.path)
+            if (!query[write_table]) {
+                query[write_table] = {}
             }
-            query[write_entity][write_field] = true
+            query[write_table][write_column] = true
             add_relevant_piece_index(
                 orma_schema,
                 guid_map,
@@ -141,39 +141,39 @@ const add_relevant_piece_index = (
 //     add_where: boolean
 // ) => {
 //     const { path, record } = mutation_pieces[mutation_piece_index]
-//     const entity = path_to_entity(path)
+//     const table = path_to_table(path)
 
-//     if (!query[entity]) {
-//         query[entity] = {}
+//     if (!query[table]) {
+//         query[table] = {}
 //     }
 
-//     record.$identifying_fields?.forEach(key => (query[entity][key] = true))
+//     record.$identifying_columns?.forEach(key => (query[table][key] = true))
 
 //     if (add_where) {
 //         const where = generate_identifying_where(
 //             orma_schema,
 //             guid_map,
 //             mutation_pieces as MutationPieceNoUpsert[],
-//             record.$identifying_fields,
+//             record.$identifying_columns,
 //             mutation_piece_index
 //         )
-//         query[entity].$where = combine_wheres(
-//             [query[entity].$where, where],
+//         query[table].$where = combine_wheres(
+//             [query[table].$where, where],
 //             '$or'
 //         )
 //     }
 
 //     // add any $write guids to the query, that are not already added
-//     record.$identifying_fields?.forEach(read_field => {
-//         const value = record[read_field]
+//     record.$identifying_columns?.forEach(read_column => {
+//         const value = record[read_column]
 //         const has_guid = value?.$guid !== undefined
 //         if (has_guid && value?.$read) {
-//             const { piece_index, field: write_field } = guid_map.get(
+//             const { piece_index, column: write_column } = guid_map.get(
 //                 value.$guid
 //             )!.write
 //             const write_piece = mutation_pieces[piece_index]
-//             const write_entity = path_to_entity(write_piece.path)
-//             query[write_entity][write_field] = true
+//             const write_table = path_to_table(write_piece.path)
+//             query[write_table][write_column] = true
 
 //             const write_database_row = add_to_upsert_query(
 //                 orma_schema,
@@ -186,7 +186,7 @@ const add_relevant_piece_index = (
 //                 // add the where
 //                 write_piece.record.$operation !== 'upsert'
 //             )
-//             const resolved_value = write_database_row?.[write_field]
+//             const resolved_value = write_database_row?.[write_column]
 
 //             return resolved_value
 //         }
@@ -199,13 +199,13 @@ const apply_upsert_macro_given_data = (
     mutation_pieces: MutationPiece[],
     results: Record<string, any>
 ) => {
-    const entities = Object.keys(results)
+    const tables = Object.keys(results)
     const sorted_database_rows = sort_database_rows(
         mutation_pieces as MutationPieceNoUpsert[],
         guid_map,
         { start_index: 0, end_index: mutation_pieces.length },
-        entities,
-        entities.map(entity => results[entity] ?? []),
+        tables,
+        tables.map(table => results[table] ?? []),
         orma_schema
     )
     mutation_pieces.forEach((mutation_piece, i) => {
@@ -220,9 +220,9 @@ const apply_upsert_macro_given_data = (
         } else {
             //@ts-ignore
             mutation_piece.record.$operation = 'create'
-            // identifying fields are only for updates and deletes, not creates
+            // identifying columns are only for updates and deletes, not creates
             //@ts-ignore
-            delete mutation_piece.record.$identifying_fields
+            delete mutation_piece.record.$identifying_columns
         }
     })
 }
@@ -232,7 +232,7 @@ type MutationPiece = {
         (
             | {
                   $operation: 'upsert'
-                  $identifying_fields: string[]
+                  $identifying_columns: string[]
               }
             | {
                   $operation: MutationOperation
@@ -241,6 +241,6 @@ type MutationPiece = {
     path: Path
 }
 
-type SelectFieldsByEntity = {
-    [Entity: string]: { [Field: string]: true }
+type SelectColumnsByTable = {
+    [Table: string]: { [Column: string]: true }
 }

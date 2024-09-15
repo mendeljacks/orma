@@ -1,46 +1,46 @@
-import { OrmaSchema } from '../schema/schema_types'
+import { sql_function_definitions } from '../../query/ast_to_sql'
 import { Pluck } from '../helper_types'
 import {
     GetAllEdges,
-    GetAllEntities,
-    GetFields
-} from '../schema/schema_helper_types'
-import { sql_function_definitions } from '../../query/ast_to_sql'
+    GetAllTables,
+    GetColumns
+} from '../../schema/schema_helper_types'
+import { OrmaSchema } from '../../schema/schema_types'
 
 export type OrmaQueryAliases<Schema extends OrmaSchema> = {
-    [Entity in GetAllEntities<Schema>]?: string
+    [Table in GetAllTables<Schema>]?: string
 } & { $root?: string }
 
 export type OrmaQuery<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>
 > = {
-    readonly [Entity in GetAllEntities<Schema>]?: OrmaSubquery<
+    readonly [Table in GetAllTables<Schema>]?: OrmaSubquery<
         Schema,
         Aliases,
-        Entity
+        Table
     >
 } & {
-    readonly [Entity in GetRootAliases<Schema, Aliases>]?: OrmaAliasedSubquery<
+    readonly [Table in GetRootAliases<Schema, Aliases>]?: OrmaAliasedSubquery<
         Schema,
         Aliases,
-        GetAllEntities<Schema>
+        GetAllTables<Schema>
     >
 } & { readonly $where_connected?: WhereConnected<Schema> }
 
 export type WhereConnected<Schema extends OrmaSchema> = WhereConnectedMapped<
     Schema,
-    GetAllEntities<Schema>
+    GetAllTables<Schema>
 >
 
 // have to uselessly break this function into two because typescript is annoying
 type WhereConnectedMapped<
     Schema extends OrmaSchema,
-    Entities extends GetAllEntities<Schema>
-> = Entities extends GetAllEntities<Schema>
+    Tables extends GetAllTables<Schema>
+> = Tables extends GetAllTables<Schema>
     ? readonly {
-          readonly $entity: Entities
-          readonly $field: GetFields<Schema, Entities>
+          readonly $table: Tables
+          readonly $column: GetColumns<Schema, Tables>
           readonly $values: readonly (string | number)[]
       }[]
     : never
@@ -48,26 +48,26 @@ type WhereConnectedMapped<
 export type OrmaAliasedSubquery<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entities extends GetAllEntities<Schema>
-> = Entities extends GetAllEntities<Schema>
-    ? OrmaSubquery<Schema, Aliases, Entities> & {
-          readonly $from: Entities
+    Tables extends GetAllTables<Schema>
+> = Tables extends GetAllTables<Schema>
+    ? OrmaSubquery<Schema, Aliases, Tables> & {
+          readonly $from: Tables
       }
     : never
 
 export type OrmaSubquery<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
-> = FieldObj<Schema, Aliases, Entity> &
-    SelectObj<Schema, Aliases, Entity> &
-    SubqueryObj<Schema, Aliases, Entity> &
-    AliasObj<Schema, Aliases, Entity> &
-    FromObj<Schema, Entity> &
+    Table extends GetAllTables<Schema>
+> = ColumnObj<Schema, Aliases, Table> &
+    SelectObj<Schema, Aliases, Table> &
+    SubqueryObj<Schema, Aliases, Table> &
+    AliasObj<Schema, Aliases, Table> &
+    FromObj<Schema, Table> &
     PaginationObj &
     ForeignKeyObj &
-    GroupByObj<Schema, Aliases, Entity> &
-    OrderByObj<Schema, Aliases, Entity> & {
+    GroupByObj<Schema, Aliases, Table> &
+    OrderByObj<Schema, Aliases, Table> & {
         readonly $where?: any
         readonly $having?: any
     }
@@ -75,42 +75,42 @@ export type OrmaSubquery<
 export type SelectObj<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
     readonly $select?: readonly (
-        | GetFields<Schema, Entity>
+        | GetColumns<Schema, Table>
         | {
               readonly $as: readonly [
-                  GetFields<Schema, Entity> | object,
+                  GetColumns<Schema, Table> | object,
                   (
-                      | GetFields<Schema, Entity>
-                      | GetAliases<Schema, Aliases, Entity>
+                      | GetColumns<Schema, Table>
+                      | GetAliases<Schema, Aliases, Table>
                   )
               ]
           }
     )[]
 }
 
-export type FieldObj<
+export type ColumnObj<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
-    readonly [Field in GetFields<Schema, Entity>]?: QueryField<
+    readonly [Column in GetColumns<Schema, Table>]?: QueryColumn<
         Schema,
         Aliases,
-        Entity
+        Table
     >
 }
 
 type AliasObj<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
-    readonly [Field in GetAliases<Schema, Aliases, Entity>]?:
-        | QueryAliasedField<Schema, Aliases, Entity>
-        | OrmaAliasedSubquery<Schema, Aliases, GetAllEntities<Schema>>
+    readonly [Column in GetAliases<Schema, Aliases, Table>]?:
+        | QueryAliasedColumn<Schema, Aliases, Table>
+        | OrmaAliasedSubquery<Schema, Aliases, GetAllTables<Schema>>
 }
 
 export type GetRootAliases<
@@ -121,76 +121,76 @@ export type GetRootAliases<
 export type GetAliases<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
-> = Entity extends keyof Aliases
-    ? Aliases[Entity] extends string
-        ? Aliases[Entity]
+    Table extends GetAllTables<Schema>
+> = Table extends keyof Aliases
+    ? Aliases[Table] extends string
+        ? Aliases[Table]
         : never
     : never
 
 export type GetSubqueryProps<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
-> = Pluck<GetAllEdges<Schema, Entity>, 'to_entity'>
+    Table extends GetAllTables<Schema>
+> = Pluck<GetAllEdges<Schema, Table>, 'to_table'>
 
 export type SubqueryObj<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
-    readonly [SubEntity in GetSubqueryProps<Schema, Entity>]?: OrmaSubquery<
+    readonly [SubTable in GetSubqueryProps<Schema, Table>]?: OrmaSubquery<
         Schema,
         Aliases,
-        SubEntity
+        SubTable
     >
 }
 
 export type FromObj<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
-    readonly $from?: Entity
+    readonly $from?: Table
 }
 
-export type QueryField<
+export type QueryColumn<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > =
     | boolean
-    | Expression<Schema, Aliases, Entity>
+    | Expression<Schema, Aliases, Table>
     | { $escape: number | string | any[] | Record<string, any> }
 
-type QueryAliasedField<
+type QueryAliasedColumn<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > =
-    | Expression<Schema, Aliases, Entity>
+    | Expression<Schema, Aliases, Table>
     | { $escape: number | string | any[] | Record<string, any> }
 
 export type Expression<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > =
     | ExpressionFunction<
           Schema,
           Aliases,
-          Entity,
+          Table,
           keyof typeof sql_function_definitions
       >
-    | GetFields<Schema, Entity>
-    | GetAliases<Schema, Aliases, Entity>
+    | GetColumns<Schema, Table>
+    | GetAliases<Schema, Aliases, Table>
 
 type ExpressionFunction<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>,
+    Table extends GetAllTables<Schema>,
     FunctionNames extends string
 > = FunctionNames extends string
     ? {
-          [Key in FunctionNames]: Expression<Schema, Aliases, Entity>
+          [Key in FunctionNames]: Expression<Schema, Aliases, Table>
       }
     : never
 
@@ -203,57 +203,57 @@ export type ForeignKeyObj = {
     readonly $foreign_key?: readonly string[]
 }
 
-// any entity name
+// any table name
 export type GroupByObj<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
     readonly $group_by?: readonly (
-        | FieldOrString<Schema, Aliases, Entity>
-        | Expression<Schema, Aliases, Entity>
+        | ColumnOrString<Schema, Aliases, Table>
+        | Expression<Schema, Aliases, Table>
     )[]
 }
 
-type FieldOrString<
+type ColumnOrString<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
-> = GetFields<Schema, Entity> | GetAliases<Schema, Aliases, Entity>
+    Table extends GetAllTables<Schema>
+> = GetColumns<Schema, Table> | GetAliases<Schema, Aliases, Table>
 
 export type OrderByObj<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
     // using readonly allows us to do as const in the as_orma_query wrapper function which is needed to do
     // type narrowing (for some reason types arent narrowing with both schema and query params)
     readonly $order_by?: readonly (
-        | Expression<Schema, Aliases, Entity>
+        | Expression<Schema, Aliases, Table>
         | {
-              readonly $asc: Expression<Schema, Aliases, Entity>
+              readonly $asc: Expression<Schema, Aliases, Table>
           }
         | {
-              readonly $desc: Expression<Schema, Aliases, Entity>
+              readonly $desc: Expression<Schema, Aliases, Table>
           }
     )[]
 }
 
 export type SimplifiedQuery<Schema extends OrmaSchema> = {
-    readonly [Entity in GetAllEntities<Schema>]?: SimplifiedSubquery<
+    readonly [Table in GetAllTables<Schema>]?: SimplifiedSubquery<
         Schema,
-        Entity
+        Table
     >
 }
 
 export type SimplifiedSubquery<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
-    readonly [Field in GetFields<Schema, Entity>]?: boolean
+    readonly [Column in GetColumns<Schema, Table>]?: boolean
 } & {
-    readonly [NestedEntity in GetAllEdges<
+    readonly [NestedTable in GetAllEdges<
         Schema,
-        Entity
-    >['to_entity']]?: SimplifiedSubquery<Schema, NestedEntity>
+        Table
+    >['to_table']]?: SimplifiedSubquery<Schema, NestedTable>
 }

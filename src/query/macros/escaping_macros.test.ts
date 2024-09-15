@@ -1,13 +1,13 @@
 import { describe, test } from 'mocha'
 import { apply_escape_macro } from './escaping_macros'
 import { expect } from 'chai'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { OrmaSchema } from '../../schema/schema_types'
 
 const orma_schema: any = {
-    $entities: {
+    $tables: {
         products: {
             $database_type: 'mysql',
-            $fields: {},
+            $columns: {},
         },
     },
 }
@@ -33,9 +33,9 @@ describe('escaping_macros', () => {
         })
         test('Can find database type $coalesce', () => {
             const orma_schema: any = {
-                $entities: {
-                    places: { $database_type: 'postgres', $fields: {} },
-                    reviews: { $database_type: 'postgres', $fields: {} },
+                $tables: {
+                    places: { $database_type: 'postgres', $columns: {} },
+                    reviews: { $database_type: 'postgres', $columns: {} },
                 },
             }
             const query = {

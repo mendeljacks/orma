@@ -12,15 +12,15 @@ import {
 type Plan = Pick<MutationPlan, 'mutation_pieces'>
 
 const generate_test_where_in = (
-    from_field: string,
-    to_entity: string,
+    from_column: string,
+    to_table: string,
     where: any
 ) => ({
     $in: [
-        from_field,
+        from_column,
         {
             $select: ['id'],
-            $from: to_entity,
+            $from: to_table,
             $where: where,
         },
     ],
@@ -35,7 +35,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 1,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
                 {
@@ -43,7 +43,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 2,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
                 {
@@ -51,7 +51,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 5,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
             ]
@@ -100,7 +100,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 1,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
                 {
@@ -108,7 +108,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 11,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
                 {
@@ -116,7 +116,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 111,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
             ]
@@ -131,7 +131,7 @@ describe('verify_deletes.ts', () => {
                 ['comments', 'likes', 'post_has_categories', 'posts'].sort()
             )
 
-            // only check some entities in depth for convenience of the test
+            // only check some tables in depth for convenience of the test
             expect({
                 posts: query.posts,
                 comments: query.comments,
@@ -159,7 +159,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         $operation: 'delete',
                         email: 'test@test.com',
-                        $identifying_fields: ['email'],
+                        $identifying_columns: ['email'],
                     },
                 },
             ]
@@ -179,7 +179,7 @@ describe('verify_deletes.ts', () => {
                 },
             })
         })
-        test.skip('selects relevant unique fields')
+        test.skip('selects relevant unique columns')
     })
     describe(get_mutation_pieces_blocing_delete.name, () => {
         test('handles one row', () => {
@@ -252,7 +252,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         id: 2,
                         $operation: 'update',
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['users', 0],
                 },
@@ -260,7 +260,7 @@ describe('verify_deletes.ts', () => {
                     record: {
                         id: 1,
                         $operation: 'delete',
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['users', 1],
                 },
@@ -290,13 +290,13 @@ describe('verify_deletes.ts', () => {
                 },
             ])
         })
-        test('handles deletes by unique field', () => {
+        test('handles deletes by unique column', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
                         email: 'test@test.com',
                         $operation: 'delete',
-                        $identifying_fields: ['email'],
+                        $identifying_columns: ['email'],
                     },
                     path: ['users', 0],
                 },
@@ -305,7 +305,7 @@ describe('verify_deletes.ts', () => {
                         id: 2,
                         email: 'best@test.com',
                         $operation: 'delete',
-                        $identifying_fields: ['email'],
+                        $identifying_columns: ['email'],
                     },
                     path: ['users', 1],
                 },

@@ -4,34 +4,34 @@ import { OrmaMutation } from '../../types/mutation/mutation_types'
 import { apply_supersede_macro } from './supersede_macro'
 
 const orma_schema: any = {
-    $entities: {
+    $tables: {
         users: {
-            $fields: { id: { primary_key: true } },
+            $columns: { id: { primary_key: true } },
             $database_type: 'mysql',
         },
         user_has_photos: {
-            $fields: { id: { primary_key: true }, url: {}, user_id: {} },
+            $columns: { id: { primary_key: true }, url: {}, user_id: {} },
             $database_type: 'mysql',
             $indexes: [
-                { index_name: 'primary', fields: ['id'], is_unique: true },
-                { index_name: 'uniq', fields: ['url'], is_unique: true },
+                { index_name: 'primary', columns: ['id'], is_unique: true },
+                { index_name: 'uniq', columns: ['url'], is_unique: true },
             ],
             $foreign_keys: [
-                { from_field: 'user_id', to_entity: 'users', to_field: 'id' },
+                { from_column: 'user_id', to_table: 'users', to_column: 'id' },
             ],
         },
         user_has_posts: {
-            $fields: { id: { primary_key: true }, text: {}, user_id: {} },
+            $columns: { id: { primary_key: true }, text: {}, user_id: {} },
             $database_type: 'mysql',
             $indexes: [
                 {
                     index_name: 'uniq',
-                    fields: ['text', 'user_id'],
+                    columns: ['text', 'user_id'],
                     is_unique: true,
                 },
             ],
             $foreign_keys: [
-                { from_field: 'user_id', to_entity: 'users', to_field: 'id' },
+                { from_column: 'user_id', to_table: 'users', to_column: 'id' },
             ],
         },
     },
@@ -39,14 +39,14 @@ const orma_schema: any = {
         $reversed_foreign_keys: {
             users: [
                 {
-                    from_field: 'id',
-                    to_entity: 'user_has_photos',
-                    to_field: 'user_id',
+                    from_column: 'id',
+                    to_table: 'user_has_photos',
+                    to_column: 'user_id',
                 },
                 {
-                    from_field: 'id',
-                    to_entity: 'user_has_posts',
-                    to_field: 'user_id',
+                    from_column: 'id',
+                    to_table: 'user_has_posts',
+                    to_column: 'user_id',
                 },
             ],
         },

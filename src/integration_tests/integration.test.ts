@@ -9,7 +9,7 @@ import {
     GlobalTestMutation,
     GlobalTestQuery
 } from '../test_data/global_test_schema'
-import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaSchema } from '../schema/schema_types'
 import {
     register_integration_test,
     test_mutate,
@@ -40,10 +40,10 @@ describe('full integration test', () => {
             }[]
         }
 
-        const $entities: OrmaSchema['$entities'] = {
+        const $tables: OrmaSchema['tables'] = {
             users: {
-                $database_type: 'sqlite',
-                $fields: {
+                database_type: 'sqlite',
+                columns: {
                     user_id: {
                         $data_type: 'int',
                         $auto_increment: true,
@@ -55,16 +55,16 @@ describe('full integration test', () => {
                         $not_null: true
                     }
                 },
-                $primary_key: {
-                    $fields: ['user_id'],
+                primary_key: {
+                    $columns: ['user_id'],
                     $name: 'user_id_pk'
                 },
-                $unique_keys: [{ $fields: ['name'], $name: 'name_uq' }]
+                unique_keys: [{ $columns: ['name'], $name: 'name_uq' }]
             }
         }
         const orma_schema: OrmaSchema = {
-            $entities,
-            $cache: generate_orma_schema_cache($entities)
+            tables: $tables,
+            cache: generate_orma_schema_cache($tables)
         }
 
         const mutation_plan = orma_mutate_prepare(orma_schema, mutation)
@@ -90,8 +90,8 @@ describe('full integration test', () => {
         const query = {
             $where_connected: [
                 {
-                    $entity: 'users',
-                    $field: 'id',
+                    $table: 'users',
+                    $column: 'id',
                     $values: [1, 3]
                 }
             ],
@@ -393,7 +393,7 @@ describe('full integration test', () => {
             ]
         })
     })
-    test('handles query ownership for nullable fields', async () => {
+    test('handles query ownership for nullable columns', async () => {
         await test_mutate({
             $operation: 'create',
             addresses: [
@@ -407,8 +407,8 @@ describe('full integration test', () => {
         const query = {
             $where_connected: [
                 {
-                    $entity: 'users',
-                    $field: 'id',
+                    $table: 'users',
+                    $column: 'id',
                     $values: [1]
                 }
             ],
@@ -459,7 +459,7 @@ describe('full integration test', () => {
                 expect(undefined).to.equal('Expected an error to be thrown')
             } catch (error) {}
         })
-        test('allows setting unique field to itself', async () => {
+        test('allows setting unique column to itself', async () => {
             await test_mutate({
                 $operation: 'create',
                 posts: [
@@ -634,7 +634,7 @@ describe('full integration test', () => {
 
         // test passes if it doesnt crash
     })
-    test.skip('allows $identifying_fields override')
+    test.skip('allows $identifying_columns override')
     test.skip('handles manual guid + raw value linking')
     test.skip('handles renesting via id only updates')
 })

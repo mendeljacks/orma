@@ -1,27 +1,26 @@
 import { GlobalTestSchema } from '../../test_data/global_test_schema'
 import {
-    DeepReadonly,
     GetAllEdges,
-    GetAllEntities,
-    GetFieldNotNull,
-    GetFields,
-    GetFieldType,
-} from '../schema/schema_helper_types'
-import { OrmaSchema } from '../schema/schema_types'
+    GetAllTables,
+    GetColumns,
+    GetColumnNotNull,
+    GetColumnType
+} from '../../schema/schema_helper_types'
+import { OrmaSchema } from '../../schema/schema_types'
 
 export type OrmaMutation<Schema extends OrmaSchema> = {
-    readonly [Entity in GetAllEntities<Schema>]?: readonly MutationRecord<
+    readonly [Table in GetAllTables<Schema>]?: readonly MutationRecord<
         Schema,
-        Entity
+        Table
     >[]
 } & OperationObj
 
 type MutationRecord<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
-> = FieldsObj<Schema, Entity> &
+    Table extends GetAllTables<Schema>
+> = ColumnsObj<Schema, Table> &
     OperationObj &
-    ForeignKeyFieldsObj<Schema, Entity, GetAllEdges<Schema, Entity>>
+    ForeignKeyColumnsObj<Schema, Table, GetAllEdges<Schema, Table>>
 
 type OperationObj = {
     readonly $operation?: Operation
@@ -29,58 +28,58 @@ type OperationObj = {
 
 type Operation = 'create' | 'update' | 'delete' | 'upsert' | 'none'
 
-type FieldsObj<
+type ColumnsObj<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>
+    Table extends GetAllTables<Schema>
 > = {
     // baseline for regular props
-    readonly [Field in GetFields<Schema, Entity>]?:
-        | FieldType<Schema, Entity, Field>
+    readonly [Column in GetColumns<Schema, Table>]?:
+        | ColumnType<Schema, Table, Column>
         // primary or foreign keys can have guids
-        | (Field extends GetAllEdges<Schema, Entity>['from_field']
+        | (Column extends GetAllEdges<Schema, Table>['from_column']
               ? { $guid: string | number }
               : never)
 }
 
 // & {
 //     // required props have to be given
-//     [Field in GetFieldsByRequired<Schema, Entity, true>]: FieldType<
+//     [Column in GetColumnsByRequired<Schema, Table, true>]: ColumnType<
 //         Schema,
-//         Entity,
-//         Field
+//         Table,
+//         Column
 //     >
 // }
 
-export type ForeignKeyFieldsObj<
+export type ForeignKeyColumnsObj<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    AllEdges extends GetAllEdges<Schema, Entity>
+    Table extends GetAllTables<Schema>,
+    AllEdges extends GetAllEdges<Schema, Table>
 > =
     // handles the case where there are no edges and AllEdges is 'never'
     AllEdges extends never
         ? {}
-        : AllEdges extends GetAllEdges<Schema, Entity>
+        : AllEdges extends GetAllEdges<Schema, Table>
         ? {
-              readonly [Field in AllEdges['to_entity']]?: readonly MutationRecord<
+              readonly [Column in AllEdges['to_table']]?: readonly MutationRecord<
                   Schema,
-                  Field
+                  Column
               >[]
           }
         : never
 
-export type FieldType<
+export type ColumnType<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    Field extends GetFields<Schema, Entity>
+    Table extends GetAllTables<Schema>,
+    Column extends GetColumns<Schema, Table>
 > =
-    | GetFieldType<Schema, Entity, Field> // base type
-    // add null to base type only if field is not required
-    | NullableField<Schema, Entity, Field>
+    | GetColumnType<Schema, Table, Column> // base type
+    // add null to base type only if column is not required
+    | NullableColumn<Schema, Table, Column>
 
-type NullableField<
+type NullableColumn<
     Schema extends OrmaSchema,
-    Entity extends GetAllEntities<Schema>,
-    Field extends GetFields<Schema, Entity>
-> = GetFieldNotNull<Schema, Entity, Field> extends true ? never : null //| undefined
+    Table extends GetAllTables<Schema>,
+    Column extends GetColumns<Schema, Table>
+> = GetColumnNotNull<Schema, Table, Column> extends true ? never : null //| undefined
 
-type T = FieldType<GlobalTestSchema, 'post_has_categories', 'main_category'>
+type T = ColumnType<GlobalTestSchema, 'post_has_categories', 'main_category'>

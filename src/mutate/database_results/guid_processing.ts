@@ -43,13 +43,13 @@ export const replace_guids_with_values = (
     for (const guid of guid_map.keys()) {
         const write = guid_map.get(guid)!.write
         const write_record = mutation_pieces[write.piece_index].record
-        const write_value = write_record[write.field].$resolved_value
+        const write_value = write_record[write.column].$resolved_value
 
         guid_map.get(guid)!.reads.forEach(read => {
             const read_record = mutation_pieces[read.piece_index].record
-            read_record[read.field] = write_value
+            read_record[read.column] = write_value
         })
 
-        write_record[write.field] = write_value
+        write_record[write.column] = write_value
     }
 }

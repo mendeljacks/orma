@@ -14,7 +14,7 @@ export { type OrmaQuery } from './types/query/query_types'
 export {
     type OrmaQueryResult,
     type OrmaRecord,
-    type OrmaField
+    type OrmaColumn
 } from './types/query/query_result_types'
 
 // mutate
@@ -34,14 +34,14 @@ export {
 } from './mutate/diff/diff_mutation'
 export { apply_guid_inference_macro } from './mutate/macros/guid_inference_macro'
 export { apply_inherit_operations_macro } from './mutate/macros/inherit_operations_macro'
-export { path_to_entity as mutation_path_to_entity } from './mutate/helpers/mutate_helpers'
+export { path_to_table as mutation_path_to_table } from './mutate/helpers/mutate_helpers'
 
 // introspect
 export {
     orma_introspect,
     generate_orma_schema_cache,
 } from './schema/introspector'
-export { type OrmaSchema } from './types/schema/schema_types'
+export { type OrmaSchema } from './schema/schema_types'
 
 // adapters
 export { mysql2_adapter } from './helpers/database_adapters'

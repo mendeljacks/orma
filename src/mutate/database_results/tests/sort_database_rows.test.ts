@@ -280,7 +280,7 @@ describe('guid_processing.ts', () => {
                 },
             ])
         })
-        test('works when there is no query for an entity', () => {
+        test('works when there is no query for an table', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
@@ -368,7 +368,7 @@ describe('guid_processing.ts', () => {
                         $operation: 'update',
                         id: { $guid: 'a' },
                         email: 'char@coal.com',
-                        $identifying_fields: ['email'],
+                        $identifying_columns: ['email'],
                     },
                     path: ['users', 0],
                 },
@@ -378,7 +378,7 @@ describe('guid_processing.ts', () => {
                         // this is a reference to the user above, so it should resolve to user_id 3
                         user_id: { $guid: 'a' },
                         post_id: 1,
-                        $identifying_fields: ['user_id', 'post_id'],
+                        $identifying_columns: ['user_id', 'post_id'],
                     },
                     path: ['likes', 0],
                 },

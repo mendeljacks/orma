@@ -47,7 +47,7 @@ describe('nester', () => {
 
         expect(result).to.deep.equal(goal)
     })
-    test('handles entities with no children', async () => {
+    test('handles tables with no children', async () => {
         const data: NesterData = [
             [['vendors', 0], [{ id: 1 }]],
             [['images', 0], [{ id: 1 }]],
@@ -231,11 +231,11 @@ describe('nester', () => {
             ],
         }
 
-        // deleting the product id makes sure the field is not deleted before adding
+        // deleting the product id makes sure the column is not deleted before adding
         // the copy to the index
         let result = nester(data, edges, [
             { additions: [], deletions: [] },
-            { additions: [], deletions: [{ field: 'id' }] },
+            { additions: [], deletions: [{ column: 'id' }] },
         ])
 
         expect(result).to.deep.equal(goal)
@@ -270,16 +270,16 @@ describe('nester', () => {
 
         // const edges = [
         //     {
-        //         from_entity: 'vendors',
-        //         from_field: 'id',
-        //         to_entity: 'products',
-        //         to_field: 'vendor_id',
+        //         from_table: 'vendors',
+        //         from_column: 'id',
+        //         to_table: 'products',
+        //         to_column: 'vendor_id',
         //     },
         //     {
-        //         from_entity: 'products',
-        //         from_field: 'id',
-        //         to_entity: 'images',
-        //         to_field: 'product_id',
+        //         from_table: 'products',
+        //         from_column: 'id',
+        //         to_table: 'images',
+        //         to_column: 'product_id',
         //     },
         // ]
 

@@ -1,8 +1,8 @@
 // import { lir_join } from '../helpers/lir_join'
 // import { is_reserved_keyword } from '../helpers/schema_helpers'
 // import {
-//     orma_entity_schema,
-//     orma_field_schema,
+//     orma_table_schema,
+//     orma_column_schema,
 //     orma_index_schema,
 //     OrmaSchema,
 // } from './introspector'
@@ -11,38 +11,38 @@
 //     target_schema: OrmaSchema,
 //     database_schema: OrmaSchema = {}
 // ) => {
-//     const target_entities = Object.keys(target_schema).filter(
+//     const target_tables = Object.keys(target_schema).filter(
 //         key => !is_reserved_keyword(key)
 //     )
-//     const database_entities = Object.keys(database_schema).filter(
+//     const database_tables = Object.keys(database_schema).filter(
 //         key => !is_reserved_keyword(key)
 //     )
 
 //     const {
-//         left: target_only_entities,
-//         inner: both_entities,
-//         right: database_only_entities,
+//         left: target_only_tables,
+//         inner: both_tables,
+//         right: database_only_tables,
 //     } = lir_join(
-//         target_entities,
+//         target_tables,
 //         [],
-//         database_entities,
+//         database_tables,
 //         el => el,
 //         (l, i, r) => [...i, l],
 //         el => el
 //     )
 
-//     both_entities.map(entity_name => {
-//         const target_entity_schema = target_schema[entity_name]
-//         const database_entity_schema = database_schema[entity_name]
+//     both_tables.map(table_name => {
+//         const target_table_schema = target_schema[table_name]
+//         const database_table_schema = database_schema[table_name]
 
 //         const {
-//             left: target_only_fields,
-//             inner: both_entities,
-//             right: database_only_entities,
+//             left: target_only_columns,
+//             inner: both_tables,
+//             right: database_only_tables,
 //         } = lir_join(
-//             target_entities,
+//             target_tables,
 //             [],
-//             database_entities,
+//             database_tables,
 //             el => el,
 //             (l, i, r) => [...i, l],
 //             el => el
@@ -50,34 +50,34 @@
 //     })
 // }
 
-// const field_schema_to_sql = (
-//     field_name: string,
-//     field_schema: orma_field_schema
+// const column_schema_to_sql = (
+//     column_name: string,
+//     column_schema: orma_column_schema
 // ) => {
 //     const data_type_args = [
-//         field_schema.character_count,
-//         field_schema.decimal_places,
+//         column_schema.character_count,
+//         column_schema.decimal_places,
 //     ]
 //         .filter(el => el === undefined)
 //         .join(', ')
 
-//     return `${field_name} ${field_schema.data_type}(${data_type_args}) ${
-//         field_schema.not_null ? 'NOT NULL' : 'NULL'
-//     }${field_schema.primary_key ? ' PRIMARY KEY' : ''}${
-//         field_schema.default ? ` DEFAULT ${field_schema.default}` : ''
-//     }${field_schema.auto_increment ? ' AUTO INCREMENT' : ''}`
+//     return `${column_name} ${column_schema.data_type}(${data_type_args}) ${
+//         column_schema.not_null ? 'NOT NULL' : 'NULL'
+//     }${column_schema.primary_key ? ' PRIMARY KEY' : ''}${
+//         column_schema.default ? ` DEFAULT ${column_schema.default}` : ''
+//     }${column_schema.auto_increment ? ' AUTO INCREMENT' : ''}`
 // }
 
 // const generate_create_statement_sql = (
-//     entity_name: string,
-//     entity_schema: orma_entity_schema
+//     table_name: string,
+//     table_schema: orma_table_schema
 // ) => {
-//     return `CREATE TABLE ${entity_name} (${Object.keys(entity_schema)
+//     return `CREATE TABLE ${table_name} (${Object.keys(table_schema)
 //         .filter(key => !is_reserved_keyword(key))
-//         .map(field_name =>
-//             field_schema_to_sql(
-//                 field_name,
-//                 entity_schema[field_name] as orma_field_schema
+//         .map(column_name =>
+//             column_schema_to_sql(
+//                 column_name,
+//                 table_schema[column_name] as orma_column_schema
 //             )
 //         )
 //         .join(',\n')})`
@@ -94,7 +94,7 @@
 
 //     return `${
 //         index_schema.index_name ? `CONSTRAINT ${index_schema.index_name}` : ''
-//     } UNIQUE (${index_schema.fields.join(', ')})${
+//     } UNIQUE (${index_schema.columns.join(', ')})${
 //         index_schema.invisible ? ' INVISIBLE' : ''
 //     }`
 // }

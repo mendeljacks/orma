@@ -2,7 +2,7 @@ import { GlobalTestMutation } from '../../test_data/global_test_schema'
 
 const tests = () => {
     {
-        // has root level entities
+        // has root level tables
         const t: GlobalTestMutation = {
             $operation: 'create',
             posts: [],
@@ -10,11 +10,11 @@ const tests = () => {
         }
     }
     {
-        // disallow non entities
+        // disallow non tables
         const t: GlobalTestMutation = {
             $operation: 'create',
             // @ts-expect-error
-            not_an_entity: [],
+            not_an_table: [],
         }
     }
     {

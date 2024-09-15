@@ -24,7 +24,7 @@
  */
 
 import { deep_get, drop_last, is_simple_object } from '../helpers/helpers'
-import { SupportedDatabases } from '../types/schema/schema_types'
+import { SupportedDatabases } from '../schema/schema_types'
 
 type Expression =
     | {
@@ -314,12 +314,12 @@ const sql_command_parsers = {
     // DML commands
     $select: args => `SELECT ${args.join(', ')}`,
     $as: args => `${wrap_if_subquery(args[0])} AS ${args[1]}`,
-    $entity: (args, path, obj, database_type) =>
-        `${escape_field(args, database_type)}`,
-    $field: (args, path, obj, database_type) =>
-        `.${escape_field(args, database_type)}`,
+    $table: (args, path, obj, database_type) =>
+        `${escape_column(args, database_type)}`,
+    $column: (args, path, obj, database_type) =>
+        `.${escape_column(args, database_type)}`,
     $from: (args, path, obj, database_type) =>
-        `FROM ${escape_field(args, database_type)}`,
+        `FROM ${escape_column(args, database_type)}`,
     $where: args => `WHERE ${args}`,
     $group_by: args => `GROUP BY ${args.join(', ')}`,
     $having: args => `HAVING ${args}`,
@@ -437,9 +437,9 @@ const sql_command_parsers = {
     // DDL commands
     $create_table: (table_name, path, obj) =>
         `CREATE${
-            get_neighbour_field(obj, path, '$temporary') ? ' TEMPORARY' : ''
+            get_neighbour_column(obj, path, '$temporary') ? ' TEMPORARY' : ''
         } TABLE${
-            get_neighbour_field(obj, path, '$if_not_exists')
+            get_neighbour_column(obj, path, '$if_not_exists')
                 ? ' IF NOT EXISTS'
                 : ''
         } ${table_name}`,
@@ -447,17 +447,17 @@ const sql_command_parsers = {
     $temporary: _ => '',
     $like_table: table_name => `LIKE ${table_name}`,
     $alter_table: (table_name, path, obj, database_type) =>
-        `ALTER TABLE ${escape_field(table_name, database_type)}`,
+        `ALTER TABLE ${escape_column(table_name, database_type)}`,
     // definitions
     $definitions: args => (args?.length ? `(${args.join(', ')})` : ''),
     $alter_operation: arg => arg?.toUpperCase(),
     $old_name: (arg, path, obj) =>
-        get_neighbour_field(obj, path, '$alter_operation') === 'rename'
+        get_neighbour_column(obj, path, '$alter_operation') === 'rename'
             ? `${arg} TO`
             : arg,
     // column definition commands
     $constraint: (arg, path, obj, database_type) => {
-        const name = get_neighbour_field(obj, path, '$name')
+        const name = get_neighbour_column(obj, path, '$name')
         const constraint_type_sql = {
             unique_key: `UNIQUE`,
             primary_key: `PRIMARY KEY`,
@@ -465,7 +465,7 @@ const sql_command_parsers = {
         }[arg]
 
         const constraint_sql = name
-            ? `CONSTRAINT ${escape_field(name, database_type)} `
+            ? `CONSTRAINT ${escape_column(name, database_type)} `
             : ''
         return `${constraint_sql}${constraint_type_sql}`
     },
@@ -479,13 +479,13 @@ const sql_command_parsers = {
     $name: (arg, path, obj, database_type) =>
         // for constraints, name is handled differently because it goes between CONSTRAINT
         // and the constraint type (e.g. FOREIGN KEY)
-        get_neighbour_field(obj, path, '$constraint')
+        get_neighbour_column(obj, path, '$constraint')
             ? ''
-            : escape_field(arg, database_type),
+            : escape_column(arg, database_type),
     $data_type: (arg, path, obj, database_type) => {
-        const precision = get_neighbour_field(obj, path, '$precision')
-        const scale = get_neighbour_field(obj, path, '$scale')
-        const enum_values = get_neighbour_field(obj, path, '$enum_values')?.map(
+        const precision = get_neighbour_column(obj, path, '$precision')
+        const scale = get_neighbour_column(obj, path, '$scale')
+        const enum_values = get_neighbour_column(obj, path, '$enum_values')?.map(
             el => (database_type === 'postgres' ? `'${el}'` : `"${el}"`)
         )
         const data_type_args = (enum_values ?? [precision, scale])
@@ -494,8 +494,8 @@ const sql_command_parsers = {
 
         // sqlite doesnt support enums directly, so it needs to be through a CHECK constraint
         if (['postgres', 'sqlite'].includes(database_type) && arg === 'enum') {
-            const field_name = get_neighbour_field(obj, path, '$name')
-            return `TEXT CHECK(${field_name} IN (${data_type_args}))`
+            const column_name = get_neighbour_column(obj, path, '$name')
+            return `TEXT CHECK(${column_name} IN (${data_type_args}))`
         }
 
         // sqlite actually allows INT as a type, but then primary key
@@ -539,7 +539,7 @@ const sql_command_parsers = {
         return database_type === 'sqlite' ? 'PRIMARY KEY' : 'AUTO_INCREMENT'
     },
     // index
-    $fields: args => `(${args.join(', ')})`,
+    $columns: args => `(${args.join(', ')})`,
     $invisible: (arg, path, obj, database_type: SupportedDatabases) =>
         // sqlite doesnt support invisible indexes
         arg && database_type !== 'sqlite' ? `INVISIBLE` : '',
@@ -559,7 +559,7 @@ const sql_command_parsers = {
     // this is just here for sqlite compatibility. It is purposefully not included in the types
     // because no one should be using such a bad and inconsistent syntax
     $create_index: (arg, path, obj, database_type) =>
-        `CREATE INDEX ${escape_field(arg, database_type)}`,
+        `CREATE INDEX ${escape_column(arg, database_type)}`,
     $on: arg => `ON ${arg}`
 }
 
@@ -570,7 +570,7 @@ const sql_command_parsers = {
 const wrap_if_subquery = (val: string) =>
     val?.startsWith?.('SELECT') ? `(${val})` : val
 
-const escape_field = (val, database_type: SupportedDatabases) => {
+const escape_column = (val, database_type: SupportedDatabases) => {
     if (typeof val !== 'string') {
         return val
     }
@@ -604,9 +604,9 @@ const sqlite_command_order = command_parser_keys.reduce((acc, val, i) => {
     return acc
 }, {})
 
-const get_neighbour_field = (obj, path, neighbour_field) => {
+const get_neighbour_column = (obj, path, neighbour_column) => {
     const res = deep_get(
-        [...drop_last(1, path), neighbour_field],
+        [...drop_last(1, path), neighbour_column],
         obj,
         undefined
     )
@@ -638,9 +638,9 @@ const nested_under_odd_nots = (path: any[]) => {
     $create_table: {
         $table_name: 'test',
         // table level props
-        $table_fields: [
+        $table_columns: [
             ['col1', {
-                field level props
+                column level props
             }]
         ]
     }
@@ -707,7 +707,7 @@ const nested_under_odd_nots = (path: any[]) => {
     $spatial: true,
     $invisible: true,
     $comment: 'asd',
-    $fields: ['item_id', 'category_id']
+    $columns: ['item_id', 'category_id']
 }
 
 // foreign key

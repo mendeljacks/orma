@@ -5,10 +5,10 @@ import {
     GlobalTestSchema,
     global_test_schema,
 } from '../../test_data/global_test_schema'
-import { FieldObj, SimplifiedQuery } from './query_types'
+import { ColumnObj, SimplifiedQuery } from './query_types'
 
 {
-    // allows fields and aliases
+    // allows columns and aliases
     const good: GlobalTestQuery = {
         posts: {
             id: 'user_id',
@@ -32,7 +32,7 @@ import { FieldObj, SimplifiedQuery } from './query_types'
         },
     }
 
-    // aliased field can't use true
+    // aliased column can't use true
     const bad2: GlobalTestQuery = {
         posts: {
             //@ts-expect-error
@@ -42,7 +42,7 @@ import { FieldObj, SimplifiedQuery } from './query_types'
 }
 
 {
-    // gets entity from proeprty name
+    // gets table from proeprty name
     const good1: GlobalTestQuery = {
         posts: {
             title: true,
@@ -52,7 +52,7 @@ import { FieldObj, SimplifiedQuery } from './query_types'
         },
     }
 
-    // gets entity from $from
+    // gets table from $from
     const good2: GlobalTestQuery = {
         my_posts: {
             $from: 'posts',
@@ -202,8 +202,8 @@ import { FieldObj, SimplifiedQuery } from './query_types'
     const good: GlobalTestQuery = {
         $where_connected: [
             {
-                $entity: 'users',
-                $field: 'id',
+                $table: 'users',
+                $column: 'id',
                 $values: [1, 'a'],
             },
         ],
@@ -213,9 +213,9 @@ import { FieldObj, SimplifiedQuery } from './query_types'
         $where_connected: [
             {
                 // @ts-expect-error
-                $entity: 'users',
+                $table: 'users',
                 // @ts-ignore
-                $field: 'post_id', // this is invalid since post_id is not a field of users
+                $column: 'post_id', // this is invalid since post_id is not a column of users
                 $values: [1, 'a'],
             },
         ],

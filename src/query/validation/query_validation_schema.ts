@@ -22,21 +22,21 @@ const primitive_schema = {
 const expression_schema = {
     anyOf: [
         {
-            // expression can be the name of a field
+            // expression can be the name of a column
             type: 'string'
         },
         {
-            // or an entity / field combo
+            // or an table / column combo
             type: 'object',
             properties: {
-                $entity: {
+                $table: {
                     type: 'string'
                 },
-                $field: {
+                $column: {
                     type: 'string'
                 }
             },
-            required: ['$entity', '$field'],
+            required: ['$table', '$column'],
             additionalProperties: false
         },
         // or an sql function
@@ -99,7 +99,7 @@ const expression_schema = {
                   ]
                 : []
 
-            const field_schema = {
+            const column_schema = {
                 type: 'object',
                 properties: {
                     [function_name]: inner_schema
@@ -112,7 +112,7 @@ const expression_schema = {
                 ...true_schema,
                 ...distinct_schema,
                 ...star_schema,
-                field_schema
+                column_schema
             ]
 
             return schemas.length > 0
@@ -338,13 +338,13 @@ const query_shared_props = {
 // outer queries are regular queries like { products: { id: true }}
 const outer_query_schema = {
     // there are 5 cases for data properties:
-    //   1. key is a field, value is a boolean. In this case the key will end up in the $select
-    //   2. value is a field name. In this case the value will end up in the select
-    //   3. value is an object with an SQL function (e.g. {$sum: 'field'})
-    //   4. key is an entity name, value is a subquery (doesnt need a $from clause). The subquery is from the
-    //      entity in key name
+    //   1. key is a column, value is a boolean. In this case the key will end up in the $select
+    //   2. value is a column name. In this case the value will end up in the select
+    //   3. value is an object with an SQL function (e.g. {$sum: 'column'})
+    //   4. key is an table name, value is a subquery (doesnt need a $from clause). The subquery is from the
+    //      table in key name
     //   5. value is a subquery with a $from clause (e.g. { id: true, $from: 'my_table'}). The subquery is from the
-    //      entity in the $from clause
+    //      table in the $from clause
     type: 'object',
     patternProperties: {
         [alias_regex]: {
@@ -389,10 +389,10 @@ const where_connected_schema = {
     items: {
         type: 'object',
         properties: {
-            $entity: {
+            $table: {
                 type: 'string'
             },
-            $field: {
+            $column: {
                 type: 'string'
             },
             $values: {
@@ -409,7 +409,7 @@ const where_connected_schema = {
 
 export const query_validation_schema = {
     $defs: {
-        // expressions resolve to values, such as a field name, $sum: 'quantity' or an escaped value such as $escape: 'hi'
+        // expressions resolve to values, such as a column name, $sum: 'quantity' or an escaped value such as $escape: 'hi'
         expression: expression_schema,
         where_clause: where_schema,
         outer_query: outer_query_schema,

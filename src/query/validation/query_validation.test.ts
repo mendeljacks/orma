@@ -9,7 +9,7 @@ describe('query_validation.ts', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        $from: 'not_an_entity'
+                        $from: 'not_an_table'
                     }
                 },
                 global_test_schema
@@ -18,11 +18,11 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['posts', '$from']])
         })
-        test('requires valid simple field names', () => {
+        test('requires valid simple column names', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        not_a_field: true,
+                        not_a_column: true,
                         $from: 'posts'
                     }
                 },
@@ -30,13 +30,13 @@ describe('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['posts', 'not_a_field']])
+            expect(paths).to.deep.equal([['posts', 'not_a_column']])
         })
-        test('requires valid renamed field names', () => {
+        test('requires valid renamed column names', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        id: 'not_a_field',
+                        id: 'not_a_column',
                         $from: 'posts'
                     }
                 },
@@ -78,7 +78,7 @@ describe('query_validation.ts', () => {
                         $from: 'posts',
                         $order_by: [
                             {
-                                $desc: 'not_a_field'
+                                $desc: 'not_a_column'
                             }
                         ]
                     }
@@ -89,7 +89,7 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['posts', '$order_by', 0, '$desc']])
         })
-        test('allows order by to referenced aliased fields', () => {
+        test('allows order by to referenced aliased columns', () => {
             const errors = validate_query(
                 {
                     posts: {
@@ -127,13 +127,13 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
-        test('requires group by has valid fields', () => {
+        test('requires group by has valid columns', () => {
             const errors = validate_query(
                 {
                     posts: {
                         id: true,
                         $from: 'posts',
-                        $group_by: ['not_a_field']
+                        $group_by: ['not_a_column']
                     }
                 },
                 global_test_schema
@@ -142,7 +142,7 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['posts', '$group_by', 0]])
         })
-        test('doesnt allow special characters in field alias', () => {
+        test('doesnt allow special characters in column alias', () => {
             const errors = validate_query(
                 {
                     posts: {
@@ -158,7 +158,7 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['posts'], ['posts', '$select', 0]])
         })
-        test('allows group by to referenced aliased fields', () => {
+        test('allows group by to referenced aliased columns', () => {
             const errors = validate_query(
                 {
                     posts: {
@@ -178,7 +178,7 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
-        test('allows select to reference other select fields', () => {
+        test('allows select to reference other select columns', () => {
             const errors = validate_query(
                 {
                     posts: {
@@ -315,7 +315,7 @@ describe('query_validation.ts', () => {
                         id: true,
                         $from: 'posts',
                         $where: {
-                            $eq: ['not_a_field', 'test'] // the value must be escaped or a field name
+                            $eq: ['not_a_column', 'test'] // the value must be escaped or a column name
                         }
                     }
                 },
@@ -412,7 +412,7 @@ describe('query_validation.ts', () => {
                             $in: [
                                 'user_id',
                                 {
-                                    $select: ['not_a_field'],
+                                    $select: ['not_a_column'],
                                     $from: 'users'
                                 }
                             ]
@@ -427,7 +427,7 @@ describe('query_validation.ts', () => {
                 ['posts', '$where', '$in', 1, '$select', 0]
             ])
         })
-        test('allows aliased fields in $having', () => {
+        test('allows aliased columns in $having', () => {
             const errors = validate_query(
                 {
                     posts: {
@@ -444,7 +444,7 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
-        test('requires $any_path have connected entities', () => {
+        test('requires $any_path have connected tables', () => {
             const errors = validate_query(
                 {
                     users: {
@@ -473,7 +473,7 @@ describe('query_validation.ts', () => {
                 ['users', '$where', '$any_path', 0, 0]
             ])
         })
-        test('correctly interprets which entity the $any_path is on', () => {
+        test('correctly interprets which table the $any_path is on', () => {
             const errors = validate_query(
                 {
                     users: {
@@ -508,8 +508,8 @@ describe('query_validation.ts', () => {
                 {
                     $where_connected: [
                         {
-                            $entity: 'users',
-                            $field: 'id',
+                            $table: 'users',
+                            $column: 'id',
                             $values: [1, 'a']
                         }
                     ],
@@ -529,8 +529,8 @@ describe('query_validation.ts', () => {
                 {
                     $where_connected: [
                         {
-                            $entity: 'users',
-                            $field: 'id',
+                            $table: 'users',
+                            $column: 'id',
                             $values: [] // this cant be empty
                         }
                     ],
@@ -544,13 +544,13 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['$where_connected', 0, '$values']])
         })
-        test('$where_connected must have valid entity names', () => {
+        test('$where_connected must have valid table names', () => {
             const errors = validate_query(
                 {
                     $where_connected: [
                         {
-                            $entity: 'not_an_entity',
-                            $field: 'id',
+                            $table: 'not_an_table',
+                            $column: 'id',
                             $values: [1]
                         }
                     ],
@@ -562,21 +562,21 @@ describe('query_validation.ts', () => {
             )
 
             const paths = errors?.map(el => el?.path)
-            expect(paths).to.deep.equal([['$where_connected', 0, '$entity']])
+            expect(paths).to.deep.equal([['$where_connected', 0, '$table']])
         })
         test('$where_connected must not have duplicates', () => {
             const errors = validate_query(
                 {
                     $where_connected: [
                         {
-                            $entity: 'users',
-                            $field: 'id',
+                            $table: 'users',
+                            $column: 'id',
                             $values: [1]
                         },
                         {
                             // vendors.id appears twice
-                            $entity: 'users',
-                            $field: 'id',
+                            $table: 'users',
+                            $column: 'id',
                             $values: [2]
                         }
                     ],
@@ -662,13 +662,13 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([['posts', '$where']])
         })
-        test('allows valid $entity $field', () => {
+        test('allows valid $table $column', () => {
             const errors = validate_query(
                 {
                     posts: {
                         $where: {
                             $eq: [
-                                { $entity: 'posts', $field: 'id' },
+                                { $table: 'posts', $column: 'id' },
                                 { $escape: 1 }
                             ]
                         }
@@ -680,15 +680,15 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
-        test('requires valid $entity name', () => {
+        test('requires valid $table name', () => {
             const errors = validate_query(
                 {
                     posts: {
                         $where: {
                             $eq: [
                                 {
-                                    $entity: 'not_an_entity',
-                                    $field: 'user_id'
+                                    $table: 'not_an_table',
+                                    $column: 'user_id'
                                 },
                                 { $escape: 1 }
                             ]
@@ -700,16 +700,16 @@ describe('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['posts', '$where', '$eq', 0, '$entity']
+                ['posts', '$where', '$eq', 0, '$table']
             ])
         })
-        test('requires valid $field name', () => {
+        test('requires valid $column name', () => {
             const errors = validate_query(
                 {
                     posts: {
                         $where: {
                             $eq: [
-                                { $entity: 'posts', $field: 'post_id' },
+                                { $table: 'posts', $column: 'post_id' },
                                 { $escape: 1 }
                             ]
                         }
@@ -720,7 +720,7 @@ describe('query_validation.ts', () => {
 
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([
-                ['posts', '$where', '$eq', 0, '$field']
+                ['posts', '$where', '$eq', 0, '$column']
             ])
         })
         test.skip('must have a data prop if there is no valid sql function', () => {
@@ -764,11 +764,11 @@ describe('query_validation.ts', () => {
                         $foreign_key: ['post_id'], // wrong level, should be on images
                         comments: {
                             id: true,
-                            $foreign_key: ['user_id'] // wrong field, vendor_id doesnt connect images and products
+                            $foreign_key: ['user_id'] // wrong column, vendor_id doesnt connect images and products
                         },
                         users: {
                             id: true,
-                            $foreign_key: ['id', 'id'] // two fields are invalid
+                            $foreign_key: ['id', 'id'] // two columns are invalid
                         }
                     }
                 },
@@ -782,12 +782,12 @@ describe('query_validation.ts', () => {
                 ['posts', '$foreign_key', 0]
             ])
         })
-        test('allows expressions to reference aliased fields', () => {
+        test('allows expressions to reference aliased columns', () => {
             const errors = validate_query(
                 {
                     posts: {
-                        $select: [{ $as: ['id', 'my_field'] }],
-                        count: { $distinct: 'my_field' }
+                        $select: [{ $as: ['id', 'my_column'] }],
+                        count: { $distinct: 'my_column' }
                     }
                 },
                 global_test_schema

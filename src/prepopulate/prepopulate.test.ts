@@ -21,10 +21,10 @@ describe('Prepopulate', () => {
 
         const schema = {
             ...global_test_schema,
-            $entities: {
-                ...global_test_schema.$entities,
+            $tables: {
+                ...global_test_schema.$tables,
                 users: {
-                    ...global_test_schema.$entities.users,
+                    ...global_test_schema.$tables.users,
                     $prepopulate: {
                         supercede: false,
                         rows: [
@@ -63,10 +63,10 @@ describe('Prepopulate', () => {
 
         const schema = {
             ...global_test_schema,
-            $entities: {
-                ...global_test_schema.$entities,
+            $tables: {
+                ...global_test_schema.$tables,
                 users: {
-                    ...global_test_schema.$entities.users,
+                    ...global_test_schema.$tables.users,
                     $prepopulate: {
                         supercede: true,
                         rows: [
@@ -104,10 +104,10 @@ describe('Prepopulate', () => {
 
         const schema = {
             ...global_test_schema,
-            $entities: {
-                ...global_test_schema.$entities,
+            $tables: {
+                ...global_test_schema.$tables,
                 users: {
-                    ...global_test_schema.$entities.users,
+                    ...global_test_schema.$tables.users,
                     $prepopulate: {
                         supercede: true,
                         rows: [
@@ -141,10 +141,10 @@ describe('Prepopulate', () => {
 
         const schema = {
             ...global_test_schema,
-            $entities: {
-                ...global_test_schema.$entities,
+            $tables: {
+                ...global_test_schema.$tables,
                 users: {
-                    ...global_test_schema.$entities.users,
+                    ...global_test_schema.$tables.users,
                     $prepopulate: {
                         supercede: true,
                         rows: [

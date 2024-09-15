@@ -4,8 +4,8 @@ import {
     GlobalTestSchema,
 } from '../../test_data/global_test_schema'
 import { IsEqual } from '../helper_types'
-import { GetAllEdges } from '../schema/schema_helper_types'
-import { OrmaField, OrmaQueryResult, OrmaRecord } from './query_result_types'
+import { GetAllEdges } from '../../schema/schema_helper_types'
+import { OrmaColumn, OrmaQueryResult, OrmaRecord } from './query_result_types'
 
 const test = () => {
     const query_response = <Query extends GlobalTestQuery>(
@@ -27,7 +27,7 @@ const test = () => {
         result?.posts?.[0].title
         // @ts-expect-error must use ?. to prop
         result.posts[0].title
-        // @ts-expect-error invalid field
+        // @ts-expect-error invalid column
         result?.posts?.[0].user_id
 
         // @ts-expect-error invalid prop
@@ -35,7 +35,7 @@ const test = () => {
     }
 
     {
-        // infers entity name from prop
+        // infers table name from prop
         const result = query_response({
             posts: {
                 id: true,
@@ -227,7 +227,7 @@ const test = () => {
     }
     {
         // handles orma record
-        type TestType = OrmaField<GlobalTestSchema, 'users', 'first_name'>
+        type TestType = OrmaColumn<GlobalTestSchema, 'users', 'first_name'>
 
         const test: IsEqual<TestType, string | null> = true
     }

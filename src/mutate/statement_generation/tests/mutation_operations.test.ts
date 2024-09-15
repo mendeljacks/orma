@@ -21,7 +21,7 @@ describe('mutation_operations.ts', () => {
                         $operation: 'update',
                         id: 1,
                         views: 2,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                     path: ['posts', 0],
                 },
@@ -47,7 +47,7 @@ describe('mutation_operations.ts', () => {
                 {
                     path: ['posts', 0],
                     record: {
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                         $operation: 'update',
                         id: 1,
                         title: 'john',
@@ -70,7 +70,7 @@ describe('mutation_operations.ts', () => {
 
             expect(result).to.deep.equal(goal)
         })
-        test('update by unique field', () => {
+        test('update by unique column', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     path: ['posts', 0],
@@ -78,7 +78,7 @@ describe('mutation_operations.ts', () => {
                         $operation: 'update',
                         title: 'john',
                         views: 5,
-                        $identifying_fields: ['title'],
+                        $identifying_columns: ['title'],
                     },
                 },
             ]
@@ -107,7 +107,7 @@ describe('mutation_operations.ts', () => {
                         category_id: 2,
                         main_category: 1,
                         post_id: 1,
-                        $identifying_fields: ['post_id', 'category_id'],
+                        $identifying_columns: ['post_id', 'category_id'],
                     },
                 },
             ]
@@ -140,7 +140,7 @@ describe('mutation_operations.ts', () => {
                         $operation: 'update',
                         id: { $guid: 'a' },
                         email: 'a@a.com',
-                        $identifying_fields: ['email'],
+                        $identifying_columns: ['email'],
                     },
                 },
                 {
@@ -149,7 +149,7 @@ describe('mutation_operations.ts', () => {
                         $operation: 'update',
                         id: 1,
                         user_id: { $guid: 'a' },
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
             ]
@@ -183,7 +183,7 @@ describe('mutation_operations.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
             ]
@@ -210,7 +210,7 @@ describe('mutation_operations.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 4,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
                 {
@@ -218,7 +218,7 @@ describe('mutation_operations.ts', () => {
                     record: {
                         $operation: 'delete',
                         id: 5,
-                        $identifying_fields: ['id'],
+                        $identifying_columns: ['id'],
                     },
                 },
             ]

@@ -3,16 +3,16 @@ import { describe, test } from 'mocha'
 import { global_test_schema } from '../../../test_data/global_test_schema'
 import { MutationPiece } from '../../plan/mutation_batches'
 import {
-    apply_infer_identifying_fields_macro,
-    get_identifying_fields,
+    apply_infer_identifying_columns_macro,
+    get_identifying_columns,
     get_possible_identifying_keys,
-    InferIdentifyingFieldsInput,
-} from '../identifying_fields_macro'
+    InferIdentifyingColumnsInput,
+} from '../identifying_columns_macro'
 
 describe('identifying_keys.ts', () => {
-    describe(apply_infer_identifying_fields_macro.name, () => {
-        test('uses resolved $guid fields as identifying keys', () => {
-            const mutation_pieces: InferIdentifyingFieldsInput = [
+    describe(apply_infer_identifying_columns_macro.name, () => {
+        test('uses resolved $guid columns as identifying keys', () => {
+            const mutation_pieces: InferIdentifyingColumnsInput = [
                 {
                     record: {
                         $operation: 'update',
@@ -23,17 +23,17 @@ describe('identifying_keys.ts', () => {
                 },
             ]
 
-            apply_infer_identifying_fields_macro(
+            apply_infer_identifying_columns_macro(
                 global_test_schema,
                 mutation_pieces
             )
 
-            expect(mutation_pieces[0].record.$identifying_fields).to.deep.equal(
+            expect(mutation_pieces[0].record.$identifying_columns).to.deep.equal(
                 ['user_id', 'post_id']
             )
         })
-        test('will not use fields that have null as their value', () => {
-            const mutation_pieces: InferIdentifyingFieldsInput = [
+        test('will not use columns that have null as their value', () => {
+            const mutation_pieces: InferIdentifyingColumnsInput = [
                 {
                     record: {
                         $operation: 'update',
@@ -43,17 +43,17 @@ describe('identifying_keys.ts', () => {
                 },
             ]
 
-            apply_infer_identifying_fields_macro(
+            apply_infer_identifying_columns_macro(
                 global_test_schema,
                 mutation_pieces
             )
 
-            expect(mutation_pieces[0].record.$identifying_fields).to.deep.equal(
+            expect(mutation_pieces[0].record.$identifying_columns).to.deep.equal(
                 []
             )
         })
-        test('allows nullable unique fields, as long as the record value is not null', () => {
-            const mutation_pieces: InferIdentifyingFieldsInput = [
+        test('allows nullable unique columns, as long as the record value is not null', () => {
+            const mutation_pieces: InferIdentifyingColumnsInput = [
                 {
                     record: {
                         $operation: 'update',
@@ -63,17 +63,17 @@ describe('identifying_keys.ts', () => {
                 },
             ]
 
-            apply_infer_identifying_fields_macro(
+            apply_infer_identifying_columns_macro(
                 global_test_schema,
                 mutation_pieces
             )
 
-            expect(mutation_pieces[0].record.$identifying_fields).to.deep.equal(
+            expect(mutation_pieces[0].record.$identifying_columns).to.deep.equal(
                 ['title']
             )
         })
-        test('ignores $write $guid fields', () => {
-            const mutation_pieces: InferIdentifyingFieldsInput = [
+        test('ignores $write $guid columns', () => {
+            const mutation_pieces: InferIdentifyingColumnsInput = [
                 {
                     record: {
                         $operation: 'update',
@@ -84,17 +84,17 @@ describe('identifying_keys.ts', () => {
                 },
             ]
 
-            apply_infer_identifying_fields_macro(
+            apply_infer_identifying_columns_macro(
                 global_test_schema,
                 mutation_pieces
             )
 
-            expect(mutation_pieces[0].record.$identifying_fields).to.deep.equal(
+            expect(mutation_pieces[0].record.$identifying_columns).to.deep.equal(
                 ['title']
             )
         })
         test('ignores creates', () => {
-            const mutation_pieces: InferIdentifyingFieldsInput = [
+            const mutation_pieces: InferIdentifyingColumnsInput = [
                 {
                     record: {
                         $operation: 'create',
@@ -105,35 +105,35 @@ describe('identifying_keys.ts', () => {
                 },
             ]
 
-            apply_infer_identifying_fields_macro(
+            apply_infer_identifying_columns_macro(
                 global_test_schema,
                 mutation_pieces
             )
 
-            expect(mutation_pieces[0].record.$identifying_fields).to.deep.equal(
+            expect(mutation_pieces[0].record.$identifying_columns).to.deep.equal(
                 undefined
             )
         })
-        test('respects existing $identifying_fields', () => {
-            const mutation_pieces: InferIdentifyingFieldsInput = [
+        test('respects existing $identifying_columns', () => {
+            const mutation_pieces: InferIdentifyingColumnsInput = [
                 {
                     record: {
                         $operation: 'users',
                         first_name: 'john',
                         last_name: 'smith',
                         email: 'js@gmail.com',
-                        $identifying_fields: ['email'],
+                        $identifying_columns: ['email'],
                     },
                     path: ['posts', 0],
                 },
             ]
 
-            apply_infer_identifying_fields_macro(
+            apply_infer_identifying_columns_macro(
                 global_test_schema,
                 mutation_pieces
             )
 
-            expect(mutation_pieces[0].record.$identifying_fields).to.deep.equal(
+            expect(mutation_pieces[0].record.$identifying_columns).to.deep.equal(
                 ['email']
             )
         })
@@ -144,12 +144,12 @@ describe('identifying_keys.ts', () => {
                     record: {
                         $operation: 'update',
                         views: 5, // views is not unique, so it can't be used to update with
-                        $identifying_fields: [],
+                        $identifying_columns: [],
                     },
                 },
             ]
             try {
-                apply_infer_identifying_fields_macro(
+                apply_infer_identifying_columns_macro(
                     global_test_schema,
                     mutation_pieces
                 )
@@ -172,7 +172,7 @@ describe('identifying_keys.ts', () => {
                 },
             ]
             try {
-                apply_infer_identifying_fields_macro(
+                apply_infer_identifying_columns_macro(
                     global_test_schema,
                     mutation_pieces
                 )
@@ -180,7 +180,7 @@ describe('identifying_keys.ts', () => {
             } catch (error) {}
         })
     })
-    describe(get_identifying_fields.name, () => {
+    describe(get_identifying_columns.name, () => {
         test('chooses an ambiguous key if desired', () => {
             const record: Record<string, any> = {
                 $operation: 'update',
@@ -189,14 +189,14 @@ describe('identifying_keys.ts', () => {
                 email: 'char@coal.com',
             }
 
-            const fields = get_identifying_fields(
+            const columns = get_identifying_columns(
                 global_test_schema,
                 'users',
                 record,
                 true
             )
 
-            expect(fields).to.deep.equal(['email'])
+            expect(columns).to.deep.equal(['email'])
         })
     })
     describe(get_possible_identifying_keys.name, () => {

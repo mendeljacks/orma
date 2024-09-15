@@ -61,7 +61,7 @@ const a = {
 
 //     to get around this, we can first find all the primary keys for records, then compare them. If we find the same
 //     primary key(s) more than once, or some record doesnt have a primary key, we can throw an error. Also
-//     we need to ensure we are looking at all records for a given entity, even if that entity is in multiple nesting
+//     we need to ensure we are looking at all records for a given table, even if that table is in multiple nesting
 //     locations of the mutation.
 
 //     Algorithm:

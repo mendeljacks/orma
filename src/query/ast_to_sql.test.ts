@@ -4,9 +4,9 @@ import { format } from 'sql-formatter'
 import {
     AlterStatement,
     CreateStatement
-} from '../types/schema/schema_ast_types'
+} from '../compiler/schema/schema_ast_types'
 import { json_to_sql } from './ast_to_sql'
-import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaSchema } from '../schema/schema_types'
 import { get_schema_diff } from '../schema/schema_macro'
 
 describe('ast_to_sql.ts', () => {
@@ -110,12 +110,12 @@ describe('ast_to_sql.ts', () => {
         })
         test('handles aggregate functions', () => {
             const json = {
-                $min: 'field',
+                $min: 'column',
                 $count: '*'
             }
 
             const sql = format(json_to_sql(json))
-            const goal = format('MIN(field) COUNT(*)')
+            const goal = format('MIN(column) COUNT(*)')
 
             expect(sql).to.equal(goal)
         })
@@ -184,7 +184,7 @@ describe('ast_to_sql.ts', () => {
 
             expect(sql).to.equal(goal)
         })
-        test('handles $in with multiple fields', () => {
+        test('handles $in with multiple columns', () => {
             const json = {
                 $in: [
                     ['a', 'b'],
@@ -211,10 +211,10 @@ describe('ast_to_sql.ts', () => {
 
             expect(sql).to.equal(goal)
         })
-        test('handles $entity $field', () => {
+        test('handles $table $column', () => {
             const json = {
-                $entity: 'items',
-                $field: 'sku'
+                $table: 'items',
+                $column: 'sku'
             }
             //@ts-ignore
             const sql = format(json_to_sql(json))
@@ -314,7 +314,7 @@ describe('ast_to_sql.ts', () => {
                     },
                     {
                         $constraint: 'primary_key',
-                        $fields: ['id']
+                        $columns: ['id']
                     }
                 ]
             }
@@ -327,7 +327,7 @@ describe('ast_to_sql.ts', () => {
 
             expect(format(json_to_sql(json))).to.equal(goal)
         })
-        test('handles add, drop and modify field', () => {
+        test('handles add, drop and modify column', () => {
             const json: AlterStatement = {
                 $alter_table: 'my_table',
                 $definitions: [
@@ -467,7 +467,7 @@ describe('ast_to_sql.ts', () => {
 
             expect(format(json_to_sql(json))).to.equal(goal)
         })
-        test('handles $on_update for field', () => {
+        test('handles $on_update for column', () => {
             const json: CreateStatement = {
                 $create_table: 'my_table',
                 $definitions: [
@@ -503,7 +503,7 @@ describe('ast_to_sql.ts', () => {
                         $index: true,
                         $name: 'invisible',
                         $invisible: true,
-                        $fields: ['label'],
+                        $columns: ['label'],
                         $comment: 'invis'
                     }
                 ]
@@ -524,7 +524,7 @@ describe('ast_to_sql.ts', () => {
                         $alter_operation: 'add',
                         $constraint: 'unique_key',
                         $name: 'uq_ind',
-                        $fields: ['label']
+                        $columns: ['label']
                     }
                 ]
             }
@@ -536,7 +536,7 @@ describe('ast_to_sql.ts', () => {
 
             expect(format(json_to_sql(json))).to.equal(goal)
         })
-        test('handles fulltext with multiple fields', () => {
+        test('handles fulltext with multiple columns', () => {
             const json: AlterStatement = {
                 $alter_table: 'my_table',
                 $definitions: [
@@ -544,7 +544,7 @@ describe('ast_to_sql.ts', () => {
                         $alter_operation: 'add',
                         $index: 'full_text',
                         $name: 'ft',
-                        $fields: ['size', 'label']
+                        $columns: ['size', 'label']
                     }
                 ]
             }
@@ -560,13 +560,13 @@ describe('ast_to_sql.ts', () => {
             const json = {
                 $create_index: 'my_index',
                 $on: {
-                    $entity: 'my_table',
-                    $fields: ['field1', 'field2']
+                    $table: 'my_table',
+                    $columns: ['column1', 'column2']
                 }
             }
 
             const goal = format(`
-            CREATE INDEX \`my_index\` ON \`my_table\` (field1, field2)
+            CREATE INDEX \`my_index\` ON \`my_table\` (column1, column2)
             `)
 
             expect(format(json_to_sql(json))).to.equal(goal)
@@ -579,7 +579,7 @@ describe('ast_to_sql.ts', () => {
                         $alter_operation: 'add',
                         $constraint: 'primary_key',
                         $name: 'primary',
-                        $fields: ['id']
+                        $columns: ['id']
                     }
                 ]
             }
@@ -595,10 +595,10 @@ describe('ast_to_sql.ts', () => {
             const foreign_key_base: AlterStatement['$definitions'][number] = {
                 $alter_operation: 'add',
                 $constraint: 'foreign_key',
-                $fields: ['parent_id'],
+                $columns: ['parent_id'],
                 $references: {
-                    $entity: 'parents',
-                    $fields: ['id']
+                    $table: 'parents',
+                    $columns: ['id']
                 }
             }
 
@@ -652,10 +652,10 @@ describe('ast_to_sql.ts', () => {
         })
         test('Can create postgres table', () => {
             const schema: OrmaSchema = {
-                $entities: {
+                tables: {
                     permissions: {
-                        $database_type: 'postgres',
-                        $fields: {
+                        database_type: 'postgres',
+                        columns: {
                             id: {
                                 $data_type: 'int',
                                 $auto_increment: true
@@ -685,34 +685,34 @@ describe('ast_to_sql.ts', () => {
                                 $not_null: true
                             }
                         },
-                        $primary_key: {
-                            $fields: ['id']
+                        primary_key: {
+                            $columns: ['id']
                         },
-                        $unique_keys: [
+                        unique_keys: [
                             {
                                 $name: 'id_UNIQUE',
-                                $fields: ['id']
+                                $columns: ['id']
                             },
                             {
                                 $name: 'PRIMARY',
-                                $fields: ['id']
+                                $columns: ['id']
                             },
                             {
                                 $name: 'resource_id_UNIQUE',
-                                $fields: ['resource_id']
+                                $columns: ['resource_id']
                             }
                         ],
-                        $indexes: [
+                        indexes: [
                             {
                                 $name: 'idx_1',
-                                $fields: ['label']
+                                $columns: ['label']
                             }
                         ]
                     }
                 }
             }
 
-            const schema_diff = get_schema_diff({ $entities: {} }, schema)
+            const schema_diff = get_schema_diff({ tables: {} }, schema)
 
             const statements = schema_diff.map(ast => ({
                 sql_string: json_to_sql(ast, 'postgres')

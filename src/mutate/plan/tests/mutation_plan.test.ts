@@ -206,7 +206,7 @@ describe('mutation_plan.ts', () => {
 
             expect(mutate_plan).to.deep.equal(goal)
         })
-        test('handles entity with no nesting', () => {
+        test('handles table with no nesting', () => {
             const mutation_pieces: MutationPiece[] = [
                 { record: { $operation: 'update' }, path: ['users', 0] }
             ]
@@ -330,7 +330,7 @@ describe('mutation_plan.ts', () => {
                         $operation: 'update',
                         email: 'aa@a.com',
                         id: 2, // update id by email, so this needs to happen after the delete
-                        $identifying_fields: ['email']
+                        $identifying_columns: ['email']
                     },
                     path: ['users', 0]
                 },
@@ -376,7 +376,7 @@ describe('mutation_plan.ts', () => {
                         $operation: 'upsert',
                         email: 'aa@a.com',
                         id: 2, // update id by email, so this needs to happen after the delete
-                        $identifying_fields: ['email']
+                        $identifying_columns: ['email']
                     },
                     path: ['users', 0]
                 }
@@ -446,7 +446,7 @@ describe('mutation_plan.ts', () => {
                         $operation: 'update',
                         email: 'aa@a.com',
                         id: 2, // update id by email, so this needs to happen first
-                        $identifying_fields: ['email']
+                        $identifying_columns: ['email']
                     },
                     path: ['users', 0]
                 }
@@ -482,7 +482,7 @@ describe('mutation_plan.ts', () => {
                         $operation: 'update',
                         email: 'aa@a.com',
                         id: 2, // update id by email, so this needs to happen first
-                        $identifying_fields: ['email']
+                        $identifying_columns: ['email']
                     },
                     path: ['users', 0]
                 }
@@ -521,7 +521,7 @@ describe('mutation_plan.ts', () => {
                         $operation: 'update',
                         label: 'Root',
                         id: { $guid: 'a' },
-                        $identifying_fields: ['label']
+                        $identifying_columns: ['label']
                     },
                     path: ['categories', 0]
                 }
@@ -666,5 +666,5 @@ describe('mutation_plan.ts', () => {
             })
         })
     })
-    test.skip('handles duplicate foreign key values for different entities')
+    test.skip('handles duplicate foreign key values for different tables')
 })

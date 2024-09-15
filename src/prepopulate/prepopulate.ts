@@ -1,8 +1,8 @@
-import { get_entity_names } from '../helpers/schema_helpers'
+import { get_table_names } from '../helpers/schema_helpers'
 import { get_mutation_diff } from '../mutate/diff/diff_mutation'
 import { OrmaMutation } from '../types/mutation/mutation_types'
 import { OrmaQuery } from '../types/query/query_types'
-import { OrmaSchema } from '../types/schema/schema_types'
+import { OrmaSchema } from '../schema/schema_types'
 
 type OrmaQueryFunction = (query: OrmaQuery<any, any>) => Promise<any>
 type OrmaMutateFunction = (mutation: OrmaMutation<any>) => Promise<any>
@@ -13,10 +13,10 @@ export const get_prepopulate_query = async (
 ) => {
     let query = {}
 
-    const table_names = get_entity_names(orma_schema)
+    const table_names = get_table_names(orma_schema)
 
     for (const table_name of table_names) {
-        const $prepopulate = orma_schema.$entities[table_name].$prepopulate
+        const $prepopulate = orma_schema.tables[table_name].prepopulate
         if (!$prepopulate) continue
 
         const columns = Object.keys($prepopulate.rows[0]).reduce((acc, val) => {
@@ -29,7 +29,7 @@ export const get_prepopulate_query = async (
         >)
 
         let diff = get_mutation_diff(result, {
-            [table_name]: $prepopulate.rows,
+            [table_name]: $prepopulate.rows
         })
         if (!$prepopulate.supercede) {
             diff[table_name] = diff[table_name]?.filter(

@@ -1,7 +1,7 @@
 import { Edge } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
+import { OrmaSchema } from '../../schema/schema_types'
 import { MutationOperation, operation } from '../mutate'
-import { is_field_updated_for_mutation_plan } from './mutation_batches'
+import { is_column_updated_for_mutation_plan } from './mutation_batches'
 
 /**
  * Each constraint is a case where some mutation piece has to be run before some other mutation piece.
@@ -94,7 +94,7 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
                 $operation: 'update', 
                 id: 1,
                 email: 'aa@a.com',
-                $identifying_fields: ['email']
+                $identifying_columns: ['email']
             }],
             posts: [{ 
                 $operation: 'create', 
@@ -103,12 +103,12 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
             }]
         }
         */
-        source_filter: ({ orma_schema, entity, edge, record }) =>
+        source_filter: ({ orma_schema, table, edge, record }) =>
             ['update', 'upsert'].includes(record.$operation) &&
-            is_field_updated_for_mutation_plan(
+            is_column_updated_for_mutation_plan(
                 orma_schema,
-                entity,
-                edge.from_field,
+                table,
+                edge.from_columns,
                 record
             ),
         target_filter: {
@@ -130,7 +130,7 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
                 $operation: 'update', 
                 id: 5,
                 email: 'aa@a.com',
-                $identifying_fields: ['email']
+                $identifying_columns: ['email']
             }],
         }
         */
@@ -147,7 +147,7 @@ export const mutation_plan_constraints: MutationPlanConstraint[] = [
         {
             categories: [{ 
                 $operation: 'update', 
-                $identifying_fields: ['label'],
+                $identifying_columns: ['label'],
                 id: { $guid: 'a' },
                 label: 'Root',
             }],
@@ -173,7 +173,7 @@ export type MutationPlanConstraint = {
             $operation: MutationOperation | 'upsert'
         }
         orma_schema: OrmaSchema
-        entity: string
+        table: string
         edge: Edge
     }) => boolean
     target_filter: {

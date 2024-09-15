@@ -9,7 +9,7 @@ export const mysql2_adapter =
         }
 
         const sql = sqls.join(';\n')
-        const [rows, field_packets]: [
+        const [rows, column_packets]: [
             Record<string, any>[] | Record<string, any>[][],
             any
         ] = await connection.query(sql)

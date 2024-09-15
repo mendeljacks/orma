@@ -1,7 +1,7 @@
 import { escape as escape_mysql } from 'sqlstring'
 import { escape as escape_sqlite } from 'sqlstring-sqlite'
 import * as pg_escape from 'pg-escape-browser'
-import { SupportedDatabases } from '../types/schema/schema_types'
+import { SupportedDatabases } from '../schema/schema_types'
 import { is_simple_object } from './helpers'
 
 /**
@@ -23,4 +23,15 @@ export const orma_escape = (val: any, database_type: SupportedDatabases) => {
         typeof val === 'number' || is_simple_object(val)
 
     return dont_parse ? val : escape_fn(val)
+}
+
+export const escape_column = (val, database_type: SupportedDatabases) => {
+    if (typeof val !== 'string') {
+        return val
+    }
+    if (['*'].includes(val)) {
+        return val
+    }
+
+    return database_type === 'postgres' ? `"${val}"` : `\`${val}\``
 }

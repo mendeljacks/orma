@@ -12,17 +12,17 @@ export type PathedRecord = {
 //     number: number
 // }
 
-// type Entities<schema extends orma_schema> = {
-//     [entity_key in keyof schema['entities']]: {
-//         [field_key in keyof schema['entities'][entity_key]['fields']]: simple_types[schema['entities'][entity_key]['fields'][field_key]['data_type']]
+// type Tables<schema extends orma_schema> = {
+//     [table_key in keyof schema['tables']]: {
+//         [column_key in keyof schema['tables'][table_key]['columns']]: simple_types[schema['tables'][table_key]['columns'][column_key]['data_type']]
 //     }
 // }
 
-// // const a: Entities<typeof readable_table_info> = {
+// // const a: Tables<typeof readable_table_info> = {
 
 // // }
 
-// type test1 = Entities<typeof readable_table_info>
+// type test1 = Tables<typeof readable_table_info>
 
 
 
@@ -34,43 +34,43 @@ export type PathedRecord = {
 // type IntersectingTypes<T, U> = { [K in Extract<keyof T, keyof U>]: T[K] }
 
 // // no3rd_query input
-// export type RootQuery = { meta?: {}, include_vendors?: any } & { [key in keyof Entities]?: MakeQueryFragment<key>[key] }
+// export type RootQuery = { meta?: {}, include_vendors?: any } & { [key in keyof Tables]?: MakeQueryFragment<key>[key] }
 
-// type MakeQueryFragment<EntityName extends keyof Entities> = {
-//     [key in EntityName]: {
-//         select?: keyof Entities[EntityName] | Array<keyof Entities[EntityName]> | '*' | '*'[],
+// type MakeQueryFragment<TableName extends keyof Tables> = {
+//     [key in TableName]: {
+//         select?: keyof Tables[TableName] | Array<keyof Tables[TableName]> | '*' | '*'[],
 //         where?: any,
 //         offset?: number,
 //         limit?: number,
 //         group_by?: any,
 //     } & {
-//         [key in Connections[EntityName]]?: MakeQueryFragment<key>[key]
+//         [key in Connections[TableName]]?: MakeQueryFragment<key>[key]
 //     }
 // }
 // // Output Response Type
 // // {products: {select: ['title']}} --> {products: {title: string}}
 
-// type GetArraySelects<T, EntityName extends keyof Entities> =
+// type GetArraySelects<T, TableName extends keyof Tables> =
 //     T extends
-//     { select: Array<keyof Entities[EntityName]> }
+//     { select: Array<keyof Tables[TableName]> }
 //     |
-//     { select?: Array<keyof Entities[EntityName]> }
+//     { select?: Array<keyof Tables[TableName]> }
 //     ? { [key in T['select'][number]]:
-//         key extends keyof Entities[EntityName]
-//         ? Entities[EntityName][key]
+//         key extends keyof Tables[TableName]
+//         ? Tables[TableName][key]
 //         : never
 //     }
 //     : T extends
-//     { select: keyof Entities[EntityName] }
+//     { select: keyof Tables[TableName] }
 //     |
-//     { select?: keyof Entities[EntityName] }
+//     { select?: keyof Tables[TableName] }
 //     ? { [key in T['select']]:
-//         key extends keyof Entities[EntityName]
-//         ? Entities[EntityName][key]
+//         key extends keyof Tables[TableName]
+//         ? Tables[TableName][key]
 //         : never
 //     }
 //     : {
-//         [key in keyof Entities[EntityName]]: Entities[EntityName][key]
+//         [key in keyof Tables[TableName]]: Tables[TableName][key]
 //     }
 
 
@@ -82,12 +82,12 @@ export type PathedRecord = {
 
 
 
-// type Selects<T, EntityName extends keyof Entities> =
+// type Selects<T, TableName extends keyof Tables> =
 //     T extends { select: ['*'] } | { select?: '*' } | { select: ['*'] } | { select?: ['*'] }
 //     ? {
-//         [key in keyof Entities[EntityName]]: Entities[EntityName][key]
+//         [key in keyof Tables[TableName]]: Tables[TableName][key]
 //     }
-//     : GetArraySelects<T, EntityName>
+//     : GetArraySelects<T, TableName>
 
 
 
@@ -96,21 +96,21 @@ export type PathedRecord = {
 // type hov2 = Selects<{ select: ['*'], variants: { select: ['sku'], }, product_in_stores: { select: ['store_id'] } }, 'products'>
 // type hov22 = Selects<{ variants: { select: ['sku'], }, product_in_stores: { select: ['store_id'] } }, 'products'>
 
-// type FilterForEntities<QueryFragment> =
-//     IntersectingTypes<QueryFragment, { [key in keyof Entities]: boolean }>
+// type FilterForTables<QueryFragment> =
+//     IntersectingTypes<QueryFragment, { [key in keyof Tables]: boolean }>
 
 // // {meta: {}, products: {product_in_stores: {stores: {}}, variants: {}}, variants: {}}
 // // --> {products: [{title: '', product_in_stores: [{stores: [{}]}], variants:[{}]}], variants: [{}]}
 // export type makeResponse2<QueryFragment> = {
-//     [EntityName in keyof FilterForEntities<QueryFragment>]:
+//     [TableName in keyof FilterForTables<QueryFragment>]:
 //     Array<
-//         Selects<QueryFragment[EntityName], EntityName>
+//         Selects<QueryFragment[TableName], TableName>
 //         &
 //         {
-//             [ChildEntityName in keyof FilterForEntities<QueryFragment[EntityName]>]:
+//             [ChildTableName in keyof FilterForTables<QueryFragment[TableName]>]:
 //             makeResponse2<
-//                 QueryFragment[EntityName]
-//             >[ChildEntityName]
+//                 QueryFragment[TableName]
+//             >[ChildTableName]
 
 //         }
 //     >
@@ -318,7 +318,7 @@ export type PathedRecord = {
 //     T[P] extends object ? RecursivePartial<T[P]> :
 //     T[P];
 // };
-// type testmes = Pick<Entities, Connections['products']>
+// type testmes = Pick<Tables, Connections['products']>
 // // No3rd Mutate
 // export type Mutation = {
 //     meta: {
@@ -327,9 +327,9 @@ export type PathedRecord = {
 //     dry_run?: boolean
 // } &
 //     {
-//         [key in keyof Entities]?: Array<Partial<Entities[key]> & RecursivePartial<Pick<Entities, Connections[key]>>>
+//         [key in keyof Tables]?: Array<Partial<Tables[key]> & RecursivePartial<Pick<Tables, Connections[key]>>>
 //     }
 
 // export type MutationResponse<T extends Mutation> = {
-//     [key in keyof Entities]?: Array<Partial<Entities[key]> & RecursivePartial<Pick<Entities, Connections[key]>>>
+//     [key in keyof Tables]?: Array<Partial<Tables[key]> & RecursivePartial<Pick<Tables, Connections[key]>>>
 // }

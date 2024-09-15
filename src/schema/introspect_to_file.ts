@@ -1,6 +1,6 @@
 import { writeFileSync } from 'fs'
 import { MysqlFunction } from '../mutate/mutate'
-import { SupportedDatabases } from '../types/schema/schema_types'
+import { SupportedDatabases } from './schema_types'
 import { orma_introspect } from './introspector'
 
 /**

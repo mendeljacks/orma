@@ -5,8 +5,8 @@ import { MysqlFunction } from '../mutate/mutate'
 import { generate_statement } from '../mutate/statement_generation/mutation_statements'
 import { OrmaQueryResult } from '../types/query/query_result_types'
 import { OrmaQuery, OrmaQueryAliases } from '../types/query/query_types'
-import { DeepReadonly } from '../types/schema/schema_helper_types'
-import { OrmaSchema } from '../types/schema/schema_types'
+import { DeepReadonly } from '../schema/schema_helper_types'
+import { OrmaSchema } from '../schema/schema_types'
 import { apply_any_path_macro } from './macros/any_path_macro'
 import { apply_escape_macro } from './macros/escaping_macros'
 import {
@@ -21,7 +21,7 @@ import {
 import { get_query_plan } from './query_plan'
 
 // This function will default to the from clause
-export const get_real_higher_entity_name = (
+export const get_real_higher_table_name = (
     path: (string | number)[],
     query
 ) => {
@@ -34,7 +34,7 @@ export const get_real_higher_entity_name = (
 }
 
 // This function will default to the from clause
-export const get_real_entity_name = (
+export const get_real_table_name = (
     last_path_item: string,
     subquery: Record<string, any>
 ): string => {
@@ -53,21 +53,21 @@ export const orma_nester = (
         if (path.length === 1) {
             return null
         }
-        const higher_entity_path = path.slice(0, -1)
-        const higher_entity = deep_get(higher_entity_path, query)
-        const entity = higher_entity[last(path)]
-        const entity_name = get_real_entity_name(last(path), entity)
-        const higher_entity_name = get_real_entity_name(
-            last(higher_entity_path),
-            higher_entity
+        const higher_table_path = path.slice(0, -1)
+        const higher_table = deep_get(higher_table_path, query)
+        const table = higher_table[last(path)]
+        const table_name = get_real_table_name(last(path), table)
+        const higher_table_name = get_real_table_name(
+            last(higher_table_path),
+            higher_table
         )
         const edge = get_direct_edge(
-            higher_entity_name,
-            entity_name,
+            higher_table_name,
+            table_name,
             orma_schema,
-            entity.$foreign_key
+            table.$foreign_key
         )
-        return [edge.from_field, edge.to_field]
+        return [edge.from_columns, edge.to_columns]
     })
 
     const data: NesterData = results.map(result => {
@@ -140,9 +140,9 @@ export const orma_query = async <
             subquery_data.length > 0
                 ? await query_function(
                       subquery_data.map(({ subquery }) => {
-                          const entity = subquery.$from
+                          const table = subquery.$from
                           const database_type =
-                              orma_schema.$entities[entity].$database_type
+                              orma_schema.$tables[table].$database_type
                           return generate_statement(
                               subquery,
                               [],

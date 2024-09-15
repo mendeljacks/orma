@@ -9,8 +9,8 @@ import {
 } from '../../query/macros/where_connected_macro'
 import { combine_wheres } from '../../query/query_helpers'
 import { WhereConnected } from '../../types/query/query_types'
-import { OrmaSchema } from '../../types/schema/schema_types'
-import { path_to_entity } from '../helpers/mutate_helpers'
+import { OrmaSchema } from '../../schema/schema_types'
+import { path_to_table } from '../helpers/mutate_helpers'
 import { get_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
 import { MysqlFunction } from '../mutate'
@@ -39,8 +39,8 @@ export const get_mutation_connected_errors = async (
 
     const ownership_results = await mysql_function(
         ownership_queries.map(ownership_query => {
-            const entity = ownership_query.$from
-            const database_type = orma_schema.$entities[entity].$database_type
+            const table = ownership_query.$from
+            const database_type = orma_schema.tables[table].database_type
             return generate_statement(ownership_query, [], [], database_type)
         })
     )
@@ -86,15 +86,15 @@ export const get_ownership_queries = (
         
     */
 
-    const piece_indices_by_entity = group_by(
+    const piece_indices_by_table = group_by(
         mutation_pieces.map((_, i) => i),
-        i => path_to_entity(mutation_pieces[i].path)
+        i => path_to_table(mutation_pieces[i].path)
     )
-    const entities = Object.keys(piece_indices_by_entity)
+    const tables = Object.keys(piece_indices_by_table)
 
     const queries = where_connecteds.flatMap(where_connected => {
-        const wheres = entities.flatMap(entity => {
-            const piece_indices = piece_indices_by_entity[entity]
+        const wheres = tables.flatMap(table => {
+            const piece_indices = piece_indices_by_table[table]
 
             const primary_key_wheres = get_identifier_connected_wheres(
                 orma_schema,
@@ -103,7 +103,7 @@ export const get_ownership_queries = (
                 where_connected,
                 mutation_pieces,
                 piece_indices,
-                entity
+                table
             )
 
             const foreign_key_wheres = get_foreign_key_connected_wheres(
@@ -111,7 +111,7 @@ export const get_ownership_queries = (
                 where_connected,
                 mutation_pieces,
                 piece_indices,
-                entity
+                table
             )
 
             return [...foreign_key_wheres, ...primary_key_wheres]
@@ -124,8 +124,8 @@ export const get_ownership_queries = (
         }
 
         const query = {
-            $select: [where_connected.$field],
-            $from: where_connected.$entity,
+            $select: [where_connected.$column],
+            $from: where_connected.$table,
             $where
         }
 
@@ -142,7 +142,7 @@ export const get_identifier_connected_wheres = (
     where_connected: WhereConnected<OrmaSchema>[number],
     mutation_pieces: MutationPiece[],
     piece_indices: number[],
-    entity: string
+    table: string
 ) => {
     const relevant_piece_indices = piece_indices.flatMap(piece_index => {
         // this query fetches data that is in the database but not in the mutation. Because creates
@@ -162,10 +162,10 @@ export const get_identifier_connected_wheres = (
         relevant_piece_indices
     )
     // must apply escape macro since we need valid SQL AST
-    apply_escape_macro_to_query_part(orma_schema, entity, identifying_where)
+    apply_escape_macro_to_query_part(orma_schema, table, identifying_where)
 
-    // if this entity is the ownership entity, then we dont need to wrap in $where $ins.
-    if (entity === where_connected.$entity) {
+    // if this table is the ownership table, then we dont need to wrap in $where $ins.
+    if (table === where_connected.$table) {
         // there might be a more elegant way to not handle this case separately, but im not sure how
         return [identifying_where]
     }
@@ -176,14 +176,14 @@ export const get_identifier_connected_wheres = (
 
     const edge_paths_obj = get_edge_paths_by_destination(
         connection_edges,
-        entity
+        table
     )
 
-    const edge_paths = edge_paths_obj[where_connected.$entity]
+    const edge_paths = edge_paths_obj[where_connected.$table]
     const primary_key_wheres =
         edge_paths?.map(edge_path => {
-            // reverse since we are queryng the where connected root entity and these paths are going from the
-            // current entity to the root, not the root to the current entity
+            // reverse since we are queryng the where connected root table and these paths are going from the
+            // current table to the root, not the root to the current table
             const reversed_edge_path = edge_path
                 .slice()
                 .reverse()
@@ -205,22 +205,22 @@ export const get_foreign_key_connected_wheres = (
     where_connected: WhereConnected<OrmaSchema>[number],
     mutation_pieces: MutationPiece[],
     piece_indices: number[],
-    entity: string
+    table: string
 ) => {
     // TODO: optimize by combining this with the one in the other function
     const edge_paths_obj = get_edge_paths_by_destination(
         connection_edges,
-        entity
+        table
     )
 
-    const edge_paths = edge_paths_obj[where_connected.$entity] ?? []
+    const edge_paths = edge_paths_obj[where_connected.$table] ?? []
     const foreign_key_wheres = edge_paths
         .map(edge_path => {
             const values = piece_indices
                 .map(piece_index => {
                     const { record } = mutation_pieces[piece_index]
-                    const field = edge_path[0].from_field
-                    const value = record[field]
+                    const column = edge_path[0].from_columns
+                    const value = record[column]
                     // ignore any values with a guid since they must refer to something in this mutation,
                     // but that row must belong to us if it passes ownership
                     return value?.$guid === undefined ? value : undefined
@@ -231,19 +231,19 @@ export const get_foreign_key_connected_wheres = (
                 return undefined
             }
 
-            // since this is a foreign key search, we actually want to search on the direct parent instead of the entity itself,
-            // for example in a create the entity itself doesnt exist yet but the parent does
+            // since this is a foreign key search, we actually want to search on the direct parent instead of the table itself,
+            // for example in a create the table itself doesnt exist yet but the parent does
             const search_ownership_path = edge_path
                 .slice(1, Infinity)
                 .reverse()
                 .map(edge => reverse_edge(edge))
-            const parent_field = edge_path[0].to_field
+            const parent_column = edge_path[0].to_columns
             const parent_where = {
-                $in: [parent_field, values]
+                $in: [parent_column, values]
             }
 
             if (search_ownership_path.length === 0) {
-                // this happends when the entity is a direct child of the ownership table.
+                // this happends when the table is a direct child of the ownership table.
                 // we are essentially handling 1-level nesting and deep nesting as separate cases,
                 // but there might be a way to do this more elegantly
                 return parent_where
@@ -267,7 +267,7 @@ const generate_ownership_errors = (
 ) => {
     const errors = where_connecteds.flatMap((where_connected, i) => {
         const owner_objects = ownership_results[i]
-        const owners = owner_objects.map(owner => owner[where_connected.$field])
+        const owners = owner_objects.map(owner => owner[where_connected.$column])
         const valid_owners = new Set(where_connected.$values)
         const invalid_owners = owners.filter(
             owner_value => !valid_owners.has(owner_value)
@@ -277,11 +277,11 @@ const generate_ownership_errors = (
             const error: OrmaError = {
                 error_code: 'missing_access_rights',
                 message: `Tried to mutate data from ${
-                    where_connected.$entity
+                    where_connected.$table
                 } ${owners.join(
                     ', '
                 )} but only has permission to modify data from ${
-                    where_connected.$entity
+                    where_connected.$table
                 } ${where_connected.$values.join(', ')}.`,
                 additional_info: {
                     where_connected,
@@ -339,5 +339,5 @@ this would become
 } 
 
 which would delete a bunch of posts. Do some tests to figure out what happens in this case. Would it
-throw an error, since there is no unique field?
+throw an error, since there is no unique column?
 */

@@ -202,13 +202,13 @@ describe('diff_mutation.ts', () => {
             ]
         })
     })
-    test('ignores $identifying_fields', () => {
+    test('ignores $identifying_columns', () => {
         const original = {
             images: [{ id: 1 }]
         }
         const modified = {
             images: [
-                { id: 1, $identifying_fields: ['id'], $operation: 'update' }
+                { id: 1, $identifying_columns: ['id'], $operation: 'update' }
             ]
         }
         const update_obj = get_mutation_diff(original, modified)
@@ -218,7 +218,7 @@ describe('diff_mutation.ts', () => {
             images: [
                 {
                     id: 1,
-                    $identifying_fields: ['id'],
+                    $identifying_columns: ['id'],
                     $operation: 'update'
                 }
             ]

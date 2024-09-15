@@ -1,7 +1,7 @@
 type ValuesOf<O> = O extends any ? O[keyof O] : never
 
 /**
- * identity function which returns first param, but only allows the first param to be the type of the second param
+ * idtable function which returns first param, but only allows the first param to be the type of the second param
  */
 export type AllowType<T extends U, U> = T
 
@@ -71,3 +71,7 @@ export type XOR<T, U> = T | U extends object
     : T | U
 
 export type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>
+
+export type Mutable<T> = {
+    -readonly [P in keyof T]: T[P]
+}

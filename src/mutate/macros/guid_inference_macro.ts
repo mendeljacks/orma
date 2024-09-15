@@ -4,10 +4,10 @@ import {
     Edge,
     get_direct_edges,
     get_primary_keys,
-    is_parent_entity
+    is_parent_table
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
-import { path_to_entity } from '../helpers/mutate_helpers'
+import { OrmaSchema } from '../../schema/schema_types'
+import { path_to_table } from '../helpers/mutate_helpers'
 import { NestingMutationOutput } from './nesting_mutation_macro'
 
 // 1000 ids / sec needs 21 billion years for 1% chance of collision
@@ -41,32 +41,32 @@ export const apply_guid_inference_macro = (
             )
         ]
 
-        const child_entity = path_to_entity(child_mutation_piece.path)
+        const child_table = path_to_table(child_mutation_piece.path)
         const child_record = child_mutation_piece.record
         const all_parent_mutation_pieces = connected_mutation_pieces.filter(
             mutation_piece => {
-                const parent_entity = path_to_entity(mutation_piece.path)
-                const is_parent = is_parent_entity(
-                    parent_entity,
-                    child_entity,
+                const parent_table = path_to_table(mutation_piece.path)
+                const is_parent = is_parent_table(
+                    parent_table,
+                    child_table,
                     orma_schema
                 )
                 return is_parent
             }
         )
 
-        const parent_mutation_pieces_by_entity = group_by(
+        const parent_mutation_pieces_by_table = group_by(
             all_parent_mutation_pieces,
-            mutation_piece => path_to_entity(mutation_piece.path)
+            mutation_piece => path_to_table(mutation_piece.path)
         )
 
-        Object.keys(parent_mutation_pieces_by_entity).forEach(parent_entity => {
+        Object.keys(parent_mutation_pieces_by_table).forEach(parent_table => {
             const parent_mutation_pieces =
-                parent_mutation_pieces_by_entity[parent_entity]
+                parent_mutation_pieces_by_table[parent_table]
 
             const edges_to_child = get_direct_edges(
-                parent_entity,
-                child_entity,
+                parent_table,
+                child_table,
                 orma_schema
             )
 
@@ -74,7 +74,7 @@ export const apply_guid_inference_macro = (
                 return
             }
 
-            // we now know that there is only one edge and mutation piece for this entity
+            // we now know that there is only one edge and mutation piece for this table
             const edge_to_child = edges_to_child[0]
             const { record: parent_record, path: parent_path } =
                 parent_mutation_pieces[0]
@@ -98,7 +98,7 @@ export const apply_guid_inference_macro = (
         // foreign key, it will only be used to add the primary keys to the mutation later on. We want this
         // because it is usefull to guarantee that the primary keys are in scope when processing the mutation
         // results
-        const primary_keys = get_primary_keys(child_entity, orma_schema)
+        const primary_keys = get_primary_keys(child_table, orma_schema)
         primary_keys.forEach(key => {
             if (child_record[key] === undefined) {
                 child_record[key] = { $guid: get_id() }
@@ -188,7 +188,7 @@ const should_apply_inference = (
     // dont propagate. We still propagate if the parent column is given by the user but not
     // the child column, for example nested deletes where only the id is given.
     const child_value_is_undefined =
-        child_record[edge_to_child.to_field] === undefined
+        child_record[edge_to_child.to_columns] === undefined
 
     const should_apply = valid_operations && child_value_is_undefined
 
@@ -201,18 +201,18 @@ const infer_guid = (
     edge_to_child: Edge,
     guid_obj: { $guid: any }
 ) => {
-    const { from_field, to_field } = edge_to_child
+    const { from_columns: from_column, to_columns: to_column } = edge_to_child
 
-    if (parent_record[from_field] === undefined) {
+    if (parent_record[from_column] === undefined) {
         // use same reference since there is only one higher record
-        parent_record[from_field] = guid_obj
+        parent_record[from_column] = guid_obj
     }
 
     // copy so we dont share references. Each lower record gets its own copy
     const lower_value =
-        typeof parent_record[from_field] === 'object'
-            ? { ...parent_record[from_field] }
-            : parent_record[from_field]
+        typeof parent_record[from_column] === 'object'
+            ? { ...parent_record[from_column] }
+            : parent_record[from_column]
 
-    child_record[to_field] = lower_value
+    child_record[to_column] = lower_value
 }

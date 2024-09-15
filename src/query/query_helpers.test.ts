@@ -8,10 +8,10 @@ import {
 } from './query_helpers'
 
 const orma_schema: any = {
-    $entities: {
+    $tables: {
         products: {
             $database_type: 'mysql',
-            $fields: {},
+            $columns: {},
         },
     },
 }
@@ -117,25 +117,25 @@ describe('query helpers', () => {
         })
     })
     describe(get_search_records_where.name, () => {
-        test('handles single field', () => {
+        test('handles single column', () => {
             const pathed_records = [
                 {
                     path: ['products'],
                     record: {
-                        field1: 'hi',
-                        field2: 'hi2',
+                        column1: 'hi',
+                        column2: 'hi2',
                     },
                 },
             ]
 
             const result = get_search_records_where(
                 pathed_records,
-                record => ['field1'],
+                record => ['column1'],
                 orma_schema
             )
 
             expect(result).to.deep.equal({
-                $in: ['field1', ["'hi'"]],
+                $in: ['column1', ["'hi'"]],
             })
         })
         test('handles escaping', () => {
@@ -143,46 +143,46 @@ describe('query helpers', () => {
                 {
                     path: ['products'],
                     record: {
-                        field1: 'hi',
+                        column1: 'hi',
                     },
                 },
             ]
 
             const result = get_search_records_where(
                 pathed_records,
-                record => ['field1'],
+                record => ['column1'],
                 orma_schema
             )
 
             expect(result).to.deep.equal({
-                $in: ['field1', ["'hi'"]],
+                $in: ['column1', ["'hi'"]],
             })
         })
-        test('handles multiple fields', () => {
+        test('handles multiple columns', () => {
             const pathed_records = [
                 {
                     path: ['products'],
                     record: {
-                        field1: 'hi',
-                        field2: 'hi2',
-                        field3: 'hi3',
+                        column1: 'hi',
+                        column2: 'hi2',
+                        column3: 'hi3',
                     },
                 },
             ]
 
             const result = get_search_records_where(
                 pathed_records,
-                record => ['field1', 'field2'],
+                record => ['column1', 'column2'],
                 orma_schema
             )
 
             expect(result).to.deep.equal({
                 $and: [
                     {
-                        $eq: ['field1', "'hi'"],
+                        $eq: ['column1', "'hi'"],
                     },
                     {
-                        $eq: ['field2', "'hi2'"],
+                        $eq: ['column2', "'hi2'"],
                     },
                 ],
             })
@@ -191,53 +191,53 @@ describe('query helpers', () => {
             const pathed_records = [
                 {
                     type: 1,
-                    field1: 'a',
+                    column1: 'a',
                 },
                 {
                     type: 1,
-                    field1: 'b',
+                    column1: 'b',
                 },
                 {
                     type: 2,
-                    field1: 'c1',
-                    field2: 'c2',
+                    column1: 'c1',
+                    column2: 'c2',
                 },
                 {
                     type: 2,
-                    field1: 'd1',
-                    field2: 'd2',
+                    column1: 'd1',
+                    column2: 'd2',
                 },
             ].map(el => ({ path: ['products'], record: el }))
 
             const result = get_search_records_where(
                 pathed_records,
                 record =>
-                    record.type === 1 ? ['field1'] : ['field1', 'field2'],
+                    record.type === 1 ? ['column1'] : ['column1', 'column2'],
                 orma_schema
             )
 
             expect(result).to.deep.equal({
                 $or: [
                     {
-                        $in: ['field1', ["'a'", "'b'"]],
+                        $in: ['column1', ["'a'", "'b'"]],
                     },
                     {
                         $and: [
                             {
-                                $eq: ['field1', "'c1'"],
+                                $eq: ['column1', "'c1'"],
                             },
                             {
-                                $eq: ['field2', "'c2'"],
+                                $eq: ['column2', "'c2'"],
                             },
                         ],
                     },
                     {
                         $and: [
                             {
-                                $eq: ['field1', "'d1'"],
+                                $eq: ['column1', "'d1'"],
                             },
                             {
-                                $eq: ['field2', "'d2'"],
+                                $eq: ['column2', "'d2'"],
                             },
                         ],
                     },

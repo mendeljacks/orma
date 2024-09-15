@@ -5,12 +5,12 @@ import { Path } from '../../types'
 /**
  * Like {@link deep_for_each} but only calls the processor function when value is a record in the given mutation
  */
-export const mutation_entity_deep_for_each = (
+export const mutation_table_deep_for_each = (
     mutation,
     processor: (
         value: Record<string, any>,
         path: (string | number)[],
-        entity_name: string
+        table_name: string
     ) => void
 ) => {
     deep_for_each(mutation, (value, path) => {
@@ -19,10 +19,10 @@ export const mutation_entity_deep_for_each = (
             typeof last(path) === 'number' &&
             typeof path[path.length - 2] === 'string'
         ) {
-            // we are on an entity object
-            const entity_name = path[path.length - 2] as string
+            // we are on an table object
+            const table_name = path[path.length - 2] as string
 
-            processor(value, path, entity_name)
+            processor(value, path, table_name)
         }
     })
 }
@@ -36,7 +36,7 @@ export const get_higher_path = (path: Path) => {
     return higher_path
 }
 
-export const path_to_entity = (path: (number | string)[]) => {
+export const path_to_table = (path: (number | string)[]) => {
     return typeof last(path) === 'number'
         ? (path[path.length - 2] as string)
         : (last(path) as string)
@@ -54,5 +54,5 @@ export const for_each_guid = (
     })
 }
 
-export const is_submutation = (record: Record<string, any>, field: string) =>
-    Array.isArray(record[field]) && !is_reserved_keyword(field)
+export const is_submutation = (record: Record<string, any>, column: string) =>
+    Array.isArray(record[column]) && !is_reserved_keyword(column)

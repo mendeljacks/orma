@@ -4,8 +4,8 @@ import {
     get_direct_edges,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
-import { get_real_entity_name, get_real_higher_entity_name } from '../query'
+import { OrmaSchema } from '../../schema/schema_types'
+import { get_real_table_name, get_real_higher_table_name } from '../query'
 import { is_subquery, query_for_each } from '../query_helpers'
 
 /**
@@ -25,8 +25,8 @@ export const apply_select_macro = (query, orma_schema: OrmaSchema) => {
                 !converted_select.includes(new_el)
         )
         nester_deletions[JSON.stringify(path)] =
-            selects_to_delete_in_nester.map(field => ({
-                field,
+            selects_to_delete_in_nester.map(column => ({
+                column,
             }))
 
         const $select = [
@@ -46,11 +46,11 @@ export const apply_select_macro = (query, orma_schema: OrmaSchema) => {
             value.$from = $from
         }
 
-        const converted_select_fields = converted_select.map(el =>
+        const converted_select_columns = converted_select.map(el =>
             // @ts-ignore
             el?.$as ? el.$as[1] : el
         )
-        for (const select of converted_select_fields) {
+        for (const select of converted_select_columns) {
             delete value[select]
         }
     })
@@ -68,10 +68,10 @@ export const get_converted_select = subquery => {
             return key
         }
 
-        const is_string_field = typeof subquery[key] === 'string'
-        const is_function_field =
+        const is_string_column = typeof subquery[key] === 'string'
+        const is_function_column =
             is_simple_object(subquery[key]) && !is_subquery(subquery[key])
-        if (is_string_field || is_function_field) {
+        if (is_string_column || is_function_column) {
             return { $as: [subquery[key], key] }
         }
 
@@ -87,7 +87,7 @@ export const get_new_select = (
     query,
     orma_schema: OrmaSchema
 ) => {
-    const entity_name = get_real_entity_name(last(subquery_path), subquery)
+    const table_name = get_real_table_name(last(subquery_path), subquery)
 
     const $select = Object.keys(subquery).flatMap(key => {
         if (is_reserved_keyword(key)) {
@@ -96,27 +96,27 @@ export const get_new_select = (
 
         if (is_simple_object(subquery[key]) && is_subquery(subquery[key])) {
             const lower_subquery = subquery[key]
-            const lower_subquery_entity = lower_subquery.$from ?? key
+            const lower_subquery_table = lower_subquery.$from ?? key
             const edges_to_lower_table = get_direct_edges(
-                entity_name,
-                lower_subquery_entity,
+                table_name,
+                lower_subquery_table,
                 orma_schema
             )
 
-            return edges_to_lower_table.map(el => el.from_field)
+            return edges_to_lower_table.map(el => el.from_columns)
         }
 
         return []
     })
 
     if (subquery_path.length > 1) {
-        const higher_entity = get_real_higher_entity_name(subquery_path, query)
-        const edges_to_higher_entity = get_direct_edges(
-            entity_name,
-            higher_entity,
+        const higher_table = get_real_higher_table_name(subquery_path, query)
+        const edges_to_higher_table = get_direct_edges(
+            table_name,
+            higher_table,
             orma_schema
         )
-        $select.push(...edges_to_higher_entity.map(el => el.from_field))
+        $select.push(...edges_to_higher_table.map(el => el.from_columns))
     }
 
     return [...new Set($select)]

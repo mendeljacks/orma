@@ -75,6 +75,7 @@
         "ext": "ts, js, jsx"
     },
     "dependencies": {
+        "js-sql-parser": "^1.6.0",
         "jsonschema": "^1.4.0",
         "pg-escape-browser": "^0.1.0",
         "sqlstring": "^2.3.3",

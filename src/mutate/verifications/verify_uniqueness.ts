@@ -7,18 +7,18 @@ import {
 } from '../../helpers/helpers'
 import {
     get_primary_keys,
-    get_unique_field_groups
+    get_unique_column_groups
 } from '../../helpers/schema_helpers'
 import { orma_query } from '../../query/query'
 import { combine_wheres } from '../../query/query_helpers'
-import { OrmaSchema } from '../../types/schema/schema_types'
-import { path_to_entity } from '../helpers/mutate_helpers'
+import { OrmaSchema } from '../../schema/schema_types'
+import { path_to_table } from '../helpers/mutate_helpers'
 import { get_identifying_where } from '../helpers/record_searching'
 import { MysqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
 
 /**
- * Generates errors when unique fields are duplicates in two cases:
+ * Generates errors when unique columns are duplicates in two cases:
  *   1. records from the mutation conflict with records in the database
  *   2. records from the mutation conflict with other records from the mutation
  *
@@ -36,23 +36,23 @@ export const get_unique_verification_errors = async (
 
     algorithm:
 
-    break up mutation by entity name (keeping track of paths)
+    break up mutation by table name (keeping track of paths)
     construct a query which searches for all update and delete records in the database
-    for each entity name and each column, 
+    for each table name and each column, 
         check for no duplicates in the mutation
         check for no duplicates between mutation and database
     */
 
-    const piece_indices_by_entity = group_by(
+    const piece_indices_by_table = group_by(
         mutation_plan.mutation_pieces.map((_, i) => i),
         piece_index =>
-            path_to_entity(mutation_plan.mutation_pieces[piece_index].path)
+            path_to_table(mutation_plan.mutation_pieces[piece_index].path)
     )
 
     const query = get_verify_uniqueness_query(
         orma_schema,
         mutation_plan,
-        piece_indices_by_entity
+        piece_indices_by_table
     )
 
     const results = await orma_query(query, orma_schema, mysql_function)
@@ -60,13 +60,13 @@ export const get_unique_verification_errors = async (
     const database_errors = get_database_uniqueness_errors(
         orma_schema,
         mutation_plan.mutation_pieces,
-        piece_indices_by_entity,
+        piece_indices_by_table,
         results
     )
     const mutation_errors = get_mutation_uniqueness_errors(
         orma_schema,
         mutation_plan.mutation_pieces,
-        piece_indices_by_entity
+        piece_indices_by_table
     )
 
     return [...database_errors, ...mutation_errors]
@@ -74,35 +74,35 @@ export const get_unique_verification_errors = async (
 
 /**
  * Gets a query which gets all relevant records from the database needed to do uniqueness checks.
- * Each record is uniquely identified by some combination of fields (e.g. primary key or combo unique fields).
- * The generated query will look up these records, selecting all the unique or combo unique fields
+ * Each record is uniquely identified by some combination of columns (e.g. primary key or combo unique columns).
+ * The generated query will look up these records, selecting all the unique or combo unique columns
  */
 export const get_verify_uniqueness_query = (
     orma_schema: OrmaSchema,
     mutation_plan: Pick<MutationPlan, 'mutation_pieces' | 'guid_map'>,
-    piece_indices_by_entity: Record<string, number[]>
+    piece_indices_by_table: Record<string, number[]>
 ) => {
     const { mutation_pieces, guid_map } = mutation_plan
-    const mutation_entities = Object.keys(piece_indices_by_entity)
-    const query = mutation_entities.reduce((acc, entity) => {
+    const mutation_tables = Object.keys(piece_indices_by_table)
+    const query = mutation_tables.reduce((acc, table) => {
         // deleting a record never causes a unique constraint to be violated, so we only check creates and updates
-        const searchable_piece_indices = piece_indices_by_entity[entity].filter(
+        const searchable_piece_indices = piece_indices_by_table[table].filter(
             piece_index => {
                 const operation = mutation_pieces[piece_index].record.$operation
                 return ['create', 'update'].includes(operation)
             }
         )
 
-        // all unique fields
-        const unique_field_groups = [
-            get_primary_keys(entity, orma_schema),
-            ...get_unique_field_groups(entity, false, orma_schema)
+        // all unique columns
+        const unique_column_groups = [
+            get_primary_keys(table, orma_schema),
+            ...get_unique_column_groups(table, false, orma_schema)
         ]
 
-        // generate a where clause for each unique field group for each mutation piece
-        const wheres = unique_field_groups.flatMap(unique_fields => {
+        // generate a where clause for each unique column group for each mutation piece
+        const wheres = unique_column_groups.flatMap(unique_columns => {
             const checkable_piece_indices = get_checkable_mutation_indices(
-                unique_fields,
+                unique_columns,
                 mutation_pieces,
                 searchable_piece_indices,
                 true
@@ -115,11 +115,11 @@ export const get_verify_uniqueness_query = (
                 checkable_piece_indices,
                 // allow searching if only part of the unique key is present
                 (_, { record }) =>
-                    unique_fields.filter(
-                        field =>
-                            record[field] !== undefined &&
-                            !is_simple_object(record[field]) &&
-                            !Array.isArray(record[field])
+                    unique_columns.filter(
+                        column =>
+                            record[column] !== undefined &&
+                            !is_simple_object(record[column]) &&
+                            !Array.isArray(record[column])
                     )
             )
             return where
@@ -132,9 +132,9 @@ export const get_verify_uniqueness_query = (
         }
 
         // add relevant columns
-        acc[entity] = unique_field_groups.flat().reduce(
-            (acc, field) => {
-                acc[field] = true
+        acc[table] = unique_column_groups.flat().reduce(
+            (acc, column) => {
+                acc[column] = true
                 return acc
             },
             {
@@ -166,18 +166,18 @@ const get_checkable_mutation_indices = (
         // search for them
         const is_identifying_key =
             record.$operation === 'update' &&
-            array_set_equals(record.$identifying_fields, unique_key)
+            array_set_equals(record.$identifying_columns, unique_key)
 
-        // null fields never violate unique constraints since null != null in sql. so
-        // if even one field is being set to null, the unique constraint cannot be violated and
+        // null columns never violate unique constraints since null != null in sql. so
+        // if even one column is being set to null, the unique constraint cannot be violated and
         // we can ignore the whole thing
-        const has_null_value = unique_key.some(field => record[field] === null)
+        const has_null_value = unique_key.some(column => record[column] === null)
 
-        // for querying, if one field is undefined or an object (which is considered undefined),
+        // for querying, if one column is undefined or an object (which is considered undefined),
         // we still query it because changing even part of a combo unique constraint can cause a
         // constraint violation. But for the actual check once we have all the data in scope, we ignore
-        // such records, since we only care about the database returned records that have all the fields
-        // present, not the original mutation record that only has some fields filled out.
+        // such records, since we only care about the database returned records that have all the columns
+        // present, not the original mutation record that only has some columns filled out.
         //
         // Object values are also ignored and treated like undefined. Although some objects
         // (e.g. $guids ) could cause unique constraint violations, theres no easy way to check
@@ -186,10 +186,10 @@ const get_checkable_mutation_indices = (
         const undefined_check_function = allow_some_undefined ? 'every' : 'some'
 
         const undefined_or_object = unique_key[undefined_check_function](
-            field =>
-                record[field] === undefined ||
-                Array.isArray(record[field]) ||
-                is_simple_object(record[field])
+            column =>
+                record[column] === undefined ||
+                Array.isArray(record[column]) ||
+                is_simple_object(record[column])
         )
 
         return (
@@ -208,25 +208,25 @@ const get_checkable_mutation_indices = (
 export const get_database_uniqueness_errors = (
     orma_schema: OrmaSchema,
     mutation_pieces: MutationPiece[],
-    piece_indices_by_entity: Record<string, number[]>,
-    database_records_by_entity: Record<string, Record<string, any>[]>
+    piece_indices_by_table: Record<string, number[]>,
+    database_records_by_table: Record<string, Record<string, any>[]>
 ) => {
-    const database_entities = Object.keys(database_records_by_entity)
+    const database_tables = Object.keys(database_records_by_table)
 
-    const errors = database_entities.flatMap(entity => {
-        // a field group is a set of fields that together are unique
-        const field_groups = [
-            get_primary_keys(entity, orma_schema),
-            ...get_unique_field_groups(entity, false, orma_schema)
+    const errors = database_tables.flatMap(table => {
+        // a column group is a set of columns that together are unique
+        const column_groups = [
+            get_primary_keys(table, orma_schema),
+            ...get_unique_column_groups(table, false, orma_schema)
         ]
 
-        const entity_errors = field_groups.flatMap(field_group => {
-            const database_records = database_records_by_entity[entity]
+        const table_errors = column_groups.flatMap(column_group => {
+            const database_records = database_records_by_table[table]
 
             const checkable_piece_indices = get_checkable_mutation_indices(
-                field_group,
+                column_group,
                 mutation_pieces,
-                piece_indices_by_entity[entity],
+                piece_indices_by_table[table],
                 false
             )
 
@@ -237,9 +237,9 @@ export const get_database_uniqueness_errors = (
             const database_duplicate_indices = get_duplicate_record_indices(
                 database_records,
                 mutation_records,
-                field_group
+                column_group
             ).filter(([database_index, mutation_index]) => {
-                // noop updates happen when a unique field is being set to the value that it already is
+                // noop updates happen when a unique column is being set to the value that it already is
                 // in the database. A naive check will see a duplicate, since the value in the mutation is
                 // in the database. But since they are really the same record, we want to ignore them.
                 const database_record = database_records[database_index]
@@ -247,9 +247,9 @@ export const get_database_uniqueness_errors = (
 
                 const is_update = mutation_record.$operation === 'update'
                 const is_same_record =
-                    mutation_record?.$identifying_fields?.every(
-                        field =>
-                            database_record[field] == mutation_record[field]
+                    mutation_record?.$identifying_columns?.every(
+                        column =>
+                            database_record[column] == mutation_record[column]
                     )
 
                 const is_noop_update = is_update && is_same_record
@@ -265,10 +265,10 @@ export const get_database_uniqueness_errors = (
                             checkable_piece_indices[mutation_record_index]
                         ]
 
-                    const values = field_group.map(el => database_record[el])
+                    const values = column_group.map(el => database_record[el])
 
                     const error: OrmaError = {
-                        message: `Record is not unique. Fields ${field_group
+                        message: `Record is not unique. Columns ${column_group
                             .map(el => JSON.stringify(el))
                             .join(', ')} must be unique but values ${values
                             .map(el => JSON.stringify(el))
@@ -277,7 +277,7 @@ export const get_database_uniqueness_errors = (
                         additional_info: {
                             database_record: database_record,
                             mutation_record: mutation_piece.record,
-                            unique_fields: field_group,
+                            unique_columns: column_group,
                             incorrect_values: values
                         }
                     }
@@ -289,7 +289,7 @@ export const get_database_uniqueness_errors = (
             return database_duplicate_errors
         })
 
-        return entity_errors
+        return table_errors
     })
 
     return errors
@@ -301,21 +301,21 @@ export const get_database_uniqueness_errors = (
 export const get_mutation_uniqueness_errors = (
     orma_schema: OrmaSchema,
     mutation_pieces: MutationPiece[],
-    piece_indices_by_entity: Record<string, number[]>
+    piece_indices_by_table: Record<string, number[]>
 ) => {
-    const entities = Object.keys(piece_indices_by_entity)
+    const tables = Object.keys(piece_indices_by_table)
 
-    const errors = entities.flatMap(entity => {
-        const field_groups = [
-            get_primary_keys(entity, orma_schema),
-            ...get_unique_field_groups(entity, false, orma_schema)
+    const errors = tables.flatMap(table => {
+        const column_groups = [
+            get_primary_keys(table, orma_schema),
+            ...get_unique_column_groups(table, false, orma_schema)
         ]
 
-        const entity_errors = field_groups.flatMap((field_group: any) => {
+        const table_errors = column_groups.flatMap((column_group: any) => {
             const checkable_piece_indices = get_checkable_mutation_indices(
-                field_group,
+                column_group,
                 mutation_pieces,
-                piece_indices_by_entity[entity],
+                piece_indices_by_table[table],
                 false
             )
 
@@ -326,7 +326,7 @@ export const get_mutation_uniqueness_errors = (
             const duplicate_indices = get_duplicate_record_indices(
                 relevant_records,
                 relevant_records,
-                field_group
+                column_group
             )
 
             // we get false positives since a record always matches itself, so basically every record is picked up as a duplicate
@@ -343,11 +343,11 @@ export const get_mutation_uniqueness_errors = (
                     const piece2 =
                         mutation_pieces[checkable_piece_indices[record_index2]]
 
-                    const values = field_group.map(el => piece1.record[el])
+                    const values = column_group.map(el => piece1.record[el])
 
                     const errors: OrmaError[] = [piece1, piece2].map(record => {
                         return {
-                            message: `Record is not unique. Fields ${field_group
+                            message: `Record is not unique. Columns ${column_group
                                 .map(el => JSON.stringify(el))
                                 .join(', ')} must be unique but values ${values
                                 .map(el => JSON.stringify(el))
@@ -355,7 +355,7 @@ export const get_mutation_uniqueness_errors = (
                             path: record.path,
                             additional_info: {
                                 mutation_record: record.record,
-                                unique_fields: field_group,
+                                unique_columns: column_group,
                                 incorrect_values: values
                             }
                         }
@@ -368,7 +368,7 @@ export const get_mutation_uniqueness_errors = (
             return duplicate_errors
         })
 
-        return entity_errors
+        return table_errors
     })
 
     return errors
@@ -376,36 +376,36 @@ export const get_mutation_uniqueness_errors = (
 
 /**
  * Takes two lists of records and returns the indices of records that are in both lists. A record is considered
- * equal if all the fields in the given identifying_fields array are the same for both records
+ * equal if all the columns in the given identifying_columns array are the same for both records
  */
 export const get_duplicate_record_indices = (
     records1: Record<string, any>[],
     records2: Record<string, any>[],
-    identifying_fields: string[]
+    identifying_columns: string[]
 ) => {
-    const records_to_indices_with_fields = (records: Record<string, any>[]) =>
+    const records_to_indices_with_columns = (records: Record<string, any>[]) =>
         records
             .map((el, i) => i)
             .filter(i =>
-                identifying_fields.every(
-                    field => records[i][field] !== undefined
+                identifying_columns.every(
+                    column => records[i][column] !== undefined
                 )
             )
 
-    const records1_indices = records_to_indices_with_fields(records1)
+    const records1_indices = records_to_indices_with_columns(records1)
 
     // create an index of records by their identifying values. This allows fast lookups for duplicates
     const records1_indices_by_value = key_by(records1_indices, index => {
         const record1 = records1[index]
-        const values = identifying_fields.map(field => record1[field])
+        const values = identifying_columns.map(column => record1[column])
         return JSON.stringify(values)
     })
 
-    const records2_indices = records_to_indices_with_fields(records2)
+    const records2_indices = records_to_indices_with_columns(records2)
 
     const duplicates = records2_indices.flatMap(record2_index => {
         const record2 = records2[record2_index]
-        const values = identifying_fields.map(field => record2[field])
+        const values = identifying_columns.map(column => record2[column])
         const values_string = JSON.stringify(values)
         const record1_index = records1_indices_by_value[values_string]
 

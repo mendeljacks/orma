@@ -1,8 +1,8 @@
 import { push_path } from '../../helpers/push_path'
-import { OrmaSchema, SupportedDatabases } from '../../types/schema/schema_types'
+import { OrmaSchema, SupportedDatabases } from '../../schema/schema_types'
 import { json_to_sql } from '../../query/ast_to_sql'
 import { Path } from '../../types'
-import { path_to_entity } from '../helpers/mutate_helpers'
+import { path_to_table } from '../helpers/mutate_helpers'
 import { MutationOperation, operation, ValuesByGuid } from '../mutate'
 import {
     MutationBatch,
@@ -18,7 +18,7 @@ import {
 import { GuidMap } from '../macros/guid_plan_macro'
 
 /**
- * Groups the input mutation pieces by entity and operation, generates asts for them, then generates sql strings
+ * Groups the input mutation pieces by table and operation, generates asts for them, then generates sql strings
  * from the asts
  */
 export const get_mutation_statements = (
@@ -35,14 +35,14 @@ export const get_mutation_statements = (
         mutation_batch
     )
 
-    const mutation_infos = Object.keys(grouped_mutation).flatMap(entity =>
-        Object.keys(grouped_mutation[entity] ?? {}).flatMap(operation => {
-            const group_indices = grouped_mutation?.[entity]?.[operation] ?? []
+    const mutation_infos = Object.keys(grouped_mutation).flatMap(table =>
+        Object.keys(grouped_mutation[table] ?? {}).flatMap(operation => {
+            const group_indices = grouped_mutation?.[table]?.[operation] ?? []
             return get_mutation_infos_for_group(
                 mutation_pieces,
                 group_indices,
                 operation as MutationOperation,
-                entity,
+                table,
                 guid_map,
                 orma_schema
             )
@@ -50,19 +50,19 @@ export const get_mutation_statements = (
     )
 
     const query_infos: OrmaStatement[] = Object.keys(grouped_mutation).flatMap(
-        entity => {
-            const create_indices = grouped_mutation?.[entity]?.create ?? []
-            const update_indices = grouped_mutation?.[entity]?.update ?? []
+        table => {
+            const create_indices = grouped_mutation?.[table]?.create ?? []
+            const update_indices = grouped_mutation?.[table]?.update ?? []
             // $guids are not saved for deletes
             const group_indices = [...create_indices, ...update_indices]
             const guid_query = get_guid_query(
                 mutation_pieces,
                 group_indices,
-                entity,
+                table,
                 guid_map,
                 orma_schema
             )
-            const database_type = orma_schema.$entities[entity].$database_type
+            const database_type = orma_schema.tables[table].database_type
             return guid_query
                 ? [
                       generate_statement(
@@ -89,8 +89,8 @@ const get_grouped_mutation = (
         mutation_batch,
         (mutation_piece, piece_index) => {
             const operation = mutation_piece.record.$operation
-            const entity = path_to_entity(mutation_piece.path)
-            push_path([entity, operation], piece_index, grouped_mutation)
+            const table = path_to_table(mutation_piece.path)
+            push_path([table, operation], piece_index, grouped_mutation)
         }
     )
 
@@ -101,7 +101,7 @@ const get_mutation_infos_for_group = (
     mutation_pieces: MutationPiece[],
     mutation_piece_indices: number[],
     operation: MutationOperation,
-    entity: string,
+    table: string,
     guid_map: GuidMap,
     orma_schema: OrmaSchema
 ) => {
@@ -112,7 +112,7 @@ const get_mutation_infos_for_group = (
                 mutation_pieces,
                 guid_map,
                 mutation_piece_indices,
-                entity,
+                table,
                 orma_schema
             )
         ]
@@ -126,7 +126,7 @@ const get_mutation_infos_for_group = (
                 orma_schema,
                 mutation_pieces,
                 mutation_piece_indices,
-                entity,
+                table,
                 guid_map
             )
         ]
@@ -136,7 +136,7 @@ const get_mutation_infos_for_group = (
         throw new Error(`Unrecognized $operation ${operation}`)
     }
 
-    const database_type = orma_schema.$entities[entity].$database_type
+    const database_type = orma_schema.tables[table].database_type
     return asts.flatMap(ast =>
         // can be undefined if there is nothing to do, e.g. a stub update
         ast === undefined
@@ -153,7 +153,7 @@ const get_mutation_infos_for_group = (
 }
 
 type GroupedMutation = {
-    [Entity in string]?: {
+    [Table in string]?: {
         [Operation in MutationOperation]?: number[] // mutation piece indexes
     }
 }
@@ -167,7 +167,7 @@ export const generate_statement = (
     const first_piece = mutation_pieces[mutation_piece_indices[0]]
     const statement: OrmaStatement = {
         ast,
-        entity: path_to_entity(first_piece?.path ?? []),
+        table: path_to_table(first_piece?.path ?? []),
         operation:
             ast.$from === undefined ? first_piece?.record?.$operation : 'query',
         paths: mutation_piece_indices?.map(i => mutation_pieces[i].path) ?? [],
@@ -182,7 +182,7 @@ export const generate_statement = (
 export type OrmaStatement = {
     ast: Record<string, any>
     operation: operation
-    entity: string
+    table: string
     records: Record<string, any>[]
     paths: Path[]
     sql_string: string
