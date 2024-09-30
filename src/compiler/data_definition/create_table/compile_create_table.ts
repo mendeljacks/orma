@@ -11,7 +11,7 @@ export const compile_create_table = ({
     statement,
     path,
     database_type
-}: CompilerArgs<CreateStatement>) => {
+}: CompilerArgs<CreateTable>) => {
     if ('like_table' in statement) {
         return `CREATE TABLE ${statement.create_table} LIKE ${statement.like_table}`
     } else {
@@ -47,7 +47,7 @@ export const validate_create_table = ({
     statement,
     path,
     database_type
-}: CompilerArgs<CreateStatement>) => {
+}: CompilerArgs<CreateTable>) => {
     if ('like_table' in statement) {
         return validate(
             {
@@ -90,9 +90,9 @@ export const validate_create_table = ({
     }
 }
 
-export type CreateStatement = RegularCreateStatement | CreateLikeStatement
+export type CreateTable = RegularCreateTable | CreateTableLike
 
-export type RegularCreateStatement = {
+export type RegularCreateTable = {
     readonly create_table: string
     readonly temporary?: boolean
     readonly if_not_exists?: boolean
@@ -100,7 +100,7 @@ export type RegularCreateStatement = {
     readonly definitions: readonly Definition[]
 }
 
-export type CreateLikeStatement = {
+export type CreateTableLike = {
     readonly create_table: string
     readonly like_table: string
 }

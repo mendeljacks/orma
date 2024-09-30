@@ -9,7 +9,7 @@ import {
     ColumnDefinition,
     IndexDefinition,
     RegularCreateStatement
-} from '../compiler/schema/schema_ast_types'
+} from '../compiler/data_definition/schema_ast_types'
 import { OrmaSchema, SupportedDatabases } from './schema_types'
 
 export const get_schema_diff = (

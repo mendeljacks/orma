@@ -3,7 +3,7 @@
  * @module
  */
 
-import { sql_to_typescript_types } from '../compiler/schema/sql_data_types'
+import { sql_to_typescript_types } from '../compiler/data_definition/sql_data_types'
 import { group_by, sort_by_prop } from '../helpers/helpers'
 import { MysqlFunction } from '../mutate/mutate'
 import { DeepMutable } from './schema_helper_types'

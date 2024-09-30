@@ -1,3 +1,4 @@
+import { OrmaError } from '../../../helpers/error_handling'
 import { escape_column } from '../../../helpers/escape'
 import {
     validate_boolean,
@@ -79,6 +80,8 @@ export const validate_column_definition = ({
             type: 'object',
             properties: {
                 name: { type: 'string', minLength: 1 },
+                first: { type: 'boolean' },
+                after: { type: 'string', minLength: 1 },
                 not_null: { type: 'boolean' },
                 auto_increment: { type: 'boolean' },
                 default: {},
@@ -91,12 +94,24 @@ export const validate_column_definition = ({
         statement
     )
 
-    return errors
+    const first_after_xor_errors: OrmaError[] =
+        statement.first && statement.after
+            ? [
+                  {
+                      error_code: 'validation_error',
+                      message: `"first" and "after" cannot be used together.`
+                  }
+              ]
+            : []
+
+    return [...errors, ...first_after_xor_errors]
 }
 
 export type ColumnDefinition = {
     readonly name: string
     readonly data_type: keyof typeof sql_to_typescript_types
+    readonly first?: boolean
+    readonly after?: string
     readonly enum_values?: readonly string[]
     readonly precision?: number
     readonly scale?: number

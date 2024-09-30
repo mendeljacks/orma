@@ -4,7 +4,7 @@ import { format } from 'sql-formatter'
 import {
     AlterStatement,
     CreateStatement
-} from '../compiler/schema/schema_ast_types'
+} from '../compiler/data_definition/schema_ast_types'
 import { json_to_sql } from './ast_to_sql'
 import { OrmaSchema } from '../schema/schema_types'
 import { get_schema_diff } from '../schema/schema_macro'

@@ -15,7 +15,7 @@ import { Path } from '../../types'
 import { OrmaSchema } from '../../schema/schema_types'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
 import { MutationOperation } from '../mutate'
-import { sql_to_typescript_types } from '../../compiler/schema/sql_data_types'
+import { sql_to_typescript_types } from '../../compiler/data_definition/sql_data_types'
 
 export const mutate_validation_schema = {
     type: 'object',

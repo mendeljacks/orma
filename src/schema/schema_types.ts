@@ -6,7 +6,7 @@ import {
     PrimaryConstraintDefintion,
     RegularCreateStatement,
     UniqueConstraintDefinition
-} from '../compiler/schema/schema_ast_types'
+} from '../compiler/data_definition/schema_ast_types'
 
 export type OrmaSchema = {
     readonly tables: {
