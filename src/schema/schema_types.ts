@@ -1,12 +1,10 @@
+import { RegularCreateTable } from '../compiler/data_definition/create_table/compile_create_table'
+import { ColumnDefinition } from '../compiler/data_definition/definitions/compile_column_definition'
+import { ForeignKeyDefinition } from '../compiler/data_definition/definitions/compile_foreign_key_definition'
+import { IndexDefinition } from '../compiler/data_definition/definitions/compile_index_definition'
+import { PrimaryKeyDefintion } from '../compiler/data_definition/definitions/compile_primary_key_definition'
+import { UniqueKeyDefinition } from '../compiler/data_definition/definitions/compile_unique_key_definition'
 import { Optional } from '../types/helper_types'
-import {
-    ColumnDefinition,
-    ForeignKeyConstraintDefinition,
-    IndexDefinition,
-    PrimaryConstraintDefintion,
-    RegularCreateStatement,
-    UniqueConstraintDefinition
-} from '../compiler/data_definition/schema_ast_types'
 
 export type OrmaSchema = {
     readonly tables: {
@@ -16,7 +14,7 @@ export type OrmaSchema = {
 }
 
 type OrmaTableSchema = Omit<
-    RegularCreateStatement,
+    RegularCreateTable,
     'definitions' | 'create_table' | 'if_not_exists' | 'temporary'
 > & {
     readonly database_type: SupportedDatabases
@@ -25,16 +23,16 @@ type OrmaTableSchema = Omit<
         readonly [column_name in string]: OrmaColumn
     }
     readonly primary_key: OrmaPrimaryKey
-    readonly indeaxes?: readonly OrmaIndex[]
+    readonly indexes?: readonly OrmaIndex[]
     readonly unique_keys?: readonly OrmaUniqueKey[]
     readonly foreign_keys?: readonly OrmaForeignKey[]
 }
 
 export type OrmaColumn = Omit<ColumnDefinition, 'name'>
-export type OrmaPrimaryKey = Omit<PrimaryConstraintDefintion, 'constraint'>
+export type OrmaPrimaryKey = Omit<PrimaryKeyDefintion, 'constraint'>
 export type OrmaIndex = Optional<IndexDefinition, 'index'>
-export type OrmaForeignKey = Omit<ForeignKeyConstraintDefinition, 'constraint'>
-export type OrmaUniqueKey = Omit<UniqueConstraintDefinition, 'constraint'>
+export type OrmaForeignKey = Omit<ForeignKeyDefinition, 'constraint'>
+export type OrmaUniqueKey = Omit<UniqueKeyDefinition, 'constraint'>
 
 type Prepopulate = {
     supercede: boolean

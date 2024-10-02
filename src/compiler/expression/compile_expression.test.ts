@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import { format } from 'sql-formatter'
-import { compile_expression, Expression } from './expression_compiler'
+import { compile_expression, Expression } from './compile_expression'
 import {
     global_test_schema,
     GlobalTestAliases,

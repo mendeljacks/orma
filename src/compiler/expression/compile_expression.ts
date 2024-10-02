@@ -5,7 +5,9 @@ import { Path } from '../../types'
 import { GetAliases, OrmaQueryAliases } from '../../types/query/query_types'
 import { GetAllTables, GetColumns } from '../../schema/schema_helper_types'
 import { OrmaSchema } from '../../schema/schema_types'
-import { make_validation_error } from './compiler_helpers'
+import { make_validation_error } from '../common/compiler_helpers'
+import { QueryCompilerArgs } from '../compiler'
+import { OrmaError } from '../../helpers/error_handling'
 
 export const compile_expression = <
     Schema extends OrmaSchema,
@@ -13,23 +15,22 @@ export const compile_expression = <
     Table extends GetAllTables<Schema>
 >({
     orma_schema,
+    statement,
     aliases_by_table,
     tables_in_scope,
-    aggregate_mode,
+    allow_aggregation,
     path,
-    table_name,
-    expression
-}: {
-    orma_schema: OrmaSchema
-    aliases_by_table: { [table in GetAllTables<Schema>]: string[] }[]
+    database_type,
+    table_name
+}: QueryCompilerArgs<Expression<Schema, Aliases, Table>, Schema, Aliases> & {
     tables_in_scope: string[]
-    aggregate_mode: 'no_aggregates' | 'allow_aggregates'
-    path: Path
     table_name: Table
-    expression: Expression<Schema, Aliases, Table>
+    allow_aggregation: boolean
 }) => {
     // column name
-    if (typeof expression === 'string') {
+    if (typeof statement === 'string') {
+        return statement
+
         const errors = !is_column_name(orma_schema, table_name, expression)
             ? [
                   make_validation_error(
@@ -74,6 +75,67 @@ export const compile_expression = <
     }
 }
 
+export const validate_expression = <
+    Schema extends OrmaSchema,
+    Aliases extends OrmaQueryAliases<Schema>,
+    Table extends GetAllTables<Schema>
+>({
+    orma_schema,
+    statement,
+    aliases_by_table,
+    tables_in_scope,
+    allow_aggregation,
+    path,
+    database_type,
+    table_name
+}: QueryCompilerArgs<Expression<Schema, Aliases, Table>, Schema, Aliases> & {
+    tables_in_scope: string[]
+    table_name: Table
+    allow_aggregation: boolean
+}) => {
+    // column name
+    if (typeof statement === 'string') {
+        const is_column = is_column_name(orma_schema, table_name, statement)
+        const is_alias = aliases_by_table[table_name]
+        return !1
+            ? [
+                  {
+                      error_code: 'validation_error',
+                      message: `"${statement}" is not a column of table ${table_name} or a selected alias.`,
+                      path
+                  } as OrmaError
+              ]
+            : []
+    }
+
+    if (is_simple_object(statement)) {
+        const keys = Object.keys(statement)
+        if ('column' in statement) {
+            const is_table = is_table_name(orma_schema, statement.table)
+            const table_errors = !is_table
+                ? [
+                      make_validation_error(
+                          path,
+                          `"${statement.table}" is not a table name.`
+                      )
+                  ]
+                : !tables_in_scope.includes(table_name)
+                ? [
+                      make_validation_error(
+                          path,
+                          `"${statement.table}" is not an in-scope table name.`
+                      )
+                  ]
+                : []
+
+            const column_errors =
+                is_table &&
+                !is_column_name(orma_schema, statement.table, statement.column)
+            //&& !aliases_by_table[expression.table]?.
+        }
+    }
+}
+
 const get_table_column_object_errors = <
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
@@ -94,8 +156,6 @@ const get_table_column_object_errors = <
     expression: NamedColumn<Schema, Aliases, GetAllTables<Schema>>
 }) => {}
 
-type E = Expression<OrmaSchema, {}, ''>
-
 export type Expression<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
@@ -110,6 +170,7 @@ export type Expression<
     | GetColumns<Schema, Table>
     | GetAliases<Schema, Aliases, Table>
     | NamedColumn<Schema, Aliases, GetAllTables<Schema>>
+    | { $escape: number | string | null | (number | string | null)[] }
 
 type ExpressionFunction<
     Schema extends OrmaSchema,

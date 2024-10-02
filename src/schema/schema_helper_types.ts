@@ -1,10 +1,10 @@
-import { TypescriptTypeByMysqlType } from './introspector'
-import { Mutable } from '../types/helper_types'
+import { TypescriptTypeByMysqlType } from '../compiler/data_definition/sql_data_types'
 import {
     ForeignKeyEdge,
     OrmaForeignKey,
     OrmaSchema
 } from '../schema/schema_types'
+import { GlobalTestSchema } from '../test_data/global_test_schema'
 
 export type DeepReadonly<T> = T extends (infer R)[]
     ? readonly DeepReadonly<R>[]
@@ -26,7 +26,11 @@ export type DeepMutable<T> = T extends Function
 
 // basic structure
 
-export type GetAllTables<Schema extends OrmaSchema> = keyof Schema['tables']
+// in theory typescript should know that the key is a string, but im getting cases
+// where the schema comes from an inferred type that ts thinks the table can be
+// a symbol and Adding intersection with string fixes it. One day typescript might fix
+// this issue and this can be removed
+export type GetAllTables<Schema extends OrmaSchema> = Extract<keyof Schema['tables'], string>
 
 export type GetColumns<
     Schema extends OrmaSchema,

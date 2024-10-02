@@ -1,6 +1,7 @@
-import { SupportedDatabases } from '../schema/schema_types'
+import { GetAllTables } from '../schema/schema_helper_types'
+import { OrmaSchema, SupportedDatabases } from '../schema/schema_types'
 import { Path } from '../types'
-import { validate_array } from './common/compiler_helpers'
+import { OrmaQueryAliases } from '../types/query/query_types'
 import {
     AlterTable,
     compile_alter_table
@@ -42,27 +43,22 @@ export const compile_statement = ({
     throw new Error('Unrecognised statement type')
 }
 
-const compile_definitions = (args: CompilerArgs<Definition[]>) => {
-    const { statement, path, database_type } = args
-
-    const sql = statement?.map(definition => {
-        if ('data_type' in definition) {
-            // column definition
-            return {
-                sql: `${definition.name} `
-            }
-        }
-    })
-
-    if (!Array.isArray(statement)) {
-        return { sql: '', errors: validate_array(statement, path) }
-    }
-}
-
 export type Statement = CreateTable | AlterTable | DropTable | TruncateTable
 
 export type CompilerArgs<T extends any> = {
     statement: T
     path: Path
     database_type: SupportedDatabases
+}
+
+export type QueryCompilerArgs<
+    Statement extends any,
+    Schema extends OrmaSchema,
+    Aliases extends OrmaQueryAliases<Schema>
+> = {
+    orma_schema: Schema
+    statement: Statement
+    path: Path
+    database_type: SupportedDatabases
+    aliases_by_table: { [key in any]: string[] }[]
 }
