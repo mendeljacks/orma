@@ -4,7 +4,7 @@ import {
     deep_equal,
     deep_for_each,
     difference,
-    last,
+    last
 } from '../../helpers/helpers'
 import { push_path } from '../../helpers/push_path'
 import {
@@ -12,7 +12,7 @@ import {
     get_entity_names,
     get_field_is_nullable,
     get_parent_edges,
-    is_parent_entity,
+    is_parent_entity
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { WhereConnected } from '../../types/query/query_types'
@@ -62,7 +62,7 @@ export const apply_where_connected_macro = (
                     if (where_clause?.$from) {
                         where_clause_locations.push({
                             where_clause,
-                            where_clause_path,
+                            where_clause_path
                         })
                     }
                 }
@@ -122,8 +122,8 @@ const apply_where_connected_to_subquery = (
                             el,
                             orma_schema.$entities[$entity].$database_type
                         )
-                    ),
-                ],
+                    )
+                ]
             }
 
             const edge_paths_by_destination = get_edge_paths_by_destination(
@@ -157,7 +157,7 @@ const apply_where_connected_to_subquery = (
 
     // only return results that would have been returned by the user where, and are connected
     // (or have no connections) to every entity in the $where_connected
-    const existing_wheres = [subquery.$where] ?? []
+    const existing_wheres = [subquery.$where]
     const new_where = combine_wheres(
         [...existing_wheres, ...target_entity_wheres],
         '$and'
@@ -175,7 +175,7 @@ export const get_where_connected_clauses = (
 ) => {
     // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
     const edge_paths = (edge_paths_by_destination[target_entity] ??
-        []) as typeof edge_paths_by_destination[string]
+        []) as (typeof edge_paths_by_destination)[string]
 
     // This optimization was not working with multiple edge paths, where an edge path is the higher table,
     // but the higher table is a reverse nest and the edge path also starts with a reverse nest (the higher table)
@@ -220,7 +220,7 @@ const get_where_not_connected_clauses = (
 
     // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
     const edge_paths = (edge_paths_by_destination[target_entity] ??
-        []) as typeof edge_paths_by_destination[string]
+        []) as (typeof edge_paths_by_destination)[string]
 
     // TODO: write up a proper explanation with truth tables. Basically the where clause checks that there
     // is at least one connected record. But in cases where all edge paths have a nullable (or reverse nested)
@@ -279,10 +279,10 @@ const get_where_not_connected_clauses = (
                     */
                     $coalesce: [
                         combine_wheres(no_connected_entity_clauses, '$or'),
-                        false,
-                    ],
-                },
-            },
+                        false
+                    ]
+                }
+            }
         ]
     } else {
         return []
@@ -296,7 +296,7 @@ export const get_edge_paths_by_destination = (
     // start off with a path to every connected edge
     let edge_paths =
         connection_edges?.[source_entity]?.map(edge => [
-            { ...edge, from_entity: source_entity },
+            { ...edge, from_entity: source_entity }
         ]) ?? []
 
     // every path before this index is done, in other words there are no more paths that we can get
@@ -332,7 +332,7 @@ export const get_edge_paths_by_destination = (
                 .map(connection_edge => {
                     const new_edge = {
                         ...connection_edge,
-                        from_entity: parent_entity,
+                        from_entity: parent_entity
                     }
                     return [...edge_path, new_edge]
                 }) ?? []
@@ -393,7 +393,7 @@ export const add_connection_edges = (
 ): ConnectionEdges => {
     // shallow clone to not mutate input
     const new_connection_edges = {
-        ...connection_edges,
+        ...connection_edges
     }
 
     new_edges.forEach(new_edge => {
@@ -404,8 +404,8 @@ export const add_connection_edges = (
             {
                 from_field: new_edge.from_field,
                 to_entity: new_edge.to_entity,
-                to_field: new_edge.to_field,
-            },
+                to_field: new_edge.to_field
+            }
         ]
     })
 
@@ -418,7 +418,7 @@ export const remove_connection_edges = (
 ): ConnectionEdges => {
     // shallow clone to not mutate input
     const new_connection_edges = {
-        ...connection_edges,
+        ...connection_edges
     }
 
     edges_to_remove.forEach(edge_to_remove => {
@@ -502,9 +502,9 @@ export const restrict_where_connected = (
                             additional_info: {
                                 where_connected_restriction,
                                 given_where_connected: query.$where_connected,
-                                forbidden_values,
-                            },
-                        },
+                                forbidden_values
+                            }
+                        }
                     ]
                 }
             }

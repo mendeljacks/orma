@@ -2,7 +2,7 @@ import { deep_for_each, deep_get, last } from '../../helpers/helpers'
 import {
     Edge,
     get_edge_path,
-    get_field_is_nullable,
+    get_field_is_nullable
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_real_entity_name } from '../query'
@@ -57,7 +57,7 @@ export const get_any_path_context_entity = (path, query) => {
         '$having',
         '$select',
         '$order_by',
-        '$group_by',
+        '$group_by'
     ]
     const previous_entities = path.flatMap((path_el, i) => {
         if (root_level_keywords.includes(path_el)) {
@@ -65,13 +65,13 @@ export const get_any_path_context_entity = (path, query) => {
                 get_real_entity_name(
                     path[i - 1],
                     deep_get(path.slice(0, i), query)
-                ),
+                )
             ]
         } else if (path_el === '$any_path') {
             const path_segment = path.slice(0, i + 1)
             const previous_any = deep_get(path_segment, query)
             const last_any_path = last(previous_any[0])
-            return [last_any_path] || []
+            return [last_any_path]
         } else {
             return []
         }
@@ -120,9 +120,9 @@ export const edge_path_to_where_ins = (
                 {
                     $select: [edge.to_field],
                     $from: edge.to_entity,
-                    ...(acc === undefined ? {} : { [filter_type]: acc }),
-                },
-            ],
+                    ...(acc === undefined ? {} : { [filter_type]: acc })
+                }
+            ]
         }
 
         return new_acc
