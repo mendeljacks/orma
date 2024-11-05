@@ -79,13 +79,13 @@ export const combine_wheres = (
             const wheres: any[] = new_where?.[connective] ?? [new_where]
             if (!combined_where[connective]) {
                 return {
-                    [connective]: [combined_where, ...wheres],
+                    [connective]: [combined_where, ...wheres]
                 }
             } else {
                 combined_where[connective].push(...wheres)
                 return combined_where
             }
-        }, undefined)
+        }, undefined as undefined | Record<string, any>)
 
     return combined_where
 }
@@ -126,8 +126,8 @@ export const get_search_records_where = (
                             record[field],
                             orma_schema.$entities[entity].$database_type
                         )
-                    }),
-                ],
+                    })
+                ]
             }
         } else {
             // 2 or more, e.g. combo unique
@@ -140,9 +140,9 @@ export const get_search_records_where = (
                             record[field],
                             orma_schema.$entities[path_to_entity(path)]
                                 .$database_type
-                        ),
-                    ],
-                })),
+                        )
+                    ]
+                }))
             }))
         }
     })
