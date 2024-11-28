@@ -8,78 +8,76 @@ import {
     get_child_edges,
     get_table_names,
     get_column_names,
-    get_parent_edges,
+    get_parent_edges
 } from '../schema_helpers'
 
 const orma_schema: OrmaSchema = {
     tables: {
         vendors: {
             columns: {
-                id: { $data_type: 'int' },
-                title: { $data_type: 'varchar' },
+                id: { data_type: 'int' },
+                title: { data_type: 'varchar' }
             },
             primary_key: {
-                $columns: ['id'],
+                columns: ['id']
             },
-            database_type: 'mysql',
+            database_type: 'mysql'
         },
         products: {
             columns: {
-                id: { $data_type: 'int' },
-                vendor_id: { $data_type: 'int', $not_null: true },
+                id: { data_type: 'int' },
+                vendor_id: { data_type: 'int', not_null: true }
             },
             database_type: 'mysql',
             primary_key: {
-                $columns: ['id'],
+                columns: ['id']
             },
             foreign_keys: [
                 {
-                    $columns: ['vendor_id'],
-                    $references: {
-                        $table: 'vendors',
-                        $columns: ['id'],
-                    },
-                },
-            ],
+                    columns: ['vendor_id'],
+                    referenced_table: 'vendors',
+                    referenced_columns: ['id']
+                }
+            ]
         },
         images: {
             database_type: 'mysql',
             columns: {
-                id: { $data_type: 'int' },
-                product_id: { $data_type: 'int' },
+                id: { data_type: 'int' },
+                product_id: { data_type: 'int' }
             },
             primary_key: {
-                $columns: ['id'],
+                columns: ['id']
             },
             foreign_keys: [
                 {
-                    $columns: ['product_id'],
-                    $references: {
-                        $table: 'products',
-                        $columns: ['id'],
-                    },
-                },
-            ],
-        },
+                    columns: ['product_id'],
+                    referenced_table: 'products',
+                    referenced_columns: ['id']
+                }
+            ]
+        }
     },
     cache: {
-        reversed_foreign_keys: {
+        foreign_keys_by_parent: {
             vendors: [
                 {
-                    from_columns: 'id',
-                    to_table: 'products',
-                    to_columns: 'vendor_id',
-                },
+                    table: 'products',
+                    columns: ['vendor_id'],
+                    referenced_table: 'vendors',
+                    referenced_columns: ['id']
+                }
             ],
             products: [
                 {
-                    from_columns: 'id',
-                    to_table: 'images',
-                    to_columns: 'product_id',
-                },
-            ],
-        },
-    },
+                    table: 'images',
+                    columns: ['product_id'],
+                    referenced_table: 'products',
+                    referenced_columns: ['id']
+                }
+            ]
+        }
+    }
 }
 
 describe('schema_helpers.ts', () => {
@@ -94,7 +92,9 @@ describe('schema_helpers.ts', () => {
     describe(get_column_names.name, () => {
         test('gets column names', () => {
             const column_names = get_column_names('products', orma_schema)
-            expect(column_names.sort()).to.deep.equal(['id', 'vendor_id'].sort())
+            expect(column_names.sort()).to.deep.equal(
+                ['id', 'vendor_id'].sort()
+            )
         })
     })
     describe('get_parent_edges', () => {
@@ -105,8 +105,8 @@ describe('schema_helpers.ts', () => {
                     from_table: 'products',
                     from_columns: 'vendor_id',
                     to_table: 'vendors',
-                    to_columns: 'id',
-                },
+                    to_columns: 'id'
+                }
             ]
             expect(parent_edges.sort()).to.deep.equal(goal.sort())
         })
@@ -119,8 +119,8 @@ describe('schema_helpers.ts', () => {
                     from_table: 'vendors',
                     from_columns: 'id',
                     to_table: 'products',
-                    to_columns: 'vendor_id',
-                },
+                    to_columns: 'vendor_id'
+                }
             ]
             expect(parent_edges.sort()).to.deep.equal(goal.sort())
         })
@@ -133,14 +133,14 @@ describe('schema_helpers.ts', () => {
                     from_table: 'products',
                     from_columns: 'vendor_id',
                     to_table: 'vendors',
-                    to_columns: 'id',
+                    to_columns: 'id'
                 },
                 {
                     from_table: 'products',
                     from_columns: 'id',
                     to_table: 'images',
-                    to_columns: 'product_id',
-                },
+                    to_columns: 'product_id'
+                }
             ]
             expect(all_edges.sort()).to.deep.equal(goal.sort())
         })

@@ -20,8 +20,8 @@ export const get_table_names = (orma_schema: OrmaSchema) => {
  * @returns a list of columns attatched to the given table
  */
 export const get_column_names = (
-    table_name: string,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    table_name: string
 ) => {
     return Object.keys(orma_schema.tables?.[table_name]?.columns ?? {})
 }
@@ -29,10 +29,10 @@ export const get_column_names = (
 /**
  * @returns given an table, returns true if the table is in the schema
  */
-export const is_table_name = (orma_schema: OrmaSchema, table_name: any) =>
+export const get_is_table_name = (orma_schema: OrmaSchema, table_name: any) =>
     !!orma_schema?.tables?.[table_name]
 
-export const is_column_name = (
+export const get_is_column_name = (
     orma_schema: OrmaSchema,
     table_name: any,
     column_name: any
@@ -108,6 +108,39 @@ export const get_direct_edges = (
     const possible_edges = get_all_edges(from_table, orma_schema)
     const edges = possible_edges.filter(el => el.to_table === to_table)
     return edges
+}
+
+/**
+ * Gets possible parent or child edges between two tables that are immediate child/parent or parent/child
+ */
+export const get_direct_edge_count = (
+    orma_schema: OrmaSchema,
+    from_table: string,
+    to_table: string
+) => {
+    const foreign_keys = orma_schema.tables[from_table]?.foreign_keys ?? []
+    const parent_edge_count = foreign_keys.reduce((acc, foreign_key) => {
+        if (foreign_key.referenced_table === to_table) {
+            return acc + 1
+        } else {
+            return acc
+        }
+    }, 0)
+
+    const reversed_foreign_keys =
+        orma_schema.cache?.foreign_keys_by_parent[from_table] ?? []
+    const child_edge_count = reversed_foreign_keys.reduce(
+        (acc, reverse_foreign_key) => {
+            if (reverse_foreign_key.table === to_table) {
+                return acc + 1
+            } else {
+                return acc
+            }
+        },
+        0
+    )
+
+    return parent_edge_count + child_edge_count
 }
 
 /* just like get edges, but only returns one conenction between two directly connected tables.

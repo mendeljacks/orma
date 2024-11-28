@@ -1,6 +1,5 @@
-import path = require('path')
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 import {
     compile_definition,
     Definition,
@@ -9,9 +8,8 @@ import {
 
 export const compile_create_table = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<CreateTable>) => {
+}: DDLCompilerArgs<CreateTable>) => {
     if ('like_table' in statement) {
         return `CREATE TABLE ${statement.create_table} LIKE ${statement.like_table}`
     } else {
@@ -30,8 +28,7 @@ export const compile_create_table = ({
         const definitions_strings = statement.definitions.map((definition, i) =>
             compile_definition({
                 database_type,
-                statement: definition,
-                path: [...path, 'definitions', i]
+                statement: definition
             })
         )
 
@@ -47,7 +44,7 @@ export const validate_create_table = ({
     statement,
     path,
     database_type
-}: CompilerArgs<CreateTable>) => {
+}: DDLValidatorArgs<CreateTable>) => {
     if ('like_table' in statement) {
         return validate(
             {

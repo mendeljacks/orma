@@ -2,7 +2,7 @@ import { deep_for_each, deep_get, last } from '../../helpers/helpers'
 import {
     Edge,
     get_edge_path,
-    get_column_is_nullable,
+    get_column_is_nullable
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../schema/schema_types'
 import { get_real_table_name } from '../query'
@@ -57,7 +57,7 @@ export const get_any_path_context_table = (path, query) => {
         '$having',
         '$select',
         '$order_by',
-        '$group_by',
+        '$group_by'
     ]
     const previous_tables = path.flatMap((path_el, i) => {
         if (root_level_keywords.includes(path_el)) {
@@ -65,7 +65,7 @@ export const get_any_path_context_table = (path, query) => {
                 get_real_table_name(
                     path[i - 1],
                     deep_get(path.slice(0, i), query)
-                ),
+                )
             ]
         } else if (path_el === '$any_path') {
             const path_segment = path.slice(0, i + 1)
@@ -120,9 +120,9 @@ export const edge_path_to_where_ins = (
                 {
                     $select: [edge.to_columns],
                     $from: edge.to_table,
-                    ...(acc === undefined ? {} : { [filter_type]: acc }),
-                },
-            ],
+                    ...(acc === undefined ? {} : { [filter_type]: acc })
+                }
+            ]
         }
 
         return new_acc
@@ -130,3 +130,115 @@ export const edge_path_to_where_ins = (
 
     return clause
 }
+
+/**
+new macro stuff:
+
+// validation
+if ('any_path' in statement) {
+        const base_errors = validate(
+            {
+                type: 'object',
+                properties: {
+                    any_path: {
+                        type: 'object',
+                        properties: {
+                            path: {
+                                type: 'array',
+                                minItems: 1,
+                                items: {
+                                    anyOf: [
+                                        {
+                                            type: 'string'
+                                        },
+                                        {
+                                            type: 'object',
+                                            properties: {
+                                                from_column: { type: 'string' },
+                                                to_table: { type: 'string' },
+                                                to_column: { type: 'string' }
+                                            },
+                                            required: [
+                                                'from_column',
+                                                'to_table',
+                                                'to_column'
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            where: {
+                                type: 'object'
+                            }
+                        },
+                        required: ['path', 'where']
+                    }
+                },
+                required: ['any_path']
+            },
+            path,
+            statement
+        )
+
+        const any_path_path = statement?.any_path.path ?? []
+        const path_errors =
+            any_path_path?.flatMap?.((path_el, i) => {
+                const previous_path_el =
+                    i === 0 ? table_name : any_path_path[i - 1]
+                const previous_table =
+                    typeof previous_path_el === 'string'
+                        ? previous_path_el
+                        : previous_path_el.to_table
+
+                if (typeof path_el === 'string') {
+                    const edge_count = get_direct_edge_count(
+                        orma_schema,
+                        previous_table,
+                        path_el
+                    )
+                    if (edge_count !== 1) {
+                        return [
+                            {
+                                message: `Did not find exactly 1 foreign key between ${format_value(
+                                    previous_table
+                                )} and ${format_value(path_el)}.`,
+                                path: [...path, 'any_path', 'path', i],
+                                additional_info: {
+                                    number_of_foreign_keys: edge_count
+                                }
+                            } as OrmaError
+                        ]
+                    } else {
+                        return []
+                    }
+                } else {
+                    get_is_column_name(orma_schema, previous_table, path_el.from_column)
+                }
+            }) ?? []
+        const where_errors = validate_where({
+            orma_schema,
+            statement: statement?.any_path?.where,
+            aliases_by_table,
+            path: [...path, 'any_path', 'where'],
+            table_name
+        })
+        return [...base_errors, ...where_errors]
+    }
+
+
+    // type
+
+    {
+          readonly any_path: {
+              readonly path: readonly (
+                  | string
+                  | {
+                        readonly from_column: string
+                        readonly to_table: string
+                        readonly to_column: string
+                    }
+              )[]
+              readonly where: Where<Schema, Aliases, Table>
+          }
+      }
+ */

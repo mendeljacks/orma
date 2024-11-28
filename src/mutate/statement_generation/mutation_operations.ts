@@ -1,5 +1,5 @@
 import { OrmaError } from '../../helpers/error_handling'
-import { orma_escape } from '../../helpers/escape'
+import { escape_value } from '../../helpers/escape'
 import {
     get_column_schema,
     is_reserved_keyword
@@ -57,7 +57,7 @@ export const get_create_ast = (
                       )
                     : resolved_value
 
-            const escaped_value = orma_escape(
+            const escaped_value = escape_value(
                 value_or_default ?? null,
                 orma_schema.tables[table].database_type
             )
@@ -162,7 +162,7 @@ export const get_update_ast = (
             if (resolved_value === undefined) {
                 return undefined
             }
-            const escaped_value = orma_escape(
+            const escaped_value = escape_value(
                 resolved_value,
                 orma_schema.tables[table].database_type
             )

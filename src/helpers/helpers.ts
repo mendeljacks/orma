@@ -373,3 +373,12 @@ export const validate_errors = (error_results: (any[] | undefined)[]) => {
         throw errors
     }
 }
+
+// Typescript types for Array.isArray are broken for readonly arrays, which is why we need this.
+// See https://github.com/microsoft/TypeScript/issues/17002 for ts issue
+// See https://stackoverflow.com/questions/56248618/how-to-check-if-an-object-is-a-readonly-array-in-typescript for solution
+export const is_array = (
+    arg: unknown
+): arg is unknown[] | readonly unknown[] => {
+    return Array.isArray(arg)
+}

@@ -1,13 +1,9 @@
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
-import { sql_to_typescript_types } from '../sql_data_types'
-import { compile_data_type } from './compile_data_type'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 
 export const compile_unique_key_definition = ({
-    statement,
-    path,
-    database_type
-}: CompilerArgs<UniqueKeyDefinition>) => {
+    statement
+}: DDLCompilerArgs<UniqueKeyDefinition>) => {
     const name_string = statement.name ? ` ${statement.name}` : ''
 
     const invisible_string = statement.invisible ? ' INVISIBLE' : ''
@@ -22,9 +18,8 @@ export const compile_unique_key_definition = ({
 
 export const validate_unique_key_definition = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<UniqueKeyDefinition>) => {
+    path
+}: DDLValidatorArgs<UniqueKeyDefinition>) => {
     const errors = validate(
         {
             type: 'object',

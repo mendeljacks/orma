@@ -1,6 +1,6 @@
-import { escape_column } from '../../../../helpers/escape'
+import { escape_identifier } from '../../../../helpers/escape'
 import { validate } from '../../../common/validator'
-import { CompilerArgs } from '../../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../../compiler'
 import { ColumnDefinition } from '../../definitions/compile_column_definition'
 import { ForeignKeyDefinition } from '../../definitions/compile_foreign_key_definition'
 import { IndexDefinition } from '../../definitions/compile_index_definition'
@@ -9,10 +9,9 @@ import { UniqueKeyDefinition } from '../../definitions/compile_unique_key_defini
 
 export const compile_alter_drop = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<AlterDrop>) => {
-    const name = escape_column(statement.name, database_type)
+}: DDLCompilerArgs<AlterDrop>) => {
+    const name = escape_identifier(database_type, statement.name)
 
     const drop_index_supported =
         database_type !== 'postgres' && database_type !== 'sqlite'
@@ -33,9 +32,8 @@ export const compile_alter_drop = ({
 
 export const validate_alter_drop = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<AlterDrop>) => {
+    path
+}: DDLValidatorArgs<AlterDrop>) => {
     return validate(
         {
             type: 'object',

@@ -1,8 +1,8 @@
 import path = require('path')
 
-import { escape_column } from '../../../helpers/escape'
+import { escape_identifier } from '../../../helpers/escape'
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 import {
     AlterAdd,
     compile_alter_add,
@@ -31,17 +31,15 @@ import {
 
 export const compile_alter_table = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<AlterTable>) => {
-    const table_string = escape_column(statement.alter_table, database_type)
+}: DDLCompilerArgs<AlterTable>) => {
+    const table_string = escape_identifier(database_type, statement.alter_table)
 
     const alter_definitions_string = statement.definitions
         .map((definition, i) =>
             compile_alter_definition({
                 statement: definition,
-                database_type,
-                path: [...path, 'definitions', i]
+                database_type
             })
         )
         .join(', ')
@@ -51,27 +49,26 @@ export const compile_alter_table = ({
 
 const compile_alter_definition = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<AlterDefinition>) => {
+}: DDLCompilerArgs<AlterDefinition>) => {
     if (statement.alter_operation === 'add') {
-        return compile_alter_add({ statement, path, database_type })
+        return compile_alter_add({ statement, database_type })
     }
 
     if (statement.alter_operation === 'modify') {
-        return compile_alter_modify({ statement, path, database_type })
+        return compile_alter_modify({ statement, database_type })
     }
 
     if (statement.alter_operation === 'drop') {
-        return compile_alter_drop({ statement, path, database_type })
+        return compile_alter_drop({ statement, database_type })
     }
 
     if (statement.alter_operation === 'rename_column') {
-        return compile_alter_rename_column({ statement, path, database_type })
+        return compile_alter_rename_column({ statement, database_type })
     }
 
     if (statement.alter_operation === 'rename_table') {
-        return compile_alter_rename_table({ statement, path, database_type })
+        return compile_alter_rename_table({ statement, database_type })
     }
 
     throw new Error('Unrecognized statement')
@@ -81,7 +78,7 @@ export const validate_alter_table = ({
     statement,
     path,
     database_type
-}: CompilerArgs<AlterTable>) => {
+}: DDLValidatorArgs<AlterTable>) => {
     // sqlite not supported
 
     if ('like_table' in statement) {
@@ -133,7 +130,7 @@ const validate_alter_definition = ({
     statement,
     path,
     database_type
-}: CompilerArgs<AlterDefinition>) => {
+}: DDLValidatorArgs<AlterDefinition>) => {
     if (statement.alter_operation === 'add') {
         return validate_alter_add({
             statement,

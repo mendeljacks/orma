@@ -3,8 +3,8 @@ import { OrmaError } from '../../helpers/error_handling'
 import { is_simple_object, last } from '../../helpers/helpers'
 import {
     get_parent_edges,
-    is_table_name,
-    is_column_name,
+    get_is_table_name,
+    get_is_column_name,
     is_parent_table,
     is_reserved_keyword
 } from '../../helpers/schema_helpers'
@@ -133,13 +133,13 @@ const validate_from_clause = (
     orma_schema: OrmaSchema
 ) => {
     const incorrect_from_clause =
-        subquery?.$from && !is_table_name(orma_schema, subquery.$from)
+        subquery?.$from && !get_is_table_name(orma_schema, subquery.$from)
 
     const table_name = get_real_table_name(
         last(subquery_path) as string,
         subquery
     )
-    const incorrect_table = !is_table_name(orma_schema, table_name)
+    const incorrect_table = !get_is_table_name(orma_schema, table_name)
 
     const errors: OrmaError[] = incorrect_from_clause
         ? [
@@ -191,7 +191,7 @@ const validate_data_props = (
 
         // case 1
         if (typeof value === 'boolean') {
-            return !is_column_name(orma_schema, table_name, prop)
+            return !get_is_column_name(orma_schema, table_name, prop)
                 ? [
                       {
                           message: `Property ${prop} is not a valid column name of table ${table_name}.`,
@@ -260,7 +260,7 @@ const validate_expression = (
         }
 
         const errors =
-            !is_column_name(orma_schema, context_table, expression) &&
+            !get_is_column_name(orma_schema, context_table, expression) &&
             !column_aliases.includes(expression)
                 ? [
                       {
@@ -274,7 +274,7 @@ const validate_expression = (
     }
 
     if (expression?.$table) {
-        if (!is_table_name(orma_schema, expression.$table)) {
+        if (!get_is_table_name(orma_schema, expression.$table)) {
             return [
                 {
                     message: `${expression.$table} is not a valid table name.`,
@@ -284,7 +284,7 @@ const validate_expression = (
         }
 
         if (
-            !is_column_name(orma_schema, expression.$table, expression.$column)
+            !get_is_column_name(orma_schema, expression.$table, expression.$column)
         ) {
             return [
                 {
@@ -632,7 +632,7 @@ const validate_any_path_clause = (
     const path = where.$any_path[0] as string[]
     const path_errors: OrmaError[] = path.flatMap((table, i) => {
         const previous_table = i === 0 ? context_table : path[i - 1]
-        if (!is_table_name(orma_schema, table)) {
+        if (!get_is_table_name(orma_schema, table)) {
             return [
                 {
                     message: `${table} is not a valid table name.`,
@@ -675,7 +675,7 @@ const validate_where_connected = (query, orma_schema: OrmaSchema) => {
 
     const done_columns = new Set<string>()
     const errors: OrmaError[] = where_connected.flatMap((el, i) => {
-        if (!is_table_name(orma_schema, el.$table)) {
+        if (!get_is_table_name(orma_schema, el.$table)) {
             return [
                 {
                     message: `${el.$table} is not a valid table name.`,
@@ -684,7 +684,7 @@ const validate_where_connected = (query, orma_schema: OrmaSchema) => {
             ]
         }
 
-        if (!is_column_name(orma_schema, el.$table, el.$column)) {
+        if (!get_is_column_name(orma_schema, el.$table, el.$column)) {
             return [
                 {
                     message: `${el.$column} is not a valid column name of table ${el.$table}.`,

@@ -1,5 +1,5 @@
 import { validate } from '../../../common/validator'
-import { CompilerArgs } from '../../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../../compiler'
 import { ColumnDefinition } from '../../definitions/compile_column_definition'
 import {
     compile_definition,
@@ -12,17 +12,16 @@ import { UniqueKeyDefinition } from '../../definitions/compile_unique_key_defini
 
 export const compile_alter_add = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<AlterAdd>) => {
-    return `ADD ${compile_definition({ statement, path, database_type })}`
+}: DDLCompilerArgs<AlterAdd>) => {
+    return `ADD ${compile_definition({ statement, database_type })}`
 }
 
 export const validate_alter_add = ({
     statement,
     path,
     database_type
-}: CompilerArgs<AlterAdd>) => {
+}: DDLValidatorArgs<AlterAdd>) => {
     const alter_add_errors = validate(
         {
             type: 'object',

@@ -1,7 +1,7 @@
 import { OrmaError } from '../../../../helpers/error_handling'
-import { escape_column } from '../../../../helpers/escape'
+import { escape_identifier } from '../../../../helpers/escape'
 import { validate } from '../../../common/validator'
-import { CompilerArgs } from '../../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../../compiler'
 import {
     ColumnDefinition,
     compile_column_definition,
@@ -11,10 +11,9 @@ import { compile_data_type } from '../../definitions/compile_data_type'
 
 export const compile_alter_modify = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<AlterModify>) => {
-    const column_name = escape_column(statement.name, database_type)
+}: DDLCompilerArgs<AlterModify>) => {
+    const column_name = escape_identifier(database_type, statement.name)
     // postgres thought it was a good idea to ignore the sql standard MODIFY and instead break it up into
     // many custom syntaxes, which is why we need this
     if (database_type === 'postgres') {
@@ -22,8 +21,7 @@ export const compile_alter_modify = ({
         if (statement.data_type) {
             const data_type = compile_data_type({
                 statement,
-                database_type,
-                path: [...path, 'data_type']
+                database_type
             })
             sqls.push(`ALTER COLUMN ${column_name} TYPE ${data_type}`)
         }
@@ -43,7 +41,6 @@ export const compile_alter_modify = ({
     } else if (database_type === 'mysql') {
         return `MODIFY COLUMN ${compile_column_definition({
             statement,
-            path,
             database_type
         })}`
     }
@@ -56,7 +53,7 @@ export const validate_alter_modify = ({
     statement,
     path,
     database_type
-}: CompilerArgs<AlterModify>) => {
+}: DDLValidatorArgs<AlterModify>) => {
     // sqlite not supported
     if (database_type === 'sqlite') {
         const errors: OrmaError[] = [

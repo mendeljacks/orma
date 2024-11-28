@@ -1,6 +1,7 @@
 import { TypescriptTypeByMysqlType } from '../compiler/data_definition/sql_data_types'
 import {
     ForeignKeyEdge,
+    OrmaColumn,
     OrmaForeignKey,
     OrmaSchema
 } from '../schema/schema_types'
@@ -30,12 +31,67 @@ export type DeepMutable<T> = T extends Function
 // where the schema comes from an inferred type that ts thinks the table can be
 // a symbol and Adding intersection with string fixes it. One day typescript might fix
 // this issue and this can be removed
-export type GetAllTables<Schema extends OrmaSchema> = Extract<keyof Schema['tables'], string>
+export type GetAllTables<Schema extends OrmaSchema> = Extract<
+    keyof Schema['tables'],
+    string
+>
 
 export type GetColumns<
     Schema extends OrmaSchema,
     Table extends GetAllTables<Schema>
-> = keyof Schema['tables'][Table]['columns']
+> = Extract<keyof Schema['tables'][Table]['columns'], string>
+
+export type GetColumnsRequiredForCreate<
+    Schema extends OrmaSchema,
+    Table extends GetAllTables<Schema>
+> = GetColumnsRequiredForCreate2<Schema, Table, GetColumns<Schema, Table>>
+
+type GetColumnsRequiredForCreate2<
+    Schema extends OrmaSchema,
+    Table extends GetAllTables<Schema>,
+    Columns extends GetColumns<Schema, Table>
+> = Columns extends GetColumns<Schema, Table>
+    ? GetColumnRequiredForCreate<
+          Schema['tables'][Table]['columns'][Columns]
+      > extends true
+        ? Columns
+        : never
+    : never
+
+export type GetColumnsNotRequiredForCreate<
+    Schema extends OrmaSchema,
+    Table extends GetAllTables<Schema>
+> = GetColumnsNotRequiredForCreate2<Schema, Table, GetColumns<Schema, Table>>
+
+type GetColumnsNotRequiredForCreate2<
+    Schema extends OrmaSchema,
+    Table extends GetAllTables<Schema>,
+    Columns extends GetColumns<Schema, Table>
+> = Columns extends GetColumns<Schema, Table>
+    ? GetColumnRequiredForCreate<
+          Schema['tables'][Table]['columns'][Columns]
+      > extends false
+        ? Columns
+        : never
+    : never
+
+type GetColumnRequiredForCreate<ColumnSchema extends OrmaColumn> =
+    ColumnSchema['not_null'] extends true
+        ? // and not auto increment
+          ColumnSchema['auto_increment'] extends true
+            ? false
+            : // and no default
+            unknown extends ColumnSchema['default']
+            ? true
+            : // or default is set to undefined
+            ColumnSchema['default'] extends undefined
+            ? true
+            : false
+        : false
+
+type T = GetColumnsRequiredForCreate<GlobalTestSchema, 'posts'>
+type T2 = GetColumnsNotRequiredForCreate<GlobalTestSchema, 'posts'>
+type T3 = GetColumns<GlobalTestSchema, 'posts'>
 
 export type GetColumnNotNull<
     Schema extends OrmaSchema,
@@ -44,6 +100,36 @@ export type GetColumnNotNull<
 > = Schema['tables'][Table]['columns'][Column]['not_null'] extends true
     ? true
     : false
+
+export type GetConnectedTables<
+    Schema extends OrmaSchema,
+    Table extends GetAllTables<Schema>
+> = GetChildTables<Schema, Table> | GetParentTables<Schema, Table>
+
+type GetChildTables<
+    Schema extends OrmaSchema,
+    Table extends GetAllTables<Schema>
+> = CastToTableName<
+    Schema,
+    NonNullable<
+        Schema['cache']
+    >['reversed_foreign_keys'][Table][number]['to_table']
+>
+
+type GetParentTables<
+    Schema extends OrmaSchema,
+    Table extends GetAllTables<Schema>
+> = CastToTableName<
+    Schema,
+    NonNullable<
+        Schema['tables'][Table]['foreign_keys']
+    >[number]['references']['table']
+>
+
+type CastToTableName<
+    Schema extends OrmaSchema,
+    Table extends string
+> = Table extends GetAllTables<Schema> ? Table : never
 
 export type GetAllEdges<
     Schema extends OrmaSchema,

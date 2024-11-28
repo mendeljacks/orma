@@ -1,22 +1,20 @@
-import { escape_column } from '../../../helpers/escape'
+import { escape_identifier } from '../../../helpers/escape'
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 
 export const compile_truncate_table = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<TruncateTable>) => {
-    const name = escape_column(statement.truncate_table, database_type)
+}: DDLCompilerArgs<TruncateTable>) => {
+    const name = escape_identifier(database_type, statement.truncate_table)
 
     return `TRUNCATE TABLE ${name}`
 }
 
 export const validate_alter_truncate = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<TruncateTable>) => {
+    path
+}: DDLValidatorArgs<TruncateTable>) => {
     return validate(
         {
             type: 'object',

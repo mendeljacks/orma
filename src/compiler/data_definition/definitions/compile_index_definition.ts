@@ -1,13 +1,9 @@
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
-import { sql_to_typescript_types } from '../sql_data_types'
-import { compile_data_type } from './compile_data_type'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 
 export const compile_index_definition = ({
-    statement,
-    path,
-    database_type
-}: CompilerArgs<IndexDefinition>) => {
+    statement
+}: DDLCompilerArgs<IndexDefinition>) => {
     const name_string = statement.name ? ` ${statement.name}` : ''
     const type_string =
         statement.index === 'full_text'
@@ -27,9 +23,8 @@ export const compile_index_definition = ({
 
 export const validate_index_definition = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<IndexDefinition>) => {
+    path
+}: DDLValidatorArgs<IndexDefinition>) => {
     const errors = validate(
         {
             type: 'object',

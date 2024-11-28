@@ -1,4 +1,4 @@
-import { orma_escape } from '../../helpers/escape'
+import { escape_value } from '../../helpers/escape'
 import {
     deep_for_each,
     deep_set,
@@ -76,7 +76,7 @@ export const apply_escape_macro_to_query_part = (
 
         deep_set(
             path,
-            orma_escape(
+            escape_value(
                 value.$escape,
                 orma_schema.tables[table].database_type
             ),

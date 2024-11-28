@@ -40,8 +40,13 @@ type Prepopulate = {
 }
 
 type OrmaSchemaCache = {
-    readonly reversed_foreign_keys: {
-        readonly [ReferencedTable in string]: readonly ForeignKeyEdge[]
+    // readonly reversed_foreign_keys: {
+    //     readonly [ReferencedTable in string]: readonly ForeignKeyEdge[]
+    // }
+    readonly foreign_keys_by_parent: {
+        readonly [ReferencedTable in string]: readonly (OrmaForeignKey & {
+            table: string
+        })[]
     }
 }
 

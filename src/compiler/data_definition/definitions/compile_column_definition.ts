@@ -1,27 +1,20 @@
 import { OrmaError } from '../../../helpers/error_handling'
-import { escape_column } from '../../../helpers/escape'
-import {
-    validate_boolean,
-    validate_not_empty,
-    validate_string
-} from '../../common/compiler_helpers'
+import { escape_identifier } from '../../../helpers/escape'
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 import { sql_to_typescript_types } from '../sql_data_types'
 import { compile_data_type } from './compile_data_type'
 
 export const compile_column_definition = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<ColumnDefinition>) => {
+}: DDLCompilerArgs<ColumnDefinition>) => {
     const data_type_string = compile_data_type({
         statement,
-        database_type,
-        path
+        database_type
     })
     const not_null_string = statement.not_null ? ` NOT NULL` : ''
-    const escaped_column_name = escape_column(statement.name, database_type)
+    const escaped_column_name = escape_identifier(database_type, statement.name)
 
     // check constraints to polyfill unsupported features in some dbs
     let check_constraints: string[] = []
@@ -72,9 +65,8 @@ export const compile_column_definition = ({
 
 export const validate_column_definition = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<ColumnDefinition>) => {
+    path
+}: DDLValidatorArgs<ColumnDefinition>) => {
     const errors = validate(
         {
             type: 'object',

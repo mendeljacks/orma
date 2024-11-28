@@ -8,9 +8,9 @@ export const format_list_of_values = (
 }
 
 export const format_value = (
-    value: string | number | boolean | null | undefined | any[],
+    value: string | number | boolean | null | undefined | any[] | object,
     revealed_item_count: number = 4
-) => {
+): string => {
     if (typeof value === 'string') {
         return `'${value}'`
     } else if (Array.isArray(value)) {

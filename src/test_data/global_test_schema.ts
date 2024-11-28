@@ -43,17 +43,13 @@ export const global_test_schema = {
             foreign_keys: [
                 {
                     columns: ['billing_address_id'],
-                    references: {
-                        table: 'addresses',
-                        columns: ['id']
-                    }
+                    referenced_table: 'addresses',
+                    referenced_columns: ['id']
                 },
                 {
                     columns: ['shipping_address_id'],
-                    references: {
-                        table: 'addresses',
-                        columns: ['id']
-                    }
+                    referenced_table: 'addresses',
+                    referenced_columns: ['id']
                 }
             ]
         },
@@ -91,10 +87,8 @@ export const global_test_schema = {
             foreign_keys: [
                 {
                     columns: ['user_id'],
-                    references: {
-                        table: 'users',
-                        columns: ['id']
-                    }
+                    referenced_table: 'users',
+                    referenced_columns: ['id']
                 }
             ]
         },
@@ -127,17 +121,13 @@ export const global_test_schema = {
             foreign_keys: [
                 {
                     columns: ['user_id'],
-                    references: {
-                        table: 'users',
-                        columns: ['id']
-                    }
+                    referenced_table: 'users',
+                    referenced_columns: ['id']
                 },
                 {
                     columns: ['post_id'],
-                    references: {
-                        table: 'posts',
-                        columns: ['id']
-                    }
+                    referenced_table: 'posts',
+                    referenced_columns: ['id']
                 }
             ]
         },
@@ -160,10 +150,8 @@ export const global_test_schema = {
             foreign_keys: [
                 {
                     columns: ['post_id'],
-                    references: {
-                        table: 'posts',
-                        columns: ['id']
-                    }
+                    referenced_table: 'posts',
+                    referenced_columns: ['id']
                 }
             ]
         },
@@ -197,10 +185,8 @@ export const global_test_schema = {
             foreign_keys: [
                 {
                     columns: ['tax_code_id'],
-                    references: {
-                        table: 'tax_codes',
-                        columns: ['id']
-                    }
+                    referenced_table: 'tax_codes',
+                    referenced_columns: ['id']
                 }
             ]
         },
@@ -271,10 +257,8 @@ export const global_test_schema = {
             foreign_keys: [
                 {
                     columns: ['parent_category_id'],
-                    references: {
-                        table: 'categories',
-                        columns: ['id']
-                    }
+                    referenced_table: 'categories',
+                    referenced_columns: ['id']
                 }
             ]
         },
@@ -301,82 +285,88 @@ export const global_test_schema = {
                 {
                     name: 'post_id_fk',
                     columns: ['post_id'],
-                    references: {
-                        table: 'posts',
-                        columns: ['id']
-                    }
+                    referenced_table: 'posts',
+                    referenced_columns: ['id']
                 },
                 {
                     name: 'category_id_fk',
                     columns: ['category_id'],
-                    references: {
-                        table: 'categories',
-                        columns: ['id']
-                    }
+                    referenced_table: 'categories',
+                    referenced_columns: ['id']
                 }
             ]
         }
     },
     cache: {
-        reversed_foreign_keys: {
+        foreign_keys_by_parent: {
             addresses: [
                 {
-                    from_columns: ['id'],
-                    to_table: 'users',
-                    to_columns: ['billing_address_id']
+                    referenced_table: 'addresses',
+                    referenced_columns: ['id'],
+                    table: 'users',
+                    columns: ['billing_address_id']
                 },
                 {
-                    from_columns: ['id'],
-                    to_table: 'users',
-                    to_columns: ['shipping_address_id']
+                    referenced_table: 'addresses',
+                    referenced_columns: ['id'],
+                    table: 'users',
+                    columns: ['shipping_address_id']
                 }
             ],
             tax_codes: [
                 {
-                    from_columns: ['id'],
-                    to_table: 'addresses',
-                    to_columns: ['tax_code_id']
+                    referenced_table: 'tax_codes',
+                    referenced_columns: ['id'],
+                    table: 'addresses',
+                    columns: ['tax_code_id']
                 }
             ],
             users: [
                 {
-                    from_columns: ['id'],
-                    to_table: 'posts',
-                    to_columns: ['user_id']
+                    referenced_table: 'users',
+                    referenced_columns: ['id'],
+                    table: 'posts',
+                    columns: ['user_id']
                 },
                 {
-                    from_columns: ['id'],
-                    to_table: 'likes',
-                    to_columns: ['user_id']
+                    referenced_table: 'users',
+                    referenced_columns: ['id'],
+                    table: 'likes',
+                    columns: ['user_id']
                 }
             ],
             posts: [
                 {
-                    from_columns: ['id'],
-                    to_table: 'likes',
-                    to_columns: ['post_id']
+                    referenced_table: 'posts',
+                    referenced_columns: ['id'],
+                    table: 'likes',
+                    columns: ['post_id']
                 },
                 {
-                    from_columns: ['id'],
-                    to_table: 'comments',
-                    to_columns: ['post_id']
+                    referenced_table: 'posts',
+                    referenced_columns: ['id'],
+                    table: 'comments',
+                    columns: ['post_id']
                 },
                 {
-                    from_columns: ['id'],
-                    to_table: 'post_has_categories',
-                    to_columns: ['post_id']
+                    referenced_table: 'posts',
+                    referenced_columns: ['id'],
+                    table: 'post_has_categories',
+                    columns: ['post_id']
                 }
             ],
             categories: [
                 {
-                    from_columns: ['id'],
-                    to_table: 'post_has_categories',
-                    to_columns: ['category_id']
+                    referenced_table: 'categories',
+                    referenced_columns: ['id'],
+                    table: 'post_has_categories',
+                    columns: ['category_id']
                 },
                 {
-                    from_columns: ['id'],
-                    to_table: 'categories',
-                    to_columns: ['parent_category_id']
+                    referenced_table: 'categories',
+                    referenced_columns: ['id'],
+                    table: 'categories',
+                    columns: ['parent_category_id']
                 }
             ]
         }

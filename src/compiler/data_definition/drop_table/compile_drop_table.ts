@@ -1,13 +1,12 @@
-import { escape_column } from '../../../helpers/escape'
+import { escape_identifier } from '../../../helpers/escape'
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 
 export const compile_drop_table = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<DropTable>) => {
-    const name = escape_column(statement.drop_table, database_type)
+}: DDLCompilerArgs<DropTable>) => {
+    const name = escape_identifier(database_type, statement.drop_table)
     const if_exists_string = statement.if_exists ? ' IF EXISTS' : ''
 
     return `DROP TABLE${if_exists_string} ${name}`
@@ -15,9 +14,8 @@ export const compile_drop_table = ({
 
 export const validate_alter_drop = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<DropTable>) => {
+    path
+}: DDLValidatorArgs<DropTable>) => {
     return validate(
         {
             type: 'object',

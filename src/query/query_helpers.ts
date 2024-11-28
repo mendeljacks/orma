@@ -1,4 +1,4 @@
-import { orma_escape } from '../helpers/escape'
+import { escape_value } from '../helpers/escape'
 import { deep_get, is_simple_object, last } from '../helpers/helpers'
 import { is_reserved_keyword } from '../helpers/schema_helpers'
 import { path_to_table } from '../mutate/helpers/mutate_helpers'
@@ -122,7 +122,7 @@ export const get_search_records_where = (
                     column,
                     pathed_records.map(({ record, path }) => {
                         const table = path_to_table(path)
-                        return orma_escape(
+                        return escape_value(
                             record[column],
                             orma_schema.tables[table].database_type
                         )
@@ -136,7 +136,7 @@ export const get_search_records_where = (
                 $and: identifying_columns.map(column => ({
                     $eq: [
                         column,
-                        orma_escape(
+                        escape_value(
                             record[column],
                             orma_schema.tables[path_to_table(path)]
                                 .database_type

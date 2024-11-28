@@ -1,4 +1,4 @@
-import { orma_escape } from '../../helpers/escape'
+import { escape_value } from '../../helpers/escape'
 import {
     clone,
     deep_equal,
@@ -118,7 +118,7 @@ const apply_where_connected_to_subquery = (
                 $in: [
                     $column,
                     $values.map(el =>
-                        orma_escape(
+                        escape_value(
                             el,
                             orma_schema.tables[$table].database_type
                         )

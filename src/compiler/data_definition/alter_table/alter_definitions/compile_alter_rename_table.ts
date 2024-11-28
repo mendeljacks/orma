@@ -1,21 +1,19 @@
-import { escape_column } from '../../../../helpers/escape'
+import { escape_identifier } from '../../../../helpers/escape'
 import { validate } from '../../../common/validator'
-import { CompilerArgs } from '../../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../../compiler'
 
 export const compile_alter_rename_table = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<AlterRenameTable>) => {
-    const new_name = escape_column(statement.new_name, database_type)
+}: DDLCompilerArgs<AlterRenameTable>) => {
+    const new_name = escape_identifier(database_type, statement.new_name)
     return `RENAME TO ${new_name}`
 }
 
 export const validate_alter_rename_table = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<AlterRenameTable>) => {
+    path
+}: DDLValidatorArgs<AlterRenameTable>) => {
     const errors = validate(
         {
             type: 'object',

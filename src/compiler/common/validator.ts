@@ -5,6 +5,7 @@ import { is_simple_object } from '../../helpers/helpers'
 import { Path } from '../../types'
 import { array_to_readable_list, format_value } from './message_formatting'
 
+// TODO: check this gives nice error messages for order by (i.e. anyOf with each value being an object with required props)
 export const validate = (
     schema: ValidationSchema,
     path: Path,
@@ -126,7 +127,7 @@ export const validate_inner = (
 
             const schema_items = schema.items
             const item_errors = schema_items
-                ? value.flatMap((item, i) => {
+                ? value?.flatMap((item: any, i: number) => {
                       const prefix_length = schema.prefixItems?.length ?? 0
                       if (i < prefix_length) {
                           return []
@@ -155,6 +156,8 @@ const check_simple_schema = (schema: ValidationSchema, value: any): boolean => {
 
     if ('enum' in schema) {
         return schema.enum.has(value)
+    } else if ('const' in schema) {
+        return schema.const === value
     } else if ('type' in schema) {
         if (schema.type === 'null') {
             return value === null
@@ -202,6 +205,8 @@ const get_schema_description = (schema: ValidationSchema): string => {
         return `not ${get_schema_description(schema)}`
     } else if ('enum' in schema) {
         return `one of ${format_value(Array.from(schema.enum))}`
+    } else if ('const' in schema) {
+        return `equal ${format_value(schema.const)}`
     } else if ('type' in schema) {
         if (schema.type === 'object') {
             return 'an object'
@@ -259,6 +264,7 @@ const get_schema_description = (schema: ValidationSchema): string => {
 }
 
 export type ValidationSchema =
+    | { const: string | number | null | boolean }
     | { enum: Set<any> }
     | { type: 'null' | 'boolean' }
     | {
@@ -288,4 +294,4 @@ export type ValidationSchema =
     | { anyOf: ValidationSchema[] }
     // | { one_of: JsonSchema[] }
     | { not: ValidationSchema }
-    | {}
+    | Record<string, never>

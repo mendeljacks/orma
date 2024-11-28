@@ -1,12 +1,12 @@
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 import { mysql_types } from '../sql_data_types'
 import { ColumnDefinition } from './compile_column_definition'
 
 export const compile_data_type = ({
     statement,
     database_type
-}: CompilerArgs<ColumnDefinition>) => {
+}: DDLCompilerArgs<ColumnDefinition>) => {
     if (statement.data_type === 'enum') {
         const enum_values = statement.enum_values?.map(el =>
             database_type === 'postgres' ? `'${el}'` : `"${el}"`
@@ -42,7 +42,7 @@ export const compile_data_type = ({
 export const validate_data_type = ({
     statement,
     path
-}: CompilerArgs<ColumnDefinition>) => {
+}: DDLValidatorArgs<ColumnDefinition>) => {
     const enum_errors =
         statement.data_type === 'enum'
             ? validate(

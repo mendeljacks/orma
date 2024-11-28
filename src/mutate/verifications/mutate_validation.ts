@@ -6,8 +6,8 @@ import {
     get_all_edges,
     get_column_names,
     get_column_schema,
-    is_table_name,
-    is_column_name,
+    get_is_table_name,
+    get_is_column_name,
     is_required_column,
     is_reserved_keyword
 } from '../../helpers/schema_helpers'
@@ -112,7 +112,7 @@ const validate_mutation_js = (mutation, orma_schema: OrmaSchema) => {
         .flatMap(key => {
             const value = mutation[key] as any[]
 
-            if (is_table_name(orma_schema, key)) {
+            if (get_is_table_name(orma_schema, key)) {
                 return value.flatMap((record, i) =>
                     validate_mutation_record(
                         mutation,
@@ -273,7 +273,7 @@ const validate_columns_and_nested_mutations = (
                         operation
                     )
                 )
-            } else if (is_column_name(orma_schema, table_name, key)) {
+            } else if (get_is_column_name(orma_schema, table_name, key)) {
                 // regular column
                 if (Array.isArray(value)) {
                     return [

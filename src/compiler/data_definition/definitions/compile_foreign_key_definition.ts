@@ -1,20 +1,19 @@
-import { escape_column } from '../../../helpers/escape'
+import { escape_identifier } from '../../../helpers/escape'
 import { validate, ValidationSchema } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 
 export const compile_foreign_key_definition = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<ForeignKeyDefinition>) => {
+}: DDLCompilerArgs<ForeignKeyDefinition>) => {
     const name_string = statement.name ? ` ${statement.name}` : ''
 
     const columns_string = statement.columns
-        .map(col => escape_column(col, database_type))
+        .map(col => escape_identifier(database_type, col))
         .join(', ')
 
-    const referenced_columns_string = statement.references.columns
-        .map(col => escape_column(col, database_type))
+    const referenced_columns_string = statement.referenced_columns
+        .map(col => escape_identifier(database_type, col))
         .join(', ')
 
     const on_delete_string = statement.on_delete
@@ -24,7 +23,7 @@ export const compile_foreign_key_definition = ({
         ? ` ON UPDATE ${get_on_trigger_string(statement.on_update)}`
         : ''
 
-    return `CONSTRAINT${name_string} FOREIGN KEY (${columns_string}) REFERENCES ${statement.references.table}(${referenced_columns_string})${on_delete_string}${on_update_string}`
+    return `CONSTRAINT${name_string} FOREIGN KEY (${columns_string}) REFERENCES ${statement.referenced_table}(${referenced_columns_string})${on_delete_string}${on_update_string}`
 }
 
 const get_on_trigger_string = (
@@ -52,9 +51,8 @@ const on_trigger_schema: ValidationSchema = {
 
 export const validate_foreign_key_definition = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<ForeignKeyDefinition>) => {
+    path
+}: DDLValidatorArgs<ForeignKeyDefinition>) => {
     const errors = validate(
         {
             type: 'object',
@@ -96,10 +94,8 @@ export type ForeignKeyDefinition = {
     constraint: 'foreign_key'
     columns: readonly string[]
     name?: string
-    references: {
-        table: string
-        columns: readonly string[]
-    }
+    referenced_table: string
+    referenced_columns: readonly string[]
     on_delete?: OnTrigger
     on_update?: OnTrigger
 }

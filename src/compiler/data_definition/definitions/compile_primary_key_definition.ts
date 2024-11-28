@@ -1,14 +1,11 @@
-import { escape_column } from '../../../helpers/escape'
+import { escape_identifier } from '../../../helpers/escape'
 import { validate } from '../../common/validator'
-import { CompilerArgs } from '../../compiler'
-import { sql_to_typescript_types } from '../sql_data_types'
-import { compile_data_type } from './compile_data_type'
+import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
 
 export const compile_primary_key_definition = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<PrimaryKeyDefintion>) => {
+}: DDLCompilerArgs<PrimaryKeyDefintion>) => {
     const name_string = statement.name ? ` ${statement.name}` : ''
 
     const invisible_string = statement.invisible ? ' INVISIBLE' : ''
@@ -17,15 +14,14 @@ export const compile_primary_key_definition = ({
         : ''
 
     return `CONSTRAINT${name_string} PRIMARY KEY (${statement.columns
-        .map(col => escape_column(col, database_type))
+        .map(col => escape_identifier(database_type, col))
         .join(', ')})${invisible_string}${comment_string}`
 }
 
 export const validate_primary_key_definition = ({
     statement,
-    path,
-    database_type
-}: CompilerArgs<PrimaryKeyDefintion>) => {
+    path
+}: DDLValidatorArgs<PrimaryKeyDefintion>) => {
     const errors = validate(
         {
             type: 'object',

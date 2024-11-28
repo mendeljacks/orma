@@ -21,23 +21,22 @@ import {
 
 export const compile_statement = ({
     statement,
-    path,
     database_type
-}: CompilerArgs<Statement>) => {
+}: DDLCompilerArgs<Statement>) => {
     if ('create_table' in statement) {
-        return compile_create_table({ statement, path, database_type })
+        return compile_create_table({ statement, database_type })
     }
 
     if ('alter_table' in statement) {
-        return compile_alter_table({ statement, path, database_type })
+        return compile_alter_table({ statement, database_type })
     }
 
     if ('drop_table' in statement) {
-        return compile_drop_table({ statement, path, database_type })
+        return compile_drop_table({ statement, database_type })
     }
 
     if ('truncate_table' in statement) {
-        return compile_truncate_table({ statement, path, database_type })
+        return compile_truncate_table({ statement, database_type })
     }
 
     throw new Error('Unrecognised statement type')
@@ -45,20 +44,31 @@ export const compile_statement = ({
 
 export type Statement = CreateTable | AlterTable | DropTable | TruncateTable
 
-export type CompilerArgs<T extends any> = {
-    statement: T
-    path: Path
+export type DDLValidatorArgs<T extends any> = {
     database_type: SupportedDatabases
+    path: Path
+    statement: T
+}
+export type DDLCompilerArgs<T extends any> = {
+    database_type: SupportedDatabases
+    statement: T
 }
 
 export type QueryCompilerArgs<
-    Statement extends any,
     Schema extends OrmaSchema,
-    Aliases extends OrmaQueryAliases<Schema>
+    Statement extends any
+> = {
+    orma_schema: Schema
+    table_name: GetAllTables<Schema>
+    statement: Statement
+}
+
+export type QueryValidatorArgs<
+    Schema extends OrmaSchema,
+    Statement extends any
 > = {
     orma_schema: Schema
     statement: Statement
     path: Path
-    database_type: SupportedDatabases
-    aliases_by_table: { [key in any]: string[] }[]
+    aliases_by_table: { [key in string]: string[] }
 }
