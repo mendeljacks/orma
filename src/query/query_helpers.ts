@@ -71,7 +71,7 @@ export const combine_wheres = (
 ) => {
     const combined_where = where_clauses
         .filter(el => el !== undefined)
-        .reduce((combined_where, new_where) => {
+        .reduce((combined_where: any, new_where: any) => {
             if (combined_where === undefined) {
                 return new_where
             }
@@ -82,7 +82,7 @@ export const combine_wheres = (
                     [connective]: [combined_where, ...wheres]
                 }
             } else {
-                combined_where[connective].push(...wheres)
+                ;(combined_where[connective] as any).push(...wheres)
                 return combined_where
             }
         }, undefined as undefined | Record<string, any>)
