@@ -281,11 +281,11 @@ const generate_ownership_errors = (
                 error_code: 'missing_access_rights',
                 message: `Tried to mutate data from ${
                     where_connected.$entity
-                } ${owners.join(
+                } ${[...new Set(owners)].join(
                     ', '
                 )} but only has permission to modify data from ${
                     where_connected.$entity
-                } ${where_connected.$values.join(', ')}.`,
+                } ${[...new Set(where_connected.$values)].join(', ')}.`,
                 additional_info: {
                     where_connected,
                     owners,
