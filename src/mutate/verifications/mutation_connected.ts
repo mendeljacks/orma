@@ -223,7 +223,10 @@ export const get_foreign_key_connected_wheres = (
                     const value = record[field]
                     // ignore any values with a guid since they must refer to something in this mutation,
                     // but that row must belong to us if it passes ownership
-                    return value?.$guid === undefined ? value : undefined
+                    const has_guid = value?.$guid !== undefined
+                    // ignore null values, e.g. a foreign key thats null will not cause a foreign key check to occur
+                    const is_null = value === null
+                    return has_guid || is_null ? undefined : value
                 })
                 .filter(el => el !== undefined)
 
