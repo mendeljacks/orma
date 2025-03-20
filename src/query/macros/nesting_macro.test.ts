@@ -11,9 +11,9 @@ describe('nesting_macro.ts', () => {
                     id: true,
                     comments: {
                         id: true,
-                        post_id: true,
-                    },
-                },
+                        post_id: true
+                    }
+                }
             }
 
             const previous_results = [[['posts'], [{ id: 1 }, { id: 2 }]]]
@@ -32,10 +32,10 @@ describe('nesting_macro.ts', () => {
                         id: true,
                         post_id: true,
                         $where: {
-                            $in: ['post_id', [1, 2]],
-                        },
-                    },
-                },
+                            $in: ['post_id', [1, 2]]
+                        }
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)
@@ -45,10 +45,10 @@ describe('nesting_macro.ts', () => {
                 users: {
                     posts: {
                         comments: {
-                            id: true,
-                        },
-                    },
-                },
+                            id: true
+                        }
+                    }
+                }
             }
 
             const previous_results = [[['users'], [{ id: 1 }, { id: 2 }]]]
@@ -71,14 +71,14 @@ describe('nesting_macro.ts', () => {
                                         $select: ['id'],
                                         $from: 'posts',
                                         $where: {
-                                            $in: ['user_id', [1, 2]],
-                                        },
-                                    },
-                                ],
-                            },
-                        },
-                    },
-                },
+                                            $in: ['user_id', [1, 2]]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)
@@ -89,14 +89,14 @@ describe('nesting_macro.ts', () => {
                     posts: {
                         // the where clause is on posts, so image_urls will nest based on posts
                         $where: { $gt: ['id', 0] },
-                        comments: {},
-                    },
-                },
+                        comments: {}
+                    }
+                }
             }
 
             const previous_results = [
                 [['users'], [{ id: 1 }, { id: 2 }]],
-                [['users', 'posts'], [{ id: 3 }]],
+                [['users', 'posts'], [{ id: 3 }]]
             ]
 
             apply_nesting_macro(
@@ -112,11 +112,11 @@ describe('nesting_macro.ts', () => {
                         $where: { $gt: ['id', 0] },
                         comments: {
                             $where: {
-                                $in: ['post_id', [3]],
-                            },
-                        },
-                    },
-                },
+                                $in: ['post_id', [3]]
+                            }
+                        }
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)
@@ -128,14 +128,14 @@ describe('nesting_macro.ts', () => {
                     my_posts: {
                         $from: 'posts',
                         $where: { $gt: ['id', 0] },
-                        comments: {},
-                    },
-                },
+                        comments: {}
+                    }
+                }
             }
 
             const previous_results = [
                 [['my_users'], [{ id: 1 }]],
-                [['my_users', 'my_posts'], [{ id: 3 }]],
+                [['my_users', 'my_posts'], [{ id: 3 }]]
             ]
 
             apply_nesting_macro(
@@ -160,20 +160,20 @@ describe('nesting_macro.ts', () => {
                         $where: {
                             $and: [
                                 {
-                                    $gt: ['id', 0],
+                                    $gt: ['id', 0]
                                 },
                                 {
-                                    $in: ['user_id', [1]],
-                                },
-                            ],
+                                    $in: ['user_id', [1]]
+                                }
+                            ]
                         },
                         comments: {
                             $where: {
-                                $in: ['post_id', [3]],
-                            },
-                        },
-                    },
-                },
+                                $in: ['post_id', [3]]
+                            }
+                        }
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)
@@ -184,14 +184,14 @@ describe('nesting_macro.ts', () => {
                     posts: {
                         $where: undefined,
                         $having: undefined,
-                        comments: {},
-                    },
-                },
+                        comments: {}
+                    }
+                }
             }
 
             const previous_results = [
                 [['users'], [{ id: 1 }, { id: 2 }]],
-                [['users', 'posts'], [{ id: 3 }]],
+                [['users', 'posts'], [{ id: 3 }]]
             ]
             apply_nesting_macro(
                 query,
@@ -213,14 +213,14 @@ describe('nesting_macro.ts', () => {
                                         $select: ['id'],
                                         $from: 'posts',
                                         $where: {
-                                            $in: ['user_id', [1, 2]],
-                                        },
-                                    },
-                                ],
-                            },
-                        },
-                    },
-                },
+                                            $in: ['user_id', [1, 2]]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)
@@ -231,17 +231,17 @@ describe('nesting_macro.ts', () => {
                     addresses: {
                         $foreign_key: ['billing_address_id'],
                         tax_codes: {
-                            id: true,
-                        },
-                    },
-                },
+                            id: true
+                        }
+                    }
+                }
             }
 
             const previous_results = [
                 [
                     ['users'],
-                    [{ billing_address_id: 1 }, { billing_address_id: 2 }],
-                ],
+                    [{ billing_address_id: 1 }, { billing_address_id: 2 }]
+                ]
             ]
             apply_nesting_macro(
                 query,
@@ -263,14 +263,26 @@ describe('nesting_macro.ts', () => {
                                         $select: ['tax_code_id'],
                                         $from: 'addresses',
                                         $where: {
-                                            $in: ['id', [1, 2]],
-                                        },
-                                    },
-                                ],
-                            },
-                        },
-                    },
-                },
+                                            $and: [
+                                                {
+                                                    $not: {
+                                                        $eq: [
+                                                            'tax_code_id',
+                                                            null
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    $in: ['id', [1, 2]]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)

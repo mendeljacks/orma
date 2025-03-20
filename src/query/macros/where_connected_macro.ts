@@ -18,7 +18,7 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import { WhereConnected } from '../../types/query/query_types'
 import { get_real_entity_name, get_real_higher_entity_name } from '../query'
 import { combine_wheres, query_for_each } from '../query_helpers'
-import { edge_path_to_where_ins } from './any_path_macro'
+import { edge_path_to_where_ins, edge_to_where_in } from './any_path_macro'
 
 export const get_upwards_connection_edges = (orma_schema: OrmaSchema) => {
     const connection_edges = get_entity_names(orma_schema).reduce(
@@ -191,7 +191,12 @@ export const get_where_connected_clauses = (
     // )
 
     const clauses = edge_paths.map(edge_path => {
-        const clause = edge_path_to_where_ins(edge_path, '$where', target_where)
+        const clause = edge_path_to_where_ins(
+            orma_schema,
+            edge_path,
+            '$where',
+            target_where
+        )
 
         return clause
     })
@@ -222,68 +227,45 @@ const get_where_not_connected_clauses = (
     const edge_paths = (edge_paths_by_destination[target_entity] ??
         []) as (typeof edge_paths_by_destination)[string]
 
-    // TODO: write up a proper explanation with truth tables. Basically the where clause checks that there
+    // Basically the where clause checks that there
     // is at least one connected record. But in cases where all edge paths have a nullable (or reverse nested)
     // edge, then there could be NO connected record. In that case, there is not one connected record, but since
     // there are also no non-connected records, we allow it explicitly. Note that this only applies
     // if we are not directly checking the root level (which is why its in the else)
-    const should_check_no_connected_entity =
-        edge_paths.length > 0 &&
-        edge_paths.every(edge_path => {
-            const is_nullable_or_reversed = edge_path.some(edge => {
-                const is_reversed = is_parent_entity(
-                    edge.from_entity,
-                    edge.to_entity,
-                    orma_schema
-                )
-                const is_nullable =
-                    !is_reversed &&
-                    get_field_is_nullable(
-                        orma_schema,
-                        edge.from_entity,
-                        edge.from_field
-                    )
 
-                return is_reversed || is_nullable
-            })
-            return is_nullable_or_reversed
-        })
-
-    // this clause is true if there are no connected entities
-    if (should_check_no_connected_entity) {
-        const no_connected_entity_clauses = edge_paths.map(edge_path => {
-            const clause = edge_path_to_where_ins(
-                edge_path,
-                '$where',
-                undefined
+    // take the first edge and uniq them based on all keys
+    const first_edges = [
+        ...new Set(edge_paths.map(edge_path => JSON.stringify(edge_path[0])))
+    ].map(el => JSON.parse(el) as Edge)
+    const wheres = first_edges.map(edge => {
+        const is_reversed = is_parent_entity(
+            edge.from_entity,
+            edge.to_entity,
+            orma_schema
+        )
+        const is_nullable =
+            !is_reversed &&
+            get_field_is_nullable(
+                orma_schema,
+                edge.from_entity,
+                edge.from_field
             )
 
-            return clause
-        })
-
-        return [
-            {
-                $not: {
-                    /*
-                    We need special handling for the not in clause, since nulls contaminate the entire where in.
-                    To get a feel for the weirdness, consider the following queries:
-                    
-                        SELECT 1 FROM DUAL WHERE 1 IN (2, NULL); -- returns nothing, since 1 is not in the array
-                        SELECT 1 FROM DUAL WHERE 1 NOT IN (2, NULL); -- also returns nothing?!
-                    
-                        SELECT 1 FROM DUAL WHERE NULL IN (1, 2);
-                        SELECT 1 FROM DUAL WHERE NULL NOT IN (1, 2); -- same story swapping the null and the value
-                    
-                    So we basically IN works fine, but NOT IN breaks if there is a null. A simple solution
-                    is to just coalesce the NULLs into FALSE, which gives the expected behaviour
-                    */
-                    $coalesce: [
-                        combine_wheres(no_connected_entity_clauses, '$or'),
-                        false
-                    ]
-                }
+        if (is_reversed) {
+            return {
+                $not: edge_to_where_in(orma_schema, edge, '$where', undefined)
             }
-        ]
+        }
+
+        if (is_nullable) {
+            return { $eq: [edge.from_field, null] }
+        }
+
+        return undefined
+    })
+
+    if (wheres.length && wheres.every(where => where !== undefined)) {
+        return [combine_wheres(wheres, '$and')]
     } else {
         return []
     }

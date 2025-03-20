@@ -151,8 +151,6 @@ describe('mutation_connected.ts', () => {
                     },
                     path: ['addresses', 0]
                 },
-                // creating does not generate a where clause here, even though there is a connection edge to products,
-                // since in the create we dont include a foreign key to anything existing in the database
                 {
                     record: {
                         $operation: 'create'
@@ -161,8 +159,6 @@ describe('mutation_connected.ts', () => {
                 }
             ]
 
-            // in this examle, we set up the connection edges so that a listing is considered connected
-            // to a user if one of the products connected to that listing are connected to the user
             const connection_edges = add_connection_edges(
                 default_connection_edges,
                 [
@@ -196,14 +192,23 @@ describe('mutation_connected.ts', () => {
                                 $in: ['shipping_address_id', [1]]
                             },
                             {
-                                $in: [
-                                    'shipping_address_id',
+                                $and: [
                                     {
-                                        $select: ['id'],
-                                        $from: 'addresses',
-                                        $where: {
-                                            $eq: ['id', 1]
+                                        $not: {
+                                            $eq: ['shipping_address_id', null]
                                         }
+                                    },
+                                    {
+                                        $in: [
+                                            'shipping_address_id',
+                                            {
+                                                $select: ['id'],
+                                                $from: 'addresses',
+                                                $where: {
+                                                    $eq: ['id', 1]
+                                                }
+                                            }
+                                        ]
                                     }
                                 ]
                             }
@@ -410,7 +415,16 @@ describe('mutation_connected.ts', () => {
                         {
                             $select: ['billing_address_id'],
                             $from: 'users',
-                            $where: { $eq: ['id', 1] }
+                            $where: {
+                                $and: [
+                                    {
+                                        $not: {
+                                            $eq: ['billing_address_id', null]
+                                        }
+                                    },
+                                    { $eq: ['id', 1] }
+                                ]
+                            }
                         }
                     ]
                 },
@@ -420,7 +434,16 @@ describe('mutation_connected.ts', () => {
                         {
                             $select: ['shipping_address_id'],
                             $from: 'users',
-                            $where: { $eq: ['id', 1] }
+                            $where: {
+                                $and: [
+                                    {
+                                        $not: {
+                                            $eq: ['shipping_address_id', null]
+                                        }
+                                    },
+                                    { $eq: ['id', 1] }
+                                ]
+                            }
                         }
                     ]
                 }
@@ -504,6 +527,7 @@ describe('mutation_connected.ts', () => {
             ]
 
             const wheres = get_foreign_key_connected_wheres(
+                global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -538,6 +562,7 @@ describe('mutation_connected.ts', () => {
             ]
 
             const wheres = get_foreign_key_connected_wheres(
+                global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -573,6 +598,7 @@ describe('mutation_connected.ts', () => {
             ]
 
             const wheres = get_foreign_key_connected_wheres(
+                global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -596,6 +622,7 @@ describe('mutation_connected.ts', () => {
             ]
 
             const wheres = get_foreign_key_connected_wheres(
+                global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('addresses'),
                 mutation_pieces,

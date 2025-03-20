@@ -6,6 +6,7 @@ import {
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_real_entity_name } from '../query'
+import { combine_wheres } from '../query_helpers'
 
 /**
  * The first argument to the $any_path macro is a list of connected entities, with the
@@ -99,12 +100,18 @@ export const process_any_clause = (
     const full_path = [initial_entity].concat(any_path)
 
     const edge_path = get_edge_path(full_path, orma_schema)
-    const clause = edge_path_to_where_ins(edge_path, filter_type, subquery)
+    const clause = edge_path_to_where_ins(
+        orma_schema,
+        edge_path,
+        filter_type,
+        subquery
+    )
 
     return clause
 }
 
 export const edge_path_to_where_ins = (
+    orma_schema: OrmaSchema,
     edge_path: Edge[],
     filter_type: '$having' | '$where',
     subquery: any
@@ -113,20 +120,67 @@ export const edge_path_to_where_ins = (
     // from the inside out
     const reversed_edge_path = edge_path.slice().reverse()
 
-    const clause = reversed_edge_path.reduce((acc, edge) => {
-        const new_acc = {
-            $in: [
-                edge.from_field,
-                {
-                    $select: [edge.to_field],
-                    $from: edge.to_entity,
-                    ...(acc === undefined ? {} : { [filter_type]: acc })
-                }
-            ]
-        }
-
-        return new_acc
-    }, subquery)
+    const clause = reversed_edge_path.reduce(
+        (acc, edge) => edge_to_where_in(orma_schema, edge, filter_type, acc),
+        subquery
+    )
 
     return clause
+}
+
+export const edge_to_where_in = (
+    orma_schema: OrmaSchema,
+    edge: Edge,
+    filter_type: '$having' | '$where',
+    subquery: any
+) => {
+    /*
+        We need special handling for nulls, since nulls contaminate the entire where in.
+        To get a feel for the weirdness, consider the following queries:
+        
+            SELECT 1 FROM DUAL WHERE 1 IN (2, NULL); -- returns nothing, since 1 is not in the array
+            SELECT 1 FROM DUAL WHERE 1 NOT IN (2, NULL); -- also returns nothing?!
+        
+            SELECT 1 FROM DUAL WHERE NULL IN (1, 2);
+            SELECT 1 FROM DUAL WHERE NULL NOT IN (1, 2); -- same story swapping the null and the value
+        
+        So we basically IN works fine, but NOT IN breaks if there is a null. A simple solution
+        is to just filter out all nulls from both sides of the where in
+    */
+    const from_field_is_nullable = get_field_is_nullable(
+        orma_schema,
+        edge.from_entity,
+        edge.from_field
+    )
+    const to_field_is_nullable = get_field_is_nullable(
+        orma_schema,
+        edge.to_entity,
+        edge.to_field
+    )
+
+    const previous_wheres = subquery === undefined ? [] : [subquery]
+    const nullability_wheres = to_field_is_nullable
+        ? [{ $not: { $eq: [edge.to_field, null] } }]
+        : []
+    const inner_where = combine_wheres(
+        [...nullability_wheres, ...previous_wheres],
+        '$and'
+    )
+
+    const in_clause = {
+        $in: [
+            edge.from_field,
+            {
+                $select: [edge.to_field],
+                $from: edge.to_entity,
+                ...(inner_where ? { [filter_type]: inner_where } : {})
+            }
+        ]
+    }
+
+    const outer_where = from_field_is_nullable
+        ? { $and: [{ $not: { $eq: [edge.from_field, null] } }, in_clause] }
+        : in_clause
+
+    return outer_where
 }

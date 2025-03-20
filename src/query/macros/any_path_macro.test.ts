@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import {
     GlobalTestQuery,
-    global_test_schema,
+    global_test_schema
 } from '../../test_data/global_test_schema'
 import { apply_any_path_macro } from './any_path_macro'
 
@@ -17,21 +17,21 @@ describe('any_path_macro.ts', () => {
                                 $any_path: [
                                     ['comments'],
                                     {
-                                        $eq: ['id', 1],
-                                    },
-                                ],
+                                        $eq: ['id', 1]
+                                    }
+                                ]
                             },
                             {
                                 $any_path: [
                                     ['users'],
                                     {
-                                        $eq: ['id', 1],
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                        $eq: ['id', 1]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
             } as const satisfies GlobalTestQuery
 
             apply_any_path_macro(query, global_test_schema)
@@ -47,10 +47,10 @@ describe('any_path_macro.ts', () => {
                                         $select: ['post_id'],
                                         $from: 'comments',
                                         $where: {
-                                            $eq: ['id', 1],
-                                        },
-                                    },
-                                ],
+                                            $eq: ['id', 1]
+                                        }
+                                    }
+                                ]
                             },
                             {
                                 $in: [
@@ -59,14 +59,14 @@ describe('any_path_macro.ts', () => {
                                         $select: ['id'],
                                         $from: 'users',
                                         $where: {
-                                            $eq: ['id', 1],
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                            $eq: ['id', 1]
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)
@@ -78,11 +78,11 @@ describe('any_path_macro.ts', () => {
                         $any_path: [
                             ['posts', 'comments'],
                             {
-                                $eq: ['id', 1],
-                            },
-                        ],
-                    },
-                },
+                                $eq: ['id', 1]
+                            }
+                        ]
+                    }
+                }
             }
 
             apply_any_path_macro(query, global_test_schema)
@@ -102,15 +102,59 @@ describe('any_path_macro.ts', () => {
                                             $select: ['post_id'],
                                             $from: 'comments',
                                             $where: {
-                                                $eq: ['id', 1],
-                                            },
+                                                $eq: ['id', 1]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+
+            expect(query).to.deep.equal(goal)
+        })
+        test('uses special handling for nullable foreign key', () => {
+            const query = {
+                tax_codes: {
+                    $where: {
+                        $any_path: [
+                            ['addresses'],
+                            {
+                                $eq: ['id', 1]
+                            }
+                        ]
+                    }
+                }
+            }
+
+            apply_any_path_macro(query, global_test_schema)
+
+            const goal = {
+                tax_codes: {
+                    $where: {
+                        $in: [
+                            'id',
+                            {
+                                $select: ['tax_code_id'],
+                                $from: 'addresses',
+                                $where: {
+                                    $and: [
+                                        {
+                                            $not: {
+                                                $eq: ['tax_code_id', null]
+                                            }
                                         },
-                                    ],
-                                },
-                            },
-                        ],
-                    },
-                },
+                                        {
+                                            $eq: ['id', 1]
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)
@@ -125,13 +169,13 @@ describe('any_path_macro.ts', () => {
                                 $any_path: [
                                     ['comments'],
                                     {
-                                        $eq: ['id', 1],
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                        $eq: ['id', 1]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
             }
 
             apply_any_path_macro(query, global_test_schema)
@@ -151,15 +195,15 @@ describe('any_path_macro.ts', () => {
                                             $select: ['post_id'],
                                             $from: 'comments',
                                             $where: {
-                                                $eq: ['id', 1],
-                                            },
-                                        },
-                                    ],
-                                },
-                            },
-                        ],
-                    },
-                },
+                                                $eq: ['id', 1]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
             }
 
             expect(query).to.deep.equal(goal)
@@ -171,11 +215,11 @@ describe('any_path_macro.ts', () => {
                         $any_path: [
                             ['posts'],
                             {
-                                $eq: ['id', 1],
-                            },
-                        ],
-                    },
-                },
+                                $eq: ['id', 1]
+                            }
+                        ]
+                    }
+                }
             }
 
             apply_any_path_macro(query, global_test_schema)
@@ -188,12 +232,12 @@ describe('any_path_macro.ts', () => {
                                 $select: ['user_id'],
                                 $from: 'posts',
                                 $having: {
-                                    $eq: ['id', 1],
-                                },
-                            },
-                        ],
-                    },
-                },
+                                    $eq: ['id', 1]
+                                }
+                            }
+                        ]
+                    }
+                }
             }
             expect(query).to.deep.equal(goal)
         })
@@ -205,11 +249,11 @@ describe('any_path_macro.ts', () => {
                         $any_path: [
                             ['comments'],
                             {
-                                $eq: ['id', 1],
-                            },
-                        ],
-                    },
-                },
+                                $eq: ['id', 1]
+                            }
+                        ]
+                    }
+                }
             }
 
             apply_any_path_macro(query, global_test_schema)
@@ -223,12 +267,12 @@ describe('any_path_macro.ts', () => {
                                 $select: ['post_id'],
                                 $from: 'comments',
                                 $where: {
-                                    $eq: ['id', 1],
-                                },
-                            },
-                        ],
-                    },
-                },
+                                    $eq: ['id', 1]
+                                }
+                            }
+                        ]
+                    }
+                }
             }
             expect(query).to.deep.equal(goal)
         })

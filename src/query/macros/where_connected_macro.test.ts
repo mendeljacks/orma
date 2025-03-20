@@ -6,7 +6,7 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import {
     apply_where_connected_macro,
     get_upwards_connection_edges,
-    restrict_where_connected,
+    restrict_where_connected
 } from './where_connected_macro'
 
 describe('where_connected_macro.ts', () => {
@@ -18,13 +18,13 @@ describe('where_connected_macro.ts', () => {
                         $fields: { id: { $data_type: 'int' } },
                         $database_type: 'mysql',
                         $primary_key: {
-                            $fields: ['id'],
-                        },
+                            $fields: ['id']
+                        }
                     },
                     parents: {
                         $fields: {
                             id: { $data_type: 'int' },
-                            grandparent_id: { $data_type: 'int' },
+                            grandparent_id: { $data_type: 'int' }
                         },
                         $database_type: 'mysql',
                         $foreign_keys: [
@@ -32,18 +32,18 @@ describe('where_connected_macro.ts', () => {
                                 $fields: ['grandparent_id'],
                                 $references: {
                                     $entity: 'grandparents',
-                                    $fields: ['id'],
-                                },
-                            },
+                                    $fields: ['id']
+                                }
+                            }
                         ],
                         $primary_key: {
-                            $fields: ['id'],
-                        },
+                            $fields: ['id']
+                        }
                     },
                     children: {
                         $fields: {
                             id: { $data_type: 'int' },
-                            parent_id: { $data_type: 'int' },
+                            parent_id: { $data_type: 'int' }
                         },
                         $database_type: 'mysql',
                         $foreign_keys: [
@@ -51,14 +51,14 @@ describe('where_connected_macro.ts', () => {
                                 $fields: ['parent_id'],
                                 $references: {
                                     $entity: 'parents',
-                                    $fields: ['id'],
-                                },
-                            },
+                                    $fields: ['id']
+                                }
+                            }
                         ],
                         $primary_key: {
-                            $fields: ['id'],
-                        },
-                    },
+                            $fields: ['id']
+                        }
+                    }
                 },
                 $cache: {
                     $reversed_foreign_keys: {
@@ -66,18 +66,18 @@ describe('where_connected_macro.ts', () => {
                             {
                                 from_field: 'id',
                                 to_entity: 'parents',
-                                to_field: 'grandparent_id',
-                            },
+                                to_field: 'grandparent_id'
+                            }
                         ],
                         parents: [
                             {
                                 from_field: 'id',
                                 to_entity: 'children',
-                                to_field: 'parent_id',
-                            },
-                        ],
-                    },
-                },
+                                to_field: 'parent_id'
+                            }
+                        ]
+                    }
+                }
             }
 
             const connection_paths = get_upwards_connection_edges(schema)
@@ -88,17 +88,17 @@ describe('where_connected_macro.ts', () => {
                         from_entity: 'parents',
                         from_field: 'grandparent_id',
                         to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
+                        to_field: 'id'
+                    }
                 ],
                 children: [
                     {
                         from_entity: 'children',
                         from_field: 'parent_id',
                         to_entity: 'parents',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
         })
         test('handles multiple edges', () => {
@@ -108,21 +108,21 @@ describe('where_connected_macro.ts', () => {
                         $fields: { id: { $data_type: 'int' } },
                         $database_type: 'mysql',
                         $primary_key: {
-                            $fields: ['id'],
-                        },
+                            $fields: ['id']
+                        }
                     },
                     parents_2: {
                         $fields: { id: { $data_type: 'int' } },
                         $database_type: 'mysql',
                         $primary_key: {
-                            $fields: ['id'],
-                        },
+                            $fields: ['id']
+                        }
                     },
                     children: {
                         $fields: {
                             id: { $data_type: 'int' },
                             parent_id: { $data_type: 'int' },
-                            parents_2_id: { $data_type: 'int' },
+                            parents_2_id: { $data_type: 'int' }
                         },
                         $database_type: 'mysql',
                         $foreign_keys: [
@@ -130,21 +130,21 @@ describe('where_connected_macro.ts', () => {
                                 $fields: ['parent_id'],
                                 $references: {
                                     $entity: 'parents',
-                                    $fields: ['id'],
-                                },
+                                    $fields: ['id']
+                                }
                             },
                             {
                                 $fields: ['parents_2_id'],
                                 $references: {
                                     $entity: 'parents_2',
-                                    $fields: ['id'],
-                                },
-                            },
+                                    $fields: ['id']
+                                }
+                            }
                         ],
                         $primary_key: {
-                            $fields: ['id'],
-                        },
-                    },
+                            $fields: ['id']
+                        }
+                    }
                 },
                 $cache: {
                     $reversed_foreign_keys: {
@@ -152,18 +152,18 @@ describe('where_connected_macro.ts', () => {
                             {
                                 from_field: 'id',
                                 to_entity: 'children',
-                                to_field: 'parent_id',
-                            },
+                                to_field: 'parent_id'
+                            }
                         ],
                         parents_2: [
                             {
                                 from_field: 'id',
                                 to_entity: 'children',
-                                to_field: 'parents_2_id',
-                            },
-                        ],
-                    },
-                },
+                                to_field: 'parents_2_id'
+                            }
+                        ]
+                    }
+                }
             }
 
             const connection_paths = get_upwards_connection_edges(schema)
@@ -174,15 +174,15 @@ describe('where_connected_macro.ts', () => {
                         from_entity: 'children',
                         from_field: 'parent_id',
                         to_entity: 'parents',
-                        to_field: 'id',
+                        to_field: 'id'
                     },
                     {
                         from_entity: 'children',
                         from_field: 'parents_2_id',
                         to_entity: 'parents_2',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
         })
         test('skips edges from an entity to itself', () => {
@@ -191,7 +191,7 @@ describe('where_connected_macro.ts', () => {
                     entity: {
                         $fields: {
                             id: { $data_type: 'int' },
-                            entity_id: { $data_type: 'int' },
+                            entity_id: { $data_type: 'int' }
                         },
                         $database_type: 'mysql',
                         $foreign_keys: [
@@ -199,14 +199,14 @@ describe('where_connected_macro.ts', () => {
                                 $fields: ['entity_id'],
                                 $references: {
                                     $entity: 'entity',
-                                    $fields: ['id'],
-                                },
-                            },
+                                    $fields: ['id']
+                                }
+                            }
                         ],
                         $primary_key: {
-                            $fields: ['id'],
-                        },
-                    },
+                            $fields: ['id']
+                        }
+                    }
                 },
                 $cache: {
                     $reversed_foreign_keys: {
@@ -214,11 +214,11 @@ describe('where_connected_macro.ts', () => {
                             {
                                 from_field: 'id',
                                 to_entity: 'entity',
-                                to_field: 'entity_id',
-                            },
-                        ],
-                    },
-                },
+                                to_field: 'entity_id'
+                            }
+                        ]
+                    }
+                }
             }
 
             const connection_paths = get_upwards_connection_edges(schema)
@@ -233,12 +233,12 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'users',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 comments: {
-                    id: true,
-                },
+                    id: true
+                }
             }
 
             apply_where_connected_macro(global_test_schema, query, {
@@ -246,16 +246,16 @@ describe('where_connected_macro.ts', () => {
                     {
                         from_field: 'post_id',
                         to_entity: 'posts',
-                        to_field: 'id',
-                    },
+                        to_field: 'id'
+                    }
                 ],
                 posts: [
                     {
                         from_field: 'user_id',
                         to_entity: 'users',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
 
             // @ts-ignore
@@ -272,13 +272,13 @@ describe('where_connected_macro.ts', () => {
                                     $select: ['id'],
                                     $from: 'users',
                                     $where: {
-                                        $in: ['id', [1, 2]],
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
+                                        $in: ['id', [1, 2]]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
             })
         })
         test('handles multiple connection paths', () => {
@@ -287,12 +287,12 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'users',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 likes: {
-                    id: true,
-                },
+                    id: true
+                }
             }
 
             apply_where_connected_macro(global_test_schema, query, {
@@ -300,21 +300,21 @@ describe('where_connected_macro.ts', () => {
                     {
                         from_field: 'post_id',
                         to_entity: 'posts',
-                        to_field: 'id',
+                        to_field: 'id'
                     },
                     {
                         from_field: 'user_id',
                         to_entity: 'users',
-                        to_field: 'id',
-                    },
+                        to_field: 'id'
+                    }
                 ],
                 posts: [
                     {
                         from_field: 'user_id',
                         to_entity: 'users',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
 
             // @ts-ignore
@@ -327,10 +327,10 @@ describe('where_connected_macro.ts', () => {
                                 $select: ['id'],
                                 $from: 'users',
                                 $where: {
-                                    $in: ['id', [1, 2]],
-                                },
-                            },
-                        ],
+                                    $in: ['id', [1, 2]]
+                                }
+                            }
+                        ]
                     },
                     {
                         $in: [
@@ -345,15 +345,15 @@ describe('where_connected_macro.ts', () => {
                                             $select: ['id'],
                                             $from: 'users',
                                             $where: {
-                                                $in: ['id', [1, 2]],
-                                            },
-                                        },
-                                    ],
-                                },
-                            },
-                        ],
-                    },
-                ],
+                                                $in: ['id', [1, 2]]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
             })
         })
         test('combines with existing $where clause', () => {
@@ -362,15 +362,15 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'users',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 posts: {
                     id: true,
                     $where: {
-                        $eq: ['id', 13],
-                    },
-                },
+                        $eq: ['id', 13]
+                    }
+                }
             }
 
             // notice we are using backwards nesting here, this is supported for example if the user specified
@@ -380,16 +380,16 @@ describe('where_connected_macro.ts', () => {
                     {
                         from_field: 'user_id',
                         to_entity: 'users',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
 
             // @ts-ignore
             expect(query.posts.$where).to.deep.equal({
                 $and: [
                     {
-                        $eq: ['id', 13],
+                        $eq: ['id', 13]
                     },
                     {
                         $in: [
@@ -398,12 +398,12 @@ describe('where_connected_macro.ts', () => {
                                 $select: ['id'],
                                 $from: 'users',
                                 $where: {
-                                    $in: ['id', [1, 2]],
-                                },
-                            },
-                        ],
-                    },
-                ],
+                                    $in: ['id', [1, 2]]
+                                }
+                            }
+                        ]
+                    }
+                ]
             })
         })
         test('applies to $where $in clauses', () => {
@@ -412,8 +412,8 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'users',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 comments: {
                     id: true,
@@ -424,13 +424,13 @@ describe('where_connected_macro.ts', () => {
                                     'post_id',
                                     {
                                         $select: ['id'],
-                                        $from: 'posts',
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                        $from: 'posts'
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
             }
 
             apply_where_connected_macro(global_test_schema, query, {
@@ -438,9 +438,9 @@ describe('where_connected_macro.ts', () => {
                     {
                         from_field: 'user_id',
                         to_entity: 'users',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
 
             // @ts-ignore
@@ -451,10 +451,10 @@ describe('where_connected_macro.ts', () => {
                         $select: ['id'],
                         $from: 'users',
                         $where: {
-                            $in: ['id', [1, 2]],
-                        },
-                    },
-                ],
+                            $in: ['id', [1, 2]]
+                        }
+                    }
+                ]
             })
         })
         test.skip('skips regularly nested subqueries', () => {
@@ -465,15 +465,15 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'grandparents',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 parents: {
                     id: true,
                     children: {
-                        id: true,
-                    },
-                },
+                        id: true
+                    }
+                }
             }
 
             // notice we are using backwards nesting here, this is supported for example if the user specified
@@ -483,16 +483,16 @@ describe('where_connected_macro.ts', () => {
                     {
                         from_field: 'parent_id',
                         to_entity: 'parents',
-                        to_field: 'id',
-                    },
+                        to_field: 'id'
+                    }
                 ],
                 parents: [
                     {
                         from_field: 'grandparent_id',
                         to_entity: 'grandparents',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
 
             // @ts-ignore
@@ -506,12 +506,12 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'users',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 users: {
-                    id: true,
-                },
+                    id: true
+                }
             }
 
             // notice we are using backwards nesting here, this is supported for example if the user specified
@@ -520,7 +520,7 @@ describe('where_connected_macro.ts', () => {
 
             // @ts-ignore
             expect(query.users.$where).to.deep.equal({
-                $in: ['id', [1, 2]],
+                $in: ['id', [1, 2]]
             })
         })
         test('handles nullable foreign keys', () => {
@@ -529,12 +529,12 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'addresses',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 users: {
-                    id: true,
-                },
+                    id: true
+                }
             }
 
             apply_where_connected_macro(global_test_schema, query, {
@@ -542,41 +542,39 @@ describe('where_connected_macro.ts', () => {
                     {
                         from_field: 'billing_address_id',
                         to_entity: 'addresses',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
 
             // @ts-ignore
             expect(query.users.$where).to.deep.equal({
                 $or: [
                     {
-                        $in: [
-                            'billing_address_id',
+                        $and: [
                             {
-                                $select: ['id'],
-                                $from: 'addresses',
-                                $where: { $in: ['id', [1, 2]] },
+                                $not: {
+                                    $eq: ['billing_address_id', null]
+                                }
                             },
-                        ],
+                            {
+                                $in: [
+                                    'billing_address_id',
+                                    {
+                                        $select: ['id'],
+                                        $from: 'addresses',
+                                        $where: {
+                                            $in: ['id', [1, 2]]
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
                     },
                     {
-                        $not: {
-                            $coalesce: [
-                                {
-                                    $in: [
-                                        'billing_address_id',
-                                        {
-                                            $select: ['id'],
-                                            $from: 'addresses',
-                                        },
-                                    ],
-                                },
-                                false,
-                            ],
-                        },
-                    },
-                ],
+                        $eq: ['billing_address_id', null]
+                    }
+                ]
             })
         })
         test('handles reversed nullable foreign keys', () => {
@@ -585,12 +583,12 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'users',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 addresses: {
-                    id: true,
-                },
+                    id: true
+                }
             }
 
             apply_where_connected_macro(global_test_schema, query, {
@@ -598,9 +596,9 @@ describe('where_connected_macro.ts', () => {
                     {
                         from_field: 'id',
                         to_entity: 'users',
-                        to_field: 'billing_address_id',
-                    },
-                ],
+                        to_field: 'billing_address_id'
+                    }
+                ]
             })
 
             // @ts-ignore
@@ -612,27 +610,39 @@ describe('where_connected_macro.ts', () => {
                             {
                                 $select: ['billing_address_id'],
                                 $from: 'users',
-                                $where: { $in: ['id', [1, 2]] },
-                            },
-                        ],
+                                $where: {
+                                    $and: [
+                                        {
+                                            $not: {
+                                                $eq: [
+                                                    'billing_address_id',
+                                                    null
+                                                ]
+                                            }
+                                        },
+                                        { $in: ['id', [1, 2]] }
+                                    ]
+                                }
+                            }
+                        ]
                     },
                     {
                         $not: {
-                            $coalesce: [
+                            $in: [
+                                'id',
                                 {
-                                    $in: [
-                                        'id',
-                                        {
-                                            $select: ['billing_address_id'],
-                                            $from: 'users',
-                                        },
-                                    ],
-                                },
-                                false,
-                            ],
-                        },
-                    },
-                ],
+                                    $select: ['billing_address_id'],
+                                    $from: 'users',
+                                    $where: {
+                                        $not: {
+                                            $eq: ['billing_address_id', null]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
             })
         })
         test('handles nullable and non-nullable foreign keys together', () => {
@@ -644,10 +654,10 @@ describe('where_connected_macro.ts', () => {
                         ...global_test_schema.$entities.likes,
                         $fields: {
                             ...global_test_schema.$entities.likes.$fields,
-                            user_id: { $data_type: 'int' }, // make nullable
-                        },
-                    },
-                },
+                            user_id: { $data_type: 'int' } // make nullable
+                        }
+                    }
+                }
             }
 
             const query = {
@@ -655,12 +665,12 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'users',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 likes: {
-                    id: true,
-                },
+                    id: true
+                }
             }
 
             apply_where_connected_macro(schema, query, {
@@ -668,35 +678,40 @@ describe('where_connected_macro.ts', () => {
                     {
                         from_field: 'user_id',
                         to_entity: 'users',
-                        to_field: 'id',
+                        to_field: 'id'
                     },
                     {
                         from_field: 'post_id',
                         to_entity: 'posts',
-                        to_field: 'id',
-                    },
+                        to_field: 'id'
+                    }
                 ],
                 posts: [
                     {
                         from_field: 'user_id',
                         to_entity: 'users',
-                        to_field: 'id',
-                    },
-                ],
+                        to_field: 'id'
+                    }
+                ]
             })
 
             // @ts-ignore
             expect(query.likes.$where).to.deep.equal({
                 $or: [
                     {
-                        $in: [
-                            'user_id',
+                        $and: [
+                            { $not: { $eq: ['user_id', null] } },
                             {
-                                $select: ['id'],
-                                $from: 'users',
-                                $where: { $in: ['id', [1, 2]] },
-                            },
-                        ],
+                                $in: [
+                                    'user_id',
+                                    {
+                                        $select: ['id'],
+                                        $from: 'users',
+                                        $where: { $in: ['id', [1, 2]] }
+                                    }
+                                ]
+                            }
+                        ]
                     },
                     {
                         $in: [
@@ -710,14 +725,14 @@ describe('where_connected_macro.ts', () => {
                                         {
                                             $select: ['id'],
                                             $from: 'users',
-                                            $where: { $in: ['id', [1, 2]] },
-                                        },
-                                    ],
-                                },
-                            },
-                        ],
-                    },
-                ],
+                                            $where: { $in: ['id', [1, 2]] }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
             })
         })
         test('handles no connection paths', () => {
@@ -726,12 +741,12 @@ describe('where_connected_macro.ts', () => {
                     {
                         $entity: 'users',
                         $field: 'id',
-                        $values: [1, 2],
-                    },
+                        $values: [1, 2]
+                    }
                 ],
                 posts: {
-                    id: true,
-                },
+                    id: true
+                }
             }
 
             apply_where_connected_macro(global_test_schema, query, {})
@@ -749,7 +764,7 @@ describe('where_connected_macro.ts', () => {
         test('defaults to the restriction', () => {
             const query = {}
             const restrictions = [
-                { $entity: 'posts', $field: 'id', $values: [1, 2] },
+                { $entity: 'posts', $field: 'id', $values: [1, 2] }
             ]
             const errors = restrict_where_connected(query, restrictions)
 
@@ -760,11 +775,11 @@ describe('where_connected_macro.ts', () => {
         test('generates an error if values are not in the restriction', () => {
             const query = {
                 $where_connected: [
-                    { $entity: 'posts', $field: 'id', $values: [1, 3] },
-                ],
+                    { $entity: 'posts', $field: 'id', $values: [1, 3] }
+                ]
             }
             const restrictions = [
-                { $entity: 'posts', $field: 'id', $values: [1, 2] },
+                { $entity: 'posts', $field: 'id', $values: [1, 2] }
             ]
             const input_query = clone(query)
             const errors = restrict_where_connected(input_query, restrictions)
@@ -779,17 +794,17 @@ describe('where_connected_macro.ts', () => {
                         // this one is ignored since the $field is different to the restriction
                         $entity: 'posts',
                         $field: 'user_id',
-                        $values: [5],
+                        $values: [5]
                     },
                     {
                         $entity: 'posts',
                         $field: 'id',
-                        $values: [1],
-                    },
-                ],
+                        $values: [1]
+                    }
+                ]
             }
             const restrictions = [
-                { $entity: 'posts', $field: 'id', $values: [1, 2] },
+                { $entity: 'posts', $field: 'id', $values: [1, 2] }
             ]
             const input_query = clone(query)
             const errors = restrict_where_connected(input_query, restrictions)
