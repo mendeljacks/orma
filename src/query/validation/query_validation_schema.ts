@@ -254,21 +254,21 @@ const where_schema = {
                                 additionalProperties: false
                             },
                             {
-                                type: 'array',
-                                minItems: 1,
-                                items: {
-                                    type: 'object',
-                                    properties: {
-                                        $escape: {
+                                type: 'object',
+                                properties: {
+                                    $escape: {
+                                        type: 'array',
+                                        minItems: 1,
+                                        items: {
                                             type: 'array',
                                             minItems: 1,
                                             items: {
                                                 $ref: '#/$defs/primitive'
                                             }
                                         }
-                                    },
-                                    additionalProperties: false
-                                }
+                                    }
+                                },
+                                additionalProperties: false
                             }
                         ]
                     }

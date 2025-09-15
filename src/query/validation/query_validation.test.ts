@@ -354,10 +354,12 @@ describe('query_validation.ts', () => {
                         $where: {
                             $in: [
                                 ['id', 'title'],
-                                [
-                                    { $escape: [1, 'test1'] },
-                                    { $escape: ['2', 'test2'] }
-                                ]
+                                {
+                                    $escape: [
+                                        [1, 'test1'],
+                                        ['2', 'test2']
+                                    ]
+                                }
                             ]
                         }
                     }
