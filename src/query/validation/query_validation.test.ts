@@ -345,6 +345,29 @@ describe('query_validation.ts', () => {
             const paths = errors?.map(el => el?.path)
             expect(paths).to.deep.equal([])
         })
+        test('allows where clause $in with multiple fields', () => {
+            const errors = validate_query(
+                {
+                    posts: {
+                        id: true,
+                        $from: 'posts',
+                        $where: {
+                            $in: [
+                                ['id', 'title'],
+                                [
+                                    { $escape: [1, 'test1'] },
+                                    { $escape: ['2', 'test2'] }
+                                ]
+                            ]
+                        }
+                    }
+                },
+                global_test_schema
+            )
+
+            const paths = errors?.map(el => el?.path)
+            expect(paths).to.deep.equal([])
+        })
         test('allows escape on outside of $in values', () => {
             const errors = validate_query(
                 {
