@@ -214,7 +214,19 @@ const where_schema = {
                 maxItems: 2,
                 items: [
                     {
-                        $ref: `#/$defs/expression`
+                        anyOf: [
+                            {
+                                $ref: `#/$defs/expression`
+                            },
+                            // queries like (a, b) IN ((1, 2), (3, 4))
+                            {
+                                type: 'array',
+                                minItems: 1,
+                                items: {
+                                    $ref: `#/$defs/expression`
+                                }
+                            }
+                        ]
                     },
                     {
                         oneOf: [
@@ -236,6 +248,23 @@ const where_schema = {
                                         minItems: 1,
                                         items: {
                                             $ref: '#/$defs/primitive'
+                                        }
+                                    }
+                                },
+                                additionalProperties: false
+                            },
+                            {
+                                type: 'object',
+                                properties: {
+                                    $escape: {
+                                        type: 'array',
+                                        minItems: 1,
+                                        items: {
+                                            type: 'array',
+                                            minItems: 1,
+                                            items: {
+                                                $ref: '#/$defs/primitive'
+                                            }
                                         }
                                     }
                                 },

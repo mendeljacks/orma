@@ -556,6 +556,7 @@ const validate_where = (
     }
 
     if (prop === '$in') {
+<<<<<<< HEAD
         const column_errors = validate_expression(
             where[prop][0],
             [...where_path, prop, 0],
@@ -563,6 +564,25 @@ const validate_where = (
             column_aliases,
             orma_schema
         )
+=======
+        const field_errors = Array.isArray(where[prop][0])
+            ? where[prop][0]?.flatMap((el, i) =>
+                  validate_expression(
+                      el,
+                      [...where_path, prop, 0, i],
+                      context_entity,
+                      field_aliases,
+                      orma_schema
+                  )
+              )
+            : validate_expression(
+                  where[prop][0],
+                  [...where_path, prop, 0],
+                  context_entity,
+                  field_aliases,
+                  orma_schema
+              )
+>>>>>>> origin/master
 
         const values_errors = Array.isArray(where[prop][1])
             ? where[prop][1].flatMap((el, i) =>

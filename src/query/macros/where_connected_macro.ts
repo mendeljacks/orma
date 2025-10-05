@@ -4,7 +4,7 @@ import {
     deep_equal,
     deep_for_each,
     difference,
-    last,
+    last
 } from '../../helpers/helpers'
 import { push_path } from '../../helpers/push_path'
 import {
@@ -12,13 +12,17 @@ import {
     get_table_names,
     get_column_is_nullable,
     get_parent_edges,
+<<<<<<< HEAD
     is_parent_table,
+=======
+    is_parent_entity
+>>>>>>> origin/master
 } from '../../helpers/schema_helpers'
 import { OrmaSchema } from '../../schema/schema_types'
 import { WhereConnected } from '../../types/query/query_types'
 import { get_real_table_name, get_real_higher_table_name } from '../query'
 import { combine_wheres, query_for_each } from '../query_helpers'
-import { edge_path_to_where_ins } from './any_path_macro'
+import { edge_path_to_where_ins, edge_to_where_in } from './any_path_macro'
 
 export const get_upwards_connection_edges = (orma_schema: OrmaSchema) => {
     const connection_edges = get_table_names(orma_schema).reduce(
@@ -62,7 +66,7 @@ export const apply_where_connected_macro = (
                     if (where_clause?.$from) {
                         where_clause_locations.push({
                             where_clause,
-                            where_clause_path,
+                            where_clause_path
                         })
                     }
                 }
@@ -122,8 +126,8 @@ const apply_where_connected_to_subquery = (
                             el,
                             orma_schema.tables[$table].database_type
                         )
-                    ),
-                ],
+                    )
+                ]
             }
 
             const edge_paths_by_destination = get_edge_paths_by_destination(
@@ -156,8 +160,13 @@ const apply_where_connected_to_subquery = (
     )
 
     // only return results that would have been returned by the user where, and are connected
+<<<<<<< HEAD
     // (or have no connections) to every table in the $where_connected
     const existing_wheres = [subquery.$where] ?? []
+=======
+    // (or have no connections) to every entity in the $where_connected
+    const existing_wheres = [subquery.$where]
+>>>>>>> origin/master
     const new_where = combine_wheres(
         [...existing_wheres, ...target_table_wheres],
         '$and'
@@ -174,8 +183,13 @@ export const get_where_connected_clauses = (
     target_where: Record<string, any>
 ) => {
     // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
+<<<<<<< HEAD
     const edge_paths = (edge_paths_by_destination[target_table] ??
         []) as typeof edge_paths_by_destination[string]
+=======
+    const edge_paths = (edge_paths_by_destination[target_entity] ??
+        []) as (typeof edge_paths_by_destination)[string]
+>>>>>>> origin/master
 
     // This optimization was not working with multiple edge paths, where an edge path is the higher table,
     // but the higher table is a reverse nest and the edge path also starts with a reverse nest (the higher table)
@@ -191,7 +205,12 @@ export const get_where_connected_clauses = (
     // )
 
     const clauses = edge_paths.map(edge_path => {
-        const clause = edge_path_to_where_ins(edge_path, '$where', target_where)
+        const clause = edge_path_to_where_ins(
+            orma_schema,
+            edge_path,
+            '$where',
+            target_where
+        )
 
         return clause
     })
@@ -219,14 +238,20 @@ const get_where_not_connected_clauses = (
     }
 
     // the as typeof... on this line is completely unnecessary and is here because typescript is buggy
+<<<<<<< HEAD
     const edge_paths = (edge_paths_by_destination[target_table] ??
         []) as typeof edge_paths_by_destination[string]
+=======
+    const edge_paths = (edge_paths_by_destination[target_entity] ??
+        []) as (typeof edge_paths_by_destination)[string]
+>>>>>>> origin/master
 
-    // TODO: write up a proper explanation with truth tables. Basically the where clause checks that there
+    // Basically the where clause checks that there
     // is at least one connected record. But in cases where all edge paths have a nullable (or reverse nested)
     // edge, then there could be NO connected record. In that case, there is not one connected record, but since
     // there are also no non-connected records, we allow it explicitly. Note that this only applies
     // if we are not directly checking the root level (which is why its in the else)
+<<<<<<< HEAD
     const should_check_no_connected_table =
         edge_paths.length > 0 &&
         edge_paths.every(edge_path => {
@@ -256,11 +281,34 @@ const get_where_not_connected_clauses = (
                 edge_path,
                 '$where',
                 undefined
+=======
+
+    // take the first edge and uniq them based on all keys
+    const first_edges = [
+        ...new Set(edge_paths.map(edge_path => JSON.stringify(edge_path[0])))
+    ].map(el => JSON.parse(el) as Edge)
+    const wheres = first_edges.map(edge => {
+        const is_reversed = is_parent_entity(
+            edge.from_entity,
+            edge.to_entity,
+            orma_schema
+        )
+        const is_nullable =
+            !is_reversed &&
+            get_field_is_nullable(
+                orma_schema,
+                edge.from_entity,
+                edge.from_field
+>>>>>>> origin/master
             )
 
-            return clause
-        })
+        if (is_reversed) {
+            return {
+                $not: edge_to_where_in(orma_schema, edge, '$where', undefined)
+            }
+        }
 
+<<<<<<< HEAD
         return [
             {
                 $not: {
@@ -284,6 +332,17 @@ const get_where_not_connected_clauses = (
                 },
             },
         ]
+=======
+        if (is_nullable) {
+            return { $eq: [edge.from_field, null] }
+        }
+
+        return undefined
+    })
+
+    if (wheres.length && wheres.every(where => where !== undefined)) {
+        return [combine_wheres(wheres, '$and')]
+>>>>>>> origin/master
     } else {
         return []
     }
@@ -295,8 +354,13 @@ export const get_edge_paths_by_destination = (
 ) => {
     // start off with a path to every connected edge
     let edge_paths =
+<<<<<<< HEAD
         connection_edges?.[source_table]?.map(edge => [
             { ...edge, from_table: source_table },
+=======
+        connection_edges?.[source_entity]?.map(edge => [
+            { ...edge, from_entity: source_entity }
+>>>>>>> origin/master
         ]) ?? []
 
     // every path before this index is done, in other words there are no more paths that we can get
@@ -332,7 +396,11 @@ export const get_edge_paths_by_destination = (
                 .map(connection_edge => {
                     const new_edge = {
                         ...connection_edge,
+<<<<<<< HEAD
                         from_table: parent_table,
+=======
+                        from_entity: parent_entity
+>>>>>>> origin/master
                     }
                     return [...edge_path, new_edge]
                 }) ?? []
@@ -393,7 +461,7 @@ export const add_connection_edges = (
 ): ConnectionEdges => {
     // shallow clone to not mutate input
     const new_connection_edges = {
-        ...connection_edges,
+        ...connection_edges
     }
 
     new_edges.forEach(new_edge => {
@@ -402,10 +470,17 @@ export const add_connection_edges = (
         new_connection_edges[new_edge.from_table] = [
             ...existing_edges,
             {
+<<<<<<< HEAD
                 from_column: new_edge.from_columns,
                 to_table: new_edge.to_table,
                 to_column: new_edge.to_columns,
             },
+=======
+                from_field: new_edge.from_field,
+                to_entity: new_edge.to_entity,
+                to_field: new_edge.to_field
+            }
+>>>>>>> origin/master
         ]
     })
 
@@ -418,7 +493,7 @@ export const remove_connection_edges = (
 ): ConnectionEdges => {
     // shallow clone to not mutate input
     const new_connection_edges = {
-        ...connection_edges,
+        ...connection_edges
     }
 
     edges_to_remove.forEach(edge_to_remove => {
@@ -502,9 +577,9 @@ export const restrict_where_connected = (
                             additional_info: {
                                 where_connected_restriction,
                                 given_where_connected: query.$where_connected,
-                                forbidden_values,
-                            },
-                        },
+                                forbidden_values
+                            }
+                        }
                     ]
                 }
             }

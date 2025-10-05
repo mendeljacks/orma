@@ -48,7 +48,8 @@ export const get_prepopulate_query = async (
 export const prepopulate = async (
     orma_query: OrmaQueryFunction,
     orma_mutate: OrmaMutateFunction,
-    orma_schema: OrmaSchema
+    orma_schema: OrmaSchema,
+    log: (string) => void = console.log
 ) => {
     const prepopulate_query = await get_prepopulate_query(
         orma_query,
@@ -70,15 +71,15 @@ export const prepopulate = async (
                 ).length
 
                 create_count > 0 &&
-                    console.log(
+                    log(
                         `Prepopulate: 🌱 ${create_count} rows added to ${table_name}`
                     )
                 update_count > 0 &&
-                    console.log(
+                    log(
                         `Prepopulate: ✏️ ${update_count} rows updated in ${table_name}`
                     )
                 delete_count > 0 &&
-                    console.log(
+                    log(
                         `Prepopulate: ✂️ ${delete_count} rows deleted in ${table_name}`
                     )
             }

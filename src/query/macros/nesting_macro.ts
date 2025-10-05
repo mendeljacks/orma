@@ -179,7 +179,12 @@ const get_ancestor_where_clause = (
         .reverse()
         .map(edge => reverse_edge(edge))
     const ancestor_query = edge_path_to_where_ins(
+<<<<<<< HEAD
         table_to_ancestor_edge_path,
+=======
+        orma_schema,
+        entity_to_ancestor_edge_path,
+>>>>>>> origin/master
         '$where',
         {
             $in: [edge_under_ancestor.to_columns, ancestor_foreign_key_values],

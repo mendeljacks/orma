@@ -71,7 +71,7 @@ export const combine_wheres = (
 ) => {
     const combined_where = where_clauses
         .filter(el => el !== undefined)
-        .reduce((combined_where, new_where) => {
+        .reduce((combined_where: any, new_where: any) => {
             if (combined_where === undefined) {
                 return new_where
             }
@@ -79,13 +79,13 @@ export const combine_wheres = (
             const wheres: any[] = new_where?.[connective] ?? [new_where]
             if (!combined_where[connective]) {
                 return {
-                    [connective]: [combined_where, ...wheres],
+                    [connective]: [combined_where, ...wheres]
                 }
             } else {
-                combined_where[connective].push(...wheres)
+                ;(combined_where[connective] as any).push(...wheres)
                 return combined_where
             }
-        }, undefined)
+        }, undefined as undefined | Record<string, any>)
 
     return combined_where
 }
@@ -126,8 +126,8 @@ export const get_search_records_where = (
                             record[column],
                             orma_schema.tables[table].database_type
                         )
-                    }),
-                ],
+                    })
+                ]
             }
         } else {
             // 2 or more, e.g. combo unique
@@ -135,6 +135,7 @@ export const get_search_records_where = (
             return pathed_records.map(({ path, record }) => ({
                 $and: identifying_columns.map(column => ({
                     $eq: [
+<<<<<<< HEAD
                         column,
                         escape_value(
                             record[column],
@@ -143,6 +144,16 @@ export const get_search_records_where = (
                         ),
                     ],
                 })),
+=======
+                        field,
+                        orma_escape(
+                            record[field],
+                            orma_schema.$entities[path_to_entity(path)]
+                                .$database_type
+                        )
+                    ]
+                }))
+>>>>>>> origin/master
             }))
         }
     })

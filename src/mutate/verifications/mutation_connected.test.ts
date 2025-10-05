@@ -2,12 +2,12 @@ import { expect } from 'chai'
 import { describe, test } from 'mocha'
 import {
     GlobalTestSchema,
-    global_test_schema,
+    global_test_schema
 } from '../../test_data/global_test_schema'
 import {
     add_connection_edges,
     ConnectionEdges,
-    get_upwards_connection_edges,
+    get_upwards_connection_edges
 } from '../../query/macros/where_connected_macro'
 import { WhereConnected } from '../../types/query/query_types'
 import { MysqlFunction } from '../mutate'
@@ -16,7 +16,7 @@ import {
     get_foreign_key_connected_wheres,
     get_ownership_queries,
     get_identifier_connected_wheres,
-    get_mutation_connected_errors,
+    get_mutation_connected_errors
 } from './mutation_connected'
 
 describe('mutation_connected.ts', () => {
@@ -26,9 +26,15 @@ describe('mutation_connected.ts', () => {
     const get_test_where_connected = (
         table: string
     ): WhereConnected<GlobalTestSchema>[number] => ({
+<<<<<<< HEAD
         $table: table as any,
         $column: 'id',
         $values: [1, 2],
+=======
+        $entity: entity as any,
+        $field: 'id',
+        $values: [1, 2]
+>>>>>>> origin/master
     })
 
     describe(get_mutation_connected_errors.name, () => {
@@ -36,12 +42,12 @@ describe('mutation_connected.ts', () => {
             const query_function: MysqlFunction = async statements => [
                 [
                     {
-                        id: 2,
+                        id: 2
                     },
                     {
-                        id: 5,
-                    },
-                ],
+                        id: 5
+                    }
+                ]
             ]
 
             const mutation_pieces: MutationPiece[] = [
@@ -49,18 +55,18 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'create',
                         user_id: 2,
-                        title: 'test 1',
+                        title: 'test 1'
                     },
-                    path: ['posts', 0],
+                    path: ['posts', 0]
                 },
                 {
                     record: {
                         $operation: 'create',
                         user_id: 5,
-                        title: 'test 2',
+                        title: 'test 2'
                     },
-                    path: ['posts', 1],
-                },
+                    path: ['posts', 1]
+                }
             ]
 
             const errors = await get_mutation_connected_errors(
@@ -96,18 +102,22 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'create',
                         post_id: 1,
-                        category_id: 2,
+                        category_id: 2
                     },
-                    path: ['post_has_categories', 0],
+                    path: ['post_has_categories', 0]
                 },
                 {
                     record: {
                         $operation: 'update',
                         id: 3,
+<<<<<<< HEAD
                         $identifying_columns: ['id'],
+=======
+                        $identifying_fields: ['id']
+>>>>>>> origin/master
                     },
-                    path: ['comments', 0],
-                },
+                    path: ['comments', 0]
+                }
             ]
 
             const ownership_queries = get_ownership_queries(
@@ -131,13 +141,13 @@ describe('mutation_connected.ts', () => {
                                     {
                                         $select: ['post_id'],
                                         $from: 'comments',
-                                        $where: { $eq: ['id', 3] },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                        $where: { $eq: ['id', 3] }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
             ])
         })
         test('handles reverse nesting ownership', () => {
@@ -147,31 +157,39 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+<<<<<<< HEAD
                         $identifying_columns: ['id'],
+=======
+                        $identifying_fields: ['id']
+>>>>>>> origin/master
                     },
-                    path: ['addresses', 0],
+                    path: ['addresses', 0]
                 },
-                // creating does not generate a where clause here, even though there is a connection edge to products,
-                // since in the create we dont include a foreign key to anything existing in the database
                 {
                     record: {
-                        $operation: 'create',
+                        $operation: 'create'
                     },
-                    path: ['addresses', 0],
-                },
+                    path: ['addresses', 0]
+                }
             ]
 
-            // in this examle, we set up the connection edges so that a listing is considered connected
-            // to a user if one of the products connected to that listing are connected to the user
             const connection_edges = add_connection_edges(
                 default_connection_edges,
                 [
                     {
+<<<<<<< HEAD
                         from_table: 'addresses',
                         from_columns: 'id',
                         to_table: 'users',
                         to_columns: 'shipping_address_id',
                     },
+=======
+                        from_entity: 'addresses',
+                        from_field: 'id',
+                        to_entity: 'users',
+                        to_field: 'shipping_address_id'
+                    }
+>>>>>>> origin/master
                 ]
             )
 
@@ -193,23 +211,32 @@ describe('mutation_connected.ts', () => {
                         // leaving it for now
                         $or: [
                             {
-                                $in: ['shipping_address_id', [1]],
+                                $in: ['shipping_address_id', [1]]
                             },
                             {
-                                $in: [
-                                    'shipping_address_id',
+                                $and: [
                                     {
-                                        $select: ['id'],
-                                        $from: 'addresses',
-                                        $where: {
-                                            $eq: ['id', 1],
-                                        },
+                                        $not: {
+                                            $eq: ['shipping_address_id', null]
+                                        }
                                     },
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                    {
+                                        $in: [
+                                            'shipping_address_id',
+                                            {
+                                                $select: ['id'],
+                                                $from: 'addresses',
+                                                $where: {
+                                                    $eq: ['id', 1]
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
             ])
         })
         test('handles creating a child of a reverse connected table', () => {
@@ -221,21 +248,29 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'create',
                         post_id: 1,
-                        category_id: 2,
+                        category_id: 2
                     },
-                    path: ['post_has_categories', 0],
-                },
+                    path: ['post_has_categories', 0]
+                }
             ]
 
             const connection_edges = add_connection_edges(
                 default_connection_edges,
                 [
                     {
+<<<<<<< HEAD
                         from_table: 'categories',
                         from_columns: 'id',
                         to_table: 'post_has_categories',
                         to_columns: 'category_id',
                     },
+=======
+                        from_entity: 'categories',
+                        from_field: 'id',
+                        to_entity: 'post_has_categories',
+                        to_field: 'category_id'
+                    }
+>>>>>>> origin/master
                 ]
             )
 
@@ -267,27 +302,27 @@ describe('mutation_connected.ts', () => {
                                                     $select: ['id'],
                                                     $from: 'categories',
                                                     $where: {
-                                                        $in: ['id', [2]],
-                                                    },
-                                                },
-                                            ],
-                                        },
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                },
+                                                        $in: ['id', [2]]
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
             ])
         })
         test('handles table with no connected to table', () => {
             const mutation_pieces: MutationPiece[] = [
                 {
                     record: {
-                        $operation: 'create',
+                        $operation: 'create'
                     },
-                    path: ['categories', 0],
-                },
+                    path: ['categories', 0]
+                }
             ]
 
             const connection_edges: ConnectionEdges = {}
@@ -309,10 +344,10 @@ describe('mutation_connected.ts', () => {
                 {
                     record: {
                         $operation: 'create',
-                        user_id: { $guid: 2 },
+                        user_id: { $guid: 2 }
                     },
-                    path: ['products', 0],
-                },
+                    path: ['products', 0]
+                }
             ]
 
             const ownership_queries = get_ownership_queries(
@@ -334,10 +369,14 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 12,
                         title: 'hi',
+<<<<<<< HEAD
                         $identifying_columns: ['id'],
+=======
+                        $identifying_fields: ['id']
+>>>>>>> origin/master
                     },
-                    path: ['posts', 0],
-                },
+                    path: ['posts', 0]
+                }
             ]
 
             const wheres = get_identifier_connected_wheres(
@@ -357,10 +396,10 @@ describe('mutation_connected.ts', () => {
                         {
                             $select: ['user_id'],
                             $from: 'posts',
-                            $where: { $eq: ['id', 12] },
-                        },
-                    ],
-                },
+                            $where: { $eq: ['id', 12] }
+                        }
+                    ]
+                }
             ])
         })
         test('handles multiple ownership paths', () => {
@@ -369,10 +408,14 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+<<<<<<< HEAD
                         $identifying_columns: ['id'],
+=======
+                        $identifying_fields: ['id']
+>>>>>>> origin/master
                     },
-                    path: ['users', 0],
-                },
+                    path: ['users', 0]
+                }
             ]
 
             // const connection_edges = add_connection_edges(
@@ -410,9 +453,18 @@ describe('mutation_connected.ts', () => {
                         {
                             $select: ['billing_address_id'],
                             $from: 'users',
-                            $where: { $eq: ['id', 1] },
-                        },
-                    ],
+                            $where: {
+                                $and: [
+                                    {
+                                        $not: {
+                                            $eq: ['billing_address_id', null]
+                                        }
+                                    },
+                                    { $eq: ['id', 1] }
+                                ]
+                            }
+                        }
+                    ]
                 },
                 {
                     $in: [
@@ -420,10 +472,19 @@ describe('mutation_connected.ts', () => {
                         {
                             $select: ['shipping_address_id'],
                             $from: 'users',
-                            $where: { $eq: ['id', 1] },
-                        },
-                    ],
-                },
+                            $where: {
+                                $and: [
+                                    {
+                                        $not: {
+                                            $eq: ['shipping_address_id', null]
+                                        }
+                                    },
+                                    { $eq: ['id', 1] }
+                                ]
+                            }
+                        }
+                    ]
+                }
             ])
         })
         test('handles no primary key', () => {
@@ -431,10 +492,10 @@ describe('mutation_connected.ts', () => {
                 {
                     record: {
                         $operation: 'create',
-                        user_id: 12,
+                        user_id: 12
                     },
-                    path: ['products', 0],
-                },
+                    path: ['products', 0]
+                }
             ]
 
             const wheres = get_identifier_connected_wheres(
@@ -456,10 +517,14 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                         user_id: 12,
+<<<<<<< HEAD
                         $identifying_columns: ['id'],
+=======
+                        $identifying_fields: ['id']
+>>>>>>> origin/master
                     },
-                    path: ['posts', 0],
-                },
+                    path: ['posts', 0]
+                }
             ]
 
             // categories and posts are not connected, so there is no edge paths
@@ -468,9 +533,15 @@ describe('mutation_connected.ts', () => {
                 default_connection_edges,
                 new Map(),
                 {
+<<<<<<< HEAD
                     $table: 'categories',
                     $column: 'id',
                     $values: [1],
+=======
+                    $entity: 'categories',
+                    $field: 'id',
+                    $values: [1]
+>>>>>>> origin/master
                 },
                 mutation_pieces,
                 [0],
@@ -489,21 +560,26 @@ describe('mutation_connected.ts', () => {
                         id: 1,
                         user_id: 12,
                         title: 'hi',
+<<<<<<< HEAD
                         $identifying_columns: ['id'],
+=======
+                        $identifying_fields: ['id']
+>>>>>>> origin/master
                     },
-                    path: ['posts', 0],
+                    path: ['posts', 0]
                 },
                 {
                     record: {
                         $operation: 'create',
                         user_id: 13,
-                        title: 'hi',
+                        title: 'hi'
                     },
-                    path: ['posts', 1],
-                },
+                    path: ['posts', 1]
+                }
             ]
 
             const wheres = get_foreign_key_connected_wheres(
+                global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -513,8 +589,8 @@ describe('mutation_connected.ts', () => {
 
             expect(wheres).to.deep.equal([
                 {
-                    $in: ['id', [12, 13]],
-                },
+                    $in: ['id', [12, 13]]
+                }
             ])
         })
         test('tracks descendant foreign keys', () => {
@@ -524,20 +600,25 @@ describe('mutation_connected.ts', () => {
                         $operation: 'update',
                         id: 1,
                         post_id: 11,
+<<<<<<< HEAD
                         $identifying_columns: ['id'],
+=======
+                        $identifying_fields: ['id']
+>>>>>>> origin/master
                     },
-                    path: ['comments', 0],
+                    path: ['comments', 0]
                 },
                 {
                     record: {
                         $operation: 'create',
-                        post_id: 12,
+                        post_id: 12
                     },
-                    path: ['comments', 1],
-                },
+                    path: ['comments', 1]
+                }
             ]
 
             const wheres = get_foreign_key_connected_wheres(
+                global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
@@ -553,11 +634,11 @@ describe('mutation_connected.ts', () => {
                             $select: ['user_id'],
                             $from: 'posts',
                             $where: {
-                                $in: ['id', [11, 12]],
-                            },
-                        },
-                    ],
-                },
+                                $in: ['id', [11, 12]]
+                            }
+                        }
+                    ]
+                }
             ])
         })
         test('handles no foreign key', () => {
@@ -566,18 +647,47 @@ describe('mutation_connected.ts', () => {
                     record: {
                         $operation: 'update',
                         id: 1,
+<<<<<<< HEAD
                         $identifying_columns: ['id'],
+=======
+                        $identifying_fields: ['id']
+>>>>>>> origin/master
                     },
-                    path: ['comments', 0],
-                },
+                    path: ['comments', 0]
+                }
             ]
 
             const wheres = get_foreign_key_connected_wheres(
+                global_test_schema,
                 default_connection_edges,
                 get_test_where_connected('users'),
                 mutation_pieces,
                 [0],
                 'comments'
+            )
+
+            expect(wheres).to.deep.equal([])
+        })
+        test('handles null foreign key', () => {
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'update',
+                        id: 1,
+                        billing_address_id: null,
+                        $identifying_fields: ['id']
+                    },
+                    path: ['users', 0]
+                }
+            ]
+
+            const wheres = get_foreign_key_connected_wheres(
+                global_test_schema,
+                default_connection_edges,
+                get_test_where_connected('addresses'),
+                mutation_pieces,
+                [0],
+                'users'
             )
 
             expect(wheres).to.deep.equal([])

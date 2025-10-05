@@ -107,6 +107,7 @@ export const get_ownership_queries = (
             )
 
             const foreign_key_wheres = get_foreign_key_connected_wheres(
+                orma_schema,
                 connection_edges,
                 where_connected,
                 mutation_pieces,
@@ -190,6 +191,7 @@ export const get_identifier_connected_wheres = (
                 .map(edge => reverse_edge(edge))
 
             const where = edge_path_to_where_ins(
+                orma_schema,
                 reversed_edge_path,
                 '$where',
                 identifying_where
@@ -201,6 +203,7 @@ export const get_identifier_connected_wheres = (
 }
 
 export const get_foreign_key_connected_wheres = (
+    orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
     where_connected: WhereConnected<OrmaSchema>[number],
     mutation_pieces: MutationPiece[],
@@ -223,7 +226,10 @@ export const get_foreign_key_connected_wheres = (
                     const value = record[column]
                     // ignore any values with a guid since they must refer to something in this mutation,
                     // but that row must belong to us if it passes ownership
-                    return value?.$guid === undefined ? value : undefined
+                    const has_guid = value?.$guid !== undefined
+                    // ignore null values, e.g. a foreign key thats null will not cause a foreign key check to occur
+                    const is_null = value === null
+                    return has_guid || is_null ? undefined : value
                 })
                 .filter(el => el !== undefined)
 
@@ -249,6 +255,7 @@ export const get_foreign_key_connected_wheres = (
                 return parent_where
             } else {
                 const where = edge_path_to_where_ins(
+                    orma_schema,
                     search_ownership_path,
                     '$where',
                     parent_where
@@ -277,12 +284,21 @@ const generate_ownership_errors = (
             const error: OrmaError = {
                 error_code: 'missing_access_rights',
                 message: `Tried to mutate data from ${
+<<<<<<< HEAD
                     where_connected.$table
                 } ${owners.join(
                     ', '
                 )} but only has permission to modify data from ${
                     where_connected.$table
                 } ${where_connected.$values.join(', ')}.`,
+=======
+                    where_connected.$entity
+                } ${[...new Set(owners)].join(
+                    ', '
+                )} but only has permission to modify data from ${
+                    where_connected.$entity
+                } ${[...new Set(where_connected.$values)].join(', ')}.`,
+>>>>>>> origin/master
                 additional_info: {
                     where_connected,
                     owners,
