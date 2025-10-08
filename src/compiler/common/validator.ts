@@ -54,8 +54,21 @@ export const validate_inner = (
         const child_schema_errors = schema.anyOf.map(child_schema =>
             validate_inner(child_schema, path, value)
         )
-        const matches_any = child_schema_errors.some(el => el.length > 0)
+        const matches_any = child_schema_errors.some(el => el.length === 0)
         return !matches_any
+            ? [{ message: `must be ${get_schema_description(schema)}`, path }]
+            : []
+    }
+
+    if ('oneOf' in schema) {
+        const child_schema_errors = schema.oneOf.map(child_schema =>
+            validate_inner(child_schema, path, value)
+        )
+        const matches_count = child_schema_errors.reduce(
+            (acc, val) => (val.length === 0 ? acc + 1 : acc),
+            0
+        )
+        return matches_count !== 1
             ? [{ message: `must be ${get_schema_description(schema)}`, path }]
             : []
     }
@@ -200,7 +213,12 @@ const get_schema_description = (schema: ValidationSchema): string => {
         const schema_strings = schema.anyOf.map(child_schema =>
             get_schema_description(child_schema)
         )
-        return `${array_to_readable_list(schema_strings, 'or')}`
+        return `one of ${array_to_readable_list(schema_strings, 'or')}`
+    } else if ('oneOf' in schema) {
+        const schema_strings = schema.oneOf.map(child_schema =>
+            get_schema_description(child_schema)
+        )
+        return `only one of ${array_to_readable_list(schema_strings, 'or')}`
     } else if ('not' in schema) {
         return `not ${get_schema_description(schema)}`
     } else if ('enum' in schema) {
@@ -264,7 +282,7 @@ const get_schema_description = (schema: ValidationSchema): string => {
 }
 
 export type ValidationSchema =
-    | { const: string | number | null | boolean }
+    | { const: string | number | null | boolean | undefined }
     | { enum: Set<any> }
     | { type: 'null' | 'boolean' }
     | {
@@ -292,6 +310,6 @@ export type ValidationSchema =
       }
     // | { all_of: JsonSchema[] }
     | { anyOf: ValidationSchema[] }
-    // | { one_of: JsonSchema[] }
+    | { oneOf: ValidationSchema[] }
     | { not: ValidationSchema }
     | Record<string, never>

@@ -1,6 +1,5 @@
 import { OrmaError } from '../../helpers/error_handling'
 import { escape_identifier, escape_value } from '../../helpers/escape'
-import { is_array } from '../../helpers/helpers'
 import {
     get_column_names,
     get_is_column_name
@@ -10,7 +9,7 @@ import { OrmaSchema } from '../../schema/schema_types'
 import { Path } from '../../types'
 import { GetAliases, OrmaQueryAliases } from '../../types/query/query_types'
 import { format_value } from '../common/message_formatting'
-import { validate } from '../common/validator'
+import { validate, ValidationSchema } from '../common/validator'
 import { QueryCompilerArgs, QueryValidatorArgs } from '../compiler'
 import {
     compile_select,
@@ -32,7 +31,11 @@ export const compile_expression = <
     orma_schema,
     table_name,
     statement
-}: QueryCompilerArgs<Schema, Expression<Schema, Aliases, Table>>): string => {
+}: QueryCompilerArgs<
+    Schema,
+    Table,
+    Expression<Schema, Aliases, Table>
+>): string => {
     const database_type = orma_schema.tables[table_name].database_type
 
     // column name
@@ -89,56 +92,13 @@ export const validate_expression = <
 
     // table + column name
     if ('table' in statement) {
-        const tables_in_scope = Object.keys(aliases_by_table)
-        const is_table_in_scope = tables_in_scope.includes(statement.table)
-        if (!is_table_in_scope) {
-            return [
-                {
-                    error_code: 'validation_error',
-                    message: `"${statement.table}" is not an in-scope table name.`,
-                    path,
-                    additional_info: {
-                        tables_in_scope
-                    }
-                } as OrmaError
-            ]
-        }
-
-        return validate_column(statement.table, statement.column, {
+        return validate_named_column({
             orma_schema,
-            aliases_by_table,
             path,
+            aliases_by_table,
+            table_name,
             statement
         })
-    }
-
-    // escaped value
-    if ('escape' in statement) {
-        return validate(
-            {
-                type: 'object',
-                properties: {
-                    escape: {
-                        anyOf: [
-                            { type: 'number' },
-                            { type: 'string' },
-                            { type: 'null' },
-                            {
-                                type: 'array',
-                                items: [
-                                    { type: 'number' },
-                                    { type: 'string' },
-                                    { type: 'null' }
-                                ]
-                            }
-                        ]
-                    }
-                },
-                required: ['escape']
-            },
-            path,
-            statement
-        )
     }
 
     if ('from' in statement) {
@@ -149,6 +109,11 @@ export const validate_expression = <
             require_one_select: true,
             statement
         })
+    }
+
+    // escaped value
+    if ('escape' in statement) {
+        return validate_escape_value([...path, 'escape'], statement.escape)
     }
 
     // sql function
@@ -208,6 +173,93 @@ const validate_column = <
         : []
 }
 
+export const validate_named_column = <
+    Schema extends OrmaSchema,
+    Aliases extends OrmaQueryAliases<Schema>,
+    Table extends GetAllTables<Schema>
+>({
+    orma_schema,
+    aliases_by_table,
+    table_name,
+    path,
+    statement
+}: QueryValidatorArgs<
+    Schema,
+    NamedColumn<Schema, Aliases, GetAllTables<Schema>>
+> & {
+    table_name: Table
+}) => {
+    const tables_in_scope = [table_name, ...Object.keys(aliases_by_table)]
+    const is_table_in_scope = tables_in_scope.includes(statement.table)
+    if (!is_table_in_scope) {
+        return [
+            {
+                error_code: 'validation_error',
+                message: `"${statement.table}" is not an in-scope table name.`,
+                path,
+                additional_info: {
+                    tables_in_scope
+                }
+            } as OrmaError
+        ]
+    }
+
+    return validate_column(statement.table, statement.column, {
+        orma_schema,
+        aliases_by_table,
+        path,
+        statement
+    })
+}
+
+export const validate_escape_value = (
+    path: Path,
+    value: EscapedValue['escape']
+) => {
+    const primitive_schemas: ValidationSchema[] = [
+        { type: 'number' },
+        { type: 'string' },
+        { type: 'null' },
+        { type: 'boolean' }
+    ]
+
+    const errors = validate(
+        {
+            type: 'object',
+            properties: {
+                escape: {
+                    anyOf: [
+                        ...primitive_schemas,
+                        {
+                            type: 'array',
+                            minItems: 1,
+                            items: {
+                                anyOf: primitive_schemas
+                            }
+                        },
+                        {
+                            type: 'array',
+                            minItems: 1,
+                            items: {
+                                type: 'array',
+                                minItems: 1,
+                                items: {
+                                    anyOf: primitive_schemas
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            required: ['escape']
+        },
+        path,
+        value
+    )
+
+    return errors
+}
+
 export type Expression<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
@@ -217,11 +269,19 @@ export type Expression<
     | GetColumns<Schema, Table>
     | GetAliases<Schema, Aliases, Table>
     | NamedColumn<Schema, Aliases, GetAllTables<Schema>>
-    | { readonly escape: number | string | null | (number | string | null)[] }
+    | EscapedValue
     | Select<Schema, Aliases>
-// TODO: add type subquery here
 
-type NamedColumn<
+export type EscapedValue = {
+    readonly escape:
+        | number
+        | string
+        | null
+        | boolean
+        | (number | string | null | boolean)[]
+}
+
+export type NamedColumn<
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>,
     Tables extends GetAllTables<Schema>

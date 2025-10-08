@@ -1,19 +1,30 @@
 import { OrmaError } from '../../helpers/error_handling'
-import { get_is_column_name, get_is_table_name } from '../../helpers/schema_helpers'
+import {
+    get_column_names,
+    get_column_schema,
+    get_is_table_name
+} from '../../helpers/schema_helpers'
 import {
     GetAllTables,
+    GetColumns,
     GetColumnsNotRequiredForCreate,
-    GetColumnsRequiredForCreate,
-    GetColumnType
+    GetColumnsRequiredForCreate
 } from '../../schema/schema_helper_types'
 import { OrmaSchema } from '../../schema/schema_types'
 import { OrmaQueryAliases } from '../../types/query/query_types'
-import { format_value } from '../common/message_formatting'
-import { validate, ValidationSchema } from '../common/validator'
-import { QueryValidatorArgs } from '../compiler'
-import { sql_to_typescript_types } from '../data_definition/sql_data_types'
+import {
+    format_list_of_values,
+    format_value
+} from '../common/message_formatting'
+import { validate } from '../common/validator'
+import { MutationValidatorArgs } from '../compiler'
+import {
+    compile_insert_into_expression,
+    InsertIntoExpression,
+    validate_insert_into_expression
+} from './compile_insert_into_expression'
 
-export const compile_select = <
+export const compile_insert_into = <
     Schema extends OrmaSchema,
     Aliases extends OrmaQueryAliases<Schema>
 >({
@@ -21,99 +32,53 @@ export const compile_select = <
     statement
 }: {
     orma_schema: Schema
-    statement: Select<Schema, Aliases>
+    statement: InsertInto<Schema>
 }) => {
-    const database_type = orma_schema.tables[statement.from].database_type
+    // to generate the insert into strings:
+    // 1. find unique list of columns for all rows. This is important because the values array must all have
+    //    the same number of items and the columns must appear in the same order
+    // 2. generate the values array using the columns array to ensure they are all uniform
 
-    const select_all_strings =
-        statement.select_all === true
-            ? ['*']
-            : Array.isArray(statement.select_all)
-            ? statement.select_all.map(
-                  el => `${escape_identifier(database_type, el)}.*`
-              )
-            : []
+    // step 1
+    let columns_set = new Set<string>()
+    for (const row of statement.rows) {
+        for (const key of Object.keys(row)) {
+            columns_set.add(key)
+        }
+    }
+    const columns = [...columns_set]
 
-    const select_strings = Object.keys(statement.select ?? {})
-        .map(key => {
-            const value = statement.select![key]
-            if (value === undefined) {
-                return undefined
-            }
-
-            if (typeof value === 'boolean') {
-                return escape_identifier(database_type, key)
-            }
-
-            return `${compile_expression({
+    // step 2
+    const values = statement.rows.map(row => {
+        let row_values = new Array(columns.length)
+        for (let i = 0; i < columns.length; i++) {
+            const column_schema = get_column_schema(
                 orma_schema,
-                table_name: statement.from,
-                statement: value
-            })} AS ${escape_identifier(database_type, key)}`
-        })
-        .filter(el => el !== undefined)
-        .concat(select_all_strings)
+                statement.insert_into,
+                columns[i]
+            )
+            const row_value =
+                row[columns[i] as keyof typeof row] ??
+                column_schema.default ??
+                null
+            // Values can be primitives but also expressions and can rely on values of columns defined earlier
+            row_values[i] = compile_insert_into_expression({
+                orma_schema,
+                statement: row_value as InsertIntoExpression<
+                    Schema,
+                    typeof statement.insert_into,
+                    GetColumns<Schema, typeof statement.insert_into>
+                >,
+                table_name: statement.insert_into
+            })
+        }
+        return row_values
+    })
 
-    const where_string = statement.where
-        ? ` WHERE ${compile_where({
-              orma_schema,
-              table_name: statement.from,
-              statement: statement.where
-          })}`
-        : ''
+    const columns_str = columns.join(', ')
+    const values_str = values.map(value => `(${value.join(', ')})`).join(', ')
 
-    const group_by_string = statement.group_by
-        ? ` GROUP BY ${statement.group_by
-              .map(el =>
-                  compile_expression({
-                      orma_schema,
-                      table_name: statement.from,
-                      statement: el
-                  })
-              )
-              .join(', ')}`
-        : ''
-
-    const having_string = statement.having
-        ? ` HAVING ${compile_where({
-              orma_schema,
-              table_name: statement.from,
-              statement: statement.having
-          })}`
-        : ''
-
-    const order_by_string = statement.order_by
-        ? ` ORDER BY ${statement.order_by
-              .map(el => {
-                  if ('asc' in el) {
-                      return `${compile_expression({
-                          orma_schema,
-                          table_name: statement.from,
-                          statement: el.asc
-                      })} ASC`
-                  } else {
-                      return `${compile_expression({
-                          orma_schema,
-                          table_name: statement.from,
-                          statement: el.desc
-                      })} DESC`
-                  }
-              })
-              .join(', ')}`
-        : ''
-
-    const limit_string = statement.limit
-        ? ` LIMIT ${escape_value(database_type, statement.limit)}`
-        : ''
-
-    const offset_string = statement.offset
-        ? ` LIMIT ${escape_value(database_type, statement.offset)}`
-        : ''
-
-    return `SELECT ${select_strings.join(', ')} FROM ${escape_identifier(
-        database_type,
-        statement.from
-    )}${where_string}${group_by_string}${having_string}${order_by_string}${limit_string}${offset_string}`
+    return `INSERT INTO ${statement.insert_into} (${columns_str}) VALUES ${values_str}`
 }
 
 export const validate_insert_into = <
@@ -122,9 +87,8 @@ export const validate_insert_into = <
 >({
     orma_schema,
     statement,
-    path,
-    aliases_by_table
-}: QueryValidatorArgs<Schema, InsertInto<Schema>>): OrmaError[] => {
+    path
+}: MutationValidatorArgs<Schema, InsertInto<Schema>>): OrmaError[] => {
     const base_errors = validate(
         {
             type: 'object',
@@ -157,97 +121,66 @@ export const validate_insert_into = <
           ]
         : []
 
-    const row_errors = statement.rows.flatMap(row => ({
-        // TODO: check for required fields
+    const row_errors = statement.rows.flatMap((row, row_index) => {
+        const required_columns = get_column_names(
+            orma_schema,
+            statement.insert_into
+        ).filter(column =>
+            is_required_column(orma_schema, statement.insert_into, column)
+        )
+        const missing_columns = required_columns.filter(
+            column => row[column as keyof typeof row] === undefined
+        )
+        const missing_column_errors: OrmaError[] = missing_columns.length
+            ? [
+                  {
+                      error_code: 'validation_error',
+                      message: `These columns must be provided to create ${format_value(
+                          statement.insert_into
+                      )}: ${format_list_of_values(missing_columns)}`,
+                      path: [...path, 'rows', row_index]
+                  }
+              ]
+            : []
 
-        const field_errors = Object.entries(row).map(([field, value]) => {
+        const field_type_errors = Object.keys(row).flatMap(column_name => {
+            const value = row[column_name as keyof typeof row]
 
-        })
-    }))
-}
-
-const validate_insert_into_field = <
-    Schema extends OrmaSchema,
-    Aliases extends OrmaQueryAliases<Schema>
->({
-    orma_schema,
-    statement,
-    path,
-    aliases_by_table,
-    table_name, column_name
-}: QueryValidatorArgs<Schema, InsertInto<Schema>> & {table_name: GetAllTables<Schema>, column_name: string}): OrmaError[] => {
-    if (!get_is_column_name(orma_schema, table_name, column)) {
-        return [
-            {
-                error_code: 'validation_error',
-                message: `${format_value(
-                    table_name
-                )} is not a valid table name.`,
-                path: [...path]
+            // undefined should be treated like the value is not there for consistency. Required columns being set
+            // to undefined would have already generated an error above so no need to check again
+            if (value === undefined) {
+                return []
             }
-        ]
-    }
 
-    const column_schema = get_column_json_schema(orma_schema, table_name, column_name)
-    const column_errors = validate(column_schema, [...path, column_name], statement)
+            return validate_insert_into_expression({
+                orma_schema,
+                statement: value,
+                path: [...path, 'rows', row_index, column_name],
+                column_name,
+                table_name: statement.insert_into
+            })
+        })
+        return [...missing_column_errors, ...field_type_errors]
+    })
 
-
+    return [...table_errors, ...row_errors]
 }
 
-const get_column_json_schema = (
+const is_required_column = (
     orma_schema: OrmaSchema,
     table_name: string,
-    column_name: string,
-): ValidationSchema => {
-    const field_schema = orma_schema.tables[table_name].columns[column_name]
-    const is_nullable = !field_schema.not_null
-    const base_schema = get_field_base_json_schema(
+    column_name: string
+) => {
+    const column_schema = get_column_schema(
         orma_schema,
         table_name,
-        column_name,
+        column_name
     )
-    const schemas: ValidationSchema[] = [
-        base_schema,
-        ...(is_nullable ? [{ const: null }] : []),
-        {
-            type: 'object',
-            properties: {
-                guid: {
-                    anyOf: [{ type: 'string' }, { type: 'number' }]
-                }
-            }
-        }
-    ]
-    return {
-        anyOf: schemas
-    }
-}
-
-const get_field_base_json_schema = (
-    orma_schema: OrmaSchema,
-    table_name: string,
-    column_name: string,
-): ValidationSchema => {
-    const field_schema = orma_schema.tables[table_name].columns[column_name]
-    const ts_type = sql_to_typescript_types[field_schema.data_type]
-    if (ts_type === 'boolean') {
-        return { type: 'boolean' }
-    }
-    if (ts_type === 'enum') {
-        return {
-                enum: new Set(field_schema.enum_values)
-            }
-        
-    }
-    if (ts_type === 'number') {
-        return { type: 'number' }
-    }
-    if (ts_type === 'string') {
-        return { type: 'string' }
-    }
-
-    // unsupported
-    return { enum: new Set()}
+    const is_required =
+        !!column_schema?.not_null &&
+        column_schema?.default === undefined &&
+        !column_schema?.auto_increment
+    return is_required
 }
 
 export type InsertInto<Schema extends OrmaSchema> = InsertIntoForTables<
@@ -271,16 +204,11 @@ type InsertIntoForTable<
         readonly [Column in GetColumnsRequiredForCreate<
             Schema,
             Table
-        >]: GetColumnType<Schema, Table, Column>
+        >]: InsertIntoExpression<Schema, Table, Column>
     } & {
         readonly [Column in GetColumnsNotRequiredForCreate<
             Schema,
             Table
-        >]?: GetColumnType<Schema, Table, Column>
+        >]?: InsertIntoExpression<Schema, Table, Column>
     })[]
 }
-
-// TODO: make sure all errors have an error code
-// TODO: make sure base errors are always returned right away if there are any to prevent cannot read
-// property of undefined errors when checking for more errors
-// TODO: add casting (e.g. string to number, 1 / 0 -> true / false, etc.)

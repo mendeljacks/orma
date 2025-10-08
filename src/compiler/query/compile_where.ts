@@ -20,7 +20,7 @@ export const compile_where = <
     orma_schema,
     table_name,
     statement
-}: QueryCompilerArgs<Schema, Where<Schema, Aliases, Table>>): string => {
+}: QueryCompilerArgs<Schema, Table, Where<Schema, Aliases, Table>>): string => {
     if ('eq' in statement) {
         const [left_arg, right_arg] = statement.eq
 

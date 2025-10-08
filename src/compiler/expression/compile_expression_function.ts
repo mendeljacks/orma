@@ -3,7 +3,6 @@ import { escape_value } from '../../helpers/escape'
 import { GetAllTables } from '../../schema/schema_helper_types'
 import { OrmaSchema } from '../../schema/schema_types'
 import { OrmaQueryAliases } from '../../types/query/query_types'
-import { format_value } from '../common/message_formatting'
 import { validate } from '../common/validator'
 import { QueryCompilerArgs, QueryValidatorArgs } from '../compiler'
 import { sql_to_typescript_types } from '../data_definition/sql_data_types'
@@ -24,6 +23,7 @@ export const compile_expression_function = <
     table_name
 }: QueryCompilerArgs<
     Schema,
+    Table,
     ExpressionFunction<Schema, Aliases, Table>
 >): string => {
     const database_type = orma_schema.tables[table_name].database_type
@@ -98,6 +98,14 @@ export const compile_expression_function = <
             orma_schema,
             table_name,
             statement: statement.count
+        })})`
+    }
+
+    if ('count_distinct' in statement) {
+        return `COUNT(DISTINCT ${compile_expression({
+            orma_schema,
+            table_name,
+            statement: statement.count_distinct
         })})`
     }
 
@@ -703,6 +711,7 @@ export type ExpressionFunction<
     | { readonly cast_signed: Expression<Schema, Aliases, Table> }
     | { readonly concat: readonly Expression<Schema, Aliases, Table>[] }
     | { readonly count: Expression<Schema, Aliases, Table> | '*' }
+    | { readonly count_distinct: Expression<Schema, Aliases, Table> }
     | { readonly current_timestamp: true }
     | { readonly date: Expression<Schema, Aliases, Table> }
     | {

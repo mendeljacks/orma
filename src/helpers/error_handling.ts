@@ -1,4 +1,4 @@
-type ErrorCode = 'validation_error' | 'ownership_error'
+type ErrorCode = 'validation_error' | 'ownership_error' | 'unsupported_feature'
 
 export type OrmaError = {
     message: string

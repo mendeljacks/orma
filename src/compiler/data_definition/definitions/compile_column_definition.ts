@@ -1,7 +1,10 @@
 import { OrmaError } from '../../../helpers/error_handling'
 import { escape_identifier } from '../../../helpers/escape'
+import { OrmaSchema } from '../../../schema/schema_types'
 import { validate } from '../../common/validator'
 import { DDLCompilerArgs, DDLValidatorArgs } from '../../compiler'
+import { EscapedValue, NamedColumn } from '../../expression/compile_expression'
+import { ExpressionFunction } from '../../expression/compile_expression_function'
 import { sql_to_typescript_types } from '../sql_data_types'
 import { compile_data_type } from './compile_data_type'
 
@@ -110,7 +113,18 @@ export type ColumnDefinition = {
     readonly unsigned?: boolean
     readonly not_null?: boolean
     readonly auto_increment?: boolean
-    readonly default?: string | number | Record<string, any> // TODO: make this use an Expression type
-    readonly on_update?: string | number | Record<string, any> // TODO: make this use an Expression type
+    readonly default?:
+        | string
+        | number
+        | null
+        | ExpressionFunction<OrmaSchema, {}, string>
+        | EscapedValue
+        | NamedColumn<OrmaSchema, {}, string>
+    readonly on_update?:
+        | string
+        | number
+        | ExpressionFunction<OrmaSchema, {}, string>
+        | EscapedValue
+        | NamedColumn<OrmaSchema, {}, string>
     readonly comment?: string
 }

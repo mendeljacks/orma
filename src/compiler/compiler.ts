@@ -56,10 +56,11 @@ export type DDLCompilerArgs<T extends any> = {
 
 export type QueryCompilerArgs<
     Schema extends OrmaSchema,
+    Table extends GetAllTables<Schema>,
     Statement extends any
 > = {
     orma_schema: Schema
-    table_name: GetAllTables<Schema>
+    table_name: Table
     statement: Statement
 }
 
@@ -71,4 +72,13 @@ export type QueryValidatorArgs<
     statement: Statement
     path: Path
     aliases_by_table: { [key in string]: string[] }
+}
+
+export type MutationValidatorArgs<
+    Schema extends OrmaSchema,
+    Statement extends any
+> = {
+    orma_schema: Schema
+    statement: Statement
+    path: Path
 }

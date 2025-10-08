@@ -1,7 +1,6 @@
 import { OrmaError } from '../../helpers/error_handling'
 import { escape_identifier, escape_value } from '../../helpers/escape'
 import {
-    get_column_names,
     get_is_column_name,
     get_is_table_name
 } from '../../helpers/schema_helpers'
@@ -9,7 +8,7 @@ import { GetAllTables, GetColumns } from '../../schema/schema_helper_types'
 import { OrmaSchema } from '../../schema/schema_types'
 import { GetAliases, OrmaQueryAliases } from '../../types/query/query_types'
 import { format_value } from '../common/message_formatting'
-import { validate } from '../common/validator'
+import { validate, ValidationSchema } from '../common/validator'
 import { QueryCompilerArgs, QueryValidatorArgs } from '../compiler'
 import {
     compile_expression,
@@ -25,7 +24,7 @@ export const compile_select = <
     orma_schema,
     statement
 }: {
-    orma_schema: Schema
+    orma_schema: OrmaSchema
     statement: Select<Schema, Aliases>
 }) => {
     const database_type = orma_schema.tables[statement.from].database_type
@@ -88,23 +87,11 @@ export const compile_select = <
         : ''
 
     const order_by_string = statement.order_by
-        ? ` ORDER BY ${statement.order_by
-              .map(el => {
-                  if ('asc' in el) {
-                      return `${compile_expression({
-                          orma_schema,
-                          table_name: statement.from,
-                          statement: el.asc
-                      })} ASC`
-                  } else {
-                      return `${compile_expression({
-                          orma_schema,
-                          table_name: statement.from,
-                          statement: el.desc
-                      })} DESC`
-                  }
-              })
-              .join(', ')}`
+        ? ` ${compile_order_by({
+              orma_schema,
+              statement: statement.order_by,
+              table_name: statement.from
+          })}`
         : ''
 
     const limit_string = statement.limit
@@ -119,6 +106,50 @@ export const compile_select = <
         database_type,
         statement.from
     )}${where_string}${group_by_string}${having_string}${order_by_string}${limit_string}${offset_string}`
+}
+
+export const compile_order_by = <
+    Schema extends OrmaSchema,
+    Aliases extends OrmaQueryAliases<Schema>,
+    Table extends GetAllTables<Schema>
+>({
+    orma_schema,
+    statement,
+    table_name
+}: QueryCompilerArgs<Schema, Table, OrderBy<Schema, Aliases, Table>>) => {
+    const order_by_strings = statement.map(el => {
+        if ('asc' in el) {
+            return `${compile_expression({
+                orma_schema,
+                table_name,
+                statement: el.asc
+            })} ASC`
+        } else {
+            return `${compile_expression({
+                orma_schema,
+                table_name,
+                statement: el.desc
+            })} DESC`
+        }
+    })
+
+    return `ORDER BY ${order_by_strings.join(', ')}`
+}
+
+export const order_by_json_schema: ValidationSchema = {
+    type: 'array',
+    items: {
+        oneOf: [
+            {
+                type: 'object',
+                required: ['asc']
+            },
+            {
+                type: 'object',
+                required: ['desc']
+            }
+        ]
+    }
 }
 
 export const validate_select = <
@@ -150,21 +181,7 @@ export const validate_select = <
                 limit: { type: 'integer', minimum: 0 },
                 offset: { type: 'integer', minimum: 0 },
                 group_by: { type: 'array' },
-                order_by: {
-                    type: 'array',
-                    items: {
-                        oneOf: [
-                            {
-                                type: 'object',
-                                required: ['asc']
-                            },
-                            {
-                                type: 'object',
-                                required: ['desc']
-                            }
-                        ]
-                    }
-                }
+                order_by: order_by_json_schema
             },
             required: ['from']
         },
@@ -272,39 +289,15 @@ export const validate_select = <
             })
         ) ?? []
 
-    const order_by_errors =
-        statement.order_by?.flatMap((el, i) => {
-            if ('asc' in el && 'desc' in el) {
-                return [
-                    {
-                        message:
-                            "Order by must have only one of the properties 'asc' or 'desc'"
-                    } as OrmaError
-                ]
-            }
-
-            if ('asc' in el) {
-                return validate_expression({
-                    orma_schema,
-                    aliases_by_table,
-                    path: [...path, 'order_by', i],
-                    table_name: statement.from,
-                    statement: el.asc
-                })
-            }
-
-            if ('desc' in el) {
-                return validate_expression({
-                    orma_schema,
-                    aliases_by_table,
-                    path: [...path, 'order_by', i],
-                    table_name: statement.from,
-                    statement: el.desc
-                })
-            }
-
-            return []
-        }) ?? []
+    const order_by_errors = statement.order_by
+        ? validate_order_by({
+              orma_schema,
+              aliases_by_table,
+              path,
+              statement: statement.order_by,
+              table_name: statement.from
+          })
+        : []
 
     return [
         ...base_errors,
@@ -315,6 +308,47 @@ export const validate_select = <
         ...group_by_errors,
         ...order_by_errors
     ]
+}
+
+export const validate_order_by = <
+    Schema extends OrmaSchema,
+    Aliases extends OrmaQueryAliases<Schema>,
+    Table extends GetAllTables<Schema>
+>({
+    orma_schema,
+    statement,
+    path,
+    aliases_by_table,
+    table_name
+}: QueryValidatorArgs<Schema, OrderBy<Schema, Aliases, Table>> & {
+    table_name: Table
+}): OrmaError[] => {
+    const errors =
+        statement.flatMap((el, i) => {
+            if ('asc' in el) {
+                return validate_expression({
+                    orma_schema,
+                    aliases_by_table,
+                    path: [...path, 'order_by', i],
+                    table_name,
+                    statement: el.asc
+                })
+            }
+
+            if ('desc' in el) {
+                return validate_expression({
+                    orma_schema,
+                    aliases_by_table,
+                    path: [...path, 'order_by', i],
+                    table_name,
+                    statement: el.desc
+                })
+            }
+
+            return []
+        }) ?? []
+
+    return errors
 }
 
 export type Select<
@@ -342,14 +376,7 @@ type SelectForTable<
     readonly limit?: number
     readonly offset?: number
     readonly group_by?: readonly Expression<Schema, Aliases, Table>[]
-    readonly order_by?: readonly (
-        | {
-              readonly asc: Expression<Schema, Aliases, Table>
-          }
-        | {
-              readonly desc: Expression<Schema, Aliases, Table>
-          }
-    )[]
+    readonly order_by?: OrderBy<Schema, Aliases, Table>
     readonly where?: Where<Schema, Aliases, Table>
     readonly having?: Where<Schema, Aliases, Table>
     // readonly nest?: {
@@ -359,6 +386,19 @@ type SelectForTable<
     //     >]?: SelectForTable<Schema, Aliases, Subtable>
     // }
 }
+
+export type OrderBy<
+    Schema extends OrmaSchema,
+    Aliases extends OrmaQueryAliases<Schema>,
+    Table extends GetAllTables<Schema>
+> = readonly (
+    | {
+          readonly asc: Expression<Schema, Aliases, Table>
+      }
+    | {
+          readonly desc: Expression<Schema, Aliases, Table>
+      }
+)[]
 
 type ColumnObj<
     Schema extends OrmaSchema,
