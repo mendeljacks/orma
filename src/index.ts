@@ -45,3 +45,6 @@ export { type OrmaSchema } from './types/schema/schema_types'
 
 // adapters
 export { mysql2_adapter } from './helpers/database_adapters'
+
+// sql to orma
+export { sql_to_orma_query, sql_to_orma_mutation } from './query/sql_to_orma'
