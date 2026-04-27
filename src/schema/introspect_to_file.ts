@@ -1,5 +1,5 @@
 import { writeFileSync } from 'fs'
-import { MysqlFunction } from '../mutate/mutate'
+import { SqlFunction } from '../mutate/mutate'
 import { SupportedDatabases } from '../types/schema/schema_types'
 import { orma_introspect } from './introspector'
 
@@ -14,7 +14,7 @@ import { orma_introspect } from './introspector'
 export const introspect_to_file = async (
     database_name: string,
     output_path: string,
-    byo_query_fn: MysqlFunction,
+    byo_query_fn: SqlFunction,
     database_type: SupportedDatabases
 ) => {
     const orma_schema = await orma_introspect(database_name, byo_query_fn, {

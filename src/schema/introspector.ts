@@ -1,14 +1,14 @@
 /**
- * These functions are used to introspect the schema of a mysql database, and from it create a JSON schema compatible with orma.
+ * These functions are used to introspect the schema of a SQL database, and from it create a JSON schema compatible with orma.
  * @module
  */
 
 import { group_by, sort_by_prop } from '../helpers/helpers'
-import { MysqlFunction } from '../mutate/mutate'
+import { SqlFunction } from '../mutate/mutate'
 import { DeepMutable } from '../types/schema/schema_helper_types'
 import { OrmaSchema, SupportedDatabases } from '../types/schema/schema_types'
 
-export const mysql_to_typescript_types = {
+export const sql_to_typescript_types = {
     bigint: 'number',
     binary: 'string',
     bit: 'not_supported',
@@ -43,19 +43,19 @@ export const mysql_to_typescript_types = {
 
 export const orma_introspect = async (
     db: string,
-    mysql_function: MysqlFunction,
+    sql_function: SqlFunction,
     options: { database_type: SupportedDatabases }
 ): Promise<OrmaSchema> => {
     const sql_strings = get_introspect_sqls(db, options.database_type)
     // @ts-ignore
-    const [mysql_tables, mysql_columns, mysql_foreign_keys, mysql_indexes]: [
-        MysqlTable[],
-        MysqlColumn[],
-        MysqlForeignKey[],
-        MysqlIndex[]
+    const [sql_tables, sql_columns, sql_foreign_keys, sql_indexes]: [
+        SqlTable[],
+        SqlColumn[],
+        SqlForeignKey[],
+        SqlIndex[]
         // @ts-ignore the fact that we dont have the original asts is basically a mistake, since we should not
         // be writing raw sql strings, but there is no strong incentive to fix it, so ts ignore for now
-    ] = await mysql_function(sql_strings.map(el => ({ sql_string: el })))
+    ] = await sql_function(sql_strings.map(el => ({ sql_string: el })))
 
     const transform_keys_to_lower = obj =>
         Object.entries(obj).reduce((acc, val) => {
@@ -64,10 +64,10 @@ export const orma_introspect = async (
         }, {})
 
     const orma_schema = generate_database_schema(
-        mysql_tables.map(transform_keys_to_lower) as MysqlTable[],
-        mysql_columns.map(transform_keys_to_lower) as MysqlColumn[],
-        mysql_foreign_keys.map(transform_keys_to_lower) as MysqlForeignKey[],
-        mysql_indexes.map(transform_keys_to_lower) as MysqlIndex[],
+        sql_tables.map(transform_keys_to_lower) as SqlTable[],
+        sql_columns.map(transform_keys_to_lower) as SqlColumn[],
+        sql_foreign_keys.map(transform_keys_to_lower) as SqlForeignKey[],
+        sql_indexes.map(transform_keys_to_lower) as SqlIndex[],
         options.database_type
     )
 
@@ -146,64 +146,74 @@ export const get_introspect_sqls = (
  * Takes the results of running the queries from {@link get_introspect_sqls `get_introspect_sqls`} and makes a JSON schema for orma.
  */
 export const generate_database_schema = (
-    mysql_tables: MysqlTable[],
-    mysql_columns: MysqlColumn[],
-    mysql_foreign_keys: MysqlForeignKey[],
-    mysql_indexes: MysqlIndex[],
+    sql_tables: SqlTable[],
+    sql_columns: SqlColumn[],
+    sql_foreign_keys: SqlForeignKey[],
+    sql_indexes: SqlIndex[],
     database_type: SupportedDatabases
 ) => {
-    const index_schemas = generate_index_schemas(mysql_indexes, false)
-    const unique_key_schemas = generate_index_schemas(mysql_indexes, true)
-    const mysql_columns_by_table = group_by(mysql_columns, el => el.table_name)
-    const mysql_foreign_keys_by_table = group_by(
-        mysql_foreign_keys,
+    const non_pk_indexes = database_type === 'postgres'
+        ? sql_indexes.filter(i => i.contype !== 'p')
+        : sql_indexes
+    const index_schemas = generate_index_schemas(non_pk_indexes, false)
+    const unique_key_schemas = generate_index_schemas(non_pk_indexes, true)
+    const sql_columns_by_table = group_by(sql_columns, el => el.table_name)
+    const sql_foreign_keys_by_table = group_by(
+        sql_foreign_keys,
         el => el.table_name
     )
 
-    const database_schema = mysql_tables.reduce(
-        (acc, mysql_table) => {
-            const sorted_mysql_columns = mysql_columns_by_table[
-                mysql_table.table_name
+    const database_schema = sql_tables.reduce(
+        (acc, sql_table) => {
+            const sorted_sql_columns = sql_columns_by_table[
+                sql_table.table_name
             ]
                 ?.slice()
                 ?.sort((a, b) => a.ordinal_position - b.ordinal_position)
 
-            const sorted_mysql_foreign_keys = mysql_foreign_keys_by_table[
-                mysql_table.table_name
+            const sorted_sql_foreign_keys = sql_foreign_keys_by_table[
+                sql_table.table_name
             ]
                 ?.slice()
                 ?.sort((a, b) => sort_by_prop(a, b, 'constraint_name'))
 
-            const $fields = sorted_mysql_columns?.reduce(
-                (acc, mysql_column) => {
-                    acc[mysql_column.column_name] =
-                        generate_field_schema(mysql_column)
+            const $fields = sorted_sql_columns?.reduce(
+                (acc, sql_column) => {
+                    acc[sql_column.column_name] =
+                        generate_field_schema(sql_column)
                     return acc
                 },
                 {}
             )
 
-            const $foreign_keys = sorted_mysql_foreign_keys?.flatMap(
-                mysql_foreign_key => {
+            const $foreign_keys = sorted_sql_foreign_keys?.flatMap(
+                sql_foreign_key => {
                     const foreign_key =
-                        generate_foreign_key_schema(mysql_foreign_key)
+                        generate_foreign_key_schema(sql_foreign_key)
                     return foreign_key ? [foreign_key] : []
                 }
             )
 
-            const $indexes = index_schemas[mysql_table.table_name]?.sort(
+            const $indexes = index_schemas[sql_table.table_name]?.sort(
                 (a, b) => sort_by_prop(a, b, '$name')
             )
 
             const $unique_keys = unique_key_schemas[
-                mysql_table.table_name
+                sql_table.table_name
             ]?.sort((a, b) => sort_by_prop(a, b, '$name'))
 
-            acc.$entities[mysql_table.table_name] = {
-                $comment: mysql_table.table_comment,
+            const $primary_key = database_type === 'postgres'
+                ? generate_primary_key_schema_from_indexes(
+                    sql_indexes,
+                    sql_table.table_name
+                )
+                : generate_primary_key_schema(sorted_sql_columns)
+
+            acc.$entities[sql_table.table_name] = {
+                $comment: sql_table.table_comment,
                 $database_type: database_type,
                 $fields,
-                $primary_key: generate_primary_key_schema(sorted_mysql_columns),
+                $primary_key,
                 ...($foreign_keys?.length && { $foreign_keys }),
                 ...($indexes?.length && { $indexes }),
                 ...($unique_keys?.length && { $unique_keys }),
@@ -217,7 +227,7 @@ export const generate_database_schema = (
     return database_schema
 }
 
-export const generate_field_schema = (mysql_column: MysqlColumn) => {
+export const generate_field_schema = (sql_column: SqlColumn) => {
     const {
         table_name,
         column_name,
@@ -236,7 +246,7 @@ export const generate_field_schema = (mysql_column: MysqlColumn) => {
         generation_expression,
         column_comment,
         identity_generation,
-    } = mysql_column
+    } = sql_column
 
     const enum_match = column_type?.match(/enum\((.+)\)/)?.[1] ?? ''
     const enum_values = enum_match
@@ -249,7 +259,7 @@ export const generate_field_schema = (mysql_column: MysqlColumn) => {
 
     const field_schema: OrmaField = {
         $data_type:
-            data_type.toLowerCase() as keyof typeof mysql_to_typescript_types,
+            data_type.toLowerCase() as keyof typeof sql_to_typescript_types,
         ...(enum_values?.length && { $enum_values: enum_values }),
         ...(precision && { $precision: precision }),
         ...(numeric_scale && { $scale: numeric_scale }),
@@ -290,8 +300,8 @@ const parse_column_default = (value: any) => {
     return `'${value}'`
 }
 
-const generate_primary_key_schema = (mysql_columns: MysqlColumn[]) => {
-    const primary_key_columns = mysql_columns.filter(
+const generate_primary_key_schema = (sql_columns: SqlColumn[]) => {
+    const primary_key_columns = sql_columns.filter(
         el => el.column_key === 'PRI'
     )
     return {
@@ -299,14 +309,29 @@ const generate_primary_key_schema = (mysql_columns: MysqlColumn[]) => {
     }
 }
 
-const generate_foreign_key_schema = (mysql_foreign_key: MysqlForeignKey) => {
+const generate_primary_key_schema_from_indexes = (
+    sql_indexes: SqlIndex[],
+    table_name: string
+) => {
+    const pk_indexes = sql_indexes.filter(
+        i => i.table_name === table_name && i.contype === 'p'
+    )
+    const pk_by_name = group_by(pk_indexes, i => i.index_name)
+    const pk_name = Object.keys(pk_by_name)[0]
+    if (!pk_name) return { $fields: [] as string[] }
+    const uniq = <T>(els: T[]): T[] => [...new Set(els)]
+    const fields = uniq(pk_by_name[pk_name].map(el => el.column_name))
+    return { $fields: fields }
+}
+
+const generate_foreign_key_schema = (sql_foreign_key: SqlForeignKey) => {
     const {
         table_name,
         column_name,
         referenced_table_name,
         referenced_column_name,
         constraint_name,
-    } = mysql_foreign_key
+    } = sql_foreign_key
 
     if (!referenced_table_name || !referenced_column_name) {
         return undefined
@@ -323,38 +348,37 @@ const generate_foreign_key_schema = (mysql_foreign_key: MysqlForeignKey) => {
 }
 
 export const generate_index_schemas = (
-    mysql_indexes: MysqlIndex[],
+    sql_indexes: SqlIndex[],
     unique_indexes: boolean
 ) => {
-    const mysql_indexes_by_table = group_by(
-        mysql_indexes,
+    const sql_indexes_by_table = group_by(
+        sql_indexes,
         index => index.table_name
     )
 
-    const table_names = Object.keys(mysql_indexes_by_table).sort()
+    const table_names = Object.keys(sql_indexes_by_table).sort()
     const index_schemas_by_table = table_names.reduce((acc, table_name) => {
-        const mysql_indexes = mysql_indexes_by_table[table_name]
+        const sql_indexes = sql_indexes_by_table[table_name]
             .slice()
             .sort((a, b) => sort_by_prop(a, b, 'index_name'))
-            .filter(mysql_index =>
+            .filter(sql_index =>
                 unique_indexes
-                    ? Number(mysql_index.non_unique) === 0
-                    : Number(mysql_index.non_unique) === 1
+                    ? Number(sql_index.non_unique) === 0
+                    : Number(sql_index.non_unique) === 1
             )
 
-        // we need to do this because mysql puts each field of an index as a separate row
-        // in the indeformation schema table
-        const mysql_indexes_by_name = group_by(
-            mysql_indexes,
+        // each field of an index is a separate row in the information schema table
+        const sql_indexes_by_name = group_by(
+            sql_indexes,
             index => index.index_name
         )
 
-        const index_schemas = Object.keys(mysql_indexes_by_name).map(
+        const index_schemas = Object.keys(sql_indexes_by_name).map(
             index_name => {
-                const index = mysql_indexes_by_name[index_name][0]
+                const index = sql_indexes_by_name[index_name][0]
                 const uniq = <T>(els: T[]): T[] => [...new Set(els)]
                 const fields = uniq(
-                    mysql_indexes_by_name[index_name]
+                    sql_indexes_by_name[index_name]
                         .slice()
                         .sort((a, b) => a.seq_in_index - b.seq_in_index)
                         .map(el => el.column_name)
@@ -370,7 +394,7 @@ export const generate_index_schemas = (
     return index_schemas_by_table
 }
 
-const generate_index_schema = (mysql_index: MysqlIndex, fields: string[]) => {
+const generate_index_schema = (sql_index: SqlIndex, fields: string[]) => {
     const {
         table_name,
         non_unique,
@@ -386,7 +410,7 @@ const generate_index_schema = (mysql_index: MysqlIndex, fields: string[]) => {
         index_comment,
         is_visible,
         expression,
-    } = mysql_index
+    } = sql_index
 
     const orma_index_schema: OrmaIndex = {
         $name: index_name,
@@ -430,12 +454,12 @@ export const generate_orma_schema_cache = (
 
 type OrmaSchemaMutable = DeepMutable<OrmaSchema>
 
-export type MysqlTable = {
+export type SqlTable = {
     table_name: string
     table_comment?: string
 }
 
-export type MysqlColumn = {
+export type SqlColumn = {
     table_name: string
     column_name: string
     ordinal_position: number
@@ -455,7 +479,8 @@ export type MysqlColumn = {
     column_comment?: string
 }
 
-export type MysqlIndex = {
+
+export type SqlIndex = {
     table_name: string
     non_unique: number | '0'
     index_name: string
@@ -470,15 +495,27 @@ export type MysqlIndex = {
     index_comment: string
     is_visible: 'YES' | 'NO'
     expression: string
+    contype?: 'p' | 'u'
 }
 
-export type MysqlForeignKey = {
+export type SqlForeignKey = {
     table_name: string
     column_name: string
     referenced_table_name: string
     referenced_column_name: string
     constraint_name: string
 }
+
+/** @deprecated Use SqlTable instead */
+export type MysqlTable = SqlTable
+/** @deprecated Use SqlColumn instead */
+export type MysqlColumn = SqlColumn
+/** @deprecated Use SqlIndex instead */
+export type MysqlIndex = SqlIndex
+/** @deprecated Use SqlForeignKey instead */
+export type MysqlForeignKey = SqlForeignKey
+/** @deprecated Use sql_to_typescript_types instead */
+export const mysql_to_typescript_types = sql_to_typescript_types
 
 type OrmaIndex = NonNullable<
     OrmaSchemaMutable['$entities'][string]['$indexes']

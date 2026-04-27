@@ -1,4 +1,4 @@
-import { mysql_to_typescript_types } from '../../schema/introspector'
+import { sql_to_typescript_types } from '../../schema/introspector'
 
 
 /*
@@ -55,7 +55,7 @@ export type FieldDefinition = {
     readonly $constraint?: never
     readonly $index?: never
     readonly $name: string
-    readonly $data_type: keyof typeof mysql_to_typescript_types
+    readonly $data_type: keyof typeof sql_to_typescript_types
     readonly $enum_values?: readonly string[]
     readonly $precision?: number
     readonly $scale?: number

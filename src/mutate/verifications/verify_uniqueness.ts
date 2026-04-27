@@ -14,7 +14,7 @@ import { combine_wheres } from '../../query/query_helpers'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { get_identifying_where } from '../helpers/record_searching'
-import { MysqlFunction } from '../mutate'
+import { SqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
 
 /**
@@ -27,7 +27,7 @@ import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
  */
 export const get_unique_verification_errors = async (
     orma_schema: OrmaSchema,
-    mysql_function: MysqlFunction,
+    sql_function: SqlFunction,
     mutation_plan: Pick<MutationPlan, 'mutation_pieces' | 'guid_map'>
 ) => {
     /*
@@ -55,7 +55,7 @@ export const get_unique_verification_errors = async (
         piece_indices_by_entity
     )
 
-    const results = await orma_query(query, orma_schema, mysql_function)
+    const results = await orma_query(query, orma_schema, sql_function)
 
     const database_errors = get_database_uniqueness_errors(
         orma_schema,

@@ -11,7 +11,7 @@ import {
     is_required_field,
     is_reserved_keyword,
 } from '../../helpers/schema_helpers'
-import { mysql_to_typescript_types } from '../../schema/introspector'
+import { sql_to_typescript_types } from '../../schema/introspector'
 import { Path } from '../../types'
 import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
@@ -323,7 +323,7 @@ const validate_field = (
     const required_data_type = field_schema.$data_type
 
     const required_simple_type = required_data_type
-        ? mysql_to_typescript_types[required_data_type]
+        ? sql_to_typescript_types[required_data_type]
         : null
 
     if (

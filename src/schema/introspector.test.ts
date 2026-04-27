@@ -6,10 +6,10 @@ import {
     generate_field_schema,
     generate_database_schema,
     get_introspect_sqls,
-    MysqlColumn,
-    MysqlForeignKey,
-    MysqlTable,
-    MysqlIndex,
+    SqlColumn,
+    SqlForeignKey,
+    SqlTable,
+    SqlIndex,
     generate_index_schemas,
     generate_orma_schema_cache,
 } from './introspector'
@@ -28,7 +28,7 @@ describe('introspector', () => {
         expect(result).to.deep.equal(sorted)
     })
     test('primary key field schema', () => {
-        const mysql_column: MysqlColumn = {
+        const sql_column: SqlColumn = {
             table_name: 'users',
             column_name: 'id',
             ordinal_position: 1,
@@ -37,7 +37,7 @@ describe('introspector', () => {
             column_key: 'PRI',
             extra: 'auto_increment',
         }
-        const field_schema = generate_field_schema(mysql_column)
+        const field_schema = generate_field_schema(sql_column)
 
         expect(field_schema).to.deep.equal({
             $data_type: 'int',
@@ -46,7 +46,7 @@ describe('introspector', () => {
     })
 
     test('unique key field schema', () => {
-        const mysql_column: MysqlColumn = {
+        const sql_column: SqlColumn = {
             table_name: 'users',
             column_name: 'username',
             ordinal_position: 2,
@@ -54,7 +54,7 @@ describe('introspector', () => {
             data_type: 'varchar',
             column_key: 'UNI',
         }
-        const field_schema = generate_field_schema(mysql_column)
+        const field_schema = generate_field_schema(sql_column)
 
         expect(field_schema).to.deep.equal({
             $data_type: 'varchar',
@@ -63,7 +63,7 @@ describe('introspector', () => {
     })
 
     test('decimal precision field schema', () => {
-        const mysql_column: MysqlColumn = {
+        const sql_column: SqlColumn = {
             table_name: 'users',
             column_name: 'rating',
             ordinal_position: 3,
@@ -72,7 +72,7 @@ describe('introspector', () => {
             numeric_scale: 1,
             column_default: 1.5,
         }
-        const field_schema = generate_field_schema(mysql_column)
+        const field_schema = generate_field_schema(sql_column)
 
         expect(field_schema).to.deep.equal({
             $data_type: 'decimal',
@@ -82,7 +82,7 @@ describe('introspector', () => {
         })
     })
     test('enum field schema', () => {
-        const mysql_column: MysqlColumn = {
+        const sql_column: SqlColumn = {
             table_name: 'users',
             column_name: 'username',
             ordinal_position: 2,
@@ -91,7 +91,7 @@ describe('introspector', () => {
             data_type: 'enum',
             column_key: 'UNI',
         }
-        const field_schema = generate_field_schema(mysql_column)
+        const field_schema = generate_field_schema(sql_column)
 
         expect(field_schema).to.deep.equal({
             $data_type: 'enum',
@@ -100,14 +100,14 @@ describe('introspector', () => {
         })
     })
     test('unsigned field schema', () => {
-        const mysql_column: MysqlColumn = {
+        const sql_column: SqlColumn = {
             table_name: 'users',
             column_name: 'username',
             column_type: 'int(10) unsigned',
             ordinal_position: 2,
             data_type: 'int',
         }
-        const field_schema = generate_field_schema(mysql_column)
+        const field_schema = generate_field_schema(sql_column)
 
         expect(field_schema).to.deep.equal({
             $data_type: 'int',
@@ -116,7 +116,7 @@ describe('introspector', () => {
     })
 
     test('full schema test', () => {
-        const mysql_tables: MysqlTable[] = [
+        const sql_tables: SqlTable[] = [
             {
                 table_name: 'users',
                 table_comment: 'table of users',
@@ -127,7 +127,7 @@ describe('introspector', () => {
             },
         ]
 
-        const mysql_columns: MysqlColumn[] = [
+        const sql_columns: SqlColumn[] = [
             {
                 table_name: 'users',
                 column_name: 'id',
@@ -144,7 +144,7 @@ describe('introspector', () => {
             },
         ]
 
-        const mysql_foreign_keys: MysqlForeignKey[] = [
+        const sql_foreign_keys: SqlForeignKey[] = [
             {
                 table_name: 'posts',
                 column_name: 'user_id',
@@ -154,7 +154,7 @@ describe('introspector', () => {
             },
         ]
 
-        const mysql_indexes: MysqlIndex[] = [
+        const sql_indexes: SqlIndex[] = [
             {
                 // single column index
                 table_name: 'users',
@@ -177,10 +177,10 @@ describe('introspector', () => {
         ]
 
         const database_schema = generate_database_schema(
-            mysql_tables,
-            mysql_columns,
-            mysql_foreign_keys,
-            mysql_indexes,
+            sql_tables,
+            sql_columns,
+            sql_foreign_keys,
+            sql_indexes,
             'mysql'
         )
 
@@ -223,7 +223,7 @@ describe('introspector', () => {
         } as const satisfies OrmaSchema)
     })
     test('generates index schemas', () => {
-        const mysql_indexes: MysqlIndex[] = [
+        const sql_indexes: SqlIndex[] = [
             {
                 // single column index
                 table_name: 'users',
@@ -265,7 +265,7 @@ describe('introspector', () => {
         ]
 
         const index_schemas_by_table = generate_index_schemas(
-            mysql_indexes,
+            sql_indexes,
             false
         )
 
@@ -287,7 +287,7 @@ describe('introspector', () => {
         })
     })
     test('generates unique key schemas', () => {
-        const mysql_indexes: MysqlIndex[] = [
+        const sql_indexes: SqlIndex[] = [
             {
                 // combo unique
                 table_name: 'users',
@@ -329,7 +329,7 @@ describe('introspector', () => {
         ]
 
         const index_schemas_by_table = generate_index_schemas(
-            mysql_indexes,
+            sql_indexes,
             true
         )
 

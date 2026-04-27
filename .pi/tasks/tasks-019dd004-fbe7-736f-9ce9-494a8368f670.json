@@ -1,0 +1,17 @@
+{
+  "nextId": 3,
+  "tasks": [
+    {
+      "id": "2",
+      "subject": "Switch default branch from master to main",
+      "description": "1. Build the project to ensure it succeeds\n2. Commit the sql_ rename changes\n3. Create main branch from master\n4. Push main branch\n5. Update remote HEAD to point to main\n6. Push everything",
+      "status": "in_progress",
+      "activeForm": "Switching default branch to main",
+      "metadata": {},
+      "blocks": [],
+      "blockedBy": [],
+      "createdAt": 1777312086873,
+      "updatedAt": 1777312090967
+    }
+  ]
+}

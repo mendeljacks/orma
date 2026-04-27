@@ -14,7 +14,7 @@ import { sort_database_rows } from '../database_results/sort_database_rows'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { get_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
-import { MysqlFunction } from '../mutate'
+import { SqlFunction } from '../mutate'
 import { MutationPiece, MutationPlan } from '../plan/mutation_batches'
 
 /* 
@@ -43,7 +43,7 @@ Notes:
 
 export const get_delete_verification_errors = async (
     orma_schema: OrmaSchema,
-    mysql_function: MysqlFunction,
+    sql_function: SqlFunction,
     mutation_plan: Pick<MutationPlan, 'mutation_pieces' | 'guid_map'>
 ) => {
     const query = get_delete_verification_query(
@@ -54,7 +54,7 @@ export const get_delete_verification_errors = async (
     const results = (await orma_query(
         query,
         orma_schema,
-        mysql_function
+        sql_function
     )) as any
     const blocking_pieces = get_mutation_pieces_blocing_delete(
         orma_schema,

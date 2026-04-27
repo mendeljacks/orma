@@ -5,13 +5,13 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import { sort_database_rows } from '../database_results/sort_database_rows'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { get_identifying_where } from '../helpers/record_searching'
-import { MutationOperation, MysqlFunction } from '../mutate'
+import { MutationOperation, SqlFunction } from '../mutate'
 import { MutationPiece as MutationPieceNoUpsert } from '../plan/mutation_batches'
 import { GuidMap } from './guid_plan_macro'
 
 export const apply_upsert_macro = async (
     orma_schema: OrmaSchema,
-    mysql_function: MysqlFunction,
+    sql_function: SqlFunction,
     guid_map: GuidMap,
     mutation_pieces: MutationPiece[]
 ) => {
@@ -19,7 +19,7 @@ export const apply_upsert_macro = async (
     if (!query) {
         return
     }
-    const results = await orma_query(query, orma_schema, mysql_function)
+    const results = await orma_query(query, orma_schema, sql_function)
     apply_upsert_macro_given_data(
         orma_schema,
         guid_map,

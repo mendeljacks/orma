@@ -22,6 +22,7 @@ export {
     orma_mutate,
     orma_mutate_prepare,
     orma_mutate_run,
+    type SqlFunction,
     type MysqlFunction,
 } from './mutate/mutate'
 export { type OrmaStatement } from './mutate/statement_generation/mutation_statements'
@@ -44,7 +45,14 @@ export {
 export { type OrmaSchema } from './types/schema/schema_types'
 
 // adapters
-export { mysql2_adapter } from './helpers/database_adapters'
+export {
+    mysql2_adapter,
+    pg_adapter,
+    postgres_promise_transaction,
+} from './helpers/database_adapters'
+
+// prepopulate
+export { prepopulate, get_prepopulate_query } from './prepopulate/prepopulate'
 
 // sql to orma
 export { sql_to_orma_query, sql_to_orma_mutation } from './query/sql_to_orma'

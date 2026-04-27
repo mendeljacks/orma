@@ -13,14 +13,14 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import { path_to_entity } from '../helpers/mutate_helpers'
 import { get_identifying_where } from '../helpers/record_searching'
 import { GuidMap } from '../macros/guid_plan_macro'
-import { MysqlFunction } from '../mutate'
+import { SqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_batches'
 import { generate_statement } from '../statement_generation/mutation_statements'
 
 export const get_mutation_connected_errors = async (
     orma_schema: OrmaSchema,
     connection_edges: ConnectionEdges,
-    mysql_function: MysqlFunction,
+    sql_function: SqlFunction,
     guid_map: GuidMap,
     where_connecteds: WhereConnected<OrmaSchema>,
     mutation_pieces: MutationPiece[]
@@ -37,7 +37,7 @@ export const get_mutation_connected_errors = async (
         return []
     }
 
-    const ownership_results = await mysql_function(
+    const ownership_results = await sql_function(
         ownership_queries.map(ownership_query => {
             const entity = ownership_query.$from
             const database_type = orma_schema.$entities[entity].$database_type

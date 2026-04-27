@@ -23,9 +23,12 @@ import {
 
 export type MutationOperation = 'create' | 'update' | 'delete' | 'none'
 export type operation = MutationOperation | 'query'
-export type MysqlFunction = (
+export type SqlFunction = (
     statements: OrmaStatement[]
 ) => Promise<Record<string, any>[][]>
+
+/** @deprecated Use SqlFunction instead */
+export type MysqlFunction = SqlFunction
 
 export type ValuesByGuid = Record<string | number, any>
 
@@ -54,14 +57,14 @@ export const orma_mutate_prepare = (
 
 export const orma_mutate_run = async (
     orma_schema: OrmaSchema,
-    mysql_function: MysqlFunction,
+    sql_function: SqlFunction,
     mutation_plan: ReturnType<typeof orma_mutate_prepare>
 ) => {
     const { guid_map, mutation_pieces } = mutation_plan
 
     await apply_upsert_macro(
         orma_schema,
-        mysql_function,
+        sql_function,
         guid_map,
         mutation_pieces
     )
@@ -75,11 +78,11 @@ export const orma_mutate_run = async (
         )
 
         if (mutation_infos.length > 0) {
-            await mysql_function(mutation_infos)
+            await sql_function(mutation_infos)
         }
 
         if (query_infos.length > 0) {
-            const query_results = await mysql_function(query_infos)
+            const query_results = await sql_function(query_infos)
             const sorted_database_rows = sort_database_rows(
                 mutation_pieces,
                 guid_map,
@@ -101,13 +104,13 @@ export const orma_mutate_run = async (
 
 export const orma_mutate = async (
     input_mutation,
-    mysql_function: MysqlFunction,
+    sql_function: SqlFunction,
     orma_schema: OrmaSchema
 ) => {
     const mutation_plan = orma_mutate_prepare(orma_schema, input_mutation)
     const results = await orma_mutate_run(
         orma_schema,
-        mysql_function,
+        sql_function,
         mutation_plan
     )
     return results

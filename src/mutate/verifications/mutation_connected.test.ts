@@ -10,7 +10,7 @@ import {
     get_upwards_connection_edges
 } from '../../query/macros/where_connected_macro'
 import { WhereConnected } from '../../types/query/query_types'
-import { MysqlFunction } from '../mutate'
+import { SqlFunction } from '../mutate'
 import { MutationPiece } from '../plan/mutation_batches'
 import {
     get_foreign_key_connected_wheres,
@@ -33,7 +33,7 @@ describe('mutation_connected.ts', () => {
 
     describe(get_mutation_connected_errors.name, () => {
         test('integration test', async () => {
-            const query_function: MysqlFunction = async statements => [
+            const query_function: SqlFunction = async statements => [
                 [
                     {
                         id: 2
@@ -74,7 +74,7 @@ describe('mutation_connected.ts', () => {
             expect(errors.length).to.equal(1)
         })
         test('works when nothing is connected to ownership entity', async () => {
-            const query_function: MysqlFunction = async statements => []
+            const query_function: SqlFunction = async statements => []
 
             const mutation_pieces = []
 

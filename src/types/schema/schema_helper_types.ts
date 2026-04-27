@@ -1,4 +1,4 @@
-import { mysql_to_typescript_types } from '../../schema/introspector'
+import { sql_to_typescript_types } from '../../schema/introspector'
 import { ForeignKeyEdge, OrmaSchema } from '../schema/schema_types'
 
 export type DeepReadonly<T> = T extends (infer R)[]
@@ -128,7 +128,7 @@ export type GetFieldType<
           }
               ? Schema['$entities'][Entity]['$fields'][Field]['$enum_values'][number]
               : FieldTypeStringToType<
-                    MysqlToTypescriptTypeString<
+                    SqlToTypescriptTypeString<
                         NonNullable<
                             Schema['$entities'][Entity]['$fields'][Field]['$data_type']
                         >
@@ -150,12 +150,12 @@ export type GetFieldSchema<
     ? Schema['$entities'][Entity]['$fields'][Field]
     : any
 
-type MysqlToTypescriptTypeString<
-    TypeString extends keyof typeof mysql_to_typescript_types
-> = (typeof mysql_to_typescript_types)[TypeString]
+type SqlToTypescriptTypeString<
+    TypeString extends keyof typeof sql_to_typescript_types
+> = (typeof sql_to_typescript_types)[TypeString]
 
 type FieldTypeStringToType<
-    TypeString extends (typeof mysql_to_typescript_types)[keyof typeof mysql_to_typescript_types]
+    TypeString extends (typeof sql_to_typescript_types)[keyof typeof sql_to_typescript_types]
 > = TypeString extends 'string'
     ? string
     : TypeString extends 'number'
