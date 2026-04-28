@@ -23,6 +23,7 @@ export const sql_to_typescript_types = {
     enum: 'enum',
     float: 'number',
     int: 'number',
+    integer: 'number',
     longblob: 'not_supported',
     longtext: 'string',
     mediumblob: 'not_supported',
@@ -33,12 +34,20 @@ export const sql_to_typescript_types = {
     text: 'string',
     time: 'string',
     timestamp: 'string',
+    'timestamp without time zone': 'string',
+    'timestamp with time zone': 'string',
     tinyblob: 'not_supported',
     tinyint: 'boolean',
     tinytext: 'string',
+    uuid: 'string',
     varbinary: 'string',
     varchar: 'string',
+    'character varying': 'string',
     json: 'string',
+    jsonb: 'string',
+    'double precision': 'number',
+    'user-defined': 'string',
+    array: 'string',
 } as const
 
 export const orma_introspect = async (
