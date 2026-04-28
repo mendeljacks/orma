@@ -183,7 +183,10 @@ const get_ancestor_where_clause = (
         entity_to_ancestor_edge_path,
         '$where',
         {
-            $in: [edge_under_ancestor.to_field, ancestor_foreign_key_values],
+            $in: [
+                edge_under_ancestor.to_field,
+                ancestor_foreign_key_values.map(val => ({ $escape: val })),
+            ],
         }
     )
 

@@ -32,7 +32,7 @@ describe('nesting_macro.ts', () => {
                         id: true,
                         post_id: true,
                         $where: {
-                            $in: ['post_id', [1, 2]]
+                            $in: ['post_id', [{ $escape: 1 }, { $escape: 2 }]]
                         }
                     }
                 }
@@ -71,7 +71,7 @@ describe('nesting_macro.ts', () => {
                                         $select: ['id'],
                                         $from: 'posts',
                                         $where: {
-                                            $in: ['user_id', [1, 2]]
+                                            $in: ['user_id', [{ $escape: 1 }, { $escape: 2 }]]
                                         }
                                     }
                                 ]
@@ -112,7 +112,7 @@ describe('nesting_macro.ts', () => {
                         $where: { $gt: ['id', 0] },
                         comments: {
                             $where: {
-                                $in: ['post_id', [3]]
+                                $in: ['post_id', [{ $escape: 3 }]]
                             }
                         }
                     }
@@ -163,13 +163,13 @@ describe('nesting_macro.ts', () => {
                                     $gt: ['id', 0]
                                 },
                                 {
-                                    $in: ['user_id', [1]]
+                                    $in: ['user_id', [{ $escape: 1 }]]
                                 }
                             ]
                         },
                         comments: {
                             $where: {
-                                $in: ['post_id', [3]]
+                                $in: ['post_id', [{ $escape: 3 }]]
                             }
                         }
                     }
@@ -213,7 +213,7 @@ describe('nesting_macro.ts', () => {
                                         $select: ['id'],
                                         $from: 'posts',
                                         $where: {
-                                            $in: ['user_id', [1, 2]]
+                                            $in: ['user_id', [{ $escape: 1 }, { $escape: 2 }]]
                                         }
                                     }
                                 ]
@@ -273,7 +273,13 @@ describe('nesting_macro.ts', () => {
                                                     }
                                                 },
                                                 {
-                                                    $in: ['id', [1, 2]]
+                                                    $in: [
+                                                        'id',
+                                                        [
+                                                            { $escape: 1 },
+                                                            { $escape: 2 }
+                                                        ]
+                                                    ]
                                                 }
                                             ]
                                         }
