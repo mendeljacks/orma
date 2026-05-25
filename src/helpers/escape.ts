@@ -5,22 +5,29 @@ import { SupportedDatabases } from '../types/schema/schema_types'
 import { is_simple_object } from './helpers'
 
 /**
- * Small wrapper over sqlstring escape to prevent sqlstring from casting numbers into strings
- * (which it does for some reason)
+ * Wraps database-specific escape functions with type-aware handling so that
+ * primitives like numbers and booleans don't blow up in escape functions that
+ * only expect strings (e.g. pg_escape.literal calling val.indexOf).
  */
 export const orma_escape = (val: any, database_type: SupportedDatabases) => {
-    const parse_functions = {
-        mysql: val => escape_mysql(val, true, '+00'),
-        sqlite: val => escape_sqlite(val, true, '+00'),
-        postgres: pg_escape.literal,
+    // Booleans: emit proper SQL literals per dialect
+    if (typeof val === 'boolean') {
+        if (database_type === 'sqlite') return val ? 1 : 0 // sqlite has no native bool
+        return val ? 'TRUE' : 'FALSE' // postgres / mysql
     }
 
-    const escape_fn = parse_functions[database_type]
-
     // guids could get in here, dont escape them. Note other object-like things such as 
-    // Dates and arrays should be parsed.
+    // Dates and arrays be parsed.
     const dont_parse =
         typeof val === 'number' || is_simple_object(val)
 
-    return dont_parse ? val : escape_fn(val)
+    if (dont_parse) return val
+
+    const escape_fn = {
+        mysql: val => escape_mysql(val, true, '+00'),
+        sqlite: val => escape_sqlite(val, true, '+00'),
+        postgres: pg_escape.literal,
+    }[database_type]
+
+    return escape_fn(val)
 }
