@@ -6,13 +6,21 @@ import { is_simple_object } from './helpers'
 
 /**
  * Small wrapper over sqlstring escape to prevent sqlstring from casting numbers into strings
- * (which it does for some reason)
+ * (which it does for some reason), and to handle JS booleans which crash
+ * pg-escape-browser.literal() if passed through unconverted.
  */
 export const orma_escape = (val: any, database_type: SupportedDatabases) => {
     const parse_functions = {
         mysql: val => escape_mysql(val, true, '+00'),
         sqlite: val => escape_sqlite(val, true, '+00'),
-        postgres: pg_escape.literal,
+        // pg-escape-browser.literal() throws on JS booleans. Convert to the
+        // strings "1"/"0" which both Postgres and the escape function accept,
+        // and which match the boolean literal representation orma's validator
+        // expects (allowed_values: [0, 1, '0', '1', true, false]).
+        postgres: (val: any) =>
+            typeof val === 'boolean'
+                ? pg_escape.literal(val ? '1' : '0')
+                : pg_escape.literal(val),
     }
 
     const escape_fn = parse_functions[database_type]

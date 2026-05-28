@@ -1,83 +1,83 @@
 {
-    "name": "orma",
-    "version": "1.0.280",
-    "description": "A declarative relational syncronous orm",
-    "main": "build/index.js",
-    "scripts": {
-        "build": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc",
-        "bump": "npm version patch --no-git-tag-version && git add package*.json",
-        "deploy": "npm publish --access public",
-        "test": "mocha --package package.json",
-        "nt": "nodemon --exec npm run test",
-        "coverage": "nodemon --exec nyc --reporter=lcov --reporter=html npm run test"
+  "name": "orma",
+  "version": "1.0.281",
+  "description": "A declarative relational syncronous orm",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc",
+    "bump": "npm version patch --no-git-tag-version && git add package*.json",
+    "deploy": "npm publish --access public",
+    "test": "mocha --package package.json",
+    "nt": "nodemon --exec npm run test",
+    "coverage": "nodemon --exec nyc --reporter=lcov --reporter=html npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mendeljacks/orma.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "keywords": [
+    "orm",
+    "database",
+    "mysql",
+    "postgresql",
+    "declarative"
+  ],
+  "bugs": {
+    "url": "https://github.com/mendeljacks/orma/issues"
+  },
+  "homepage": "https://github.com/mendeljacks/orma#readme",
+  "contributors": [
+    {
+      "name": "Mendel Jacks",
+      "email": "mendeljacks@gmail.com",
+      "url": "http://mendeljacks.com"
     },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/mendeljacks/orma.git"
-    },
-    "author": "",
-    "license": "MIT",
-    "keywords": [
-        "orm",
-        "database",
-        "mysql",
-        "postgresql",
-        "declarative"
-    ],
-    "bugs": {
-        "url": "https://github.com/mendeljacks/orma/issues"
-    },
-    "homepage": "https://github.com/mendeljacks/orma#readme",
-    "contributors": [
-        {
-            "name": "Mendel Jacks",
-            "email": "mendeljacks@gmail.com",
-            "url": "http://mendeljacks.com"
-        },
-        {
-            "name": "Daniel Jacks",
-            "email": "danielchaimjacks@gmail.com"
-        }
-    ],
-    "devDependencies": {
-        "@types/chai": "^4.3.3",
-        "@types/mocha": "^9.1.1",
-        "@types/node": "^18.7.15",
-        "@types/sqlstring": "^2.3.0",
-        "ajv": "^8.11.0",
-        "chai": "^4.3.6",
-        "mocha": "^10.0.0",
-        "nyc": "^15.1.0",
-        "sql-formatter": "^10.4.0",
-        "sqlite3": "^5.1.4",
-        "sucrase": "^3.29.0",
-        "typescript": "^5.3.2"
-    },
-    "mocha": {
-        "require": [
-            "sucrase/register/ts"
-        ],
-        "spec": "src/**/*.test.ts",
-        "timeout": 0
-    },
-    "nodemonConfig": {
-        "verbose": true,
-        "legacyWatch": true,
-        "ignore": [
-            "node_modules",
-            "build"
-        ],
-        "watch": [
-            "./"
-        ],
-        "exec": "npm test",
-        "ext": "ts, js, jsx"
-    },
-    "dependencies": {
-        "jsonschema": "^1.4.0",
-        "node-sql-parser": "^5.4.0",
-        "pg-escape-browser": "^0.1.0",
-        "sqlstring": "^2.3.3",
-        "sqlstring-sqlite": "^0.1.1"
+    {
+      "name": "Daniel Jacks",
+      "email": "danielchaimjacks@gmail.com"
     }
+  ],
+  "devDependencies": {
+    "@types/chai": "^4.3.3",
+    "@types/mocha": "^9.1.1",
+    "@types/node": "^18.7.15",
+    "@types/sqlstring": "^2.3.0",
+    "ajv": "^8.11.0",
+    "chai": "^4.3.6",
+    "mocha": "^10.0.0",
+    "nyc": "^15.1.0",
+    "sql-formatter": "^10.4.0",
+    "sqlite3": "^5.1.4",
+    "sucrase": "^3.29.0",
+    "typescript": "^5.3.2"
+  },
+  "mocha": {
+    "require": [
+      "sucrase/register/ts"
+    ],
+    "spec": "src/**/*.test.ts",
+    "timeout": 0
+  },
+  "nodemonConfig": {
+    "verbose": true,
+    "legacyWatch": true,
+    "ignore": [
+      "node_modules",
+      "build"
+    ],
+    "watch": [
+      "./"
+    ],
+    "exec": "npm test",
+    "ext": "ts, js, jsx"
+  },
+  "dependencies": {
+    "jsonschema": "^1.4.0",
+    "node-sql-parser": "^5.4.0",
+    "pg-escape-browser": "^0.1.0",
+    "sqlstring": "^2.3.3",
+    "sqlstring-sqlite": "^0.1.1"
+  }
 }
