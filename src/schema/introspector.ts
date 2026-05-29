@@ -172,7 +172,11 @@ export const generate_database_schema = (
         el => el.table_name
     )
 
-    const database_schema = sql_tables.reduce(
+    const sorted_sql_tables = sql_tables
+        .slice()
+        .sort((a, b) => sort_by_prop(a, b, 'table_name'))
+
+    const database_schema = sorted_sql_tables.reduce(
         (acc, sql_table) => {
             const sorted_sql_columns = sql_columns_by_table[
                 sql_table.table_name
@@ -437,7 +441,10 @@ export const generate_orma_schema_cache = (
 ): OrmaSchemaCache | undefined => {
     const fk_cache: OrmaSchemaCache['$reversed_foreign_keys'] = {}
 
-    const entities = Object.keys($entities)
+    // Iterate entities in a deterministic order so the order things get
+    // pushed onto each reversed-FK array is independent of whatever order
+    // Postgres returns rows from INFORMATION_SCHEMA.
+    const entities = Object.keys($entities).sort()
 
     entities.forEach(entity => {
         $entities[entity].$foreign_keys?.forEach(foreign_key => {
@@ -454,9 +461,26 @@ export const generate_orma_schema_cache = (
         })
     })
 
-    return Object.keys(fk_cache).length > 0
+    // Sort each reversed-FK array by a stable composite key so the array order
+    // is independent of declaration order or migration-rewrite history.
+    const sorted_fk_cache: OrmaSchemaCache['$reversed_foreign_keys'] = {}
+    for (const key of Object.keys(fk_cache).sort()) {
+        sorted_fk_cache[key] = fk_cache[key]
+            .slice()
+            .sort((a, b) => {
+                if (a.to_entity !== b.to_entity)
+                    return a.to_entity < b.to_entity ? -1 : 1
+                if (a.to_field !== b.to_field)
+                    return a.to_field < b.to_field ? -1 : 1
+                if (a.from_field !== b.from_field)
+                    return a.from_field < b.from_field ? -1 : 1
+                return 0
+            })
+    }
+
+    return Object.keys(sorted_fk_cache).length > 0
         ? {
-              $reversed_foreign_keys: fk_cache,
+              $reversed_foreign_keys: sorted_fk_cache,
           }
         : undefined
 }
