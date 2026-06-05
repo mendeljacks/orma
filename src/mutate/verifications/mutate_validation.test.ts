@@ -275,6 +275,70 @@ describe('mutation_validation', () => {
                 ['categories', 2, 'label'],
             ])
         })
+        test('does not treat datetime $precision as a max character length', () => {
+            // postgres returns datetime_precision (e.g. 3 for millisecond
+            // precision) in the same field that is otherwise used for character
+            // length. Make sure timestamp values are not rejected just because
+            // their string representation is longer than that precision, and
+            // that garbage strings are still rejected.
+            const schema = {
+                $entities: {
+                    events: {
+                        $fields: {
+                            id: { $data_type: 'int', $not_null: true },
+                            created_at: {
+                                $data_type: 'timestamp',
+                                $precision: 3,
+                            },
+                            day: {
+                                $data_type: 'date',
+                            },
+                            at_time: {
+                                $data_type: 'time',
+                            },
+                        },
+                        $database_type: 'postgres',
+                        $primary_key: { $fields: ['id'] },
+                    },
+                },
+            } as const
+
+            const ok_mutation = {
+                $operation: 'create',
+                events: [
+                    {
+                        id: 1,
+                        created_at: '2024-01-02T03:04:05.678Z',
+                        day: '2024-01-02',
+                        at_time: '13:45:00',
+                    },
+                ],
+            } as const
+            expect(
+                validate_mutation(ok_mutation, schema as any)
+            ).to.have.lengthOf(0)
+
+            const bad_mutation = {
+                $operation: 'create',
+                events: [
+                    {
+                        id: 1,
+                        created_at: 'hellooopsrandom string',
+                        day: 'not a date',
+                        at_time: 'noon',
+                    },
+                ],
+            } as const
+            const bad_paths = validate_mutation(
+                bad_mutation,
+                schema as any
+            ).map(e => e.path)
+            expect(bad_paths).to.deep.equal([
+                ['events', 0, 'created_at'],
+                ['events', 0, 'day'],
+                ['events', 0, 'at_time'],
+            ])
+        })
         test('requires valid number', () => {
             const test_mutation = {
                 $operation: 'create',

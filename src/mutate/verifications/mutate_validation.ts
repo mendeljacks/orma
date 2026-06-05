@@ -17,6 +17,21 @@ import { OrmaSchema } from '../../types/schema/schema_types'
 import { get_foreign_keys_in_mutation } from '../helpers/get_foreign_keys_in_mutation'
 import { MutationOperation } from '../mutate'
 
+// Date-like SQL types whose `$precision` refers to fractional-seconds
+// precision (not character length). Validated by Date.parse.
+const DATE_LIKE_DATA_TYPES = new Set([
+    'date',
+    'datetime',
+    'timestamp',
+    'timestamp without time zone',
+    'timestamp with time zone',
+])
+// Time-only types — Date.parse can't handle bare time strings, use a regex.
+const TIME_ONLY_DATA_TYPES = new Set(['time'])
+// HH:MM[:SS[.fff]] (24h), optional Z or ±HH[:]MM timezone suffix.
+const TIME_REGEX =
+    /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/
+
 export const mutate_validation_schema = {
     type: 'object',
     properties: {
@@ -406,6 +421,34 @@ const validate_field = (
 
         // cast from string / boolean
         const string_field_value = field_value?.toString() ?? ''
+
+        // For date/time data types, $precision refers to fractional seconds
+        // precision (e.g. postgres `timestamp` has precision 3 for
+        // milliseconds), not a maximum character length. Validate the value
+        // is a parseable date/time instead.
+        if (DATE_LIKE_DATA_TYPES.has(required_data_type)) {
+            if (isNaN(Date.parse(string_field_value))) {
+                return [
+                    {
+                        message: `${entity_name} ${field_name} is not a valid ${required_data_type} value.`,
+                        path: field_path,
+                    },
+                ]
+            }
+            return []
+        }
+        if (TIME_ONLY_DATA_TYPES.has(required_data_type)) {
+            if (!TIME_REGEX.test(string_field_value)) {
+                return [
+                    {
+                        message: `${entity_name} ${field_name} is not a valid ${required_data_type} value.`,
+                        path: field_path,
+                    },
+                ]
+            }
+            return []
+        }
+
         const max_character_count = field_schema.$precision ?? Infinity
         const given_character_count = string_field_value.length
         const length_errors =
