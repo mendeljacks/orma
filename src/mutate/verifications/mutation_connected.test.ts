@@ -632,6 +632,101 @@ describe('mutation_connected.ts', () => {
 
             expect(wheres).to.deep.equal([])
         })
+        test('escapes UUID string foreign keys (postgres)', () => {
+            // Regression test: UUID primary keys are 128-bit hex strings that MUST be
+            // quoted in Postgres (e.g. '440d8f3e-1234-...'). Previously, the ownership
+            // verification code emitted raw unquoted strings into $in clauses, causing
+            // SQL syntax errors. This test verifies the values are properly escaped.
+            const uuid_schema = {
+                $entities: {
+                    vendors: {
+                        $database_type: 'postgres',
+                        $fields: {
+                            id: { $data_type: 'uuid', $not_null: true },
+                            name: { $data_type: 'varchar' }
+                        },
+                        $primary_key: { $fields: ['id'] }
+                    },
+                    vehicles: {
+                        $database_type: 'postgres',
+                        $fields: {
+                            id: { $data_type: 'uuid', $not_null: true },
+                            vendor_id: { $data_type: 'uuid', $not_null: true }
+                        },
+                        $primary_key: { $fields: ['id'] },
+                        $foreign_keys: [
+                            {
+                                $fields: ['vendor_id'],
+                                $references: {
+                                    $entity: 'vendors',
+                                    $fields: ['id']
+                                }
+                            }
+                        ]
+                    }
+                },
+                $cache: {
+                    $reversed_foreign_keys: {
+                        vendors: [
+                            {
+                                from_field: 'id',
+                                to_entity: 'vehicles',
+                                to_field: 'vendor_id'
+                            }
+                        ]
+                    }
+                }
+            } as any
+
+            const uuid_connection_edges =
+                get_upwards_connection_edges(uuid_schema)
+
+            const uuid_where_connected = {
+                $entity: 'vendors' as any,
+                $field: 'id',
+                $values: ['440d8f3e-aaaa-bbbb-cccc-dddddddddddd']
+            }
+
+            const mutation_pieces: MutationPiece[] = [
+                {
+                    record: {
+                        $operation: 'create',
+                        vendor_id: '440d8f3e-1234-5678-9abc-def012345678'
+                    },
+                    path: ['vehicles', 0]
+                },
+                {
+                    record: {
+                        $operation: 'create',
+                        vendor_id: '550e8f3e-1234-5678-9abc-def012345678'
+                    },
+                    path: ['vehicles', 1]
+                }
+            ]
+
+            const wheres = get_foreign_key_connected_wheres(
+                uuid_schema,
+                uuid_connection_edges,
+                uuid_where_connected as any,
+                mutation_pieces,
+                [0, 1],
+                'vehicles'
+            )
+
+            // The UUIDs should be quoted as Postgres string literals.
+            // Before the fix, these would have been raw unquoted strings.
+            expect(wheres).to.deep.equal([
+                {
+                    $in: [
+                        'id',
+                        [
+                            "'440d8f3e-1234-5678-9abc-def012345678'",
+                            "'550e8f3e-1234-5678-9abc-def012345678'"
+                        ]
+                    ]
+                }
+            ])
+        })
     })
 })
 

@@ -227,9 +227,14 @@ export const get_foreign_key_connected_wheres = (
                     // ignore any values with a guid since they must refer to something in this mutation,
                     // but that row must belong to us if it passes ownership
                     const has_guid = value?.$guid !== undefined
-                    // ignore null values, e.g. a foreign key thats null will not cause a foreign key check to occur
-                    const is_null = value === null
-                    return has_guid || is_null ? undefined : value
+                    // ignore null/undefined values, e.g. a foreign key thats null (or missing
+                    // from the record) will not cause a foreign key check to occur
+                    const is_null = value === null || value === undefined
+                    // Wrap in $escape so that apply_escape_macro_to_query_part (called below)
+                    // properly quotes string values such as UUIDs. Without this, raw string
+                    // values are emitted unquoted into the SQL, which breaks for non-integer
+                    // primary keys (e.g. UUIDs in Postgres must be quoted: '440d8f3e-...').
+                    return has_guid || is_null ? undefined : { $escape: value }
                 })
                 .filter(el => el !== undefined)
 
@@ -247,6 +252,12 @@ export const get_foreign_key_connected_wheres = (
             const parent_where = {
                 $in: [parent_field, values]
             }
+
+            // Escape the values in the $in clause (e.g. quote string UUIDs) so that the
+            // generated SQL is valid. This mirrors what get_identifier_connected_wheres does
+            // for its identifying where clause. Without this, string values like UUIDs would
+            // be emitted unquoted, causing a SQL syntax error in Postgres.
+            apply_escape_macro_to_query_part(orma_schema, entity, parent_where)
 
             if (search_ownership_path.length === 0) {
                 // this happends when the entity is a direct child of the ownership table.
